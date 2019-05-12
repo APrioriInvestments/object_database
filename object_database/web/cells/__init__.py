@@ -16,7 +16,6 @@ from object_database.web.cells.cells import (
     Slot,
     SessionState,
     Cell,
-    Card,
     CardTitle,
     Modal,
     Octicon,
@@ -36,7 +35,6 @@ from object_database.web.cells.cells import (
     Container,
     Scrollable,
     RootCell,
-    Traceback,
     Code,
     ContextualDisplay,
     Subscribed,
@@ -65,3 +63,6 @@ from object_database.web.cells.CellsTestMixin import CellsTestMixin
 from object_database.web.cells.util import waitForCellsCondition
 
 MAX_FPS = 10
+
+from object_database.web.cells.traceback import Traceback
+from object_database.web.cells.card import Card

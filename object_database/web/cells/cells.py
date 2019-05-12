@@ -23,6 +23,7 @@ import gevent
 import gevent.fileobject
 import threading
 import numpy
+import object_database
 
 from inspect import signature
 
@@ -32,11 +33,22 @@ from object_database.util import Timer
 from object_database.web.html.html_gen import HTMLElement, HTMLTextContent
 from typed_python.Codebase import Codebase as TypedPythonCodebase
 
+
 MAX_TIMEOUT = 1.0
 MAX_TRIES = 10
 
 _cur_cell = threading.local()
 
+def getTracebackType():
+    # we are guaranteed that by the time we run this function,
+    # the 'object_database.web.cells.traceback' module will have
+    # been imported by 'object_databse.web.cells', so the fully
+    # qualified name will resolve correctly
+    return object_database.web.cells.traceback.Traceback
+
+def makeTracebackCell(tracebackText):
+    """Create an alert-style Traceback cell with a stacktace rendered as code."""
+    return object_database.web.cells.traceback.Traceback(tracebackText)
 
 def registerDisplay(type, **context):
     """Register a display function for any instances of a given type. For instance
@@ -435,7 +447,7 @@ class Cells:
                         "Node %s had exception during recalculation:\n%s", n, traceback.format_exc())
                     self._logger.error(
                         "Subscribed cell threw an exception:\n%s", traceback.format_exc())
-                    n.children = {'____contents__': Traceback(
+                    n.children = {'____contents__': makeTracebackCell(
                         traceback.format_exc())}
                     n.contents = "____contents__"
                 finally:
@@ -484,7 +496,7 @@ class Cells:
         return res
 
     def childrenWithExceptions(self):
-        return self._root.findChildrenMatching(lambda cell: isinstance(cell, Traceback))
+        return self._root.findChildrenMatching(lambda cell: isinstance(cell, getTracebackType()))
 
     def findChildrenByTag(self, tag, stopSearchingAtFoundTag=True):
         return self._root.findChildrenByTag(
@@ -701,7 +713,9 @@ class Cell:
         return self.children[sorted(self.children)[ix]]
 
     def childrenWithExceptions(self):
-        return self.findChildrenMatching(lambda cell: isinstance(cell, Traceback))
+        return self.findChildrenMatching(
+            lambda cell: isinstance(cell, getTracebackType())
+        )
 
     def onMessageWithTransaction(self, *args):
         """Call our inner 'onMessage' function with a transaction and a revision conflict retry loop."""
@@ -891,44 +905,6 @@ class Cell:
             return self.parent.getContext(contextKey)
 
         return None
-
-
-class Card(Cell):
-    def __init__(self, body, header=None, padding=None):
-        super().__init__()
-
-        self.padding = padding
-        self.body = body
-        self.header = header
-
-    def recalculate(self):
-        self.children = {"____contents__": Cell.makeCell(self.body)}
-
-        other = ""
-        if self.padding:
-            other += " p-" + str(self.padding)
-
-        body = HTMLElement.div().add_class(
-            "card-body").add_class(
-                other).add_child(
-                    HTMLTextContent(" ____contents__"))
-        card = HTMLElement.div().add_class("card")
-
-        if self.header is not None:
-            header = HTMLElement.div().add_class(
-                "card-header").add_child(
-                    HTMLTextContent("____header__")
-            )
-            self.children['____header__'] = Cell.makeCell(self.header)
-            card.add_child(header)
-
-        card.add_child(body)
-        card.attributes["style"] = self._divStyle()
-
-        self.contents = str(card)
-
-    def sortsAs(self):
-        return self.contents.sortsAs()
 
 
 class CardTitle(Cell):
@@ -1684,24 +1660,6 @@ class RootCell(Container):
         self.setContents(str(childElement), {"____c__": child})
 
 
-class Traceback(Cell):
-    def __init__(self, traceback):
-        super().__init__()
-        self.contents = str(
-            HTMLElement.div()
-            .add_classes(['alert', 'alert-primary'])
-            .add_child(
-                HTMLElement.pre()
-                .add_child(HTMLTextContent('____child__'))
-            )
-        )
-        self.traceback = traceback
-        self.children = {"____child__": Cell.makeCell(traceback)}
-
-    def sortsAs(self):
-        return self.traceback
-
-
 class Code(Cell):
     def __init__(self, codeContents):
         super().__init__()
@@ -1760,7 +1718,7 @@ class ContextualDisplay(Cell):
         if hasattr(self.obj, "cellDisplay"):
             return self.obj.cellDisplay()
 
-        return Traceback(f"Invalid object of type {type(self.obj)}")
+        return makeTracebackCell(f"Invalid object of type {type(self.obj)}")
 
     def recalculate(self):
         with self.view():
@@ -1801,7 +1759,7 @@ class Subscribed(Cell):
             except SubscribeAndRetry:
                 raise
             except Exception:
-                self.children = {'____contents__': Traceback(
+                self.children = {'____contents__': makeTracebackCell(
                     traceback.format_exc())}
                 self._logger.error(
                     "Subscribed inner function threw exception:\n%s", traceback.format_exc())
@@ -1857,8 +1815,9 @@ class SubscribedSequence(Cell):
                     except SubscribeAndRetry:
                         raise
                     except Exception:
-                        self.existingItems[rowKey] = new_children["____child_%s__" % ix] = Traceback(
-                            traceback.format_exc())
+                        self.existingItems[rowKey] = new_children["____child_%s__" % ix] = makeTracebackCell(
+                            traceback.format_exc()
+                        )
 
         self.children = new_children
 
@@ -2009,7 +1968,7 @@ class Grid(Cell):
                 except Exception:
                     self.existingItems[(None, col)] = \
                         new_children["____header_%s__" % col_ix] = \
-                        Traceback(traceback.format_exc())
+                        makeTracebackCell(traceback.format_exc())
 
         if self.rowLabelFun is not None:
             for row_ix, row in enumerate(self.rows):
@@ -2027,7 +1986,7 @@ class Grid(Cell):
                     except Exception:
                         self.existingItems[(row, None)] = \
                             new_children["____rowlabel_%s__" % row_ix] = \
-                            Traceback(traceback.format_exc())
+                            makeTracebackCell(traceback.format_exc())
 
         seen = set()
         for row_ix, row in enumerate(self.rows):
@@ -2046,7 +2005,7 @@ class Grid(Cell):
                     except Exception:
                         self.existingItems[(row, col)] = \
                             new_children["____child_%s_%s__" % (row_ix, col_ix)] = \
-                            Traceback(traceback.format_exc())
+                            makeTracebackCell(traceback.format_exc())
 
         self.children = new_children
 
@@ -2284,7 +2243,7 @@ class Table(Cell):
                 Button(Octicon("x"), lambda: self.columnFilters[col].set(
                     None), small=True)
 
-        return Card(res, padding=1)
+        return object_database.web.cells.card.Card(res, padding=1)
 
     def recalculate(self):
         with self.view() as v:
@@ -2329,7 +2288,7 @@ class Table(Cell):
                 except Exception:
                     self.existingItems[(None, col)] = \
                         new_children["____header_%s__" % col_ix] = \
-                        Traceback(traceback.format_exc())
+                        makeTracebackCell(traceback.format_exc())
 
         seen = set()
         for row_ix, row in enumerate(self.rows):
@@ -2348,7 +2307,7 @@ class Table(Cell):
                     except Exception:
                         self.existingItems[(row, col)] = \
                             new_children["____child_%s_%s__" % (row_ix, col_ix)] = \
-                            Traceback(traceback.format_exc())
+                            makeTracebackCell(traceback.format_exc())
 
         self.children = new_children
 
@@ -2923,7 +2882,9 @@ class Sheet(Cell):
             )
         )
         self.children = {
-            '____error__': Subscribed(lambda: Traceback(self.error.get()) if self.error.get() is not None else Text(""))
+            '____error__': Subscribed(
+                lambda: makeTracebackCell(self.error.get()) if self.error.get() is not None else Text("")
+            )
         }
 
         self.postscript = (
@@ -3078,7 +3039,9 @@ class Plot(Cell):
         )
         self.children = {
             '____chart_updater__': Subscribed(lambda: _PlotUpdater(self)),
-            '____error__': Subscribed(lambda: Traceback(self.error.get()) if self.error.get() is not None else Text(""))
+            '____error__': Subscribed(
+                lambda: makeTracebackCell(self.error.get()) if self.error.get() is not None else Text("")
+            )
         }
 
         self.postscript = """

@@ -1503,6 +1503,10 @@ class NativeTypesTests(unittest.TestCase):
             (1, 2, 3), TupleOf(int)([1, 2, 3])
         )
 
+    def test_can_convert_numpy_scalars(self):
+        self.assertEqual(OneOf(int, float)(numpy.int64(10)), 10)
+        self.assertEqual(OneOf(int, float)(numpy.float64(10.5)), 10.5)
+
     def test_other_bitness_types(self):
         # verify we can cast around non-64-bit values in a way that matches numpy
         typeAndNumpyType = [
@@ -1823,3 +1827,10 @@ class NativeTypesTests(unittest.TestCase):
 
         self.assertFalse(isSimple(OneOf(int, X)))
         self.assertTrue(isSimple(OneOf(int, float)))
+
+    def test_oneof_picks_best_choice(self):
+        T = OneOf(float, int, bool)
+
+        self.assertIsInstance(T(1.5), float)
+        self.assertIsInstance(T(1), int)
+        self.assertIsInstance(T(True), bool)

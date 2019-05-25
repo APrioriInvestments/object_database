@@ -16,7 +16,6 @@
 #pragma once
 
 #include "../Type.hpp"
-#include "../PyInstance.hpp"
 
 class Bytes {
 public:

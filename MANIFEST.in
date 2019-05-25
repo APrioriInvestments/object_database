@@ -3,3 +3,7 @@ include object_database/web/content/*.html
 include object_database/web/templates/*.html
 include object_database/service_manager/aws/*.sh
 include object_database/logging.yaml
+include typed_python/*.hpp
+include typed_python/direct_types/*.hpp
+include object_database/*.hpp
+include nativepython/*.hpp

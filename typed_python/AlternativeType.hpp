@@ -71,7 +71,7 @@ public:
         for (auto& method_pair: m_methods) {
             Type* t = (Type*)method_pair.second;
             visitor(t);
-            assert(t == method_pair.second);
+            assert((Type*)t == (Type*)method_pair.second);
         }
     }
 

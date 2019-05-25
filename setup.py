@@ -73,7 +73,7 @@ setuptools.setup(
     description='Tools for generating machine code using python.',
     author='Braxton Mckee',
     author_email='braxton.mckee@gmail.com',
-    url='https://github.com/braxtonmckee/nativepython',
+    url='https://github.com/APrioriInvestments/nativepython',
     packages=setuptools.find_packages(),
     cmdclass={'build_ext': NumpyBuildExtension},
     ext_modules=ext_modules,

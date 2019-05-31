@@ -17,6 +17,7 @@
 #pragma once
 
 #include "Type.hpp"
+#include "VTable.hpp"
 
 class Instance;
 
@@ -24,7 +25,13 @@ class Class : public Type {
     class layout {
     public:
         std::atomic<int64_t> refcount;
+        MultiVTable* vtable;
         unsigned char data[];
+
+        //determine the runtime type from the actual instance
+        Type* getType() {
+            return vtable->m_type;
+        }
     };
 
 public:
@@ -36,6 +43,7 @@ public:
         m_is_default_constructible = inClass->is_default_constructible();
         m_name = m_heldClass->name();
         m_is_simple = false;
+        m_vtable.m_type = this;
 
         endOfConstructorInitialization(); // finish initializing the type object.
     }
@@ -143,6 +151,7 @@ public:
         *(layout**)self = (layout*)malloc(sizeof(layout) + m_heldClass->bytecount());
         layout& l = **(layout**)self;
         l.refcount = 1;
+        l.vtable = &m_vtable;
 
         try {
             m_heldClass->constructor(l.data, initializer);
@@ -199,9 +208,9 @@ public:
         return m_heldClass;
     }
 
-
-
 private:
     HeldClass* m_heldClass;
+
+    MultiVTable m_vtable;
 };
 

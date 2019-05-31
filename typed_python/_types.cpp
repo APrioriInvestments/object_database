@@ -406,7 +406,7 @@ PyObject *MakeFunctionType(PyObject* nullValue, PyObject* args) {
             return NULL;
         }
 
-        std::vector<Function::FunctionArg> argList;
+        std::vector<FunctionArgType> argList;
 
         for (long k = 0; k < PyTuple_Size(argTuple); k++) {
             PyObjectHolder kTup(PyTuple_GetItem(argTuple, k));
@@ -455,7 +455,7 @@ PyObject *MakeFunctionType(PyObject* nullValue, PyObject* args) {
             }
             incref(funcObj);
 
-            argList.push_back(Function::FunctionArg(
+            argList.push_back(FunctionArgType(
                 PyUnicode_AsUTF8(k0),
                 argT,
                 val,

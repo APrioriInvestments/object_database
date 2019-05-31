@@ -18,61 +18,10 @@
 
 #include "Type.hpp"
 #include "ReprAccumulator.hpp"
-
+#include "FunctionArgType.hpp"
 
 class Function : public Type {
 public:
-    class FunctionArg {
-    public:
-        FunctionArg(std::string name, Type* typeFilterOrNull, PyObject* defaultValue, bool isStarArg, bool isKwarg) :
-            m_name(name),
-            m_typeFilter(typeFilterOrNull),
-            m_defaultValue(defaultValue),
-            m_isStarArg(isStarArg),
-            m_isKwarg(isKwarg)
-        {
-            assert(!(isStarArg && isKwarg));
-        }
-
-        std::string getName() const {
-            return m_name;
-        }
-
-        PyObject* getDefaultValue() const {
-            return m_defaultValue;
-        }
-
-        Type* getTypeFilter() const {
-            return m_typeFilter;
-        }
-
-        bool getIsStarArg() const {
-            return m_isStarArg;
-        }
-
-        bool getIsKwarg() const {
-            return m_isKwarg;
-        }
-
-        bool getIsNormalArg() const {
-            return !m_isKwarg && !m_isStarArg;
-        }
-
-        template<class visitor_type>
-        void _visitReferencedTypes(const visitor_type& visitor) {
-            if (m_typeFilter) {
-                visitor(m_typeFilter);
-            }
-        }
-
-    private:
-        std::string m_name;
-        Type* m_typeFilter;
-        PyObject* m_defaultValue;
-        bool m_isStarArg;
-        bool m_isKwarg;
-    };
-
     class CompiledSpecialization {
     public:
         CompiledSpecialization(
@@ -108,7 +57,7 @@ public:
         Overload(
             PyFunctionObject* functionObj,
             Type* returnType,
-            const std::vector<FunctionArg>& args
+            const std::vector<FunctionArgType>& args
             ) :
                 mFunctionObj(functionObj),
                 mReturnType(returnType),
@@ -125,7 +74,7 @@ public:
             return mReturnType;
         }
 
-        const std::vector<FunctionArg>& getArgs() const {
+        const std::vector<FunctionArgType>& getArgs() const {
             return mArgs;
         }
 
@@ -156,7 +105,7 @@ public:
     private:
         PyFunctionObject* mFunctionObj;
         Type* mReturnType;
-        std::vector<FunctionArg> mArgs;
+        std::vector<FunctionArgType> mArgs;
         std::vector<CompiledSpecialization> mCompiledSpecializations;
         compiled_code_entrypoint mCompiledCodePtr; //accepts a pointer to packed arguments and another pointer with the return value
     };
@@ -237,7 +186,7 @@ public:
 
     private:
         const Overload& mOverload;
-        const std::vector<FunctionArg>& mArgs;
+        const std::vector<FunctionArgType>& mArgs;
         std::vector<char> m_used;
         bool m_matches;
     };

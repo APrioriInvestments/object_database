@@ -42,6 +42,7 @@
 #include "PyOneOfInstance.hpp"
 #include "PyForwardInstance.hpp"
 #include "PyEmbeddedMessageInstance.hpp"
+#include "PyInterfaceInstance.hpp"
 
 Type* PyInstance::type() {
     return extractTypeFrom(((PyObject*)this)->ob_type);
@@ -1102,7 +1103,9 @@ PyObject* PyInstance::categoryToPyString(Type::TypeCategory cat) {
     if (cat == Type::TypeCategory::catHeldClass) { static PyObject* res = PyUnicode_FromString("HeldClass"); return res; }
     if (cat == Type::TypeCategory::catFunction) { static PyObject* res = PyUnicode_FromString("Function"); return res; }
     if (cat == Type::TypeCategory::catForward) { static PyObject* res = PyUnicode_FromString("Forward"); return res; }
+    if (cat == Type::TypeCategory::catEmbeddedMessage) { static PyObject* res = PyUnicode_FromString("EmbeddedMessage"); return res; }
     if (cat == Type::TypeCategory::catPythonObjectOfType) { static PyObject* res = PyUnicode_FromString("PythonObjectOfType"); return res; }
+    if (cat == Type::TypeCategory::catInterface) { static PyObject* res = PyUnicode_FromString("Interface"); return res; }
 
     static PyObject* res = PyUnicode_FromString("Unknown");
     return res;

@@ -526,7 +526,9 @@ UInt8Ptr = UInt8.pointer()
 Int8Ptr = Type.Pointer(value_type=Type.Int(bits=8, signed=True))
 Float64 = Type.Float(bits=64)
 Int64 = Type.Int(bits=64, signed=True)
+UInt64 = Type.Int(bits=64, signed=False)
 Int32 = Type.Int(bits=32, signed=True)
+UInt32 = Type.Int(bits=32, signed=False)
 
 
 def var(name):

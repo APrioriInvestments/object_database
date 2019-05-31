@@ -212,6 +212,7 @@ void Class::emptyConstructor(instance_ptr self) {
 
     layout& l = **(layout**)self;
     l.refcount = 1;
+    l.vtable = &m_vtable;
 
     m_heldClass->emptyConstructor(l.data);
 }
@@ -225,6 +226,7 @@ void Class::constructor(instance_ptr self) {
 
     layout& l = **(layout**)self;
     l.refcount = 1;
+    l.vtable = &m_vtable;
 
     m_heldClass->constructor(l.data);
 }

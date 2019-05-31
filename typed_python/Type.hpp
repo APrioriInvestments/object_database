@@ -70,6 +70,7 @@ class Function;
 class BoundMethod;
 class Forward;
 class EmbeddedMessageType;
+class InterfaceType;
 
 typedef uint8_t* instance_ptr;
 
@@ -116,7 +117,8 @@ public:
         catHeldClass = 29,
         catFunction = 30,
         catForward = 31,
-        catEmbeddedMessage = 32
+        catEmbeddedMessage = 32,
+        catInterface = 33
     };
 
     TypeCategory getTypeCategory() const {
@@ -247,6 +249,8 @@ public:
                 return f(*(Function*)this);
             case catBoundMethod:
                 return f(*(BoundMethod*)this);
+            case catInterface:
+                return f(*(InterfaceType*)this);
             case catForward:
                 return f(*(Forward*)this);
             case catEmbeddedMessage:

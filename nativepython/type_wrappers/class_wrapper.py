@@ -37,13 +37,19 @@ class ClassWrapper(RefcountedWrapper):
         self.indexToByteOffset = {}
         self.classType = t
 
-        element_types = [('refcount', native_ast.Int64), ('data', native_ast.UInt8)]
+        element_types = [
+            ('refcount', native_ast.Int64),
+            ('vtable', native_ast.VoidPtr),
+            ('data', native_ast.UInt8)
+        ]
+
+        self.bytesOffsetToInitBits = 16
 
         # this follows the general layout of 'held class' which is 1 bit per field for initialization and then
         # each field packed directly according to byte size
-        byteOffset = 8 + (len(self.classType.MemberNames) // 8 + 1)
+        byteOffset = self.bytesOffsetToInitBits + (len(self.classType.MemberNames) // 8 + 1)
 
-        self.bytesOfInitBits = byteOffset - 8
+        self.bytesOfInitBits = byteOffset - 16
 
         for i, name in enumerate(self.classType.MemberNames):
             self.nameToIndex[name] = i
@@ -98,7 +104,7 @@ class ClassWrapper(RefcountedWrapper):
         return (
             instance.nonref_expr
             .cast(native_ast.UInt8.pointer())
-            .ElementPtrIntegers(8 + byte)
+            .ElementPtrIntegers(self.bytesOffsetToInitBits + byte)
             .load()
             .rshift(native_ast.const_uint8_expr(bit))
             .bitand(native_ast.const_uint8_expr(1))
@@ -111,7 +117,7 @@ class ClassWrapper(RefcountedWrapper):
         bytePtr = (
             instance.nonref_expr
             .cast(native_ast.UInt8.pointer())
-            .ElementPtrIntegers(8 + byte)
+            .ElementPtrIntegers(self.bytesOffsetToInitBits + byte)
         )
 
         return bytePtr.store(bytePtr.load().bitor(native_ast.const_uint8_expr(1 << bit)))
@@ -206,6 +212,10 @@ class ClassWrapper(RefcountedWrapper):
             ) >>
             # store a refcount
             out.expr.load().ElementPtrIntegers(0, 0).store(native_ast.const_int_expr(1))
+            # we should store a vtable here but we don't yet have
+            # an appropriate mechanism for loading such data at shared-object load time
+            # from the python runtime. This should come from the same framework that
+            # lets us get type objects into compiled code
         )
 
         # clear bits of init flags
@@ -213,7 +223,7 @@ class ClassWrapper(RefcountedWrapper):
             context.pushEffect(
                 out.nonref_expr
                 .cast(native_ast.UInt8.pointer())
-                .ElementPtrIntegers(8 + byteOffset).store(native_ast.const_uint8_expr(0))
+                .ElementPtrIntegers(self.bytesOffsetToInitBits + byteOffset).store(native_ast.const_uint8_expr(0))
             )
 
         for i in range(len(self.classType.MemberTypes)):

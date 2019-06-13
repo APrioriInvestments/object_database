@@ -104,6 +104,18 @@ inline int64_t pyXor(double l, double r) {
     throw PythonExceptionSet();
 }
 
+inline double pyFloatDiv(bool l, bool r) { return ((double)l) / (double)r; }
+inline double pyFloatDiv(uint8_t l, uint8_t r) { return ((double)l) / (double)r; }
+inline double pyFloatDiv(uint16_t l, uint16_t r) { return ((double)l) / (double)r; }
+inline double pyFloatDiv(uint32_t l, uint32_t r) { return ((double)l) / (double)r; }
+inline double pyFloatDiv(uint64_t l, uint64_t r) { return ((double)l) / (double)r; }
+inline double pyFloatDiv(int8_t l, int8_t r) { return ((double)l) / (double)r; }
+inline double pyFloatDiv(int16_t l, int16_t r) { return ((double)l) / (double)r; }
+inline double pyFloatDiv(int32_t l, int32_t r) { return ((double)l) / (double)r; }
+inline double pyFloatDiv(int64_t l, int64_t r) { return ((double)l) / (double)r; }
+inline float pyFloatDiv(float l, float r) { return l / r; }
+inline double pyFloatDiv(double l, double r) { return l / r; }
+
 template<class T>
 static PyObject* pyOperatorConcreteForRegisterPromoted(T self, T other, const char* op, const char* opErr) {
     if (strcmp(op, "__add__") == 0) {
@@ -136,7 +148,7 @@ static PyObject* pyOperatorConcreteForRegisterPromoted(T self, T other, const ch
             throw PythonExceptionSet();
         }
 
-        return registerValueToPyValue(T(self/other));
+        return registerValueToPyValue(pyFloatDiv(self, other));
     }
 
     if (strcmp(op, "__floordiv__") == 0) {
@@ -509,6 +521,9 @@ public:
         //expose 'ElementType' as a member of the type object
         PyDict_SetItemString(pyType->tp_dict, "IsFloat",
             isFloat(type->getTypeCategory()) ? Py_True : Py_False
+            );
+        PyDict_SetItemString(pyType->tp_dict, "IsInteger",
+            isInteger(type->getTypeCategory()) ? Py_True : Py_False
             );
         PyDict_SetItemString(pyType->tp_dict, "IsSignedInt",
             isInteger(type->getTypeCategory()) && !isUnsigned(type->getTypeCategory()) ? Py_True : Py_False

@@ -16,6 +16,14 @@
 
 #pragma once
 
+/****************
+   determine what type an arithmetic operation on two different register types
+   should resolve to. We follow numpy here (which largely matches the c++ standard
+   but diverges slightly): integer and floating point types together produce a
+   floating point. We always pick the larger bitness. We are signed if either input
+   is signed.
+****************/
+
 template<class T1, class T2>
 class PromotesTo {};
 
@@ -140,8 +148,3 @@ template<> class PromotesTo<float, double> { public: typedef double result_type;
 template<> class PromotesTo<double, float> { public: typedef double result_type; };
 template<> class PromotesTo<float, float> { public: typedef float result_type; };
 template<> class PromotesTo<double, double> { public: typedef double result_type; };
-
-
-
-
-

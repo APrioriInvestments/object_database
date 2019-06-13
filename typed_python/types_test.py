@@ -1605,47 +1605,50 @@ class NativeTypesTests(unittest.TestCase):
                     pass
 
     def test_other_bitness_types_operators(self):
-
-        def add(x, y):
-            return x+y
-
-        def div(x, y):
-            return x/y
-
-        def mul(x, y):
-            return x*y
-
-        def sub(x, y):
-            return x-y
-
-        def bitand(x, y):
-            return x&y
-
-        def bitor(x, y):
-            return x|y
-
-        def bitxor(x, y):
-            return x^y
+        def add(x, y): return x + y
+        def div(x, y): return x / y
+        def mul(x, y): return x * y
+        def sub(x, y): return x - y
+        def bitand(x, y): return x & y
+        def bitor(x, y): return x | y
+        def bitxor(x, y): return x ^ y
 
         otherTypes = [Bool, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64, Float32, Float64]
         for t1 in otherTypes:
             for t2 in otherTypes:
-                for op in [add, mul, div, sub, bitand, bitor, bitxor]:
-                    if not ((t1.IsFloat or t2.IsFloat) and op in (bitand, bitor, bitxor)):
+                for op in [add, mul, div, sub]:
+                    res = op(t1(10), t2(10))
+                    resType = type(res)
+                    resType = {bool: Bool, int: Int64, float: Float64}.get(resType, resType)
+
+                    if t1.IsFloat and t2.IsFloat:
+                        self.assertTrue(resType.IsFloat)
+                        self.assertEqual(resType.Bits, max(t1.Bits, t2.Bits))
+                        self.assertEqual(res, op(10, 10))
+                    elif t1.IsFloat or t2.IsFloat:
+                        self.assertTrue(resType.IsFloat)
+                        self.assertEqual(resType.Bits, t1.Bits if t1.IsFloat else t2.Bits)
+                        if t1.Bits > 1 and t2.Bits > 1:
+                            self.assertEqual(res, op(10, 10), op)
+                    elif op is div:
+                        self.assertEqual(resType, Float64, (t1, t2))
+                    elif t1 is Bool and t2 is Bool:
+                        self.assertEqual(resType, Int64 if op is not div else Float64)
+                    else:
+                        self.assertEqual(resType.Bits, max(t1.Bits, t2.Bits))
+                        self.assertEqual(resType.IsSignedInt, t1.IsSignedInt or t2.IsSignedInt)
+
+                        if t1.Bits > 1 and t2.Bits > 1:
+                            self.assertEqual(res, op(10, 10))
+
+
+                if not t1.IsFloat and not t2.IsFloat:
+                    for op in [bitand, bitor, bitxor]:
                         res = op(t1(10), t2(10))
                         resType = type(res)
                         resType = {bool: Bool, int: Int64, float: Float64}.get(resType, resType)
 
-                        if t1.IsFloat and t2.IsFloat:
-                            self.assertTrue(resType.IsFloat)
-                            self.assertEqual(resType.Bits, max(t1.Bits, t2.Bits))
-                            self.assertEqual(res, op(10, 10))
-                        elif t1.IsFloat or t2.IsFloat:
-                            self.assertTrue(resType.IsFloat)
-                            self.assertEqual(resType.Bits, t1.Bits if t1.IsFloat else t2.Bits)
-                            if t1.Bits > 1 and t2.Bits > 1:
-                                self.assertEqual(res, op(10, 10))
-                        elif t1 is Bool and t2 is Bool:
+                        if t1 is Bool and t2 is Bool:
                             self.assertEqual(resType, Bool if op in (bitor, bitand, bitxor) else Int64 if op is not div else Float64)
                         else:
                             self.assertEqual(resType.Bits, max(t1.Bits, t2.Bits))

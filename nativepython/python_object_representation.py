@@ -33,13 +33,16 @@ from nativepython.type_wrappers.bound_method_wrapper import BoundMethodWrapper
 from nativepython.type_wrappers.len_wrapper import LenWrapper
 from nativepython.type_wrappers.range_wrapper import _RangeWrapper
 from nativepython.type_wrappers.bytecount_wrapper import BytecountWrapper
-from nativepython.type_wrappers.arithmetic_wrapper import Int64Wrapper, Float64Wrapper, BoolWrapper
+from nativepython.type_wrappers.arithmetic_wrapper import IntWrapper, FloatWrapper, BoolWrapper
 from nativepython.type_wrappers.string_wrapper import StringWrapper
 from nativepython.type_wrappers.bytes_wrapper import BytesWrapper
 from nativepython.type_wrappers.python_object_of_type_wrapper import PythonObjectOfTypeWrapper
 from types import ModuleType
 from typed_python._types import TypeFor, bytecount
-from typed_python import Int64, Float64, Bool, String, Bytes, NoneType
+from typed_python import (
+    Int64, Int32, Int16, Int8, UInt64, UInt32, UInt16,
+    UInt8, Float64, Float32, Bool, String, Bytes, NoneType
+)
 
 _type_to_type_wrapper_cache = {}
 
@@ -49,7 +52,22 @@ def typedPythonTypeToTypeWrapper(t):
         _type_to_type_wrapper_cache[t] = _typedPythonTypeToTypeWrapper(t)
     return _type_to_type_wrapper_cache[t]
 
-
+_concreteWrappers = {
+    Int8: IntWrapper(Int8),
+    Int16: IntWrapper(Int16),
+    Int32: IntWrapper(Int32),
+    Int64: IntWrapper(Int64),
+    UInt8: IntWrapper(UInt8),
+    UInt16: IntWrapper(UInt16),
+    UInt32: IntWrapper(UInt32),
+    UInt64: IntWrapper(UInt64),
+    Float32: FloatWrapper(Float32),
+    Float64: FloatWrapper(Float64),
+    Bool: BoolWrapper(),
+    NoneType: NoneWrapper(),
+    String: StringWrapper(),
+    Bytes: BoolWrapper()
+}
 def _typedPythonTypeToTypeWrapper(t):
     if isinstance(t, Wrapper):
         return t
@@ -58,23 +76,8 @@ def _typedPythonTypeToTypeWrapper(t):
         t = TypeFor(t)
         assert hasattr(t, '__typed_python_category__'), t
 
-    if t is Int64:
-        return Int64Wrapper()
-
-    if t is Float64:
-        return Float64Wrapper()
-
-    if t is Bool:
-        return BoolWrapper()
-
-    if t is NoneType:
-        return NoneWrapper()
-
-    if t is String:
-        return StringWrapper()
-
-    if t is Bytes:
-        return BytesWrapper()
+    if t in _concreteWrappers:
+        return _concreteWrappers[t]
 
     if t.__typed_python_category__ == "Class":
         return ClassWrapper(t)

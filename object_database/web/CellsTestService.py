@@ -24,13 +24,11 @@ from typed_python.Codebase import Codebase
 import object_database.web.cells as cells
 import object_database as object_database
 from object_database.web.CellsTestPage import CellsTestPage
+from object_database import Schema
 
-
-from object_database import (
-    Schema, Indexed
-)
 
 schema = Schema("core.web.CellsTestService")
+
 
 @schema.define
 class Counter:
@@ -38,18 +36,23 @@ class Counter:
 
 
 _pagesCache = {}
+
+
 def getPages():
     if _pagesCache:
         return _pagesCache
 
     # force us to actually import everything in object database
     odbCodebase = Codebase.FromRootlevelModule(object_database)
+    # these are all the cell_demo cells
     for name, value in odbCodebase.allModuleLevelValues():
-        if isinstance(value, type) and issubclass(value, CellsTestPage) and value is not CellsTestPage:
+        if isinstance(value, type) and issubclass(value, CellsTestPage) and \
+           value is not CellsTestPage:
             try:
                 instance = value()
 
-                _pagesCache.setdefault(instance.category(), {})[value.__name__] = instance
+                _pagesCache.setdefault(instance.category(), {})[
+                    value.__name__] = instance
             except Exception:
                 traceback.print_exc()
 
@@ -61,19 +64,22 @@ class CellsTestService(ServiceBase):
     coresUsed = 0
 
     @staticmethod
-    def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
+    def serviceDisplay(serviceObject, instance=None, objType=None,
+                       queryArgs=None):
         queryArgs = queryArgs or {}
         if 'category' in queryArgs and 'name' in queryArgs:
             page = getPages()[queryArgs['category']][queryArgs['name']]
             contentsOverride = cells.Slot()
 
-            pageSource = textwrap.dedent("".join(getsourcelines(page.cell.__func__)[0]))
+            pageSource = textwrap.dedent(
+                "".join(getsourcelines(page.cell.__func__)[0]))
 
             def actualDisplay():
                 if contentsOverride.get() is not None:
                     try:
                         locals = {}
-                        exec(contentsOverride.get(), sys.modules[type(page).__module__].__dict__, locals)
+                        exec(contentsOverride.get(), sys.modules[
+                            type(page).__module__].__dict__, locals)
                         return locals['cell'](page)
                     except Exception:
                         return cells.Traceback(traceback.format_exc())
@@ -83,13 +89,15 @@ class CellsTestService(ServiceBase):
             def onEnter(buffer, selection):
                 contentsOverride.set(buffer)
 
-            ed = cells.CodeEditor(keybindings={'Enter': onEnter}, noScroll=True, minLines=50, onTextChange=lambda *args: None)
+            ed = cells.CodeEditor(keybindings={'Enter': onEnter},
+                                  noScroll=True, minLines=50,
+                                  onTextChange=lambda *args: None)
             ed.setContents(pageSource)
 
             toDisplay = cells.Sequence([
                 cells.Subscribed(actualDisplay).height("50vh"),
-                (cells.Card(page.text()) + ed
-                ).width("75vw").background_color("#FAFAFA")
+                (cells.Card(page.text()) + ed).width("75vw").background_color(
+                    "#FAFAFA")
             ])
 
         else:
@@ -97,7 +105,8 @@ class CellsTestService(ServiceBase):
             toDisplay = cells.Card("pick something")
 
         def reload():
-            """Force the process to kill itself. When you refresh, it'll be the new code."""
+            """Force the process to kill itself. When you refresh,
+            it'll be the new code."""
             import os
             os._exit(0)
 
@@ -108,18 +117,21 @@ class CellsTestService(ServiceBase):
                     cells.Sequence([
                         cells.Clickable(
                             x.category() + "." + x.name(),
-                            "CellsTestService?" + urllib.parse.urlencode(dict(category=x.category(), name=x.name())),
+                            "CellsTestService?" + urllib.parse.urlencode(
+                                dict(category=x.category(), name=x.name())),
                             makeBold=x is page
-                            )
+                        )
                         for perCategory in getPages().values()
                         for x in perCategory.values()
-                        ])
-                ).background_color("#FAFAFA").height("100vh").width("25vw").nowrap() + cells.Padding().nowrap(),
+                    ])
+                ).background_color(
+                    "#FAFAFA").height(
+                        "100vh").width(
+                            "25vw").nowrap() + cells.Padding().nowrap(),
                 toDisplay,
                 lambda: True
             )
         )
-
 
     def doWork(self, shouldStop):
         while not shouldStop.is_set():

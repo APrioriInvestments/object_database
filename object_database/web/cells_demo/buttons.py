@@ -16,19 +16,10 @@ from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
 
 
-class SingleCard(CellsTestPage):
+class SingleButton(CellsTestPage):
     def cell(self):
-        return cells.Card("This is a card", padding=2)
+        return cells.Button(cells.Octicon("Click"), lambda: None,
+                            small=True, active=True, style="primary")
 
     def text(self):
-        return "You should see a single 'card' with some text in it."
-
-
-class CardWithTitle(CellsTestPage):
-    def cell(self):
-        return cells.Card("This is the card text",
-                          header="This is the header text 2",
-                          padding=0)
-
-    def text(self):
-        return "You should see a single 'card' with header text."
+        return "You should see some buttons."

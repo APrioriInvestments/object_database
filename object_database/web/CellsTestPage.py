@@ -12,11 +12,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+
 class CellsTestPage(object):
     """Base class for each kind of cells test page.
 
-    We find all subclasses of these in object_database.web.cells_demo and show them
-    in a hierarchical view.
+    We find all subclasses of these in object_database.web.cells_demo and
+    show them in a hierarchical view.
     """
     def category(self):
         """Return a string we'll use to group this."""
@@ -30,5 +31,6 @@ class CellsTestPage(object):
         raise NotImplementedError("Subclasses implement")
 
     def text(self):
-        """Return the canonical description of what this is supposed to show."""
+        """Return the canonical description of what this is supposed to show.
+        """
         raise NotImplementedError("Subclasses implement")

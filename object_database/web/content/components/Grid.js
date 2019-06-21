@@ -2,8 +2,8 @@
  * Grid Cell Component
  */
 
-//import {Component} from './Component';
-//import {h} from 'maquette';
+import {Component} from './Component';
+import {h} from 'maquette';
 
 /**
  * About Replacements
@@ -81,4 +81,5 @@ class Grid extends Component {
     }
 }
 
-//export {Grid, Grid as default};
+export
+{Grid, Grid as default};

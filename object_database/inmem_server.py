@@ -58,7 +58,7 @@ class InMemoryChannel:
                 e = ClientToServer.Heartbeat()
             else:
                 try:
-                    e = self._clientToServerMsgQueue.get(timeout=1.0)
+                    e = self._clientToServerMsgQueue.get(timeout=min(1.0, getHeartbeatInterval()))
                 except queue.Empty:
                     e = None
 

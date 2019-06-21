@@ -2110,6 +2110,20 @@ class ObjectDatabaseTests:
         self.assertEqual(db1.currentTransactionIdForSchema(schema1), 3)
         self.assertEqual(db1.currentTransactionIdForSchema(schema2), 0)
 
+    def test_heartbeats_with_view_open(self):
+        old_interval = messages.getHeartbeatInterval()
+        messages.setHeartbeatInterval(.1)
+
+        try:
+            db1 = self.createNewDb()
+
+            with db1.view():
+                time.sleep(2.0)
+
+            db1.flush()
+        finally:
+            messages.setHeartbeatInterval(old_interval)
+
     def test_multiple_serialization_contexts(self):
         def make(versionString):
             class Class:

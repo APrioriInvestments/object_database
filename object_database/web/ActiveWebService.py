@@ -347,8 +347,6 @@ class ActiveWebService(ServiceBase):
                     len(self.sessionStates[sessionId])
                 )
 
-                cells.markStopProcessingTasks()
-
                 if reader:
                     reader.join()
 

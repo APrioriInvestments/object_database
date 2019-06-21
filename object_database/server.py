@@ -257,7 +257,7 @@ class Server:
 
                     self.dropConnection(c)
 
-            self._logger.debug("Connection heartbeat distribution is %s", heartbeatCount)
+            self._logger.info("Connection heartbeat distribution is %s", heartbeatCount)
 
     def dropConnection(self, channel):
         with self._lock:

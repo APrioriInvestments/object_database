@@ -32,6 +32,7 @@
 #include "UnicodeProps.hpp"
 #include "direct_types/DirectTypesTest.hpp"
 
+#include <gperftools/malloc_extension.h>
 
 PyObject *MakeTupleOrListOfType(PyObject* nullValue, PyObject* args, bool isTuple) {
     std::vector<Type*> types;
@@ -1371,6 +1372,21 @@ PyObject *MakeForward(PyObject* nullValue, PyObject* args) {
     }
 }
 
+PyObject* getTcmallocProperty(PyObject* ignored, PyObject* args, PyObject* kwargs) {
+    static const char *kwlist[] = {"name", NULL};
+
+    const char* name;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char**)kwlist, &name)) {
+        return nullptr;
+    }
+
+    size_t out;
+    MallocExtension::instance()->GetNumericProperty(name, &out);
+
+    return PyLong_FromLong(out);
+}
+
 PyObject *MakeAlternativeType(PyObject* nullValue, PyObject* args, PyObject* kwargs) {
     if (PyTuple_Size(args) != 1 || !PyUnicode_Check(PyTuple_GetItem(args,0))) {
         PyErr_SetString(PyExc_TypeError, "Alternative takes a single string positional argument.");
@@ -1483,6 +1499,7 @@ static PyMethodDef module_methods[] = {
     {"refcount", (PyCFunction)refcount, METH_VARARGS, NULL},
     {"cpp_tests", (PyCFunction)cpp_tests, METH_VARARGS, NULL},
     {"getOrSetTypeResolver", (PyCFunction)getOrSetTypeResolver, METH_VARARGS, NULL},
+    {"getTcmallocProperty", (PyCFunction)getTcmallocProperty, METH_VARARGS | METH_KEYWORDS, NULL},
     {NULL, NULL}
 };
 

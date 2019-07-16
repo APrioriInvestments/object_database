@@ -133,6 +133,7 @@ class ClassMetaclass(type):
             return type.__new__(cls, name, bases, namespace.ns, **kwds)
 
         members = []
+        bases = [x for x in bases if x is not Class]
         memberFunctions = {}
         staticFunctions = {}
         classMembers = []
@@ -161,12 +162,14 @@ class ClassMetaclass(type):
 
         actualClass = actualClass.define(_types.Class(
             name,
+            tuple(bases),
             tuple(members),
             tuple(memberFunctions.items()),
             tuple(staticFunctions.items()),
             tuple(properties.items()),
             tuple(classMembers)
         ))
+
         return actualClass
 
 

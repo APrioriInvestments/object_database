@@ -755,8 +755,8 @@ PyTypeObject* PyInstance::typeObjInternal(Type* inType) {
             .tp_richcompare = tp_richcompare,           // richcmpfunc
             .tp_weaklistoffset = 0,                     // Py_ssize_t
             .tp_iter = inType->getTypeCategory() == Type::TypeCategory::catConstDict ||
-                        inType->getTypeCategory() == Type::TypeCategory::catDict || 
-                        inType->getTypeCategory() == Type::TypeCategory::catSet 
+                        inType->getTypeCategory() == Type::TypeCategory::catDict ||
+                        inType->getTypeCategory() == Type::TypeCategory::catSet
                          ?
                 PyInstance::tp_iter
             :   0,                                      // getiterfunc tp_iter;
@@ -782,14 +782,35 @@ PyTypeObject* PyInstance::typeObjInternal(Type* inType) {
             .tp_del = 0,                                // destructor
             .tp_version_tag = 0,                        // unsigned int
             .tp_finalize = 0,                           // destructor
-            }, inType
-            };
+            },
+        inType
+    };
 
     // at this point, the dictionary has an entry, so if we recurse back to this function
     // we will return the correct entry.
     if (inType->getBaseType()) {
         types[inType]->typeObj.tp_base = typeObjInternal((Type*)inType->getBaseType());
         incref((PyObject*)types[inType]->typeObj.tp_base);
+    }
+
+    // if we are an instance of 'Class', we must explicitly set our Metaclass to internals.ClassMetaclass,
+    // so that when other classes inherit from us they also inherit our metaclass.
+    if (inType->getTypeCategory() == Type::TypeCategory::catClass) {
+        static PyObject* internalsModule = PyImport_ImportModule("typed_python.internals");
+
+        if (!internalsModule) {
+            PyErr_SetString(PyExc_TypeError, "Internal error: couldn't find typed_python.internals");
+            return nullptr;
+        }
+
+        static PyObject* classMetaclass = PyObject_GetAttrString(internalsModule, "ClassMetaclass");
+
+        if (!classMetaclass) {
+            PyErr_SetString(PyExc_TypeError, "Internal error: couldn't find typed_python.internals.classMetaclass");
+            return nullptr;
+        }
+
+        ((PyObject*)&types[inType]->typeObj)->ob_type = (PyTypeObject*)classMetaclass;
     }
 
     PyType_Ready((PyTypeObject*)types[inType]);
@@ -1041,7 +1062,10 @@ PyObject* PyInstance::tp_str(PyObject *o) {
 
 // static
 bool PyInstance::typeCanBeSubclassed(Type* t) {
-    return t->getTypeCategory() == Type::TypeCategory::catNamedTuple;
+    return (
+        t->getTypeCategory() == Type::TypeCategory::catNamedTuple ||
+        t->getTypeCategory() == Type::TypeCategory::catClass
+    );
 }
 
 // static

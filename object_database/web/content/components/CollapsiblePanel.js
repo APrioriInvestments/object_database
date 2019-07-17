@@ -20,11 +20,37 @@ class CollapsiblePanel extends Component {
         this.makeContent = this.makeContent.bind(this);
     }
 
-    build(){
-        let content = this.makeContent();
-        let panel = null;
-        if(this.props.isExpanded){
-            panel = this.makePanel();
+    render(){
+        if(this.props.extraData.isExpanded){
+            return(
+                h('div', {
+                    class: "cell d-flex",
+                    "data-cell-id": this.props.id,
+                    "data-cell-type": "CollapsiblePanel",
+                    "data-expanded": true,
+                    id: this.props.id,
+                }, [
+                    h('div', {class: "row flex-nowrap no-gutters"}, [
+                        h('div', {class: "col-md-auto", style: "flex-grow:1"},[
+                            this.makePanel()
+                        ]),
+                        h('div', {class: "col-sm", style: "flex-grow:5"}, [
+                            this.makeContent()
+                        ])
+                    ])
+                ])
+            );
+        } else {
+            return (
+                h('div', {
+                    class: "cell container-fluid",
+                    "data-cell-id": this.props.id,
+                    "data-cell-type": "CollapsiblePanel",
+                    "data-expanded": false,
+                    id: this.props.id,
+                    style: this.props.extraData.divStyle
+                }, [this.makeContent()])
+            );
         }
         return (
             h('div', {

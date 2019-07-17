@@ -95,26 +95,29 @@ class CellsTestService(ServiceBase):
         else:
             page = None
             description = ""
-            ed = cells.Card("pick something")
+            ed = cells.Card("pick something").height("100%")
 
             def actualDisplay():
                 return cells.Card(cells.Text("nothing to display"), padding=10)
 
         resultArea = cells.SplitView([
-            (cells.Subscribed(actualDisplay), 4),
-            (cells.Card(cells.Text(description), padding=2), 0)],
-            split="horizontal"
-        )
+            (cells.Card(
+                cells.Subscribed(actualDisplay),
+                padding=4).height(resultAreaHeight), 2),
+            (cells.Card(cells.Text(description),
+                        padding=2).height(descriptionAreaHeight),
+             1)], split="horizontal")
 
-        inputArea = cells.SplitView(
-            [(selectionPanel(page), 2), (ed, 9)]
-        )
+        inputArea = cells.Card(
+            cells.SplitView(
+                [(selectionPanel(page, inputAreaHeight), 1), (ed, 8)]
+            ), padding=2
+        ).height(inputAreaHeight)
 
-        return cells.ResizablePanel(
-            resultArea,
-            inputArea,
-            split="horizontal"
-        )
+        return cells.SplitView([
+            (resultArea, 1),
+            (inputArea, 1)
+        ], split="horizontal")
 
     def doWork(self, shouldStop):
         while not shouldStop.is_set():
@@ -127,43 +130,15 @@ def reload():
     import os
     os._exit(0)
 
-"""
-def selectionPanel(page):
-    availableCells = cells.Scrollable(
-        cells.Card(
-            cells.Sequence(
-                [cells.Clickable(
-                    x.category() + "." + x.name(),
-                    "CellsTestService?" + urllib.parse.urlencode(
-                        dict(category=x.category(), name=x.name())),
-                    makeBold=x is page)
-                    for perCategory in getPages().values()
-                    for x in perCategory.values()]
-            ), padding=4
-        )
-    )
-    reloadInput = cells.Card(
-        cells.Button(cells.Octicon("sync"), reload),
-        padding=4
-    )
-    return cells.SplitView([
-        (reloadInput, 1),
-        (availableCells, 6)
-    ], split="horizontal")
-"""
 
-def selectionPanel(page):
-    availableCells = []
-    for _, category in sorted(getPages().items()):
-        for _, item in sorted(category.items()):
-            displayName = "{}.{}".format(item.category(), item.name())
-            url = "CellsTestService?{}".format(
-                urllib.parse.urlencode(
-                    dict(category=item.category(), name=item.name())))
-            clickable = cells.Clickable(displayName, url, makeBold=item is page)
-            availableCells.append(clickable)
-    reloadInput = cells.Button(cells.Octicon("sync"), reload)
-
-    return cells.Panel(
-        cells.Sequence([reloadInput, cells.Flex(cells.Sequence(availableCells))])
+def selectionPanel(page, height):
+    availableCells = cells.Sequence(
+        [cells.Clickable(
+            x.category() + "." + x.name(),
+            "CellsTestService?" + urllib.parse.urlencode(
+                dict(category=x.category(), name=x.name())),
+            makeBold=x is page)
+            for perCategory in getPages().values()
+            for x in perCategory.values()],
+        split="horizontal"
     )

@@ -1083,13 +1083,16 @@ class CollapsiblePanel(Cell):
     def recalculate(self):
         expanded = self.evaluateWithDependencies(self.isExpanded)
         self.exportData['isExpanded'] = expanded
-        self.children['content'] = self.content
+        self.children = {
+            '____content__': self.content
+        }
+        self.namedChildren['content'] = self.content
         if expanded:
             self.children['panel'] = self.panel
 
 
 class Text(Cell):
-    def __init__(self, text, text_color=None, sortAs=None):
+    def __init__(self, text, text_color='black', sortAs=None):
         super().__init__()
         self.text = text
         self._sortAs = sortAs if sortAs is not None else text
@@ -1102,7 +1105,7 @@ class Text(Cell):
         escapedText = html.escape(str(self.text)) if self.text else " "
         self.exportData['escapedText'] = escapedText
         self.exportData['rawText'] = self.text
-        self.exportData['textColor'] = self.text_color
+        self.exportData['text_color'] = self.text_color
 
 
 class Padding(Cell):
@@ -1123,28 +1126,28 @@ class Span(Cell):
 
 
 class Sequence(Cell):
-    def __init__(self, elements, overflow=True, margin=None):
+    def __init__(self, elements, split="horizontal", overflow=True):
         """
-        Lays out (children) elements in a vertical sequence.
-
         Parameters:
         -----------
         elements: list of cells
+        split: str
+            The split axis of the  view. Can
+            be either 'horizontal' or 'vertical'. Defaults
+            to 'vertical'.
         overflow: bool
             Sets overflow-auto on the div.
-        margin : int
-            Bootstrap style margin size for all children elements.
 
         """
         super().__init__()
         elements = [Cell.makeCell(x) for x in elements]
 
         self.elements = elements
-        self.children['elements'] = elements
+        self.namedChildren['elements'] = elements
+        self.children = {"____c_%s__" %
+                         i: elements[i] for i in range(len(elements))}
+        self.split = split
         self.overflow = overflow
-        self.margin = margin
-        self.isFlexParent = False
-        self.updateChildren()
 
     def __add__(self, other):
         other = Cell.makeCell(other)
@@ -1154,24 +1157,9 @@ class Sequence(Cell):
             return Sequence(self.elements + [other])
 
     def recalculate(self):
-        self.updateChildren()
-        if self.isFlexParent:
-            self.exportData['flexParent'] = True
-        self.children['elements'] = self.elements
-        self.exportData['margin'] = self.margin
-
-    def updateChildren(self):
-        newElements = []
-        for childCell in self.elements:
-            if childCell.isFlex:
-                self.isFlexParent = True
-                newElements.append(childCell)
-            elif isinstance(childCell, Sequence):
-                newElements += childCell.elements
-            else:
-                newElements.append(childCell)
-        self.elements = newElements
-        self.children['elements'] = self.elements
+        self.namedChildren['elements'] = self.elements
+        self.exportData['split'] = self.split
+        self.exportData['overflow'] = self.overflow
 
     def sortsAs(self):
         if self.elements:
@@ -2292,7 +2280,8 @@ class Table(Cell):
         if self.curPage.get() == "1":
             leftCell = Octicon(
                 "triangle-left", color="lightgray").nowrap()
-            self.children['left'] = leftCell
+            self.children['____left__'] = leftCell
+            self.namedChildren['left'] = leftCell
         else:
             leftCell = (
                 Clickable(
@@ -2304,7 +2293,8 @@ class Table(Cell):
         if self.curPage.get() == str(totalPages):
             rightCell = Octicon(
                 "triangle-right", color="lightgray").nowrap()
-            self.children['right'] = rightCell
+            self.children['____right__'] = rightCell
+            self.namedChildren['right'] = rightCell
         else:
             rightCell = (
                 Clickable(

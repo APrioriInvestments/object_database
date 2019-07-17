@@ -16,13 +16,11 @@ from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
 
 
-class SplitSequence(CellsTestPage):
+class VerticalSplitSequence(CellsTestPage):
     def cell(self):
         return cells.Sequence(
-            [
-                cells.Card(cells.Text("item 1", text_color="red")),
-                cells.Card(cells.Text("item 2", text_color="blue"))
-            ]
+            [cells.Text("item 1", text_color="red"),
+             cells.Text("item 2", text_color="blue")]
         )
 
     def text(self):
@@ -31,11 +29,10 @@ class SplitSequence(CellsTestPage):
 
 class HorizontalSplitSequence(CellsTestPage):
     def cell(self):
-        return cells.HorizontalSequence(
-            [
-                cells.Card(cells.Text("item 1", text_color="red")),
-                cells.Card(cells.Text("item 2", text_color="blue"))
-            ]
+        return cells.Sequence(
+            [cells.Text("item 1", text_color="red"),
+             cells.Text("item 2", text_color="blue")],
+            split="horizontal"
         )
 
     def text(self):

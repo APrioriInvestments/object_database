@@ -55,20 +55,20 @@ class Configuration:
 def view():
     buttons = HorizontalSequence([
         Button(
-            HorizontalSequence([Octicon('shield', color='green'), Span('Lock ALL')]),
+            Sequence([Octicon('shield', color='green'), Span('Lock ALL')]),
             lambda: [s.lock() for s in service_schema.Service.lookupAll()]),
         Button(
-            HorizontalSequence([Octicon('shield', color='orange'), Span('Prepare ALL')]),
+            Sequence([Octicon('shield', color='orange'), Span('Prepare ALL')]),
             lambda: [s.prepare() for s in service_schema.Service.lookupAll()]),
         Button(
-            HorizontalSequence([Octicon('stop', color='red'), Span('Unlock ALL')]),
+            Sequence([Octicon('stop', color='red'), Span('Unlock ALL')]),
             lambda: [s.unlock() for s in service_schema.Service.lookupAll()]),
-    ], margin=1)
+    ], split="vertical")
     tabs = Tabs(
         Services=servicesTable(),
         Hosts=hostsTable()
     )
-    return SplitView([(buttons, 1), (tabs, 10)], split="horizontal")
+    return Sequence([buttons, tabs], split="horizontal")
 
 
 def hostsTable():
@@ -161,20 +161,23 @@ def servicesTableDataPrep(s, field, serviceCounts):
     elif field == 'Codebase Status':
         data = (
             Clickable(
-                HorizontalSequence(
-                    [Octicon('stop', color='red'), Span('Unlocked')]
+                Sequence(
+                    [Octicon('stop', color='red'), Span('Unlocked')],
+                    split="vertical"
                 ),
                 lambda: s.lock()
             ) if s.isUnlocked else
             Clickable(
-                HorizontalSequence(
-                    [Octicon('shield', color='green'), Span('Locked')]
+                Sequence(
+                    [Octicon('shield', color='green'), Span('Locked')],
+                    split="vertical"
                 ),
                 lambda: s.prepare()
             ) if s.isLocked else
             Clickable(
-                HorizontalSequence(
-                    [Octicon('shield', color='orange'), Span('Prepared')]
+                Sequence(
+                    [Octicon('shield', color='orange'), Span('Prepared')],
+                    split="vertical"
                 ), lambda: s.unlock()
             )
         )

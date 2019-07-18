@@ -20,8 +20,7 @@ from object_database.web.ActiveWebServiceSchema import active_webservice_schema
 from object_database.web.cells import (
     Main, Subscribed, Sequence, Traceback, Span, Button, Octicon,
     Padding, Tabs, Table, Clickable, Dropdown, Popover, HeaderBar,
-    LargePendingDownloadDisplay, PageView,
-    HorizontalSequence, SplitView
+    LargePendingDownloadDisplay, PageView
 )
 
 from object_database.web.AuthPlugin import AuthPluginBase
@@ -262,7 +261,7 @@ def makeMainHeader(toggles, current_username, authorized_groups_text):
         toggles,
         [
             LargePendingDownloadDisplay(),
-            Octicon('person') >> Span(current_username),
+            Octicon('person') + Span(current_username),
             Span('Authorized Groups: {}'.format(authorized_groups_text)),
             Button(Octicon('sign-out'), '/logout')
         ]

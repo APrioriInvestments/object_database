@@ -60,6 +60,20 @@ public:
     {
         m_name = inName;
 
+        //we only allow one base class to have members because we want native code to be
+        //able to just find those values in subclasses without hitting the vtable.
+        long countWithMembers = 0;
+
+        for (auto base: baseClasses) {
+            if (base->m_members.size()) {
+                countWithMembers++;
+            }
+        }
+
+        if (countWithMembers > 1) {
+            throw std::runtime_error("Can't inherit from multiple base classes that both have members.");
+        }
+
         initializeMRO();
 
         if (m_memberFunctions.find("__eq__") != m_memberFunctions.end()) { m_hasComparisonOperators = true; }
@@ -298,8 +312,6 @@ public:
 
         visit(this);
 
-        std::set<std::string> membersSoFar;
-
         // build our own method resolution table directly from our parents.
         for (HeldClass* base: m_mro) {
             for (auto nameAndObj: base->m_own_classMembers) {
@@ -308,18 +320,32 @@ public:
                 }
             }
 
-            for (auto nameAndType: base->m_own_members) {
-                if (membersSoFar.find(std::get<0>(nameAndType)) != membersSoFar.end()) {
-                    throw std::runtime_error("Can't redefine member named " + std::get<0>(nameAndType));
-                }
-                membersSoFar.insert(std::get<0>(nameAndType));
-
-                m_members.push_back(nameAndType);
-            }
-
             mergeInto(m_memberFunctions, base->m_own_memberFunctions);
             mergeInto(m_staticFunctions, base->m_own_staticFunctions);
             mergeInto(m_propertyFunctions, base->m_own_propertyFunctions);
+        }
+
+        std::set<std::string> membersSoFar;
+
+        //only one base class can have members
+        for (auto base: m_bases) {
+            if (base->m_members.size()) {
+                m_members = base->m_members;
+            }
+        }
+
+        for (auto nameAndType: m_members) {
+            membersSoFar.insert(std::get<0>(nameAndType));
+        }
+
+        for (auto nameAndType: m_own_members) {
+            if (membersSoFar.find(std::get<0>(nameAndType)) != membersSoFar.end()) {
+                throw std::runtime_error("Can't redefine member named " + std::get<0>(nameAndType));
+            }
+
+            membersSoFar.insert(std::get<0>(nameAndType));
+
+            m_members.push_back(nameAndType);
         }
     }
 

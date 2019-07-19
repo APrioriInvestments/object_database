@@ -218,3 +218,20 @@ class TestClassCompilationCompilation(unittest.TestCase):
 
         self.assertEqual(f().x, 123)
         self.assertEqual(f().y, 0)
+
+    def test_compiled_class_subclass_layout(self):
+        class BaseClass(Class):
+            x = Member(int)
+            y = Member(int)
+
+        class ChildClass(BaseClass):
+            z = Member(int)
+
+        def f(x: BaseClass):
+            return x.x + x.y
+
+        fCompiled = Compiled(f)
+
+        c = ChildClass(x=10, y=20, z=30)
+
+        self.assertEqual(fCompiled(c), f(c))

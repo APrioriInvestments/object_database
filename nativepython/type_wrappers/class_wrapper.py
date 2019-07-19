@@ -57,6 +57,8 @@ class ClassWrapper(RefcountedWrapper):
 
         # we need this to actually be a global variable that we fill out, but we don't have the machinery
         # yet in the native_ast. So for now, we just hack it together.
+        # because we are writing a pointer value directly into the generated code as a constant, we
+        # won't be able to reuse the binary we produced in another program.
         self.vtableExpr = native_ast.const_uint64_expr(_types._vtablePointer(self.typeRepresentation))
 
     def getNativeLayoutType(self):

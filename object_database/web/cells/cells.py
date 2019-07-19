@@ -1142,11 +1142,11 @@ class Sequence(Cell):
         super().__init__()
         elements = [Cell.makeCell(x) for x in elements]
 
+        self.split = split
         self.elements = elements
         self.namedChildren['elements'] = elements
         self.children = {"____c_%s__" %
                          i: elements[i] for i in range(len(elements))}
-        self.split = split
         self.overflow = overflow
 
     def __add__(self, other):
@@ -1168,27 +1168,11 @@ class Sequence(Cell):
 
 
 class HorizontalSequence(Cell):
-    def __init__(self, elements, overflow=True, margin=None, wrap=True):
-        """
-        Lays out (children) elements in a horizontal sequence.
-
-        Parameters:
-        ----------
-        elements : list of cells
-        overflow : bool
-            if True will allow the div to overflow in all dimension, i.e.
-            effectively setting `overflow: auto` css. Note: the div must be
-            bounded for overflow to take action.
-        margin : int
-            Bootstrap style margin size for all children elements.
-        """
+    def __init__(self, elements, overflow=True):
         super().__init__()
         elements = [Cell.makeCell(x) for x in elements]
         self.elements = elements
         self.overflow = overflow
-        self.margin = margin
-        self.wrap = wrap
-        self.isFlexParent = False
         self.updateChildren()
 
     def __rshift__(self, other):
@@ -1200,23 +1184,13 @@ class HorizontalSequence(Cell):
 
     def recalculate(self):
         self.updateChildren()
-        if self.isFlexParent:
-            self.exportData['flexParent'] = True
-        self.exportData['margin'] = self.margin
-        self.exportData['wrap'] = self.wrap
+        self.exportData['overflow'] = self.overflow
 
     def updateChildren(self):
-        newElements = []
-        for childCell in self.elements:
-            if childCell.isFlex:
-                self.isFlexParent = True
-                newElements.append(childCell)
-            elif isinstance(childCell, HorizontalSequence):
-                newElements += childCell.elements
-            else:
-                newElements.append(childCell)
-        self.elements = newElements
-        self.children['elements'] = self.elements
+        self.namedChildren['elements'] = self.elements
+        self.children = {}
+        for i in range(len(self.elements)):
+            self.children["____c_{}__".format(i)] = self.elements[i]
 
     def sortAs(self):
         if self.elements:

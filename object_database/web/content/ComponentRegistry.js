@@ -51,6 +51,7 @@ import {_PlotUpdater} from './components/_PlotUpdater';
 import {Timestamp} from './components/Timestamp';
 import {SplitView} from './components/SplitView';
 import {PageView} from './components/PageView';
+import {HorizontalSequence} from './components/HorizontalSequence';
 
 const ComponentRegistry = {
     AsyncDropdown,

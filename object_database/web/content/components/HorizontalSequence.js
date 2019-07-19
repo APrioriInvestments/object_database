@@ -2,9 +2,17 @@
  * HorizontalSequence Cell Components
  */
 
-import {Component, render} from './Component';
+import {Component} from './Component';
 import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
+
+/**
+ * About Replacements
+ * ------------------
+ * This component has the following
+ * enumerated replacement:
+ * * `c`
+ */
 
 /**
  * About Named Children
@@ -21,7 +29,7 @@ class HorizontalSequence extends Component {
         this.makeElements = this.makeElements.bind(this);
     }
 
-    build(){
+    render(){
         return (
             h('div', {
                 id: this.props.id,
@@ -33,42 +41,25 @@ class HorizontalSequence extends Component {
     }
 
     makeElements(){
-        let elements = this.props.namedChildren['elements'];
-        return elements.map(childComponent => {
-            let hyperscript = render(childComponent);
-            if(childComponent.props.flexChild == true && this.props.flexParent){
-                hyperscript.properties.class += " flex-child";
-            }
-            return hyperscript;
-        });
+        if(this.usesReplacements){
+            return this.getReplacementElementsFor('c');
+        } else {
+            return this.renderChildrenNamed('elements');
+        }
     }
 
     makeClasses(){
-        let classes = ["cell", "sequence", "sequence-horizontal"];
-        if(this.props.flexParent){
-            classes.push("flex-parent");
-        }
-        if (this.props.margin){
-            classes.push(`child-margin-${this.props.margin}`);
-        }
-        if(this.props.wrap){
-            classes.push('seq-flex-wrap');
+        let classes = ["cell", "sequence", "sequence-horizonal"];
+        if(this.props.overflow){
+            classes.push("overflow");
         }
         return classes.join(" ");
     }
 }
 
 HorizontalSequence.propTypes = {
-    margin: {
-        description: "Bootstrap margin value for between element spacing",
-        type: PropTypes.oneOf([PropTypes.number, PropTypes.string])
-    },
-    flexParent: {
-        description: "Whether or not the HorizontalSequence should display using Flexbox",
-        type: PropTypes.boolean
-    },
-    wrap: {
-        description: "Whether or not the HorizontalSequence should wrap on overflow",
+    overflow: {
+        description: "If true, sets overflow of container to auto",
         type: PropTypes.boolean
     }
 };

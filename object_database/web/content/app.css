@@ -149,10 +149,28 @@
     transition: background-color 0.2s linear;
     z-index: 1050;
 
+/* Sequence and HorizontalSequence
+ *================================================================*/
+.sequence {
+    display: inline-flex;
+    width: 100%;
+    height: 100%;
+}
+
+.sequence-vertical {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.sequence-horizontal {
+    flex-direction: row;
+    align-items: center;
+}
+
 /* PageView
  *================================================================*/
 .page-view {
-    display: flex;
+    display: inline-flex;
     flex-direction: column;
     min-height: 100vh;
     width: 100%;
@@ -170,248 +188,12 @@
 
 }
 
-/* Sequence and HorizontalSequence
- *================================================================*/
-.sequence {
-    display: inline-block;
-    width: 100%;
-}
-
-.sequence-vertical {
-    flex-direction: column;
-    align-items: flex-start;
-}
-
-:not(.flex-parent) > .sequence.flex-parent,
-:not(.flex-child) > .sequence.flex-parent {
-    height: 100%;
-}
-
-.sequence-horizontal > .sequence {
-    width: auto;
-}
-
-.sequence-vertical > * {
-    display: block;
-}
-
-.sequence-horizontal {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    align-content: flex-start;
-}
-
-.sequence-horizontal.overflow {
-    /* We handle this for each type of sequence
-     * separately.
-     */
-    overflow-y: hidden;
-    overflow-x: auto;
-}
 
 
 
-/* Flex Parent and Flex Child (Sequences etc)
- *================================================================*/
-.seq-flex-wrap {
-    flex-wrap: wrap;
-}
-
-.sequence-vertical.flex-parent {
-    display: flex;
-    flex-direction: column;
-}
-
-.sequence-horizontal.flex-parent {
-    display: flex;
-    flex-direction: row;
-}
-
-.sequence-vertical > .flex-child {
-    overflow-y: auto;
-    flex: 1;
-}
-
-.sequence-horizontal > .flex-child {
-    overflow-x: auto;
-    flex: 1;
-}
-
-.sequence-horizontal > .flex-child.seq-flex-wrap {
-    flex-wrap: nowrap;
-}
-
-.shrinkwrapped {
-    flex-grow: 0;
-}
-
-/* Sequence and HorizontalSequence Special Cases
- * ===============================================================*/
-.sequence-vertical > [data-cell-type="Clickable"] {
-    display: block;
-}
-
-:not(.sequence) > .sequence-horizontal {
-    position: relative;
-    height: 100%;
-}
-
-.sequence-vertical > .split-view {
-    display: flex;
-}
-
-/* Panel
- * ============================================================== */
-.cell-panel {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border: 1px solid rgba(75, 75, 75, 0.3);
-    padding: 10px;
-    border-radius: 10px;
-}
-
-.cell-panel.flex-child,
-.flex-parent > .cell-panel {
-    width: auto;
-    height: auto;
-}
-
-.sequence-horizontal > .cell-panel {
-    height: auto;
-    width: auto;
-}
-
-.sequence-horizontal.flex-parent > .cell.panel {
-    height: 100%;
-    width: auto;
-}
-
-.sequence-vertical.flex-parent > .cell-panel {
-    height: auto;
-    width: 100%;
-}
-
-/* CodeEditor
- * ===============================================================*/
-.code-editor {
-    position: relative;
-    width: 100%;
-    height: 100%;
-}
-
-.code-editor-inner {
-    width: 100%;
-    min-height: 100%;
-    margin: auto;
-    border: 1px solid lightgray;
-}
-
-.sequence-horizontal:not(.flex-parent) > .code-editor {
-    min-width: 300px;
-    flex: 1;
-}
-
-.sequence-vertical > .code-editor.flex-child {
-    width: 100%;
-}
-
-/* PageView
- *================================================================*/
-.page-view {
-    display: inline-flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
-}
-
-.page-view > header {
-    height: var(--page-view-header-height);
-}
-
-.page-view > main {
-    height: calc(100% - var(--page-view-header-height));
-}
-
-.page-view-header {
-
-}
-
-.page-view-footer {
-
-}
-
-/* CollapsiblePanel
- *======================================================*/
-.collapsible-panel {
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-    height: 100%;
-}
-
-.collapsible-panel-panel {
-    flex: 1;
-}
-
-.collapsible-panel-content {
-    flex: 5;
-}
-
-/* Bootstrap and related
- *======================================================*/
-.card {
-    width: 100%;
-}
 
 /* Generic and Utility Classes
  *======================================================*/
 .overflow {
     overflow: auto;
-}
-
-.child-margin-1 > * {
-    margin: .25rem!important;
-}
-
-.child-margin-2 > * {
-    margin: .5rem!important;
-}
-
-
-.child-margin-3 > * {
-    margin: 1rem!important;
-}
-
-
-.child-margin-4 > * {
-    margin: 1.5rem!important;
-}
-
-
-.child-margin-5 > * {
-    margin: 3rem!important;
-}
-
-.child-margin-5 > * {
-    margin: 3rem!important;
-}
-
-.custom-tooltip .tooltiptext{
-    visibility: hidden;
-    width: 120px;
-    background-color: lightgray;
-    color: white;
-    text-align: center;
-    border-radius: 6px;
-    padding: 5px 0;
-
-    /* Position the tooltip */
-    position: absolute;
-    z-index: 1;
-}
-
-.custom-tooltip:hover .tooltiptext{
-    visibility: visible;
 }

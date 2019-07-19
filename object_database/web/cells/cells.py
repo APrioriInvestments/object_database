@@ -2431,7 +2431,7 @@ class Expands(Cell):
         self.children.addFromDict({
             'content': self.open if self.isExpanded else self.closed,
             'icon': self.openedIcon if self.isExpanded else self.closedIcon
-        })
+        }
 
         # TODO: Refactor this. We shouldn't need to send
         # an inline script!
@@ -2605,9 +2605,10 @@ class Sheet(Cell):
         # Should now be implemented completely
         # in the JS side component.
 
-        self.exportData['colWidth'] = self.colWidth
-        self.exportData['rowHeight'] = self.rowHeight
-        # self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
+        self.exportData['columnNames'] = [x for x in self.columnNames]
+        self.exportData['rowCount'] = self.rowCount
+        self.exportData['columnWidth'] = self.colWidth
+        self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
 
     def onMessage(self, msgFrame):
         """TODO: We will need to update the Cell lifecycle

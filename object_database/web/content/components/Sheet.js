@@ -87,13 +87,10 @@ class Sheet extends Component {
                 scrollTop: this.scrollTop,
                 scrollLeft: this.scrollLeft
             }, [
-                h("table", {class: "sheet", style: "table-layout:fixed"}, [
-                    h("thead", {}, [
-                        h("tr", {id: `sheet-${this.props.id}-head`}, [
-                        ])
-                    ]),
-                    h("tbody", {id: `sheet-${this.props.id}-body`}, rows)
-                ])
+                h('div', {
+                    id: `sheet${this.props.id}`,
+                    class: "handsontable"
+                }, [this.makeError()])
             ])
         );
     }

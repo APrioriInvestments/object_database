@@ -73,11 +73,10 @@ class CodeEditor extends Component {
     build(){
         return h('div',
             {
-                class: "cell code-editor",
+                class: "cell h-100",
                 id: this.props.id,
                 "data-cell-id": this.props.id,
                 "data-cell-type": "CodeEditor",
-                key: this
             },
                  [h('div', { id: "editor" + this.props.id, class: "code-editor-inner" }, [])
         ]);

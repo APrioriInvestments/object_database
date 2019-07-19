@@ -22,10 +22,15 @@ class Subscribed extends Component {
         this.makeContent = this.makeContent.bind(this);
     }
 
-    build(){
-        let velement = this.makeContent();
-        velement.properties['data-subscribed-to'] = this.props.id;
-        return velement;
+    render(){
+        return h('div',
+            {
+                class: "cell subscribed",
+                id: this.props.id,
+                "data-cell-id": this.props.id,
+                "data-cell-type": "Subscribed"
+            }, [this.makeContent()]
+        );
     }
 
     getDOMElement(){

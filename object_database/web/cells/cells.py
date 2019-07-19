@@ -1829,48 +1829,36 @@ class SubscribedSequence(Cell):
         else:
             children.append(child)
 
+            new_children = {}
+            new_named_children = {
+                'children': []
+            }
+            for ix, rowKey in enumerate(self.spine):
+                if rowKey in self.existingItems:
+                    new_children["____child_%s__" %
+                                 ix] = self.existingItems[rowKey]
+                    new_named_children['children'].append(self.existingItems[rowKey])
+                else:
+                    try:
+                        childCell = self.makeCell(rowKey[0])
+                        self.existingItems[rowKey] = new_children["____child_%s__" % ix] = childCell
+                        new_named_children[ix] = childCell
+                    except SubscribeAndRetry:
+                        raise
+                    except Exception:
+                        tracebackCell = Traceback(traceback.format_exc())
+                        self.existingItems[rowKey] = new_children["____child_%s__" % ix] = tracebackCell
+                        new_named_children[ix] = tracebackCell
 
-    def _getItems(self):
-        """Retrieves the items using itemsFunc
-        and updates this object's internal items
-        list"""
-        try:
-            self.items = augmentToBeUnique(self.itemsFun())
-        except SubscribeAndRetry:
-            raise
-        except Exception:
-            self._logger.error(
-                "SubscribedSequence itemsFun threw exception:\n%s",
-                traceback.format_exc())
-            self.items = []
+        self.children = new_children
+        self.namedChildren = new_named_children
 
-    def _updateExistingItems(self):
-        """Updates the dict storing cached
-        Cells that were already created.
-        Note that we might need to remove
-        some entries that no longer apply"""
-        itemSet = set(self.items)
-        for item in list(self.existingItems):
-            if item not in itemSet:
-                del self.existingItems[item]
-
-    def childWrapsOwnKind(self, child):
-        """Returns true if this object wraps
-        a Subscribed that wraps a Sequence that
-        has the same orientation as itself"""
-        if self.orientation == 'vertical':
-            return child.wrapsSequence
-        elif self.orientation == 'horizontal':
-            return child.wrapsHorizSequence
-        return False
-
-def HorizontalSubscribedSequence(itemsFun, rendererFun):
-    return SubscribedSequence(itemsFun, rendererFun, orientation='horizontal')
-
-HSubscribedSequence = HorizontalSubscribedSequence
-
-def VSubscribedSequence(itemsFun, rendererFun):
-    return SubscribedSequence(itemsFun, rendererFun)
+        spineAsSet = set(self.spine)
+        for i in list(self.existingItems):
+            if i not in spineAsSet:
+                del self.existingItems[i]
+        self.exportData['asColumns'] = self.asColumns
+        self.exportData['numSpineChildren'] = len(self.spine)
 
 
 class Popover(Cell):

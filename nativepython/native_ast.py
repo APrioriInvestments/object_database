@@ -477,6 +477,12 @@ def const_int_expr(i):
     )
 
 
+def const_uint64_expr(i):
+    return Expression.Constant(
+        val=Constant.Int(bits=64, val=i, signed=False)
+    )
+
+
 def const_int32_expr(i):
     return Expression.Constant(
         val=Constant.Int(bits=32, val=i, signed=True)

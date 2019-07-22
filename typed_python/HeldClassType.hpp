@@ -24,14 +24,169 @@
 class HeldClass;
 class Class;
 
-class VTable {
+typedef void (*destructor_fun_type)(instance_ptr inst);
+
+typedef std::vector<Function::FunctionArg> function_signature_type;
+
+typedef std::pair<std::string, function_signature_type> method_signature_type;
+
+/****
+ClassDispatchTable
+
+Contains the dispatch pointers for each entrypoint to compiled code. Each instance represents
+everything we know about dispatching 'Subclass as Class', where an instance of 'Subclass' needs
+to masquerade as an instance of 'Class' in compiled code.
+
+At every call site for things that look like 'Class' we have an integer representing that
+dispatch.  Every 'Subclass as Class' dispatch table will need to have an entry for that id,
+so that compiled code can find the function pointer.
+*****/
+
+
+class ClassDispatchTable {
 public:
-    VTable(HeldClass* inClass) :
-        mType(inClass)
+    typedef void* untyped_function_ptr;
+
+    ClassDispatchTable(HeldClass* implementingClass, HeldClass* interfaceClass) :
+        mImplementingClass(implementingClass),
+        mInterfaceClass(interfaceClass),
+        mFuncPtrs(nullptr),
+        mFuncPtrsUsed(0),
+        mFuncPtrsAllocated(0)
     {
     }
 
+    // initialize this ClassDispatchTable given the table for the interface we're implementing.
+    // If we are 'Subclass' implementing 'Base', 'baseAsBase' will be the table for 'Base' implementing
+    // 'Base', which we need to see because it will contain an entry for every dispatch that's currently
+    // known for 'Base'.
+    void initialize(ClassDispatchTable* baseAsBase) {
+        mDispatchIndices = baseAsBase->mDispatchIndices;
+
+        mFuncPtrsUsed = baseAsBase->mFuncPtrsUsed;
+        mFuncPtrsAllocated = baseAsBase->mFuncPtrsAllocated;
+
+        mFuncPtrs = (untyped_function_ptr*)malloc(sizeof(untyped_function_ptr) * mFuncPtrsAllocated);
+
+        for (long k = 0; k < mFuncPtrsUsed; k++) {
+            mFuncPtrs[k] = nullptr;
+            mIndicesNeedingDefinition.insert(k);
+            globalPointersNeedingCompile().insert(std::make_pair(this, k));
+        }
+    }
+
+    size_t allocateMethodDispatch(std::string funcName, const function_signature_type& signature) {
+        assertHoldingTheGil();
+
+        auto it = mDispatchIndices.find(method_signature_type(funcName, signature));
+        if (it != mDispatchIndices.end()) {
+            return it->second;
+        }
+
+        size_t newIndex = mDispatchIndices.size();
+
+        mDispatchIndices[method_signature_type(funcName, signature)] = newIndex;
+
+        // check if we need to allocate a bigger function pointer table. If we do,
+        // we must leave the existing one in place, because compiled code may be
+        // reading from it concurrently. This functino is holding the GIL, but
+        // compiled code doesn't have to do that.
+        if (mFuncPtrsUsed >= mFuncPtrsAllocated) {
+            mFuncPtrsAllocated = (mFuncPtrsAllocated + 1) * 2;
+            untyped_function_ptr* newTable = (untyped_function_ptr*)malloc(sizeof(untyped_function_ptr) * mFuncPtrsAllocated);
+            for (long k = 0; k < mFuncPtrsUsed; k++) {
+                newTable[k] = mFuncPtrs[k];
+            }
+
+            //TODO: don't just leak this. Put it in a queue that we can clean up in
+            //the background after we are certain that any compiled code that was
+            //reading from the old table will have seen this.
+            mFuncPtrs = newTable;
+        }
+
+        mFuncPtrsUsed += 1;
+
+        if (mFuncPtrsUsed != mDispatchIndices.size()) {
+            throw std::runtime_error("Somehow we lost track of how many function pointers we're using.");
+        }
+
+        mFuncPtrs[newIndex] = nullptr;
+
+        mIndicesNeedingDefinition.insert(newIndex);
+        globalPointersNeedingCompile().insert(std::make_pair(this, newIndex));
+
+        return newIndex;
+    }
+
+    void define(size_t index, untyped_function_ptr* ptr) {
+        if (!ptr) {
+            throw std::runtime_error("Tried to define a function pointer in a VTable.ClassDispatchTable to be null.");
+        }
+
+        auto it = mIndicesNeedingDefinition.find(index);
+        if (it == mIndicesNeedingDefinition.end()) {
+            throw std::runtime_error("Tried to define a function pointer in a VTable.ClassDispatchTable twice.");
+        }
+
+        mIndicesNeedingDefinition.erase(it);
+
+        mFuncPtrs[index] = ptr;
+    }
+
+    // a set of slots for function pointers that need to be compiled. We only add to this from
+    // this code. Clients of this object pop these off and compile them.
+    static std::set<std::pair<ClassDispatchTable*, size_t> >& globalPointersNeedingCompile() {
+        static std::set<std::pair<ClassDispatchTable*, size_t> > pointers;
+
+        return pointers;
+    }
+
+private:
+    HeldClass* mImplementingClass;
+
+    HeldClass* mInterfaceClass;
+
+    untyped_function_ptr* mFuncPtrs;
+
+    size_t mFuncPtrsAllocated;
+
+    size_t mFuncPtrsUsed;
+
+    std::map<method_signature_type, size_t> mDispatchIndices;
+
+    std::set<size_t> mIndicesNeedingDefinition;
+};
+
+class VTable {
+public:
+    VTable(HeldClass* inClass) :
+        mType(inClass),
+        mCompiledDestructorFun(nullptr),
+        mDispatchTables(nullptr)
+    {
+    }
+
+    /*****
+    When VTable is constructed, the Class type object itself isn't complete. This function
+    is responsible for completing initialization by creating dispatch tables for all of the
+    base classes we might masquerade as.
+    *****/
+
+    void finalize(ClassDispatchTable* dispatchers) {
+        mDispatchTables = dispatchers;
+    }
+
     HeldClass* mType;
+
+    // null, unless we've compiled a destructor for this function in which case we can just use that.
+
+    destructor_fun_type mCompiledDestructorFun;
+
+    // for each base class, we have a dispatch table we use when we are interacting with the class from
+    // code that wants to view the child class as if it were the base class. we encode which base class
+    // by index using the top 16 bits of the class pointer.
+
+    ClassDispatchTable* mDispatchTables;
 };
 
 typedef VTable* vtable_ptr;
@@ -301,7 +456,10 @@ public:
         std::function<void (HeldClass*)> visit = [&](HeldClass* cls) {
             if (seen.find(cls) == seen.end()) {
                 seen.insert(cls);
+
                 m_mro.push_back(cls);
+                m_ancestor_to_mro_index[cls] = m_mro.size() - 1;
+
                 m_bases_as_set.insert(cls);
 
                 for (auto b: cls->getBases()) {
@@ -347,6 +505,35 @@ public:
 
             m_members.push_back(nameAndType);
         }
+
+        for (HeldClass* ancestor: m_mro) {
+            mClassDispatchTables.push_back(ClassDispatchTable(this, ancestor));
+        }
+
+        for (HeldClass* ancestor: m_mro) {
+            ancestor->m_implementors.insert(this);
+        }
+
+        m_vtable->finalize(&mClassDispatchTables[0]);
+
+        // make sure that, for every interface we can take on, we have slots allocated
+        // that the compiler can come along and compile.
+        for (HeldClass* ancestor: m_mro) {
+            dispatchTableAs(ancestor)->initialize(ancestor->dispatchTableAs(ancestor));
+        }
+    }
+
+    size_t allocateMethodDispatch(std::string funcName, function_signature_type signature) {
+        size_t result = dispatchTableAs(this)->allocateMethodDispatch(funcName, signature);
+
+        // make sure we add this dispatch to every child that implements us as an interface
+        for (HeldClass* child: m_implementors) {
+            if (result != child->dispatchTableAs(this)->allocateMethodDispatch(funcName, signature)) {
+                throw std::runtime_error("Corrupted Dispatch Tables!");
+            }
+        }
+
+        return result;
     }
 
     // given some function defininitions by name, add them to a target dictionary.
@@ -376,6 +563,29 @@ public:
         return m_vtable;
     }
 
+    const std::vector<HeldClass*>& getMro() const {
+        return m_mro;
+    }
+
+    int64_t getMroIndex(HeldClass* ancestor) const {
+        auto it = m_ancestor_to_mro_index.find(ancestor);
+
+        if (it == m_ancestor_to_mro_index.end()) {
+            return -1;
+        }
+
+        return it->second;
+    }
+
+    ClassDispatchTable* dispatchTableAs(HeldClass* interface) {
+        int64_t offset = getMroIndex(interface);
+        if (offset < 0) {
+            throw std::runtime_error("Interface is not an ancestor.");
+        }
+
+        return &mClassDispatchTables[offset];
+    }
+
 private:
     std::vector<size_t> m_byte_offsets;
 
@@ -385,11 +595,17 @@ private:
     // search for methods at runtime.
     std::vector<HeldClass*> m_mro;
 
+    std::set<HeldClass*> m_implementors; //all classes that implement this interface
+
+    std::unordered_map<HeldClass*, int> m_ancestor_to_mro_index;
+
     std::unordered_set<HeldClass*> m_bases_as_set;
 
     VTable* m_vtable;
 
     Class* m_classType; //the non-held version of this class
+
+    std::vector<ClassDispatchTable> mClassDispatchTables;
 
     //the members we
     std::vector<std::tuple<std::string, Type*, Instance> > m_members;

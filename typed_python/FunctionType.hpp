@@ -65,6 +65,41 @@ public:
             }
         }
 
+        bool operator<(const FunctionArg& other) const {
+            if (m_name < other.m_name) {
+                return true;
+            }
+            if (m_name > other.m_name) {
+                return false;
+            }
+            if (m_typeFilter < other.m_typeFilter) {
+                return true;
+            }
+            if (m_typeFilter > other.m_typeFilter) {
+                return false;
+            }
+            if (m_defaultValue < other.m_defaultValue) {
+                return true;
+            }
+            if (m_defaultValue > other.m_defaultValue) {
+                return false;
+            }
+            if (m_isStarArg < other.m_isStarArg) {
+                return true;
+            }
+            if (m_isStarArg > other.m_isStarArg) {
+                return false;
+            }
+            if (m_isKwarg < other.m_isKwarg) {
+                return true;
+            }
+            if (m_isKwarg > other.m_isKwarg) {
+                return false;
+            }
+
+            return false;
+        }
+
     private:
         std::string m_name;
         Type* m_typeFilter;

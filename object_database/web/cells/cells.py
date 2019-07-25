@@ -338,18 +338,6 @@ class Cells:
 
         self._nodesToBroadcast.add(node)
 
-    def markToDataUpdate(self, node):
-        assert node.cells is self
-
-        self._nodesToDataUpdate.add(node)
-
-    def findStableParent(self, cell):
-        if not cell.parent:
-            return cell
-        if cell.parent.wasUpdated or cell.parent.wasCreated:
-            return self.findStableParent(cell.parent)
-        return cell
-
     def renderMessages(self):
         self._processCallbacks()
         self._recalculateCells()

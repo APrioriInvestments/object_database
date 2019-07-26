@@ -5,25 +5,10 @@ should be formatted using functions in this module
 """
 
 
-def cellUpdated(cell):
-    parent_id = None
-    if cell.parent is not None:
-        parent_id = cell.parent.identity
-
-    structure = getStructure(
-        parent_id,
-        cell,
-        None,
-        expand=True)
-    envelope = {
-        "channel": "#main",
-        "type": "#cellUpdated",
-        "shouldDisplay": cell.shouldDisplay,
-        "extraData": cell.exportData
-    }
-    structure.update(envelope)
-    if cell.postscript:
-        structure['postscript'] = cell.postscript
+def oldCellUpdated(cell, replaceDict={}):
+    """A lifecycle message formatter
+    to be used when a Cell is created or
+    updated.
 
     return structure
 
@@ -41,6 +26,25 @@ def cellDataUpdated(cell):
         "dataInfo": cell.exportData["dataInfo"]
     }
     return data
+
+
+def cellUpdated(cell, replaceDict):
+    structure = getStructure(
+        cell.parent.identity,
+        cell,
+        None,
+        expand=True)
+    res = {
+        "channel": "#main",
+        "type": "#cellUpdated",
+        "shouldDisplay": cell.shouldDisplay,
+        "extraData": cell.exportData
+    }
+    res = structure.update(res)
+    if cell.postscript:
+        res['postscript'] = cell.postscript
+    return res
+
 
 
 def cellDiscarded(cell):
@@ -130,8 +134,7 @@ def getStructure(parent_id, cell, name_in_parent, expand=False):
     """
     if expand:
         return _getExpandedStructure(parent_id, cell, name_in_parent)
-    else:
-        return _getFlatStructure(parent_id, cell, name_in_parent)
+    return _getFlatStructure(parent_id, cell, name_in_parent)
 
 
 
@@ -141,7 +144,6 @@ def _getFlatStructure(parent_id, cell, name_in_parent):
     return {
         "id": cell.identity,
         "cellType": cell.__class__.__name__,
-        "properties": cell.exportData,
         "nameInParent": name_in_parent,
         "parentId": parent_id,
         "namedChildren": own_children

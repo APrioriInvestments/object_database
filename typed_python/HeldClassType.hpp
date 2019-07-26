@@ -22,13 +22,18 @@
 #include <unordered_set>
 
 class HeldClass;
+class Function;
 class Class;
 
-typedef void (*destructor_fun_type)(instance_ptr inst);
+//this takes a pointer to the class layout itself (e.g. the normal class pointer)
+//not to the stackslot.
+typedef void (*destructor_fun_type)(void* inst);
 
-typedef std::vector<Function::FunctionArg> function_signature_type;
+typedef Function* function_signature_type;
 
-typedef std::pair<std::string, function_signature_type> method_signature_type;
+typedef std::pair<std::string, Function*> method_signature_type;
+
+typedef void* untyped_function_ptr;
 
 /****
 ClassDispatchTable
@@ -45,8 +50,6 @@ so that compiled code can find the function pointer.
 
 class ClassDispatchTable {
 public:
-    typedef void* untyped_function_ptr;
-
     ClassDispatchTable(HeldClass* implementingClass, HeldClass* interfaceClass) :
         mImplementingClass(implementingClass),
         mInterfaceClass(interfaceClass),
@@ -62,6 +65,7 @@ public:
     // known for 'Base'.
     void initialize(ClassDispatchTable* baseAsBase) {
         mDispatchIndices = baseAsBase->mDispatchIndices;
+        mDispatchDefinitions = baseAsBase->mDispatchDefinitions;
 
         mFuncPtrsUsed = baseAsBase->mFuncPtrsUsed;
         mFuncPtrsAllocated = baseAsBase->mFuncPtrsAllocated;
@@ -86,6 +90,7 @@ public:
         size_t newIndex = mDispatchIndices.size();
 
         mDispatchIndices[method_signature_type(funcName, signature)] = newIndex;
+        mDispatchDefinitions[newIndex] = method_signature_type(funcName, signature);
 
         // check if we need to allocate a bigger function pointer table. If we do,
         // we must leave the existing one in place, because compiled code may be
@@ -118,7 +123,7 @@ public:
         return newIndex;
     }
 
-    void define(size_t index, untyped_function_ptr* ptr) {
+    void define(size_t index, untyped_function_ptr ptr) {
         if (!ptr) {
             throw std::runtime_error("Tried to define a function pointer in a VTable.ClassDispatchTable to be null.");
         }
@@ -141,6 +146,22 @@ public:
         return pointers;
     }
 
+    HeldClass* getImplementingClass() const {
+        return mImplementingClass;
+    }
+
+    HeldClass* getInterfaceClass() const {
+        return mInterfaceClass;
+    }
+
+    method_signature_type dispatchDefinitionForSlot(size_t slotIx) const {
+        auto it = mDispatchDefinitions.find(slotIx);
+        if (it == mDispatchDefinitions.end()) {
+            throw std::runtime_error("Invalid slot");
+        }
+        return it->second;
+    }
+
 private:
     HeldClass* mImplementingClass;
 
@@ -153,6 +174,8 @@ private:
     size_t mFuncPtrsUsed;
 
     std::map<method_signature_type, size_t> mDispatchIndices;
+
+    std::map<size_t, method_signature_type> mDispatchDefinitions;
 
     std::set<size_t> mIndicesNeedingDefinition;
 };
@@ -174,6 +197,17 @@ public:
 
     void finalize(ClassDispatchTable* dispatchers) {
         mDispatchTables = dispatchers;
+    }
+
+    void installDestructor(destructor_fun_type fun) {
+        if (mCompiledDestructorFun == fun) {
+            return;
+        }
+        if (mCompiledDestructorFun) {
+            throw std::runtime_error("Can't change the compiled destructor!");
+        }
+
+        mCompiledDestructorFun = fun;
     }
 
     HeldClass* mType;

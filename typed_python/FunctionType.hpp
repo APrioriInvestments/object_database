@@ -152,7 +152,15 @@ public:
         {
         }
 
+        bool isSignature() const {
+            return mFunctionObj == nullptr;
+        }
+
         PyFunctionObject* getFunctionObj() const {
+            if (!mFunctionObj) {
+                throw std::runtime_error("Cannot access the function object of a function signature.");
+            }
+
             return mFunctionObj;
         }
 
@@ -179,6 +187,10 @@ public:
         }
 
         void addCompiledSpecialization(compiled_code_entrypoint e, Type* returnType, const std::vector<Type*>& argTypes) {
+            if (!mFunctionObj) {
+                throw std::runtime_error("Can't add a compiled specialization to a signature");
+            }
+
             mCompiledSpecializations.push_back(CompiledSpecialization(e,returnType,argTypes));
         }
 
@@ -283,6 +295,17 @@ public:
         Type(catFunction),
         mOverloads(overloads)
     {
+        int countOfSignatures = 0;
+        for (auto& o: overloads) {
+            if (o.isSignature()) {
+                countOfSignatures++;
+            }
+        }
+
+        if (countOfSignatures != 0 && countOfSignatures != overloads.size()) {
+            throw std::runtime_error("Can't create a FunctionType with some concrete and some signatures.");
+        }
+
         m_name = inName;
         m_is_simple = false;
         m_is_default_constructible = true;
@@ -329,11 +352,7 @@ public:
     }
 
     typed_python_hash_type hash(instance_ptr left) {
-        HashAccumulator acc((int)getTypeCategory());
-
-        acc.addRegister((uint64_t)mPyFunc);
-
-        return acc.get();
+        return 1;
     }
 
     void constructor(instance_ptr self) {
@@ -348,8 +367,14 @@ public:
     void assign(instance_ptr self, instance_ptr other) {
     }
 
-    const PyFunctionObject* getPyFunc() const {
-        return mPyFunc;
+    bool isSignature() const {
+        for (auto& s: mOverloads) {
+            if (s.isSignature()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     const std::vector<Overload>& getOverloads() const {
@@ -362,6 +387,10 @@ public:
                     Type* returnType,
                     const std::vector<Type*>& argTypes
                     ) {
+        if (isSignature()) {
+            throw std::runtime_error("Can't add a specialization to a Signature");
+        }
+
         if (whichOverload < 0 || whichOverload >= mOverloads.size()) {
             throw std::runtime_error("Invalid overload index.");
         }
@@ -380,7 +409,6 @@ public:
     }
 
 private:
-    PyFunctionObject* mPyFunc;
     std::vector<Overload> mOverloads;
 };
 

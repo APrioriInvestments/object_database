@@ -12,9 +12,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typed_python import Function, Class, TupleOf, Member
+from typed_python import Function, Class, TupleOf, Member, ListOf
 import typed_python._types as _types
 from nativepython.runtime import Runtime
+from nativepython import SpecializedEntrypoint
 import unittest
 import time
 
@@ -31,6 +32,9 @@ class AClass(Class):
 
     def f(self):
         return self.x + self.y
+
+    def f(self, arg):
+        return self.x + self.y + arg
 
     def loop(self, count: int):
         i = 0
@@ -235,3 +239,44 @@ class TestClassCompilationCompilation(unittest.TestCase):
         c = ChildClass(x=10, y=20, z=30)
 
         self.assertEqual(fCompiled(c), f(c))
+
+    def test_class_subclass_destructors(self):
+        class BaseClass(Class):
+            pass
+
+        class ChildClass(BaseClass):
+            x = Member(ListOf(int))
+
+        aListOfInt = ListOf(int)()
+
+        aListOfBase = ListOf(BaseClass)()
+        aListOfBase.append(ChildClass(x=aListOfInt))
+
+        self.assertEqual(_types.refcount(aListOfInt), 2)
+
+        aListOfBase.clear()
+
+        self.assertEqual(_types.refcount(aListOfInt), 1)
+
+    def test_class_subclass_destructors_compiled(self):
+        class BaseClass(Class):
+            pass
+
+        class ChildClass(BaseClass):
+            x = Member(ListOf(int))
+
+        aListOfInt = ListOf(int)()
+
+        aListOfBase = ListOf(BaseClass)()
+
+        @SpecializedEntrypoint
+        def clearList(l):
+            l.clear()
+
+        aListOfBase.append(ChildClass(x=aListOfInt))
+
+        self.assertEqual(_types.refcount(aListOfInt), 2)
+
+        clearList(aListOfBase)
+
+        self.assertEqual(_types.refcount(aListOfInt), 1)

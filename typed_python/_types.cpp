@@ -312,9 +312,9 @@ PyObject *allocateClassMethodDispatch(PyObject* nullValue, PyObject* args, PyObj
             );
         }
 
-        ((Class*)classType)->getHeldClass()->allocateMethodDispatch(methodName, funcTypeAsFunc);
+        size_t dispatchSlot = ((Class*)classType)->getHeldClass()->allocateMethodDispatch(methodName, funcTypeAsFunc);
 
-        return incref(Py_None);
+        return PyLong_FromLong(dispatchSlot);
     });
 }
 
@@ -663,6 +663,7 @@ PyObject *MakeFunctionType(PyObject* nullValue, PyObject* args) {
         }
 
         std::vector<Function::Overload> overloads;
+
         overloads.push_back(
             Function::Overload(
                 (PyFunctionObject*)(funcObj != Py_None ? (PyObject*)funcObj : nullptr),
@@ -671,7 +672,7 @@ PyObject *MakeFunctionType(PyObject* nullValue, PyObject* args) {
             )
         );
 
-        resType = new Function(PyUnicode_AsUTF8(nameObj), overloads);
+        resType = Function::Make(PyUnicode_AsUTF8(nameObj), overloads);
     }
 
     return incref((PyObject*)PyInstance::typeObj(resType));

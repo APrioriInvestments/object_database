@@ -200,6 +200,19 @@ public:
             std::swap(mCompiledSpecializations, other);
         }
 
+        bool operator<(const Overload& other) const {
+            if (mFunctionObj < other.mFunctionObj) { return true; }
+            if (mFunctionObj > other.mFunctionObj) { return false; }
+
+            if (mReturnType < other.mReturnType) { return true; }
+            if (mReturnType > other.mReturnType) { return false; }
+
+            if (mArgs < other.mArgs) { return true; }
+            if (mArgs > other.mArgs) { return false; }
+
+            return false;
+        }
+
     private:
         PyFunctionObject* mFunctionObj;
         Type* mReturnType;
@@ -314,6 +327,23 @@ public:
         endOfConstructorInitialization(); // finish initializing the type object.
     }
 
+    static Function* Make(std::string inName, std::vector<Overload>& overloads) {
+        static std::mutex guard;
+
+        std::lock_guard<std::mutex> lock(guard);
+
+        typedef std::pair<const std::string, const std::vector<Overload> > keytype;
+
+        static std::map<keytype, Function*> m;
+
+        auto it = m.find(keytype(inName, overloads));
+        if (it == m.end()) {
+            it = m.insert(std::make_pair(keytype(inName, overloads), new Function(inName, overloads))).first;
+        }
+
+        return it->second;
+    }
+
     template<class visitor_type>
     void _visitContainedTypes(const visitor_type& visitor) {
     }
@@ -330,7 +360,8 @@ public:
         for (auto o: f2->mOverloads) {
             overloads.push_back(o);
         }
-        return new Function(f1->m_name, overloads);
+
+        return Function::Make(f1->m_name, overloads);
     }
 
     bool cmp(instance_ptr left, instance_ptr right, int pyComparisonOp, bool suppressExceptions) {

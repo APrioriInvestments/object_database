@@ -20,14 +20,16 @@
 
 class Instance;
 
+void destroyClassInstance(instance_ptr self);
+
 class Class : public Type {
+public:
     class layout {
     public:
         std::atomic<int64_t> refcount;
         unsigned char data[];
     };
 
-public:
     Class(HeldClass* inClass) :
             Type(catClass),
             m_heldClass(inClass)

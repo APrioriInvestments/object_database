@@ -127,6 +127,7 @@ class PythonToNativeConverter(object):
         self._inflight_function_conversions = {}
         self._new_native_functions = set()
         self._used_names = set()
+        self._linktimeHooks = []
 
         self.verbose = False
 
@@ -168,7 +169,17 @@ class PythonToNativeConverter(object):
 
         return FunctionConversionContext(self, identity, pyast.args, body, input_types, output_type, freevars)
 
-    def defineNativeFunction(self, name, identity, input_types, output_type, generatingFunction):
+    def installLinktimeHook(self, typedCallTarget, callback):
+        """Call 'callback' with the native function pointer for 'typedCallTarget' after compilation has finished."""
+        self._linktimeHooks.append((typedCallTarget, callback))
+
+    def popLinktimeHook(self):
+        if self._linktimeHooks:
+            return self._linktimeHooks.pop()
+        else:
+            return None
+
+    def defineNativeFunction(self, name, identity, input_types, output_type, generatingFunction, callback=None):
         """Define a native function if we haven't defined it before already.
 
             name - the name to actually give the function.
@@ -176,6 +187,8 @@ class PythonToNativeConverter(object):
             input_types - list of Wrapper objects for the incoming types
             output_type - Wrapper object for the output type.
             generatingFunction - a function producing a native_function_definition
+            callback - a function taking a function pointer that gets called after codegen
+                to allow us to install this function pointer.
 
         returns a TypedCallTarget. 'generatingFunction' may call this recursively if it wants.
         """
@@ -193,6 +206,9 @@ class PythonToNativeConverter(object):
         self._inflight_function_conversions[identity] = NativeFunctionConversionContext(self, input_types, output_type, generatingFunction)
 
         self._targets[new_name] = self.getTypedCallTarget(new_name, input_types, output_type)
+
+        if callback is not None:
+            self.installLinktimeHook(self._targets[new_name], callback)
 
         return self._targets[new_name]
 

@@ -12,17 +12,81 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from nativepython.type_wrappers.wrapper import Wrapper
 from nativepython.type_wrappers.refcounted_wrapper import RefcountedWrapper
 from nativepython.type_wrappers.exceptions import generateThrowException
 import nativepython.type_wrappers.runtime_functions as runtime_functions
 
-from typed_python import NoneType, _types
+from typed_python import NoneType, _types, Type
 
 import nativepython.native_ast as native_ast
 import nativepython
 
 
 typeWrapper = lambda x: nativepython.python_object_representation.typedPythonTypeToTypeWrapper(x)
+
+
+native_destructor_function_type = native_ast.Type.Function(
+    output=native_ast.Void,
+    args=(native_ast.VoidPtr,),
+    varargs=False,
+    can_throw=False
+).pointer()
+
+
+class_dispatch_table_type = native_ast.Type.Struct(
+    element_types=[
+        ('implementingClass', native_ast.VoidPtr),
+        ('interfaceClass', native_ast.VoidPtr),
+        ('funcPtrs', native_ast.VoidPtr.pointer()),
+    ],
+    name="ClassDispatchTable"
+)
+
+vtable_type = native_ast.Type.Struct(
+    element_types=[
+        ('heldTypePtr', native_ast.VoidPtr),
+        ('destructorFun', native_destructor_function_type),
+        ('classDispatchTable', class_dispatch_table_type.pointer())
+    ],
+    name="VTable"
+)
+
+
+class BoundClassMethodWrapper(Wrapper):
+    def __init__(self, wrapped_type, method_name):
+        super().__init__((wrapped_type, method_name))
+        self.wrapped_type = typeWrapper(wrapped_type)
+        self.method_name = method_name
+
+    def convert_assign(self, context, target, toStore):
+        return self.wrapped_type.convert_assign(
+            context,
+            target.changeType(self.wrapped_type),
+            toStore.changeType(self.wrapped_type)
+        )
+
+    def convert_copy_initialize(self, context, target, toStore):
+        return self.wrapped_type.convert_copy_initialize(
+            context,
+            target.changeType(self.wrapped_type),
+            toStore.changeType(self.wrapped_type)
+        )
+
+    def convert_destroy(self, context, instance):
+        return self.wrapped_type.convert_destroy(
+            context,
+            instance.changeType(self.wrapped_type)
+        )
+
+    def convert_call(self, context, left, args, kwargs):
+        return self.wrapped_type.convert_method_call(
+            context,
+            left.changeType(self.wrapped_type),
+            self.method_name,
+            args,
+            kwargs
+        )
 
 
 class ClassWrapper(RefcountedWrapper):
@@ -39,7 +103,7 @@ class ClassWrapper(RefcountedWrapper):
         self.indexToByteOffset = {}
         self.classType = t
 
-        element_types = [('refcount', native_ast.Int64), ('vtable', native_ast.UInt64), ('data', native_ast.UInt8)]
+        element_types = [('refcount', native_ast.Int64), ('vtable', vtable_type.pointer()), ('data', native_ast.UInt8)]
 
         # this follows the general layout of 'held class' which is 1 bit per field for initialization and then
         # each field packed directly according to byte size
@@ -59,22 +123,32 @@ class ClassWrapper(RefcountedWrapper):
         # yet in the native_ast. So for now, we just hack it together.
         # because we are writing a pointer value directly into the generated code as a constant, we
         # won't be able to reuse the binary we produced in another program.
-        self.vtableExpr = native_ast.const_uint64_expr(_types._vtablePointer(self.typeRepresentation))
+        self.vtableExpr = native_ast.const_uint64_expr(
+            _types._vtablePointer(self.typeRepresentation)).cast(vtable_type.pointer()
+        )
+
+    def convert_default_initialize(self, context, instance):
+        return context.pushException(TypeError, f"Can't default initialize instances of {self}")
 
     def getNativeLayoutType(self):
         return self.layoutType
 
     def on_refcount_zero(self, context, instance):
-        return (
-            context.converter.defineNativeFunction(
-                "destructor_" + str(self.typeRepresentation),
-                ('destructor', self),
-                [self],
-                typeWrapper(NoneType),
-                self.generateNativeDestructorFunction
-            )
-            .call(instance)
+        def installDestructorFun(funcPtr):
+            _types.installClassDestructor(self.typeRepresentation, funcPtr.fp)
+
+        context.converter.defineNativeFunction(
+            "destructor_" + str(self.typeRepresentation),
+            ('destructor', self),
+            [self],
+            typeWrapper(NoneType),
+            self.generateNativeDestructorFunction,
+            callback=installDestructorFun
         )
+
+        return native_ast.CallTarget.Pointer(
+            expr=instance.nonref_expr.ElementPtrIntegers(0, 1).load().ElementPtrIntegers(0, 1).load()
+        ).call(instance.expr.cast(native_ast.VoidPtr))
 
     def generateNativeDestructorFunction(self, context, out, instance):
         for i in range(len(self.typeRepresentation.MemberTypes)):
@@ -126,7 +200,7 @@ class ClassWrapper(RefcountedWrapper):
 
     def convert_attribute(self, context, instance, attribute, nocheck=False):
         if attribute in self.typeRepresentation.MemberFunctions:
-            methodType = typeWrapper(_types.BoundMethod(self.typeRepresentation, self.typeRepresentation.MemberFunctions[attribute]))
+            methodType = BoundClassMethodWrapper(self.typeRepresentation, attribute)
 
             return instance.changeType(methodType)
 
@@ -154,6 +228,34 @@ class ClassWrapper(RefcountedWrapper):
                 true=self.memberPtr(instance, ix)
             )
         )
+
+    def convert_method_call(self, context, instance, methodName, args, kwargs):
+        # figure out which signature we'd want to use on the given args/kwargs
+        argTypes = [instance.expr_type.typeRepresentation] + [a.expr_type.typeRepresentation for a in args]
+
+        for a in argTypes:
+            assert issubclass(a, Type), a
+
+        func = self.typeRepresentation.MemberFunctions[methodName]
+
+        for o in func.overloads:
+            if o.matchesTypes(argTypes):
+                # let's use this one.
+                signature = o.signatureForSubtypes(methodName, argTypes)
+
+                # we should be dispatching to this slot
+                dispatchSlot = _types.allocateClassMethodDispatch(self.typeRepresentation, methodName, signature)
+
+                classDispatchTables = instance.nonref_expr.ElementPtrIntegers(0, 1).load().ElementPtrIntegers(0, 2).load()
+
+                classDispatchTable = classDispatchTables.elemPtr(
+                    instance.nonref_expr.cast(native_ast.UInt64)
+                        .rshift(native_ast.const_uint8_expr(48))
+                )
+
+                funcPtr = classDispatchTables.ElementPtrIntegers(0, 2).elemPtr(dispatchSlot).load()
+
+                return context.call_function_pointer(funcPtr, (instance,) + tuple(args), kwargs, typeWrapper(signature.returnType))
 
     def convert_set_attribute(self, context, instance, attribute, value):
         if not isinstance(attribute, int):

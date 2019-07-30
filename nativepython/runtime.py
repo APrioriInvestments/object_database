@@ -41,6 +41,18 @@ class Runtime:
         self.llvm_compiler.mark_converter_verbose()
         self.llvm_compiler.mark_llvm_codegen_verbose()
 
+    def _collectLinktimeHooks(self):
+        while True:
+            targetAndCallback = self.converter.popLinktimeHook()
+            if targetAndCallback is None:
+                return
+
+            typedCallTarget, callback = targetAndCallback
+
+            fp = self.llvm_compiler.function_pointer_by_name(typedCallTarget.name)
+
+            callback(fp)
+
     def compile(self, f, argument_types=None):
         """Compile a single FunctionOverload and install the pointer
 
@@ -86,6 +98,8 @@ class Runtime:
                     callTarget.output_type.typeRepresentation if callTarget.output_type is not None else NoneType,
                     [i.typeRepresentation for i in input_wrappers]
                 )
+
+                self._collectLinktimeHooks()
 
                 return targets
 

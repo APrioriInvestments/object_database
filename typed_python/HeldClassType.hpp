@@ -25,8 +25,7 @@ class HeldClass;
 class Function;
 class Class;
 
-//this takes a pointer to the class layout itself (e.g. the normal class pointer)
-//not to the stackslot.
+//this takes an instance_ptr for a Class object (not the HeldClass)
 typedef void (*destructor_fun_type)(void* inst);
 
 typedef Function* function_signature_type;
@@ -34,6 +33,8 @@ typedef Function* function_signature_type;
 typedef std::pair<std::string, Function*> method_signature_type;
 
 typedef void* untyped_function_ptr;
+
+void destroyClassInstance(instance_ptr classInstDestroy);
 
 /****
 ClassDispatchTable
@@ -184,7 +185,7 @@ class VTable {
 public:
     VTable(HeldClass* inClass) :
         mType(inClass),
-        mCompiledDestructorFun(nullptr),
+        mCompiledDestructorFun((destructor_fun_type)destroyClassInstance),
         mDispatchTables(nullptr)
     {
     }
@@ -203,7 +204,7 @@ public:
         if (mCompiledDestructorFun == fun) {
             return;
         }
-        if (mCompiledDestructorFun) {
+        if (mCompiledDestructorFun && mCompiledDestructorFun != (destructor_fun_type)destroyClassInstance) {
             throw std::runtime_error("Can't change the compiled destructor!");
         }
 
@@ -342,7 +343,7 @@ public:
 
     // HeldClass is laid out as a VTable ptr, a set of member initialization fields, and then
     // the actual members.
-    vtable_ptr& vtableFor(instance_ptr self) const {
+    static vtable_ptr& vtableFor(instance_ptr self) {
         return *(vtable_ptr*)self;
     }
 

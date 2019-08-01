@@ -338,6 +338,13 @@ class Cells:
 
         self._nodesToBroadcast.add(node)
 
+    def findStableParent(self, cell):
+        if not cell.parent:
+            return cell
+        if cell.parent.wasUpdated or cell.parent.wasCreated:
+            return self.findStableParent(cell.parent)
+        return cell
+
     def renderMessages(self):
         self._processCallbacks()
         self._recalculateCells()
@@ -357,6 +364,13 @@ class Cells:
             updatedNodesToSend.add(stableParent)
 
         for nodeToSend in list(updatedNodesToSend):
+            res.append(Messenger.newCellUpdated(nodeToSend))
+
+        """
+        # map<level:int -> cells:set<Cells> >
+        cellsByLevel = {}
+
+        for nodeToSend in list(updatedNodesToSend):
             res.append(Messenger.cellUpdated(nodeToSend))
 
         for level, cells in reversed(sorted(cellsByLevel.items())):
@@ -365,6 +379,7 @@ class Cells:
                 # TODO: in the future this should integrated into a more
                 # structured server side lifecycle management framework
                 n.updateLifecycleState()
+        """
 
         # make messages for discarding
         for n in self._nodesToDiscard:

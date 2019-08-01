@@ -3,7 +3,6 @@
  */
 
 import {Component, render} from './Component';
-import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**
@@ -62,7 +61,20 @@ class Dropdown extends Component {
                 }));
             });
         } else {
-            return [];
+            if(this.props.namedChildren.dropdownItems){
+                return this.props.namedChildren.dropdownItems.map((itemComponent, idx) => {
+                    // TODO: Clean up instantiation and rendering
+                    return render(new DropdownItem({
+                        id: `${this.props.id}-item-${idx}`,
+                        index: idx,
+                        childSubstitute: itemComponent.render(),
+                        targetIdentity: this.props.extraData.targetIdentity,
+                        dropdownItemInfo: this.props.extraData.dropdownItemInfo
+                    }));
+                });
+            } else {
+                return [];
+            }
         }
     }
 }

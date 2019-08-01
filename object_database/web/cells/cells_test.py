@@ -112,23 +112,47 @@ class CellsTests(unittest.TestCase):
     def test_cells_lifecycle_removed(self):
         basicCell = Cell()
         # new cell note removed
-        self.cells.withRoot(basicCell)
         self.assertFalse(basicCell.wasRemoved)
-        # now remove
-        self.cells.markToDiscard(basicCell)
-        self.assertTrue(basicCell.wasRemoved)
+        self.cells.withRoot(basicCell)
         self.cells.renderMessages()
         # still not removed
         self.assertFalse(basicCell.wasRemoved)
 
-    def test_cells_lifecycle_notremoved(self):
-        basicCell = Cell()
-        # new cell not removed
-        self.assertFalse(basicCell.wasRemoved)
-        self.cells.withRoot(basicCell)
-        self.cells.renderMessages()
-        # still not removed
-        self.assertFalse(basicCell.wasRemoved)
+    def test_cells_messages(self):
+        pair = [
+            Container("HI"),
+            Container("HI2")
+        ]
+        pairCell = Sequence(pair)
+        self.cells.withRoot(pairCell)
+
+        msgs = self.cells.renderMessages()
+
+        expectedCells = [self.cells._root, pairCell, pair[0], pair[1]]
+
+        self.assertTrue(self.cells._root in self.cells)
+        self.assertTrue(pairCell in self.cells)
+        self.assertTrue(pair[0] in self.cells)
+        self.assertTrue(pair[1] in self.cells)
+
+        messages = {}
+        for m in msgs:
+            assert m['id'] not in messages
+
+            messages[m['id']] = m
+
+        for c in expectedCells:
+            self.assertTrue(c.identity in messages)
+
+        self.assertEqual(
+            set(messages[pairCell.identity]['replacements'].values()),
+            set([pair[0].identity, pair[1].identity])
+        )
+
+        self.assertEqual(
+            set(messages[self.cells._root.identity]['replacements'].values()),
+            set([pairCell.identity])
+        )
 
     def test_cells_recalculation(self):
         pair = [

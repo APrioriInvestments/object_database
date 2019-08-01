@@ -359,9 +359,12 @@ class Cells:
         for nodeToSend in list(updatedNodesToSend):
             res.append(Messenger.cellUpdated(nodeToSend))
 
-        # make messages for data updated nodes
-        for node in self._nodesToDataUpdate:
-            res.append(Messenger.cellDataUpdated(node))
+        for level, cells in reversed(sorted(cellsByLevel.items())):
+            for n in cells:
+                res.append(self.updateMessageFor(n))
+                # TODO: in the future this should integrated into a more
+                # structured server side lifecycle management framework
+                n.updateLifecycleState()
 
         # make messages for discarding
         for n in self._nodesToDiscard:
@@ -422,14 +425,14 @@ class Cells:
         while self._dirtyNodes:
             node = self._dirtyNodes.pop()
 
-            if not node.garbageCollected:
-                if node.wasDataUpdated:
-                    self.markToDataUpdate(node)
-                    # TODO this should be cleaned up
-                    continue
-                else:
-                    self.markToBroadcast(node)
+            if not n.garbageCollected:
+                self.markToBroadcast(n)
                 # TODO: lifecycle attribute; see cell.updateLifecycleState()
+                if not n.wasCreated:
+                    # if a cell is marked to broadcast it is either new or has
+                    # been updated. Hence, if it's not new here that means it's
+                    # to be updated.
+                    n.wasUpdated = True
 
                 origChildren = self._cellsKnownChildren[node.identity]
 
@@ -658,7 +661,6 @@ class Cell:
         # cells is handled by self.updateLifecycleState.
         self.wasCreated = True
         self.wasUpdated = False
-        self.wasDataUpdated = False  # Whether or not this cell has updated data
         self.wasRemoved = False
 
         self._logger = logging.getLogger(__name__)
@@ -668,14 +670,6 @@ class Cell:
         # components will need to know about
         # when composing DOM.
         self.exportData = {}
-
-    def applyCellDecorator(self, decorator):
-        """Return a new cell which applies the function 'decorator' to 'self'.
-
-        By default we just call the function. But some subclasses may want to apply
-        the decorator to child cells instead.
-        """
-        return decorator(self)
 
     def updateLifecycleState(self):
         """Handles cell lifecycle state.
@@ -696,11 +690,7 @@ class Cell:
             self.wasCreated = False
         if (self.wasUpdated):
             self.wasUpdated = False
-        if (self.wasDataUpdated):
-            self.wasDataUpdated = False
-        # NOTE: self.wasRemoved is set to False for self.prepareForReuse
-        if (self.wasRemoved):
-            self.wasRemoved = False
+        # NOTE: self.wasRemoved is left as is - is that ok with cell reuse?
 
     def evaluateWithDependencies(self, fun):
         """Evaluate function within a view and add dependencies for whatever

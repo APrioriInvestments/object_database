@@ -443,11 +443,7 @@ class Cells:
             if not n.garbageCollected:
                 self.markToBroadcast(n)
                 # TODO: lifecycle attribute; see cell.updateLifecycleState()
-                if not n.wasCreated:
-                    # if a cell is marked to broadcast it is either new or has
-                    # been updated. Hence, if it's not new here that means it's
-                    # to be updated.
-                    n.wasUpdated = True
+
 
                 origChildren = self._cellsKnownChildren[node.identity]
 
@@ -457,18 +453,18 @@ class Cells:
                     _cur_cell.isProcessingCell = True
                     while True:
                         try:
-                            node.prepare()
-                            node.recalculate()
-                            if not node.wasCreated:
+                            n.prepare()
+                            n.recalculate()
+                            if not n.wasCreated:
                                 # if a cell is marked to broadcast it is either new or has
                                 # been updated. Hence, if it's not new here that means it's
                                 # to be updated.
-                                node.wasUpdated = True
+                                n.wasUpdated = True
                             break
                         except SubscribeAndRetry as e:
                             e.callback(self.db)
                     # GLORP
-                    for child_cell in node.children.allChildren:
+                    for childname, child_cell in n.children.items():
                         # TODO: We are going to have to update this
                         # to deal with namedChildren structures (as opposed
                         # to plain children dicts) in the near future.

@@ -138,7 +138,7 @@ class CodeEditor extends Component {
     }
 
     setupKeybindings() {
-        this.props.keybindings.map((kb) => {
+        this.props.extraData.keybindings.map((kb) => {
             this.editor.commands.addCommand(
                 {
                     name: 'cmd' + kb,

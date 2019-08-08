@@ -19,10 +19,10 @@ class Scrollable extends Component {
         this.makeChild = this.makeChild.bind(this);
     }
 
-    build(){
+    render(){
         let style = "";
-        if (this.props.height){
-            style = "height:" + this.props.height;
+        if (this.props.extraData.height){
+            style = "height:" + this.props.extraData.height;
         }
         return (
             h('div', {
@@ -39,5 +39,12 @@ class Scrollable extends Component {
         return this.renderChildNamed('child');
     }
 }
+
+Scrollable.propTypes = {
+    height: {
+        height: "Height of the Scrollable container.",
+        type: PropTypes.oneOf([PropTypes.string])
+    }
+};
 
 export {Scrollable, Scrollable as default};

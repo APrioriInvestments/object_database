@@ -364,22 +364,7 @@ class Cells:
             updatedNodesToSend.add(stableParent)
 
         for nodeToSend in list(updatedNodesToSend):
-            res.append(Messenger.newCellUpdated(nodeToSend))
-
-        """
-        # map<level:int -> cells:set<Cells> >
-        cellsByLevel = {}
-
-        for nodeToSend in list(updatedNodesToSend):
             res.append(Messenger.cellUpdated(nodeToSend))
-
-        for level, cells in reversed(sorted(cellsByLevel.items())):
-            for n in cells:
-                res.append(self.updateMessageFor(n))
-                # TODO: in the future this should integrated into a more
-                # structured server side lifecycle management framework
-                n.updateLifecycleState()
-        """
 
         # make messages for discarding
         for n in self._nodesToDiscard:
@@ -444,8 +429,7 @@ class Cells:
                 self.markToBroadcast(n)
                 # TODO: lifecycle attribute; see cell.updateLifecycleState()
 
-
-                origChildren = self._cellsKnownChildren[node.identity]
+                origChildren = self._cellsKnownChildren[n.identity]
 
                 try:
                     _cur_cell.cell = node
@@ -496,11 +480,6 @@ class Cells:
 
                 for child in newChildren.difference(origChildren):
                     self._addCell(child, node)
-
-                for child in origChildren.difference(newChildren):
-                    self._cellOutOfScope(child)
-
-                self._cellsKnownChildren[node.identity] = newChildren
 
     def childrenWithExceptions(self):
         return self._root.findChildrenMatching(lambda cell: isinstance(cell, Traceback))

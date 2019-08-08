@@ -5,30 +5,7 @@ should be formatted using functions in this module
 """
 
 
-def cellUpdated(cell, replaceDict={}):
-    """A lifecycle message formatter
-    to be used when a Cell is created or
-    updated.
-
-    return structure
-
-
-def cellDataUpdated(cell):
-    """Message of this type reflect updated data in the cells. For example,
-    Sheet (table) data pagination.
-    """
-    # TODO update this
-    data = {
-        "channel": "#main",
-        "type": "#cellDataUpdated",
-        "shouldDisplay": cell.shouldDisplay,
-        "id": cell.identity,
-        "dataInfo": cell.exportData["dataInfo"]
-    }
-    return data
-
-
-def newCellUpdated(cell):
+def cellUpdated(cell):
     parent_id = None
     if cell.parent is not None:
         parent_id = cell.parent.identity

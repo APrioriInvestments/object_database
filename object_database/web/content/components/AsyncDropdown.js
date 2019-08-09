@@ -7,6 +7,18 @@ import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**
+ * About Replacements
+ * -------------------
+ * This component has two regular
+ * replacements:
+ * * `contents`
+ *
+ * NOTE: The Cells version of this child is
+ * either a loading indicator, text, or a
+ * AsyncDropdownContent cell.
+ */
+
+/**
  * About Named Children
  * --------------------
  * `content` (single) - Usually an AsyncDropdownContent cell

@@ -282,7 +282,9 @@ class Cells:
     def _addCell(self, cell, parent):
         assert isinstance(cell, Cell), type(cell)
         assert cell.cells is None, cell
-
+        # Degbugging. Remove.
+        print()
+        print("Adding cell {}".format(cell.__class__.__name__))
         cell.cells = self
         cell.parent = parent
         cell.level = parent.level + 1 if parent else 0
@@ -1397,8 +1399,10 @@ class AsyncDropdown(Cell):
         self.exportData['labelText'] = self.labelText
         if not loadingIndicatorCell:
             loadingIndicatorCell = CircleLoader()
-        self.contentCell = Cell.makeCell(AsyncDropdownContent(self.slot, contentCellFunc, loadingIndicatorCell))
-        self.children['content'] = Cell.makeCell(self.contentCell)
+        self.contentCell = AsyncDropdownContent(self.slot, contentCellFunc, loadingIndicatorCell)
+        self.children = {'____contents__': self.contentCell}
+        self.namedChildren['content'] = self.contentCell
+        # self.namedChildren['loadingIndicator'] = loadingIndicatorCell
 
     def onMessage(self, messageFrame):
         """On `dropdown` events sent to this
@@ -1453,8 +1457,14 @@ class AsyncDropdownContent(Cell):
         self.contentFunc = contentFunc
         self.loadingCell = loadingIndicatorCell
         self.contentCell = Subscribed(self.changeHandler)
-        self.children.addFromDict({
-            'content': Cell.makeCell(self.contentCell)})
+        self.children = {
+            '____contents__': self.contentCell,
+            'loadingIndicator': self.loadingCell
+        }
+        self.namedChildren = {
+            'content': self.contentCell,
+            'loadingIndicator': self.loadingCell
+        }
 
     def changeHandler(self):
         """If the slot is true, the

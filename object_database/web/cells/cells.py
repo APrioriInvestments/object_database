@@ -1120,6 +1120,7 @@ class Sequence(Cell):
                          i: elements[i] for i in range(len(elements))}
         self.overflow = overflow
         self.margin = margin
+        self.updateChildren()
 
     def __add__(self, other):
         other = Cell.makeCell(other)
@@ -1132,6 +1133,12 @@ class Sequence(Cell):
         self.namedChildren['elements'] = self.elements
         self.exportData['overflow'] = self.overflow
         self.exportData['margin'] = self.margin
+        self.updateChildren()
+
+    def updateChildren(self):
+        self.children = {"____c_%s__" %
+                         i: self.elements[i] for i in range(len(self.elements))}
+        self.namedChildren['elements'] = self.elements
 
     def sortsAs(self):
         if self.elements:

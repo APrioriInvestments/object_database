@@ -1126,13 +1126,17 @@ class Span(Cell):
 
 
 class Sequence(Cell):
-    def __init__(self, elements, overflow=True):
+    def __init__(self, elements, overflow=True, margin=None):
         """
+        Lays out (children) elements in a vertical sequence.
+
         Parameters:
         -----------
         elements: list of cells
         overflow: bool
             Sets overflow-auto on the div.
+        margin : int
+            Bootstrap style margin size for all children elements.
 
         """
         super().__init__()
@@ -1143,6 +1147,7 @@ class Sequence(Cell):
         self.children = {"____c_%s__" %
                          i: elements[i] for i in range(len(elements))}
         self.overflow = overflow
+        self.margin = margin
 
     def __add__(self, other):
         other = Cell.makeCell(other)
@@ -1154,6 +1159,7 @@ class Sequence(Cell):
     def recalculate(self):
         self.namedChildren['elements'] = self.elements
         self.exportData['overflow'] = self.overflow
+        self.exportData['margin'] = self.margin
 
     def sortsAs(self):
         if self.elements:
@@ -1162,11 +1168,25 @@ class Sequence(Cell):
 
 
 class HorizontalSequence(Cell):
-    def __init__(self, elements, overflow=True):
+    def __init__(self, elements, overflow=True, margin=None):
+        """
+        Lays out (children) elements in a horizontal sequence.
+
+        Parameters:
+        ----------
+        elements : list of cells
+        overflow : bool
+            if True will allow the div to overflow in all dimension, i.e.
+            effectively setting `overflow: auto` css. Note: the div must be
+            bounded for overflow to take action.
+        margin : int
+            Bootstrap style margin size for all children elements.
+        """
         super().__init__()
         elements = [Cell.makeCell(x) for x in elements]
         self.elements = elements
         self.overflow = overflow
+        self.margin = margin
         self.updateChildren()
 
     def __rshift__(self, other):
@@ -1179,6 +1199,7 @@ class HorizontalSequence(Cell):
     def recalculate(self):
         self.updateChildren()
         self.exportData['overflow'] = self.overflow
+        self.exportData['margin'] = self.margin
 
     def updateChildren(self):
         self.namedChildren['elements'] = self.elements

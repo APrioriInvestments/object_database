@@ -58,12 +58,21 @@ class SplitView extends Component {
     }
 
     makeChildElements(){
-        return this.renderChildrenNamed('elements').map((child, idx) => {
-            return h('div', {
-                style: this.makeChildStyle(idx),
-                class: "split-view-area overflow"
-            }, [child]);
-        });
+        if(this.usesReplacements){
+            return this.getReplacementElementsFor('element').map((child, idx) => {
+                return h('div', {
+                    style: this.makeChildStyle(idx),
+                    class: "overflow"
+                }, [child]);
+            });
+        } else {
+            return this.renderChildrenNamed('elements').map((child, idx) => {
+                return h('div', {
+                    style: this.makeChildStyle(idx),
+                    class: "overflow"
+                }, child);
+            });
+        }
     }
 }
 

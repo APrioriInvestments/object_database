@@ -318,7 +318,7 @@ class CellsTests(unittest.TestCase):
 
             cells.renderMessages()
 
-            workFn(db, cells, iterations=5) # Change back to 500
+            workFn(db, cells, iterations=500)
 
         self.helper_memory_leak(cell, initFn, workFn, 1)
 
@@ -430,7 +430,6 @@ class CellsTests(unittest.TestCase):
         self.assertTrue(changedCell in self.cells)
 
 
-
 class CellsMessagingTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -462,8 +461,6 @@ class CellsMessagingTests(unittest.TestCase):
 
         msgs = self.cells.renderMessages()
 
-        expectedCells = [self.cells._root, pairCell, pair[0], pair[1]]
-
         self.assertTrue(self.cells._root in self.cells)
         self.assertTrue(pairCell in self.cells)
         self.assertTrue(pair[0] in self.cells)
@@ -488,7 +485,7 @@ class CellsMessagingTests(unittest.TestCase):
         # Add a new element to the end of Sequence
         # and update
         text = Text("Hello World")
-        pair.append(Text)
+        pair.append(text)
         sequence.elements = [Cell.makeCell(el) for el in pair]
         sequence.markDirty()
         msgs = self.cells.renderMessages()
@@ -501,6 +498,7 @@ class CellsMessagingTests(unittest.TestCase):
 
         # Sequence's namedChildren should have a length now of 3
         self.assertEqual(len(sequence.namedChildren['elements']), 3)
+
 
 class CellsStructureTests(unittest.TestCase):
     @classmethod

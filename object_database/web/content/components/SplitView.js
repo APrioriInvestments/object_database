@@ -70,7 +70,7 @@ class SplitView extends Component {
                 return h('div', {
                     style: this.makeChildStyle(idx),
                     class: "overflow"
-                }, child);
+                }, [child]);
             });
         }
     }

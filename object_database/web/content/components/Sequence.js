@@ -2,7 +2,7 @@
  * Sequence Cell Component
  */
 
-import {Component} from './Component';
+import {Component, render} from './Component';
 import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
@@ -35,20 +35,19 @@ class Sequence extends Component {
     }
 
     makeElements(){
-        let elements = this.props.namedChildren['elements'];
-        return elements.map(childComponent => {
-            let hyperscript = render(childComponent);
-            if(childComponent.props.flexChild == true && this.props.flexParent){
-                hyperscript.properties.class += " flex-child";
-            }
-            return hyperscript;
-        });
-    }
-
-    makeClasses(){
-        let classes = ["cell sequence sequence-vertical"];
-        if(this.props.flexParent){
-            classes.push("flex-parent");
+        if(this.usesReplacements){
+            return this.getReplacementElementsFor('c');
+        } else {
+            let elements = this.props.namedChildren['elements'];
+            return elements.map(childComponent => {
+                let hyperscript = render(childComponent);
+                if(childComponent.props.flexChild == true && this.props.flexParent){
+                    console.log(`Sequence[${this.props.id}] has child [${childComponent.props.id}] that is specified as a flexChild!`);
+                    hyperscript.properties.class += " flex-child";
+                    console.log(hyperscript);
+                }
+                return hyperscript;
+            });
         }
         if (this.props.margin){
             classes.push(`child-margin-${this.props.margin}`);
@@ -58,6 +57,9 @@ class Sequence extends Component {
 
     makeClasses(){
         let classes = ["cell sequence sequence-vertical"];
+        if(this.props.flexParent){
+            classes.push("flex-parent");
+        }
         if(this.props.overflow){
             classes.push("overflow");
         }
@@ -77,6 +79,10 @@ Sequence.propTypes = {
     margin: {
         description: "Bootstrap margin value for between element spacing",
         type: PropTypes.oneOf([PropTypes.number, PropTypes.string])
+    },
+    flexParent: {
+        description: "Whether or not the Sequence should display using Flexbox",
+        type: PropTypes.boolean
     }
 };
 

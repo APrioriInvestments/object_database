@@ -627,8 +627,7 @@ class Cell:
         self.contents = ""  # some contents containing a local node def
         self.shouldDisplay = True  # Whether or not this is a cell that will be displayed
         self.isShrinkWrapped = False # If will be shrinkwrapped inside flex parent
-        self.isFlex = False # If it will be a flex child
-        self.isFlexParent = False # If it will be a parent flex
+        self.isFlex = False # If it will be a flex container
         self._identity = None
         self._tag = None
         self._nowrap = None
@@ -1118,6 +1117,7 @@ class Sequence(Cell):
                          i: elements[i] for i in range(len(elements))}
         self.overflow = overflow
         self.margin = margin
+        self.isFlexParent = False
         self.updateChildren()
 
     def __add__(self, other):
@@ -1128,15 +1128,20 @@ class Sequence(Cell):
             return Sequence(self.elements + [other])
 
     def recalculate(self):
+        self.updateChildren()
+        if self.isFlexParent:
+            self.exportData['flexParent'] = True
         self.namedChildren['elements'] = self.elements
         self.exportData['overflow'] = self.overflow
         self.exportData['margin'] = self.margin
-        self.updateChildren()
 
     def updateChildren(self):
         self.children = {"____c_%s__" %
                          i: self.elements[i] for i in range(len(self.elements))}
         self.namedChildren['elements'] = self.elements
+        for childCell in self.elements:
+            if childCell.isFlex or childCell.isShrinkWrapped:
+                self.isFlexParent = True
 
     def sortsAs(self):
         if self.elements:
@@ -1164,6 +1169,7 @@ class HorizontalSequence(Cell):
         self.elements = elements
         self.overflow = overflow
         self.margin = margin
+        self.isFlexParent = False
         self.updateChildren()
 
     def __rshift__(self, other):
@@ -1175,6 +1181,8 @@ class HorizontalSequence(Cell):
 
     def recalculate(self):
         self.updateChildren()
+        if self.isFlexParent:
+            self.exportData['flexParent'] = True
         self.exportData['overflow'] = self.overflow
         self.exportData['margin'] = self.margin
 
@@ -1183,6 +1191,9 @@ class HorizontalSequence(Cell):
         self.children = {}
         for i in range(len(self.elements)):
             self.children["____c_{}__".format(i)] = self.elements[i]
+        for element in self.elements:
+            if element.isFlex or element.isShrinkWrapped:
+                self.isFlexParent = True
 
     def sortAs(self):
         if self.elements:

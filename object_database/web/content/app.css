@@ -180,6 +180,7 @@ td.row-index-item {
 
 .flex-child {
     overflow-y: auto;
+    flex: 1;
 }
 
 .shrinkwrapped {

@@ -58,10 +58,6 @@ class Component {
         this._recursivelyMapNamedChildren = this._recursivelyMapNamedChildren.bind(this);
     }
 
-    get usesReplacements(){
-        throw Error('#usesReplacements is now deprecated!');
-    }
-
     build(){
         // Objects that extend from
         // me should override this
@@ -79,23 +75,7 @@ class Component {
      * global/component-wide changes before the final rendering.
     */
     render() {
-        let velement = this.build();
-
-        // All components that have a flexChild
-        // property should add the class to their
-        // root hyperscript's CSS.
-        if(this.props.flexChild){
-            velement.properties.class += " flex-child";
-        }
-
-        // Add any custom inline styles required
-        // from the server side. For now this is
-        // limited to `padding` and `margin`
-        // inset values.
-        if(this.props.customStyle){
-            addCustomStyles(this.props.customStyle, velement);
-        }
-
+        let velement = this.build()
         return velement;
     }
 

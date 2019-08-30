@@ -63,13 +63,6 @@ class CodeEditor extends Component {
         }
     }
 
-    componentDidUpdate(){
-        let newEditor = ace.edit(`editor${this.props.id}`);
-        newEditor.setSession(this.editor.session);
-        this.editor = newEditor;
-    }
-
-
     build(){
         return h('div',
             {

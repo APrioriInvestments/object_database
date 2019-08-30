@@ -75,8 +75,7 @@ class Sheet extends Component {
     }
 
     build(){
-        console.log(`Rendering custom sheet ${this.props.id}`);
-        let rows = ["Just a sec..."];
+        console.log(`Rendering sheet ${this.props.id}`);
         return (
             h("div", {
                 id: this.props.id,

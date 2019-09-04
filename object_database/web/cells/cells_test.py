@@ -41,7 +41,7 @@ from object_database.test_util import (
     currentMemUsageMb,
     log_cells_stats
 )
-from .Messenger import getStructure
+from object_database.web.cells.Messenger import getStructure
 
 import logging
 import unittest
@@ -582,6 +582,69 @@ class CellsStructureTests(unittest.TestCase):
         self.cells._recalculateCells()
         struct = c.getCurrentStructure()
         self.assertIsInstance(struct, dict)
+
+
+class CellsSequenceHandlingTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        configureLogging(
+            preamble="cells_test",
+            level=logging.INFO
+        )
+        cls._logger = logging.getLogger(__name__)
+
+    def setUp(self):
+        self.token = genToken()
+        self.server = InMemServer(auth_token=self.token)
+        self.server.start()
+
+        self.db = self.server.connect(self.token)
+        self.db.subscribeToSchema(test_schema)
+        self.cells = Cells(self.db)
+
+    def tearDown(self):
+        self.server.stop()
+
+    def test_seq_elements_length(self):
+        child_elements = [Text('One'), Text('Two'), Text('Three')]
+        child_seq = Sequence(child_elements)
+        parent_seq = Sequence([Text('First'), child_seq, Text('Third')])
+        self.cells.withRoot(parent_seq)
+        self.cells._recalculateCells()
+        self.assertEqual(len(child_seq.elements), len(child_elements))
+
+    def test_seq_element_presence(self):
+        child_elements = [Text('One'), Text('Two'), Text('Three')]
+        child_seq = Sequence(child_elements)
+        parent_seq = Sequence([Text('First'), child_seq, Text('Third')])
+        self.cells.withRoot(parent_seq)
+
+        self.assertIn(child_elements[0], child_seq.elements)
+
+    def test_seq_not_flex_parent(self):
+        child_seq = Sequence([Text('One'), Text('Two'), Text('Three')])
+        parent_seq = Sequence([Text('First'), child_seq, Text('Last')])
+        parent_seq.recalculate()
+        self.assertFalse(parent_seq.isFlexParent)
+        self.assertFalse(parent_seq.isFlex)
+
+    def test_seq_becomes_flex_parent(self):
+        child_seq = Sequence([Text('One'), Text('Two'), Text('Three')])
+        parent_seq = Sequence([Flex(Text('First')), child_seq, Text('Last')])
+        parent_seq.recalculate()
+        self.assertTrue(parent_seq.isFlexParent)
+
+    def test_seq_flattens_non_flex(self):
+        first_child_seq = Sequence([Text('One'), Text('Two')])
+        second_child_seq = Sequence([Text('Five'), Text('Six')])
+        parent_seq = Sequence([Text('Outer'), first_child_seq, Flex(second_child_seq), Text('Last')])
+        self.cells.withRoot(parent_seq)
+        self.cells._recalculateCells()
+
+        self.assertNotIn(first_child_seq, parent_seq.elements)
+        self.assertIn(second_child_seq, parent_seq.elements)
+        self.assertIn(first_child_seq.elements[0], parent_seq.elements)
+        self.assertIn(first_child_seq.elements[1], parent_seq.elements)
 
 
 if __name__ == '__main__':

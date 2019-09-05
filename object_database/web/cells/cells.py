@@ -1156,7 +1156,7 @@ class Sequence(Cell):
 
 
 class HorizontalSequence(Cell):
-    def __init__(self, elements, overflow=True, margin=None):
+    def __init__(self, elements, overflow=True, margin=None, wrap=True):
         """
         Lays out (children) elements in a horizontal sequence.
 
@@ -1175,6 +1175,7 @@ class HorizontalSequence(Cell):
         self.elements = elements
         self.overflow = overflow
         self.margin = margin
+        self.wrap = wrap
         self.isFlexParent = False
         self.updateChildren()
 
@@ -1191,6 +1192,7 @@ class HorizontalSequence(Cell):
             self.exportData['flexParent'] = True
         self.exportData['overflow'] = self.overflow
         self.exportData['margin'] = self.margin
+        self.exportData['wrap'] = self.wrap
 
     def updateChildren(self):
         newElements = []

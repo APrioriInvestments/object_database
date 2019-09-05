@@ -1132,7 +1132,6 @@ class Sequence(Cell):
         if self.isFlexParent:
             self.exportData['flexParent'] = True
         self.namedChildren['elements'] = self.elements
-        self.exportData['overflow'] = self.overflow
         self.exportData['margin'] = self.margin
 
     def updateChildren(self):

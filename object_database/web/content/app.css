@@ -184,8 +184,14 @@ td.row-index-item {
     overflow-x: auto;
 }
 
+
+
 /* Flex Parent and Flex Child (Sequences etc)
  *================================================================*/
+.seq-flex-wrap {
+    flex-wrap: wrap;
+}
+
 .sequence-vertical.flex-parent {
     display: flex;
     flex-direction: column;
@@ -194,7 +200,6 @@ td.row-index-item {
 .sequence-horizontal.flex-parent {
     display: flex;
     flex-direction: row;
-    align-items: baseline;
 }
 
 .sequence-vertical > .flex-child {
@@ -205,6 +210,10 @@ td.row-index-item {
 .sequence-horizontal > .flex-child {
     overflow-x: auto;
     flex: 1;
+}
+
+.sequence-horizontal > .flex-child.seq-flex-wrap {
+    flex-wrap: nowrap;
 }
 
 .shrinkwrapped {
@@ -246,10 +255,6 @@ td.row-index-item {
  *======================================================*/
 .overflow {
     overflow: auto;
-}
-
-.flex-wrap {
-    flex-wrap: wrap;
 }
 
 .child-margin-1 > * {

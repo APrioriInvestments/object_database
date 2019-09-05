@@ -37,44 +37,24 @@ class Sheet extends Component {
         this.scrollLeft = 0;
 
         // Bind context to methods
-        this.generate_rows = this.generate_rows.bind(this);
-        this.generate_header = this.generate_header.bind(this);
-        this.__updateDataAppend = this.__updateDataAppend.bind(this);
-        this.__updateDataPrepend = this.__updateDataPrepend.bind(this);
-        this.handleKeyDown = this.handleKeyDown.bind(this);
-        this._handleCoordInput = this._handleCoordInput.bind(this);
-        this.paginate = this.paginate.bind(this);
-        this.jump_to_cell = this.jump_to_cell.bind(this);
-        this.make_header_item_zero = this.make_header_item_zero.bind(this);
+        // this.initializeTable = this.initializeTable.bind(this);
+        // this.initializeHooks = this.initializeHooks.bind(this);
+        // this.makeError = this.makeError.bind(this);
 
     }
 
     componentDidLoad(){
         console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
-        this.container = document.getElementById(this.props.id).parentNode;
-        this.max_num_columns = this._calc_max_num_columns(this.container.offsetWidth);
-        this.max_num_rows = this._calc_max_num_rows(this.container.offsetHeight);
-        // console.log("max num of rows: " + this.max_num_rows)
-        // console.log("max num of columns: " + this.max_num_columns)
-        this.current_start_row_index = 0;
-        this.current_start_column_index = 0;
-        this.current_end_row_index = this.max_num_rows + this.offset;
-        this.current_end_column_index = this.max_num_columns + this.offset;
-        if (this.props.dontFetch != true){
-            this.fetchData(
-                this.current_start_row_index,
-                this.current_end_row_index,
-                this.current_start_column_index,
-                this.current_end_column_index,
-                "replace",
-                null
-            )
+        console.log(`This sheet has the following replacements:`, this.replacements);
+        // this.initializeTable();
+        if(this.props.extraData['handlesDoubleClick']){
+            this.initializeHooks();
         }
         // TODO do we need to add this at the window level? (seems so, but why?)
         window.addEventListener("keydown", this.handleKeyDown)
     }
 
-    build(){
+    old_build(){
         console.log(`Rendering sheet ${this.props.id}`);
         return (
             h("div", {
@@ -94,16 +74,34 @@ class Sheet extends Component {
         );
     }
 
-    /* I am a special element that allows for sheet data navigation */
-    make_header_item_zero(){
-        let style = `max-width: ${this.props.colWidth/2}px; width: ${this.props.colWidth/2}px`
-        return h("th", {class: "header-item zero"},
-            [
-                h("input", {id: `sheet-${this.props.id}-xinput`, style: style, onchange: this._handleCoordInput}, []),
-                h("input", {id: `sheet-${this.props.id}-yinput`, style: style, onchange: this._handleCoordInput}, []),
-            ]
-        )
+
+    build(){
+        console.log(`Rendering custom sheet ${this.props.id}`);
+        return (
+            h("div", {}, [
+                h('apriori-sheet', {text: "I am a custom web component sheet"}, [])
+            ])
+        );
     }
+    initializeTable(){
+        console.log(`#initializeTable called for Sheet ${this.props.id}`);
+        let getProperty = function(index){
+            return function(row){
+                return row[index];
+            };
+        };
+        let emptyRow = [];
+        let dataNeededCallback = function(eventObject){
+            eventObject.target_cell = this.props.id;
+            cellSocket.sendString(JSON.stringify(eventObject));
+        }.bind(this);
+        let data = new SyntheticIntegerArray(this.props.extraData.rowCount, emptyRow, dataNeededCallback);
+        let container = document.getElementById(`sheet${this.props.id}`);
+        let columnNames = this.props.extraData.columnNames;
+        let columns = columnNames.map((name, idx) => {
+            emptyRow.push("");
+            return {data: getProperty(idx)};
+        });
 
     /* I handle navigation by coordinate input. I will only call fetch data if
      * both x, y coordinates are filled with valid Number's

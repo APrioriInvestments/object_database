@@ -26,9 +26,9 @@ class Sheet extends Component {
         this.currentTable = null;
 
         // Bind context to methods
-        this.initializeTable = this.initializeTable.bind(this);
-        this.initializeHooks = this.initializeHooks.bind(this);
-        this.makeError = this.makeError.bind(this);
+        // this.initializeTable = this.initializeTable.bind(this);
+        // this.initializeHooks = this.initializeHooks.bind(this);
+        // this.makeError = this.makeError.bind(this);
 
         /**
          * WARNING: The Cell version of Sheet is still using certain
@@ -42,7 +42,7 @@ class Sheet extends Component {
     componentDidLoad(){
         console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
         console.log(`This sheet has the following replacements:`, this.replacements);
-        this.initializeTable();
+        // this.initializeTable();
         if(this.props.extraData['handlesDoubleClick']){
             this.initializeHooks();
         }
@@ -54,7 +54,7 @@ class Sheet extends Component {
         }));
     }
 
-    build(){
+    old_build(){
         console.log(`Rendering sheet ${this.props.id}`);
         return (
             h('div', {
@@ -71,6 +71,15 @@ class Sheet extends Component {
         );
     }
 
+
+    build(){
+        console.log(`Rendering custom sheet ${this.props.id}`);
+        return (
+            h("div", {}, [
+                h('apriori-sheet', {text: "I am a custom web component sheet"}, [])
+            ])
+        );
+    }
     initializeTable(){
         console.log(`#initializeTable called for Sheet ${this.props.id}`);
         let getProperty = function(index){

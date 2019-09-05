@@ -173,7 +173,7 @@ td.row-index-item {
 .sequence-horizontal {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
 }
 
 .sequence-horizontal.overflow {
@@ -246,6 +246,10 @@ td.row-index-item {
  *======================================================*/
 .overflow {
     overflow: auto;
+}
+
+.flex-wrap {
+    flex-wrap: wrap;
 }
 
 .child-margin-1 > * {

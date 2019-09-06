@@ -7,6 +7,14 @@ import {h} from 'maquette';
 import {Component} from './Component';
 import {PropTypes} from './util/PropertyValidator';
 
+
+/**
+ * About Replacements
+ * This component has one regular
+ * replacement:
+ * * `error`
+ */
+
 /**
  * About Named Children
  * --------------------
@@ -47,11 +55,15 @@ class Sheet extends Component {
         console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
         console.log(`This sheet has the following replacements:`, this.replacements);
         // this.initializeTable();
-        if(this.props.extraData['handlesDoubleClick']){
-            this.initializeHooks();
-        }
-        // TODO do we need to add this at the window level? (seems so, but why?)
-        window.addEventListener("keydown", this.handleKeyDown)
+        // if(this.props.extraData['handlesDoubleClick']){
+        //     this.initializeHooks();
+        // }
+        // Request initial data?
+        // cellSocket.sendString(JSON.stringify({
+        //    event: "sheet_needs_data",
+        //    target_cell: this.props.id,
+        //    data: 0
+        //}));
     }
 
     old_build(){
@@ -77,9 +89,22 @@ class Sheet extends Component {
 
     build(){
         console.log(`Rendering custom sheet ${this.props.id}`);
+        // TODO remove!
+        let rows = [
+            new SheetRow({id: this.props.id, row_data: ['a', 'b', 'c'], width: 20, height: 10}).build(),
+            new SheetRow({id: this.props.id, row_data: ['a', 'b', 'c'], width: 20, height: 10}).build(),
+            new SheetRow({id: this.props.id, row_data: ['a', 'b', 'c'], width: 20, height: 10}).build(),
+        ]
+        console.log(rows)
         return (
-            h("div", {}, [
-                h('apriori-sheet', {text: "I am a custom web component sheet"}, [])
+            h("table",
+            {
+                id: this.props.id,
+                "data-cell-id": this.props.id,
+                "data-cell-type": "Sheet",
+                class: "cell sheet",
+            }, [
+                h("tbody", {}, rows)
             ])
         );
     }
@@ -241,21 +266,85 @@ class Sheet extends Component {
         }
     }
 
-    /* I make WS requests to the server */
-    fetchData(start_row, end_row, start_column, end_column, action, axis){
-        let request = JSON.stringify({
-            event: "sheet_needs_data",
-            target_cell: this.props.id,
-            start_row: start_row,
-            end_row: end_row,
-            start_column: start_column,
-            end_column: end_column,
-            action: action,
-            axis: axis
-        });
-        // console.log(request);
-        cellSocket.sendString(request);
+Sheet.propTypes = {
+    height: {
+        description: "Height of the row in pixels.",
+        type: PropTypes.oneOf([PropTypes.number])
+    },
+    width: {
+        description: "Width of the cell in pixels.",
+        type: PropTypes.oneOf([PropTypes.number])
+    },
+};
+
+class SheetRow extends Component {
+    constructor(props, ...args){
+        super(props, ...args);
     }
+
+    componentDidLoad(){
+    }
+
+    build(){
+        let row_data = this.props.row_data.map((item) => {
+            return new SheetCell(
+                {id: this.props.id, data: item, width: this.props.width}).build()
+        })
+        return (
+            h("tr",
+                {class: "sheet-row", style: {height: `${this.props.height}px`}},
+                row_data
+            )
+        );
+    }
+}
+
+SheetRow.propTypes = {
+    height: {
+        description: "Height of the row in pixels.",
+        type: PropTypes.oneOf([PropTypes.number])
+    },
+    width: {
+        description: "Width of the cell in pixels.",
+        type: PropTypes.oneOf([PropTypes.number])
+    },
+};
+
+class SheetCell extends Component {
+    constructor(props, ...args){
+        super(props, ...args);
+    }
+
+    componentDidLoad(){
+    }
+
+    build(){
+        return (
+            h("td",
+                {class: "sheet-cell", style: {width: `${this.props.width}px`}},
+                [this.props.data]
+            )
+        );
+    }
+}
+
+SheetCell.propTypes = {
+    data: {
+        description: "Text to display",
+        type: PropTypes.oneOf([ PropTypes.string])
+    },
+    width: {
+        description: "Width of the cell in pixels.",
+        type: PropTypes.oneOf([PropTypes.number])
+    },
+};
+
+/** Copied over from Cells implementation **/
+const SyntheticIntegerArray = function(size, emptyRow = [], callback){
+    this.length = size;
+    this.cache = {};
+    this.push = function(){};
+    this.splice = function(){};
 
     /* I handle data updating for the Sheet. I need to know whether
      * this is a `replace` or a `row` or `column` type of update.

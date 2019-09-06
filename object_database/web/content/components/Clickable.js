@@ -38,7 +38,7 @@ class Clickable extends Component {
     }
 
     getStyle(){
-        if(this.props.bold){
+        if(this.props.extraData.bold){
             return "cursor:pointer;*cursor:hand;font-weight:bold;";
         } else {
             return "";

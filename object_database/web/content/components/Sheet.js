@@ -3,8 +3,9 @@
  * NOTE: This is in part a wrapper
  * for handsontables.
  */
-import {Component} from './Component';
 import {h} from 'maquette';
+import {Component} from './Component';
+import {PropTypes} from './util/PropertyValidator';
 
 
 /**
@@ -19,6 +20,11 @@ import {h} from 'maquette';
  * --------------------
  * `error` (single) - An error cell if present
  */
+
+//TODO
+//deal with ids properly in SheetRow and SheetCell
+//
+
 class Sheet extends Component {
     constructor(props, ...args){
         super(props, ...args);
@@ -43,15 +49,15 @@ class Sheet extends Component {
         console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
         console.log(`This sheet has the following replacements:`, this.replacements);
         // this.initializeTable();
-        if(this.props.extraData['handlesDoubleClick']){
-            this.initializeHooks();
-        }
+        // if(this.props.extraData['handlesDoubleClick']){
+        //     this.initializeHooks();
+        // }
         // Request initial data?
-        cellSocket.sendString(JSON.stringify({
-            event: "sheet_needs_data",
-            target_cell: this.props.id,
-            data: 0
-        }));
+        // cellSocket.sendString(JSON.stringify({
+        //    event: "sheet_needs_data",
+        //    target_cell: this.props.id,
+        //    data: 0
+        //}));
     }
 
     old_build(){
@@ -74,9 +80,22 @@ class Sheet extends Component {
 
     build(){
         console.log(`Rendering custom sheet ${this.props.id}`);
+        // TODO remove!
+        let rows = [
+            new SheetRow({id: this.props.id, row_data: ['a', 'b', 'c'], width: 20, height: 10}).build(),
+            new SheetRow({id: this.props.id, row_data: ['a', 'b', 'c'], width: 20, height: 10}).build(),
+            new SheetRow({id: this.props.id, row_data: ['a', 'b', 'c'], width: 20, height: 10}).build(),
+        ]
+        console.log(rows)
         return (
-            h("div", {}, [
-                h('apriori-sheet', {text: "I am a custom web component sheet"}, [])
+            h("table",
+            {
+                id: this.props.id,
+                "data-cell-id": this.props.id,
+                "data-cell-type": "Sheet",
+                class: "cell sheet",
+            }, [
+                h("tbody", {}, rows)
             ])
         );
     }
@@ -173,6 +192,79 @@ class Sheet extends Component {
         }
     }
 }
+
+Sheet.propTypes = {
+    height: {
+        description: "Height of the row in pixels.",
+        type: PropTypes.oneOf([PropTypes.number])
+    },
+    width: {
+        description: "Width of the cell in pixels.",
+        type: PropTypes.oneOf([PropTypes.number])
+    },
+};
+
+class SheetRow extends Component {
+    constructor(props, ...args){
+        super(props, ...args);
+    }
+
+    componentDidLoad(){
+    }
+
+    build(){
+        let row_data = this.props.row_data.map((item) => {
+            return new SheetCell(
+                {id: this.props.id, data: item, width: this.props.width}).build()
+        })
+        return (
+            h("tr",
+                {class: "sheet-row", style: {height: `${this.props.height}px`}},
+                row_data
+            )
+        );
+    }
+}
+
+SheetRow.propTypes = {
+    height: {
+        description: "Height of the row in pixels.",
+        type: PropTypes.oneOf([PropTypes.number])
+    },
+    width: {
+        description: "Width of the cell in pixels.",
+        type: PropTypes.oneOf([PropTypes.number])
+    },
+};
+
+class SheetCell extends Component {
+    constructor(props, ...args){
+        super(props, ...args);
+    }
+
+    componentDidLoad(){
+    }
+
+    build(){
+        return (
+            h("td",
+                {class: "sheet-cell", style: {width: `${this.props.width}px`}},
+                [this.props.data]
+            )
+        );
+    }
+}
+
+SheetCell.propTypes = {
+    data: {
+        description: "Text to display",
+        type: PropTypes.oneOf([ PropTypes.string])
+    },
+    width: {
+        description: "Width of the cell in pixels.",
+        type: PropTypes.oneOf([PropTypes.number])
+    },
+};
 
 /** Copied over from Cells implementation **/
 const SyntheticIntegerArray = function(size, emptyRow = [], callback){

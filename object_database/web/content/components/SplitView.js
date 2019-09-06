@@ -41,7 +41,7 @@ class SplitView extends Component {
         // denote the direction
         let classes = ["cell", "split-view"];
         let directionClass = "split-view-row";
-        if(this.props.split == "horizontal"){
+        if(this.props.extraData.split == "horizontal"){
             directionClass = "split-view-column";
         }
         classes.push(directionClass);
@@ -62,14 +62,14 @@ class SplitView extends Component {
             return this.getReplacementElementsFor('element').map((child, idx) => {
                 return h('div', {
                     style: this.makeChildStyle(idx),
-                    class: "overflow"
+                    class: "split-view-area overflow"
                 }, [child]);
             });
         } else {
             return this.renderChildrenNamed('elements').map((child, idx) => {
                 return h('div', {
                     style: this.makeChildStyle(idx),
-                    class: "overflow"
+                    class: "split-view-area overflow"
                 }, [child]);
             });
         }

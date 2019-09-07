@@ -2454,7 +2454,7 @@ class Sheet(Cell):
     """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""
 
     def __init__(self, columnNames, rowCount, rowFun,
-                 colWidth=200,
+                 colWidth=30, rowHeight=20,
                  onCellDblClick=None):
         """
         columnNames:
@@ -2465,7 +2465,9 @@ class Sheet(Cell):
             function taking integer row as argument that returns list of values
             to populate that row of the table
         colWidth:
-            width of columns
+            height of columns in pixels
+        rowHeight:
+            height of row in pixels
         onCellDblClick:
             function to run after user double clicks a cell. It takes as keyword
             arguments row, col, and sheet where row and col represent the row and
@@ -2479,6 +2481,7 @@ class Sheet(Cell):
         # for a row, the value of all the columns in a list.
         self.rowFun = rowFun
         self.colWidth = colWidth
+        self.rowHeight = rowHeight
         self.error = Slot(None)
         self._overflow = "auto"
         self.rowsSent = set()
@@ -2511,7 +2514,8 @@ class Sheet(Cell):
 
         self.exportData['columnNames'] = [x for x in self.columnNames]
         self.exportData['rowCount'] = self.rowCount
-        self.exportData['columnWidth'] = self.colWidth
+        self.exportData['colWidth'] = self.colWidth
+        self.exportData['rowHeight'] = self.rowHeight
         self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
 
     def onMessage(self, msgFrame):

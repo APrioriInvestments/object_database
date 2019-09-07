@@ -90,21 +90,31 @@ class Sheet extends Component {
     build(){
         console.log(`Rendering custom sheet ${this.props.id}`);
         // TODO remove!
-        let rows = [
-            new SheetRow({id: this.props.id, row_data: ['a', 'b', 'c'], width: 20, height: 10}).build(),
-            new SheetRow({id: this.props.id, row_data: ['a', 'b', 'c'], width: 20, height: 10}).build(),
-            new SheetRow({id: this.props.id, row_data: ['a', 'b', 'c'], width: 20, height: 10}).build(),
-        ]
-        console.log(rows)
+        let row_data = [['a', 'b', 'c'], ['a', 'b', 'c'], ['a', 'b', 'c'], ['a', 'b', 'c'], ['a', 'b', 'c']]
+        let rows = row_data.map((item) => {
+            return (
+                new SheetRow(
+                    {
+                        id: this.props.id,
+                        row_data: item,
+                        colWidth: this.props.colWidth,
+                        height: this.props.rowHeight,
+                        numColumns: this.props.columnNames.length
+                    }
+                ).build()
+            )
+        })
+        console.log(this.props)
         return (
-            h("table",
-            {
+            h("div", {
                 id: this.props.id,
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Sheet",
-                class: "cell sheet",
+                class: "cell sheet-wrapper",
             }, [
-                h("tbody", {}, rows)
+                h("table", {class: "sheet"}, [
+                    h("tbody", {}, rows)
+                ])
             ])
         );
     }
@@ -267,12 +277,12 @@ class Sheet extends Component {
     }
 
 Sheet.propTypes = {
-    height: {
+    rowHeight: {
         description: "Height of the row in pixels.",
         type: PropTypes.oneOf([PropTypes.number])
     },
-    width: {
-        description: "Width of the cell in pixels.",
+    colWidth: {
+        description: "Width of the column (and cell) in pixels.",
         type: PropTypes.oneOf([PropTypes.number])
     },
 };
@@ -280,6 +290,9 @@ Sheet.propTypes = {
 class SheetRow extends Component {
     constructor(props, ...args){
         super(props, ...args);
+        this.style = `max-height: ${this.props.height}px; height: ${this.props.height}px`
+
+        // Bind component methods
     }
 
     componentDidLoad(){
@@ -288,11 +301,11 @@ class SheetRow extends Component {
     build(){
         let row_data = this.props.row_data.map((item) => {
             return new SheetCell(
-                {id: this.props.id, data: item, width: this.props.width}).build()
+                {id: this.props.id, data: item, width: this.props.colWidth}).build()
         })
         return (
             h("tr",
-                {class: "sheet-row", style: {height: `${this.props.height}px`}},
+                {class: "sheet-row", style: this.style},
                 row_data
             )
         );
@@ -304,15 +317,16 @@ SheetRow.propTypes = {
         description: "Height of the row in pixels.",
         type: PropTypes.oneOf([PropTypes.number])
     },
-    width: {
-        description: "Width of the cell in pixels.",
+    colWidth: {
+        description: "Width of the column (and cell) in pixels.",
         type: PropTypes.oneOf([PropTypes.number])
-    },
+    }
 };
 
 class SheetCell extends Component {
     constructor(props, ...args){
         super(props, ...args);
+        this.style = `max-width: ${this.props.width}px; width: ${this.props.width}px`
     }
 
     componentDidLoad(){
@@ -321,7 +335,7 @@ class SheetCell extends Component {
     build(){
         return (
             h("td",
-                {class: "sheet-cell", style: {width: `${this.props.width}px`}},
+                {class: "sheet-cell", style: this.style},
                 [this.props.data]
             )
         );

@@ -2524,7 +2524,8 @@ class CodeEditor(Cell):
 class Sheet(Cell):
     """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""
 
-    def __init__(self, columnFun, rowFun, colWidth=50, rowHeight=30,
+    def __init__(self, columnNames, rowCount, rowFun,
+                 colWidth=30, rowHeight=20,
                  onCellDblClick=None):
         """
         columnFun:
@@ -2579,7 +2580,8 @@ class Sheet(Cell):
 
         self.exportData['columnNames'] = [x for x in self.columnNames]
         self.exportData['rowCount'] = self.rowCount
-        self.exportData['columnWidth'] = self.colWidth
+        self.exportData['colWidth'] = self.colWidth
+        self.exportData['rowHeight'] = self.rowHeight
         self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
 
     def onMessage(self, msgFrame):

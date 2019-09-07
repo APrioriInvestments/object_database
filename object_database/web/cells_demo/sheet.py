@@ -21,10 +21,11 @@ class BasicSheet(CellsTestPage):
         cols = ["A", "B", "C"]
         num_rows = 10
         arg = lambda rowIx: ["(%s) ts" % rowIx, rowIx, rowIx+1, rowIx+2]
-        return cells.Sheet(cols, num_rows, arg)
+        return cells.Sheet(cols, num_rows, arg, colWidth=50, rowHeight=25)
 
     def text(self):
         return "You should see a basic sheet."
+
 
 class BiggerSheet(CellsTestPage):
     def cell(self):

@@ -30,9 +30,10 @@ class Sheet extends Component {
         super(props, ...args);
 
         this.currentTable = null;
+        this.current_rows = null;
 
         // Bind context to methods
-        // this.initializeTable = this.initializeTable.bind(this);
+        this.initializeTable = this.initializeTable.bind(this);
         // this.initializeHooks = this.initializeHooks.bind(this);
         // this.makeError = this.makeError.bind(this);
 
@@ -42,13 +43,13 @@ class Sheet extends Component {
          * protocol.
          * Remove this warning about it once that happens!
          */
-        console.warn(`[TODO] Sheet still uses certain postsceripts in its interaction. See component constructor comment for more information`);
+        this.initializeTable();
     }
 
-    componentDidLoad(){
+    componentWillLoad(){
         console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
         console.log(`This sheet has the following replacements:`, this.replacements);
-        // this.initializeTable();
+        this.initializeTable();
         // if(this.props.extraData['handlesDoubleClick']){
         //     this.initializeHooks();
         // }
@@ -60,29 +61,11 @@ class Sheet extends Component {
         //}));
     }
 
-    old_build(){
-        console.log(`Rendering sheet ${this.props.id}`);
-        return (
-            h('div', {
-                id: this.props.id,
-                "data-cell-id": this.props.id,
-                "data-cell-type": "Sheet",
-                class: "cell"
-            }, [
-                h('div', {
-                    id: `sheet${this.props.id}`,
-                    class: "handsontable"
-                }, [this.makeError()])
-            ])
-        );
-    }
-
 
     build(){
         console.log(`Rendering custom sheet ${this.props.id}`);
         // TODO remove!
-        let row_data = [['a', 'b', 'c'], ['a', 'b', 'c'], ['a', 'b', 'c'], ['a', 'b', 'c'], ['a', 'b', 'c']]
-        let rows = row_data.map((item) => {
+        let rows = this.current_rows.map((item) => {
             return (
                 new SheetRow(
                     {
@@ -109,7 +92,43 @@ class Sheet extends Component {
             ])
         );
     }
+
     initializeTable(){
+        console.log(`#initializeTable called for Sheet ${this.props.id}`);
+        // TODO: here we make some fake initial data but this really be an http
+        // request to the server
+        let data = [];
+        for(var i=0; i < this.props.num_rows.length; i++){
+            let row = [];
+            for (var j=0; j < this.props.columnNames.length; j++){
+                row.push(Math.random().toString())
+            }
+            data.push(row)
+        }
+        this.current_rows = data;
+        console.log(data);
+    }
+
+    /// OLD HORROR - TODO: remove when ready!
+    //----------------------------------------
+    old_build(){
+        console.log(`Rendering sheet ${this.props.id}`);
+        return (
+            h('div', {
+                id: this.props.id,
+                "data-cell-id": this.props.id,
+                "data-cell-type": "Sheet",
+                class: "cell"
+            }, [
+                h('div', {
+                    id: `sheet${this.props.id}`,
+                    class: "handsontable"
+                }, [this.makeError()])
+            ])
+        );
+    }
+
+    old_initializeTable(){
         console.log(`#initializeTable called for Sheet ${this.props.id}`);
         let getProperty = function(index){
             return function(row){
@@ -152,7 +171,7 @@ class Sheet extends Component {
         };
     }
 
-    initializeHooks(){
+    old_initializeHooks(){
         Handsontable.hooks.add("beforeOnCellMouseDown", (event, data) => {
             let handsOnObj = handsOnTables[this.props.id];
             let lastRow = handsOnObj.lastCellClicked.row;
@@ -201,6 +220,7 @@ class Sheet extends Component {
             return this.renderChildNamed('error');
         }
     }
+    //----------------------------------------
 }
 
 Sheet.propTypes = {
@@ -280,6 +300,8 @@ SheetCell.propTypes = {
     },
 };
 
+/// OLD HORROR - TODO: remove when ready!
+//----------------------------------------
 /** Copied over from Cells implementation **/
 const SyntheticIntegerArray = function(size, emptyRow = [], callback){
     this.length = size;
@@ -311,5 +333,6 @@ const SyntheticIntegerArray = function(size, emptyRow = [], callback){
         return res;
     };
 };
+//----------------------------------------
 
 export {Sheet, Sheet as default};

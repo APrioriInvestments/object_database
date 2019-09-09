@@ -29,32 +29,27 @@ class Sheet extends Component {
     constructor(props, ...args){
         super(props, ...args);
 
-        // offset is used as a buffer for lazy loading, i.e. we have this many extra
-        // columns/rows
-        this.max_num_rows = null;
-        this.max_num_columns = null;
-        this.offset = 1;
-        this.current_start_row_index = null;
-        this.current_end_row_index = null;
-        this.current_start_column_index = null;
-        this.current_end_column_index = null;
-
-        // scrolling attributes used to guage the direction of key scrolling and offset
-        // then top/bottom appropriately
-        this.scrollTop = 0;
-        this.scrollLeft = 0;
+        this.currentTable = null;
+        this.current_rows = null;
 
         // Bind context to methods
-        // this.initializeTable = this.initializeTable.bind(this);
+        this.initializeTable = this.initializeTable.bind(this);
         // this.initializeHooks = this.initializeHooks.bind(this);
         // this.makeError = this.makeError.bind(this);
 
+        /**
+         * WARNING: The Cell version of Sheet is still using certain
+         * postscripts because we have not yet refactored the socket
+         * protocol.
+         * Remove this warning about it once that happens!
+         */
+        this.initializeTable();
     }
 
-    componentDidLoad(){
+    componentWillLoad(){
         console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
         console.log(`This sheet has the following replacements:`, this.replacements);
-        // this.initializeTable();
+        this.initializeTable();
         // if(this.props.extraData['handlesDoubleClick']){
         //     this.initializeHooks();
         // }
@@ -66,32 +61,11 @@ class Sheet extends Component {
         //}));
     }
 
-    old_build(){
-        console.log(`Rendering sheet ${this.props.id}`);
-        return (
-            h("div", {
-                id: this.props.id,
-                "data-cell-id": this.props.id,
-                "data-cell-type": "Sheet",
-                class: "cell sheet-wrapper",
-                // keydown: (e) => {console.log(e)},
-                scrollTop: this.scrollTop,
-                scrollLeft: this.scrollLeft
-            }, [
-                h('div', {
-                    id: `sheet${this.props.id}`,
-                    class: "handsontable"
-                }, [this.makeError()])
-            ])
-        );
-    }
-
 
     build(){
         console.log(`Rendering custom sheet ${this.props.id}`);
         // TODO remove!
-        let row_data = [['a', 'b', 'c'], ['a', 'b', 'c'], ['a', 'b', 'c'], ['a', 'b', 'c'], ['a', 'b', 'c']]
-        let rows = row_data.map((item) => {
+        let rows = this.current_rows.map((item) => {
             return (
                 new SheetRow(
                     {
@@ -118,7 +92,43 @@ class Sheet extends Component {
             ])
         );
     }
+
     initializeTable(){
+        console.log(`#initializeTable called for Sheet ${this.props.id}`);
+        // TODO: here we make some fake initial data but this really be an http
+        // request to the server
+        let data = [];
+        for(var i=0; i < this.props.num_rows.length; i++){
+            let row = [];
+            for (var j=0; j < this.props.columnNames.length; j++){
+                row.push(Math.random().toString())
+            }
+            data.push(row)
+        }
+        this.current_rows = data;
+        console.log(data);
+    }
+
+    /// OLD HORROR - TODO: remove when ready!
+    //----------------------------------------
+    old_build(){
+        console.log(`Rendering sheet ${this.props.id}`);
+        return (
+            h('div', {
+                id: this.props.id,
+                "data-cell-id": this.props.id,
+                "data-cell-type": "Sheet",
+                class: "cell"
+            }, [
+                h('div', {
+                    id: `sheet${this.props.id}`,
+                    class: "handsontable"
+                }, [this.makeError()])
+            ])
+        );
+    }
+
+    old_initializeTable(){
         console.log(`#initializeTable called for Sheet ${this.props.id}`);
         let getProperty = function(index){
             return function(row){
@@ -162,32 +172,22 @@ class Sheet extends Component {
         }
     }
 
+    old_initializeHooks(){
+        Handsontable.hooks.add("beforeOnCellMouseDown", (event, data) => {
+            let handsOnObj = handsOnTables[this.props.id];
+            let lastRow = handsOnObj.lastCellClicked.row;
+            let lastCol = handsOnObj.lastCellClicked.col;
 
-    /* I generate the table header.*/
-    generate_header(column_names){
-        let header = [];
-        if (column_names === null){
-            return header;
-        }
-        header = column_names.map((item) => {
-            return h("th", {class: "header-item"}, [item.toString()])
-        })
-        return header;
-    }
-
-    /* I generate the rows, including the passing in row indexes (which are
-     * assumed to be element row[0])
-     */
-    generate_rows(data){
-        return data.map((item) => {
-            return (
-                new SheetRow(
-                    {
-                        id: this.props.id,
-                        row_data: item.slice(1),
-                        colWidth: this.props.colWidth,
-                        height: this.props.rowHeight,
-                        rowIndexName: item[0]
+            if((lastRow == data.row) && (lastCol = data.col)){
+                handsOnObj.dblClicked = true;
+                setTimeout(() => {
+                    if(handsOnObj.dblClicked){
+                        cellSocket.sendString(JSON.stringify({
+                            event: 'onCellDblClick',
+                            target_cell: this.props.id,
+                            row: data.row,
+                            col: data.col
+                        }));
                     }
                 ).build()
             )
@@ -275,6 +275,8 @@ class Sheet extends Component {
             }
         }
     }
+    //----------------------------------------
+}
 
 Sheet.propTypes = {
     rowHeight: {
@@ -353,6 +355,8 @@ SheetCell.propTypes = {
     },
 };
 
+/// OLD HORROR - TODO: remove when ready!
+//----------------------------------------
 /** Copied over from Cells implementation **/
 const SyntheticIntegerArray = function(size, emptyRow = [], callback){
     this.length = size;
@@ -566,6 +570,7 @@ Sheet.propTypes = {
         type: PropTypes.oneOf([PropTypes.bool])
     },
 };
+//----------------------------------------
 
 class SheetRow extends Component {
     constructor(props, ...args){

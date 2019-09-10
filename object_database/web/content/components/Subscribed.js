@@ -23,14 +23,14 @@ class Subscribed extends Component {
     }
 
     build(){
-        return h('div',
-            {
-                class: "cell subscribed",
-                id: this.props.id,
-                "data-cell-id": this.props.id,
-                "data-cell-type": "Subscribed"
-            }, [this.makeContent()]
-        );
+        let velement = this.makeContent();
+        velement.properties['data-subscribed-to'] = this.props.id;
+        return velement;
+    }
+
+    getDOMElement(){
+        let el = document.querySelector(`[data-subscribed-to="${this.props.id}"]`);
+        return el;
     }
 
     getDOMElement(){

@@ -29,27 +29,26 @@ class Sheet extends Component {
     constructor(props, ...args){
         super(props, ...args);
 
+        // TODO: make sure these make sense
+        this.max_num_columns = this._calc_max_num_columns();
+        console.log("max num of columns: " + this.max_num_columns)
+        this.max_num_rows = this._calc_max_num_rows();
+        console.log("max num of rows: " + this.max_num_rows)
         this.currentTable = null;
-        this.current_rows = null;
+        this.current_data = null;
 
         // Bind context to methods
         this.initializeTable = this.initializeTable.bind(this);
+        this.generate_current_rows = this.generate_current_rows.bind(this);
+        this.generate_header = this.generate_header.bind(this);
         // this.initializeHooks = this.initializeHooks.bind(this);
         // this.makeError = this.makeError.bind(this);
 
-        /**
-         * WARNING: The Cell version of Sheet is still using certain
-         * postscripts because we have not yet refactored the socket
-         * protocol.
-         * Remove this warning about it once that happens!
-         */
         this.initializeTable();
     }
 
-    componentWillLoad(){
+    componentDidLoad(){
         console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
-        console.log(`This sheet has the following replacements:`, this.replacements);
-        this.initializeTable();
         // if(this.props.extraData['handlesDoubleClick']){
         //     this.initializeHooks();
         // }
@@ -61,24 +60,25 @@ class Sheet extends Component {
         //}));
     }
 
+    initializeTable(){
+        console.log(`#initializeTable called for Sheet ${this.props.id}`);
+        // TODO: here we make some fake initial data but this really be an http
+        // request to the server
+        let data = [];
+        for(var i=0; i < Math.min(this.props.rowCount, this.max_num_rows); i++){
+            let row = [];
+            for (var j=0; j < Math.min(this.props.columnNames.length, this.max_num_columns); j++){
+                row.push(Math.random().toString())
+            }
+            data.push(row)
+        }
+        this.current_data = data;
+        console.log(data);
+    }
+
 
     build(){
         console.log(`Rendering custom sheet ${this.props.id}`);
-        // TODO remove!
-        let rows = this.current_rows.map((item) => {
-            return (
-                new SheetRow(
-                    {
-                        id: this.props.id,
-                        row_data: item,
-                        colWidth: this.props.colWidth,
-                        height: this.props.rowHeight,
-                        numColumns: this.props.columnNames.length
-                    }
-                ).build()
-            )
-        })
-        console.log(this.props)
         return (
             h("div", {
                 id: this.props.id,
@@ -87,28 +87,57 @@ class Sheet extends Component {
                 class: "cell sheet-wrapper",
             }, [
                 h("table", {class: "sheet"}, [
-                    h("tbody", {}, rows)
+                    h("thead", {}, this.generate_header(0, this.max_num_columns)), //TODO: this should be dynamic and paginated
+                    h("tbody", {}, this.generate_current_rows())
                 ])
             ])
         );
     }
 
-    initializeTable(){
-        console.log(`#initializeTable called for Sheet ${this.props.id}`);
-        // TODO: here we make some fake initial data but this really be an http
-        // request to the server
-        let data = [];
-        for(var i=0; i < this.props.num_rows.length; i++){
-            let row = [];
-            for (var j=0; j < this.props.columnNames.length; j++){
-                row.push(Math.random().toString())
-            }
-            data.push(row)
-        }
-        this.current_rows = data;
-        console.log(data);
+    generate_header(start, end){
+        let header = this.props.columnNames.slice(start, end).map((item) => {
+            return h("th", {class: "header-item"}, [item])
+        })
+        // NOTE: we add one more column to account for the row index
+        header.unshift(h("th", {class: "header-item"}, []))
+        return (
+            h("tr"), {}, [
+                header
+            ]
+        )
     }
 
+    generate_current_rows(){
+        let rows = this.current_data.map((item, index) => {
+            return (
+                new SheetRow(
+                    {
+                        id: this.props.id,
+                        row_data: item,
+                        colWidth: this.props.colWidth,
+                        height: this.props.rowHeight,
+                        numColumns: this.props.columnNames.length,
+                        rowIndexName: index  //TODO: note currently the row name is simply index
+                    }
+                ).build()
+            )
+        })
+        return rows;
+    }
+
+    /* Helper functions to determine a 'reasonable' number of columns and rows
+     * for the current view. For the moment we use window.innerHeight and
+     * window.innerWidth divided by the number provided height and width of the
+     * rows, columns, respecitively and then add a bit more for lazy loading.
+     * TODO: this uses the entire window which a table will almost never take up
+     */
+    _calc_max_num_rows(){
+        return Math.ceil(window.innerHeight/this.props.rowHeight + 10);
+    }
+
+    _calc_max_num_columns(){
+        return Math.ceil(window.innerWidth/this.props.colWidth + 10);
+    }
     /// OLD HORROR - TODO: remove when ready!
     //----------------------------------------
     old_build(){
@@ -305,6 +334,8 @@ class SheetRow extends Component {
             return new SheetCell(
                 {id: this.props.id, data: item, width: this.props.colWidth}).build()
         })
+        // NOTE: we handle the row index name td cell seperately here
+        row_data.unshift(h("td", {class: "row-index-item"}, [this.props.rowIndexName.toString()]))
         return (
             h("tr",
                 {class: "sheet-row", style: this.style},
@@ -322,6 +353,10 @@ SheetRow.propTypes = {
     colWidth: {
         description: "Width of the column (and cell) in pixels.",
         type: PropTypes.oneOf([PropTypes.number])
+    },
+    rowIndexName: {
+        description: "Width of the column (and cell) in pixels.",
+        type: PropTypes.oneOf([PropTypes.number, PropTypes.string])
     }
 };
 

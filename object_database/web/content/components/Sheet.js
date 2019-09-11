@@ -31,9 +31,9 @@ class Sheet extends Component {
 
         // TODO: make sure these make sense
         this.max_num_columns = this._calc_max_num_columns();
-        console.log("max num of columns: " + this.max_num_columns)
+        // console.log("max num of columns: " + this.max_num_columns)
         this.max_num_rows = this._calc_max_num_rows();
-        console.log("max num of rows: " + this.max_num_rows)
+        // console.log("max num of rows: " + this.max_num_rows)
         this.currentTable = null;
         this.current_data = null;
 
@@ -73,7 +73,7 @@ class Sheet extends Component {
             data.push(row)
         }
         this.current_data = data;
-        console.log(data);
+        // console.log(data);
     }
 
 
@@ -99,7 +99,7 @@ class Sheet extends Component {
             return h("th", {class: "header-item"}, [item])
         })
         // NOTE: we add one more column to account for the row index
-        header.unshift(h("th", {class: "header-item"}, []))
+        header.unshift(h("th", {class: "header-item zero"}, []))
         return (
             h("tr"), {}, [
                 header
@@ -116,7 +116,6 @@ class Sheet extends Component {
                         row_data: item,
                         colWidth: this.props.colWidth,
                         height: this.props.rowHeight,
-                        numColumns: this.props.columnNames.length,
                         rowIndexName: index  //TODO: note currently the row name is simply index
                     }
                 ).build()
@@ -349,6 +348,10 @@ SheetRow.propTypes = {
     height: {
         description: "Height of the row in pixels.",
         type: PropTypes.oneOf([PropTypes.number])
+    },
+    row_data: {
+        description: "Row data array.",
+        type: PropTypes.oneOf([PropTypes.object])
     },
     colWidth: {
         description: "Width of the column (and cell) in pixels.",

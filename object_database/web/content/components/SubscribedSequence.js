@@ -3,6 +3,7 @@
  */
 
 import {Component, render} from './Component';
+import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**
@@ -34,7 +35,7 @@ class SubscribedSequence extends Component {
         if(this.usesReplacements){
             return this.getReplacementElementsFor("child");
         } else {
-            let elements = this.props.namedChildren["children"];
+            let elements = this.props.namedChildren["elements"];
             return elements.map(childComponent => {
                 let hyperscript = render(childComponent);
                 if(childComponent.props.flexChild == true && this.props.flexParent){
@@ -49,9 +50,13 @@ class SubscribedSequence extends Component {
         let classes = [
             "cell",
             "sequence",
-            "subscribed-sequence",
-            "sequence-vertical"
+            "subscribed-sequence"
         ];
+        if(this.props.orientation == 'horizontal'){
+            classes.push("sequence-vertical");
+        } else {
+            classes.push("sequence-vertical");
+        }
         if(this.props.flexParent){
             classes.push("flex-parent");
         }

@@ -100,6 +100,16 @@
     display: flex;
 }
 
+th.header-item {
+    text-align: center;
+    border: solid 2px lightgray;
+}
+
+td.row-index-item {
+    font-weight: bold;
+    text-align: center;
+    border: solid 2px lightgray;
+}
 /* Modals (bypasses Bootstrap implementation)
 * =============================================================*/
 

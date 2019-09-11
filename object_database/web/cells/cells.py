@@ -1692,52 +1692,99 @@ class Subscribed(Cell):
 
 
 class SubscribedSequence(Cell):
-    """SubscribedSequence Cell
+    # This is the new version! (DELETE)
+    def __init__(self, itemsFun, rendererFun):
+        super().__init__()
 
-    This Cell acts like a Sequence, but each of its elements
-    will be wrapped in a `Subscribed`. See constructor
-    comments for more information.
+        self.itemsFun = itemsFun
+        self.rendererFun = rendererFun
+        self.existingItems = {}
+        self.items = []
 
-    Properties
-    ----------
-    itemsFun: func
-        A function that will be called each cycle
-        that returns a list of Tuples, each containing
-        an object we would like to have as a subscribed
-        sequence element.
-    rendererFun: func
-        A function that takes a single item from the
-        itemsFun results, turns its object into a Cell,
-        and wraps that in a `Subscribed`.
-    items: list
-        A stored version that is the current result
-        of calling itemsFun
-    existingItems: dict
-        A dictionary that maps items as keys to
-        any composed Cells of that item that have
-        already been made. This way we don't have
-        to re-create Cells every cycle.
-    orientation: str
-        The axis along which this SubscribedSequence
-        should lay itself out.
-    """
-    def __init__(self, itemsFun, rendererFun, orientation='vertical'):
-        """
-        Parameters
-        ----------
-        itemsFun: func
-            A function that will return a list
-            of Tuples that contain the objects
-            to be transformed into element Cells.
-        rendererFun: func
-            A function that will take an item as
-            retrieved from `itemsFunc`, turn it into
-            a Cell object, and wrap that in a `Subscribed`.
-        orientation: str
-            Tells the Cell which direction it should have as
-            a sequence. Can be 'vertical' or 'horizontal'.
-            Defaults to 'vertical'
-        """
+    def makeCell(self, item):
+        itemCell = Cell.makeCell(self.rendererFun(item))
+        wrapperCell = Subscribed(lambda: itemCell)
+        wrapperCell.isFlex = itemCell.isFlex
+        return wrapperCell
+
+    def recalculate(self):
+        # import web_pdb; web_pdb.set_trace()
+        with self.view() as v:
+            self._getItems()
+            self._resetSubscriptionsToViewReads(v)
+            self._updateExistingItems()
+            self.updateChildren()
+
+            self.exportData['numItems'] = len(self.items)
+            if self.isFlexParent:
+                self.exportData['flexParent'] = True
+
+    def updateChildren(self):
+        count = 0
+        new_children = []
+        current_child = None
+        for item in self.items:
+            if item in self.existingItems:
+                current_child = self.existingItems[item]
+            else:
+                try:
+                    # Do we assume index 0 always?
+                    current_child = self.makeCell(item[0])
+                    self.existingItems[item] = current_child
+                except SubscribeAndRetry:
+                    current_child = 4
+                    raise
+                except Exception:
+                    current_child = Traceback(traceback.format_exc())
+
+            self._processChild(current_child, new_children)
+
+        self.children = {"____child_%s__" %
+                         i: new_children[i] for i in range(len(new_children))}
+        self.namedChildren['children'] = new_children
+
+
+    def _processChild(self, child, children):
+        if child.isFlex:
+            self.isFlexParent = True
+            children.append(child)
+        elif not isinstance(child, Subscribed):
+            children.append(child)
+        elif child.wrapsSequence:
+            # In this case, the child is a
+            # Subscribed wrapping a Sequence.
+            # We need to use the Flex rules to
+            # determine whether or not we
+            # flatten this underlying Sequence.
+            children += child.namedChildren['elements']
+        else:
+            children.append(child)
+
+
+    def _getItems(self):
+        try:
+            self.items = augmentToBeUnique(self.itemsFun())
+        except SubscribeAndRetry:
+            raise
+        except Exception:
+            self._logger.error(
+                "SubscribedSequence itemsFun threw exception:\n%s",
+                traceback.format_exc())
+            self.items = []
+
+    def _updateExistingItems(self):
+        itemSet = set(self.items)
+        for item in list(self.existingItems):
+            if item not in itemSet:
+                del self.existingItems[item]
+
+class OldSubscribedSequence(Cell):
+    # TODO: Get a better idea of what is actually happening
+    # in this cell. For example, what is with all the existing
+    # items funging, and what is actually needed in terms of
+    # information to display this correctly in the new
+    # JS-component based setup?
+    def __init__(self, itemsFun, rendererFun, asColumns=False):
         super().__init__()
 
         self.itemsFun = itemsFun
@@ -1754,6 +1801,7 @@ class SubscribedSequence(Cell):
         return Subscribed(lambda: Cell.makeCell(self.rendererFun(item)))
 
     def recalculate(self):
+        import web_pdb; web_pdb.set_trace()
         with self.view() as v:
             self._getItems()
             self._resetSubscriptionsToViewReads(v)

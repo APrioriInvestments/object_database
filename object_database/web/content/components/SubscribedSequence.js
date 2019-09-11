@@ -3,7 +3,6 @@
  */
 
 import {Component, render} from './Component';
-import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**
@@ -32,33 +31,29 @@ class SubscribedSequence extends Component {
     }
 
     makeChildren(){
-        let elements = this.props.namedChildren["elements"];
-        return elements.map(childComponent => {
-            let hyperscript = render(childComponent);
-            let childComponentName = childComponent.constructor.name;
-            if(childComponent.props.flexChild == true && this.props.flexParent){
-                hyperscript.properties.class += " flex-child";
-            }
-            return hyperscript;
-        });
+        if(this.usesReplacements){
+            return this.getReplacementElementsFor("child");
+        } else {
+            let elements = this.props.namedChildren["children"];
+            return elements.map(childComponent => {
+                let hyperscript = render(childComponent);
+                if(childComponent.props.flexChild == true && this.props.flexParent){
+                    hyperscrupt.properties.class += " flex-child";
+                }
+                return hyperscript;
+            });
+        }
     }
 
     makeClass() {
         let classes = [
             "cell",
             "sequence",
-            "subscribed-sequence"
+            "subscribed-sequence",
+            "sequence-vertical"
         ];
-        if(this.props.orientation == 'horizontal'){
-            classes.push("sequence-horizontal");
-        } else {
-            classes.push("sequence-vertical");
-        }
         if(this.props.flexParent){
             classes.push("flex-parent");
-        }
-        if(this.props.flexChild){
-            classes.push("flex-child");
         }
         return classes.join(" ");
     }

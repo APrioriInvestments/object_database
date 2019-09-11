@@ -29,6 +29,9 @@ class Sheet extends Component {
     constructor(props, ...args){
         super(props, ...args);
 
+        // offset is used as a buffer for lazy loading, i.e. we have this many extra
+        // columns/rows
+        this.offset = 10;
         // TODO: make sure these make sense
         this.max_num_columns = this._calc_max_num_columns();
         // console.log("max num of columns: " + this.max_num_columns)
@@ -37,10 +40,17 @@ class Sheet extends Component {
         this.currentTable = null;
         this.current_data = null;
 
+        // scrolling attributes used to guage the direction of scrolling
+        // and make appropriate calls to lazy load data
+        this.scrollTop = 0;
+        this.scrollLeft = 0;
+
         // Bind context to methods
         this.initializeTable = this.initializeTable.bind(this);
         this.generate_current_rows = this.generate_current_rows.bind(this);
         this.generate_header = this.generate_header.bind(this);
+        this.handleScrolling = this.handleScrolling.bind(this);
+        // this.handleClick = this.handleClick.bind(this);
         // this.initializeHooks = this.initializeHooks.bind(this);
         // this.makeError = this.makeError.bind(this);
 
@@ -85,6 +95,7 @@ class Sheet extends Component {
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Sheet",
                 class: "cell sheet-wrapper",
+                onscroll: this.handleScrolling,
             }, [
                 h("table", {class: "sheet"}, [
                     h("thead", {}, this.generate_header(0, this.max_num_columns)), //TODO: this should be dynamic and paginated
@@ -124,6 +135,33 @@ class Sheet extends Component {
         return rows;
     }
 
+    /* I handle scrolling events and trigger callbacks to get more data as
+     * needed. As the user scrolls in a given direction (left, right, up, down)
+     * I wait until 1/2*this.offset number of columns or rows have been scrolled
+     * and trigger the callback. This way we always maintain a buffer for lazy loading.
+     */
+    handleScrolling(event){
+        let element = event.target;
+        let leftDiff = element.scrollLeft - this.scrollLeft
+        let topDiff = element.scrollTop - this.scrollTop
+        // we make sure that we have 1/2 of the offset as buffer
+        let offset = this.offset/2
+        if (leftDiff > offset*this.props.colWidth) {
+            console.log("add column right");
+            this.scrollLeft = element.scrollLeft;
+        } else if (-1*leftDiff > offset*this.props.colWidth) {
+            console.log("add column left");
+            this.scrollLeft = element.scrollLeft;
+        }
+        if (topDiff > offset*this.props.rowHeight) {
+            console.log("add row down")
+            this.scrollTop = element.scrollTop;
+        } else if (-1*topDiff > offset*this.props.rowHeight) {
+            console.log("add row up")
+            this.scrollTop = element.scrollTop;
+        }
+    }
+
     /* Helper functions to determine a 'reasonable' number of columns and rows
      * for the current view. For the moment we use window.innerHeight and
      * window.innerWidth divided by the number provided height and width of the
@@ -131,11 +169,11 @@ class Sheet extends Component {
      * TODO: this uses the entire window which a table will almost never take up
      */
     _calc_max_num_rows(){
-        return Math.ceil(window.innerHeight/this.props.rowHeight + 10);
+        return Math.ceil(window.innerHeight/this.props.rowHeight + this.offset);
     }
 
     _calc_max_num_columns(){
-        return Math.ceil(window.innerWidth/this.props.colWidth + 10);
+        return Math.ceil(window.innerWidth/this.props.colWidth + this.offset);
     }
     /// OLD HORROR - TODO: remove when ready!
     //----------------------------------------

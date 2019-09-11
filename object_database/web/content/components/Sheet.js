@@ -37,7 +37,6 @@ class Sheet extends Component {
         // console.log("max num of columns: " + this.max_num_columns)
         this.max_num_rows = this._calc_max_num_rows();
         // console.log("max num of rows: " + this.max_num_rows)
-        this.currentTable = null;
         this.current_data = null;
 
         // scrolling attributes used to guage the direction of scrolling
@@ -50,7 +49,9 @@ class Sheet extends Component {
         this.generate_current_rows = this.generate_current_rows.bind(this);
         this.generate_header = this.generate_header.bind(this);
         this.handleScrolling = this.handleScrolling.bind(this);
+        this.paginate = this.paginate.bind(this);
         // this.handleClick = this.handleClick.bind(this);
+        // this.currentTable = null;
         // this.initializeHooks = this.initializeHooks.bind(this);
         // this.makeError = this.makeError.bind(this);
 
@@ -147,18 +148,48 @@ class Sheet extends Component {
         // we make sure that we have 1/2 of the offset as buffer
         let offset = this.offset/2
         if (leftDiff > offset*this.props.colWidth) {
-            console.log("add column right");
+            this.paginate("column", "right")
             this.scrollLeft = element.scrollLeft;
         } else if (-1*leftDiff > offset*this.props.colWidth) {
-            console.log("add column left");
             this.scrollLeft = element.scrollLeft;
+            this.paginate("column", "left")
         }
         if (topDiff > offset*this.props.rowHeight) {
-            console.log("add row down")
+            this.paginate("row", "down")
             this.scrollTop = element.scrollTop;
         } else if (-1*topDiff > offset*this.props.rowHeight) {
-            console.log("add row up")
+            this.paginate("row", "up")
             this.scrollTop = element.scrollTop;
+        }
+    }
+
+    /* I handle row/column pagination by adding 1/2*this offset and removing
+     * rows/columns as needed.
+     */
+    paginate(axis, direction){
+        debugger;
+        // TODO: this should be handled with http calls to the server
+        if (axis === "column"){
+            if (direction === "right"){
+
+            } else if (direction === "left"){
+            }
+        } else if (axis === "row") {
+            let data = [];
+            for(var i=0; i < this.offset/2; i++){
+                let row = [];
+                for (var j=0; j < Math.min(this.props.columnNames.length, this.max_num_columns); j++){
+                    row.push(Math.random().toString())
+                }
+                data.push(row)
+            }
+            if (direction === "top") {
+                console.log("adding data at the top")
+                this.current_data = data + this.current_data.slice(-1*this.offset/2)
+            } else if (direction === "bottom") {
+                console.log("adding data at the bottom")
+                this.current_data = this.current_data.slice(this.offset/2) + data
+            }
         }
     }
 

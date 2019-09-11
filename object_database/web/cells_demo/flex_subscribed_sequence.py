@@ -17,74 +17,16 @@ from object_database.web.CellsTestPage import CellsTestPage
 from object_database.web.cells.util import Flex
 
 
-class HorizontalSubscribedSequenceNotFlex(CellsTestPage):
+class VerticalSubscribedSequenceExample(CellsTestPage):
     def cell(self):
         x = cells.Slot(())
-        top_button = cells.Button("Add Item", lambda: x.set(x.get() + (len(x.get()),)))
-        bottom_button = cells.Button("This does nothing", lambda: None)
-        sub_sequence = cells.HorizontalSubscribedSequence(
-            lambda: x.get(),
-            lambda item: cells.Text("Item: {}".format(item))
-        )
-        return (top_button >> sub_sequence >> bottom_button)
-
-    def text(self):
-        return "Should display a horizontal sequence that is NOT flexed"
-
-class VerticalSubscribedSequenceNotFlex(CellsTestPage):
-    def cell(self):
-        x = cells.Slot(())
-        top_button = cells.Button("Add Item", lambda: x.set(x.get() + (len(x.get()),)))
+        top_button = cells.Button("Add Item", lambda: x.set(x.get() + (len(x.get()))))
         bottom_button = cells.Button("This does nothing", lambda: None)
         sub_sequence = cells.SubscribedSequence(
-            lambda: x.get(),
+            lambda: x.get,
             lambda item: cells.Text("Item: {}".format(item))
         )
         return (top_button + sub_sequence + bottom_button)
 
     def text(self):
-        return "Should display a vertical sequence that is NOT flexed"
-
-
-class VerticalSubscribedSequenceFlexed(CellsTestPage):
-    def cell(self):
-        x = cells.Slot(())
-        top_button = cells.Button("Add Item", lambda: x.set(x.get() + (len(x.get()),)))
-        bottom_button = cells.Button("This does nothing", lambda: None)
-        sub_sequence = cells.SubscribedSequence(
-            lambda: x.get(),
-            lambda item: cells.Text("Item: {}".format(item))
-        )
-        return (top_button + Flex(sub_sequence) + bottom_button)
-
-    def text(self):
-        return "Should display a vertical sequence that is NOT flexed"
-
-
-class VertSubscribedSequenceNonFlexNestedFlex(CellsTestPage):
-
-    def text(self):
-        return "You should be able to add Flexed SubscribedSequences to a flex subscribedsequence"
-
-    def newNested(self):
-        nested_slot = cells.Slot(())
-        top_button = cells.Button(
-            "Add Nested Item",
-            lambda: nested_slot.set(nested_slot.get() + (len(nested_slot.get()),)),
-            small=True)
-        bottom_button = cells.Button("Does Nothing", lambda: None, small=True)
-        sub_sequence = cells.SubscribedSequence(
-            lambda: nested_slot.get(),
-            lambda item: cells.Text("SubItem {}".format(item))
-        )
-        return Flex(top_button + sub_sequence + bottom_button)
-
-    def cell(self):
-        x = cells.Slot(())
-        top_button = cells.Button("Add Item",
-                                  lambda: x.set(x.get() + (self.newNested(),)))
-        bottom_button = cells.Button("This does nothing", lambda: None)
-        sub_sequence = cells.SubscribedSequence(
-            lambda: x.get(),
-            lambda item: item)
-        return cells.Sequence([Flex(top_button + Flex(sub_sequence) + bottom_button)])
+        return "Should display a vertical sequence that is flexed"

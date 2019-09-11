@@ -198,6 +198,10 @@ td.row-index-item {
     align-items: flex-start;
 }
 
+.sequence-vertical > * {
+    display: block;
+}
+
 .sequence-horizontal {
     display: flex;
     flex-direction: row;

@@ -198,6 +198,11 @@ td.row-index-item {
     align-items: flex-start;
 }
 
+:not(.flex-parent) > .sequence.flex-parent,
+:not(.flex-child) > .sequence.flex-parent {
+    height: 100%;
+}
+
 .sequence-vertical > * {
     display: block;
 }

@@ -38,6 +38,10 @@ class Sheet extends Component {
         this.max_num_rows = this._calc_max_num_rows();
         // console.log("max num of rows: " + this.max_num_rows)
         this.current_data = null;
+        this.current_start_row_index = null;
+        this.current_end_row_index = null;
+        this.current_start_column_index = null;
+        this.current_end_column_index = null;
 
         // scrolling attributes used to guage the direction of scrolling
         // and make appropriate calls to lazy load data
@@ -76,15 +80,20 @@ class Sheet extends Component {
         // TODO: here we make some fake initial data but this really be an http
         // request to the server
         let data = [];
-        for(var i=0; i < Math.min(this.props.rowCount, this.max_num_rows); i++){
+        let num_row = Math.min(this.props.rowCount, this.max_num_rows);
+        let num_columns = Math.min(this.props.columnNames.length, this.max_num_columns);
+        for(var i=0; i < num_columns; i++){
             let row = [];
-            for (var j=0; j < Math.min(this.props.columnNames.length, this.max_num_columns); j++){
+            for (var j=0; j < num_columns; j++){
                 row.push(Math.random().toString())
             }
             data.push(row)
         }
         this.current_data = data;
-        // console.log(data);
+        this.current_start_row_index = 0;
+        this.current_end_row_index = num_rows - 1;
+        this.current_start_column_index = 0;
+        this.current_end_column_index = num_columns - 1;
     }
 
 
@@ -167,30 +176,36 @@ class Sheet extends Component {
      * rows/columns as needed.
      */
     paginate(axis, direction){
-        debugger;
         // TODO: this should be handled with http calls to the server
+        let handler = window._cellHandler;
         if (axis === "column"){
             if (direction === "right"){
 
             } else if (direction === "left"){
             }
         } else if (axis === "row") {
-            let data = [];
-            for(var i=0; i < this.offset/2; i++){
-                let row = [];
-                for (var j=0; j < Math.min(this.props.columnNames.length, this.max_num_columns); j++){
-                    row.push(Math.random().toString())
-                }
-                data.push(row)
-            }
-            if (direction === "top") {
-                console.log("adding data at the top")
-                this.current_data = data + this.current_data.slice(-1*this.offset/2)
-            } else if (direction === "bottom") {
-                console.log("adding data at the bottom")
-                this.current_data = this.current_data.slice(this.offset/2) + data
+            if (direction === "up") {
+                console.log("adding data at the up")
+                this.fetch
+                this.current_data = data.concat(this.current_data.slice(-1*this.offset/2))
+            } else if (direction === "down") {
+                console.log("adding data at the down")
+                // dropping the first this.offset/2 rows from the top
+                this.current_data = this.current_data.slice(this.offset/2).concat(data)
             }
         }
+    }
+
+    fetchData(start_row, end_row, start_column, end_column){
+        let data = [];
+        for(var i=0; i < this.offset/2; i++){
+            let row = [];
+            for (var j=0; j < Math.min(this.props.columnNames.length, this.max_num_columns); j++){
+                row.push(Math.random().toString())
+            }
+            data.push(row)
+        }
+
     }
 
     /* Helper functions to determine a 'reasonable' number of columns and rows
@@ -384,6 +399,14 @@ Sheet.propTypes = {
         description: "Width of the column (and cell) in pixels.",
         type: PropTypes.oneOf([PropTypes.number])
     },
+    rowCount: {
+        description: "Number of rows.",
+        type: PropTypes.oneOf([PropTypes.number])
+    },
+    columnNames: {
+        description: "Array of column names.",
+        type: PropTypes.oneOf([PropTypes.object])
+    },
 };
 
 class SheetRow extends Component {
@@ -427,7 +450,7 @@ SheetRow.propTypes = {
         type: PropTypes.oneOf([PropTypes.number])
     },
     rowIndexName: {
-        description: "Width of the column (and cell) in pixels.",
+        description: "String or number representing the row index.",
         type: PropTypes.oneOf([PropTypes.number, PropTypes.string])
     }
 };

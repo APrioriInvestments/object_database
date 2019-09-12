@@ -169,3 +169,18 @@ describe("Module `render` function", () => {
         assert.equal(component.numRenders, 2);
     });
 });
+
+describe("Component post-build render functionality", () => {
+    it("Should add the `flex-child` CSS class to any component with `flexChild` prop", () => {
+        let component = new SubComponent({id: 'subcomponent', flexChild: true});
+        let result = render(component);
+        let classes = result.properties.class.split(" ");
+        assert.include(classes, 'flex-child');
+    });
+    it("Should not add the `flex-child` CSS class when `flexChild` is explicitly false", () => {
+        let component = new SubComponent({id: 'subcomponent', flexChild: false});
+        let result = render(component);
+        let classes = result.properties.class.split(" ");
+        assert.notInclude(classes, 'flex-child');
+    });
+});

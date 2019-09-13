@@ -56,6 +56,18 @@ let simpleSequence = {
     }
 };
 
+let simpleSheet = {
+    id: 6,
+    cellType: "Sheet",
+    extraData: {
+        "columnNames": ["Col1", "Col2", "Col3"],
+        "num_rows": 10,
+        "colWidth": 100,
+        "rowHeight": 20
+    },
+    namedChildren: {}
+};
+
 let simpleNestedStructure = Object.assign({}, simpleRoot, {
     namedChildren: {
         "child": Object.assign({}, simpleSequence, {
@@ -101,6 +113,7 @@ let makeDiscardedMessage = (compDescription) => {
         type: "#cellDiscarded"
     });
 };
+
 
 describe("Basic NewCellHandler Tests", () => {
     it('Should be able to initialize', () => {
@@ -362,7 +375,7 @@ describe("Complex Structure Handling Component Tests", () => {
  * A Note on cellDiscarded Tests
  * ------------------------------
  * Previously we expected #cellDiscarded messages to have to navigate
- * their paret components and remove themselves from namedChildren collections.
+ * their parent components and remove themselves from namedChildren collections.
  * In practice, an updated parent Cell/Component will send #cellUpdated with
  * the child already removed, so even the most complex kinds of
  * #cellDiscarded handling seem unnecessary for the moment.
@@ -609,5 +622,63 @@ describe("Properties Update Tests", () => {
         assert.equal(root.children.length, 1);
         let textChild = document.getElementById(newText.id);
         assert.equal(textChild.textContent, "WORLD");
+    });
+});
+
+describe("Sheet and Update Data Tests", () => {
+    var handler;
+    before(() => {
+        handler = new NewCellHandler(h, projector, registry);
+        let rootEl = document.createElement('div');
+        rootEl.id = "page_root";
+        document.body.append(rootEl);
+        let createMessage = makeCreateMessage(simpleRoot);
+        handler.receive(createMessage);
+    });
+    after(() => {
+        let rootEl = document.getElementById('page_root');
+        if(rootEl){
+            rootEl.remove();
+        }
+    });
+    it("Creates a Sheet component", () => {
+        let child = Object.assign({}, simpleSheet, {
+            parentId: simpleRoot.id,
+            nameInParent: 'child'
+        });
+        let updatedParent = Object.assign({}, simpleRoot, {
+            namedChildren: {
+                child: child
+            }
+        });
+        assert.notExists(handler.activeComponents[child.id]);
+        let updateMessage = makeUpdateMessage(updatedParent);
+        handler.receive(updateMessage);
+        let stored = handler.activeComponents[child.id];
+        assert.exists(stored);
+    });
+    it("Loads initial data into a Sheet component", () => {
+        let stored = handler.activeComponents[simpleSheet.id];
+        assert.exists(stored);
+        assert.equal(stored.current_data, null);
+        assert.equal(stored.column_names, null);
+        column_names = ["col1", "col2", "col3"],
+        data = [
+            ["index1", 1, 2, 3],
+            ["index2", 2, 3, 4],
+            ["index3", 3, 4, 5],
+        ]
+        let updateMessage = {
+            id: simpleSheet.id,
+            type: "#cellDataUpdated",
+            dataInfo : {
+                type: "replace",
+                column_names : column_names,
+                data : data 
+            }
+        }
+        handler.receive(updateMessage);
+        assert.equal(stored.current_data, data);
+        assert.equal(stored.column_names, column_names);
     });
 });

@@ -313,6 +313,16 @@ class Component {
      * Updates this components data
      * based on an incoming object
      */
+    _updateData(incomingData){
+    }
+
+    /**
+     * Updates the mapped replacement keys internal
+     * object for the component.
+     * TODO: Remove this internal lifecycle method
+     * when refactoring away from the replacement
+     * structure
+     */
     _updateData(incomingData, projector){
 
     }

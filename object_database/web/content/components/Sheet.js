@@ -128,15 +128,15 @@ class Sheet extends Component {
     generate_current_rows(){
         let rows = [];
         if (this.current_data !== null) {
-            rows = this.current_data.map((item, index) => {
+            rows = this.current_data.map((item) => {
                 return (
                     new SheetRow(
                         {
                             id: this.props.id,
-                            row_data: item,
+                            row_data: item.slice(1),
                             colWidth: this.props.colWidth,
                             height: this.props.rowHeight,
-                            rowIndexName: index  //TODO: note currently the row name is simply index
+                            rowIndexName: item[0]  //TODO: note currently the row name is simply index
                         }
                     ).build()
                 )
@@ -208,7 +208,7 @@ class Sheet extends Component {
     _updateData(dataInfo) {
         if (dataInfo.type === "replace") {
             this.current_data = dataInfo.data;
-            this.columNames = dataInfo.column_names;
+            this.column_names = dataInfo.column_names;
         }
         // TODO: deal with the other updates here
     }
@@ -414,7 +414,7 @@ class SheetCell extends Component {
         return (
             h("td",
                 {class: "sheet-cell", style: this.style},
-                [this.props.data]
+                [this.props.data.toString()]
             )
         );
     }

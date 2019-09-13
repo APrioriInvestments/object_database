@@ -38,6 +38,7 @@ class Sheet extends Component {
         this.max_num_rows = this._calc_max_num_rows();
         // console.log("max num of rows: " + this.max_num_rows)
         this.current_data = null;
+        this.column_names = null;
         this.current_start_row_index = null;
         this.current_end_row_index = null;
         this.current_start_column_index = null;
@@ -77,23 +78,16 @@ class Sheet extends Component {
 
     initializeTable(){
         console.log(`#initializeTable called for Sheet ${this.props.id}`);
-        // TODO: here we make some fake initial data but this really be an http
-        // request to the server
-        let data = [];
-        let num_row = Math.min(this.props.rowCount, this.max_num_rows);
-        let num_columns = Math.min(this.props.columnNames.length, this.max_num_columns);
-        for(var i=0; i < num_columns; i++){
-            let row = [];
-            for (var j=0; j < num_columns; j++){
-                row.push(Math.random().toString())
-            }
-            data.push(row)
-        }
-        this.current_data = data;
         this.current_start_row_index = 0;
-        this.current_end_row_index = num_rows - 1;
+        this.current_end_row_index = this.max_num_rows - 1;
         this.current_start_column_index = 0;
-        this.current_end_column_index = num_columns - 1;
+        this.current_end_column_index = this.max_num_columns - 1;
+        this.fetchData(
+            this.current_start_row_index,
+            this.current_end_row_index,
+            this.current_start_column_index,
+            this.current_end_column_index
+        )
     }
 
 
@@ -116,10 +110,13 @@ class Sheet extends Component {
     }
 
     generate_header(start, end){
-        let header = this.props.columnNames.slice(start, end).map((item) => {
-            return h("th", {class: "header-item"}, [item])
-        })
-        // NOTE: we add one more column to account for the row index
+        let header = [];
+        if (this.column_names !== null) {
+            header = this.column_names.slice(start, end).map((item) => {
+                return h("th", {class: "header-item"}, [item])
+            })
+            // NOTE: we add one more column to account for the row index
+        }
         header.unshift(h("th", {class: "header-item zero"}, []))
         return (
             h("tr"), {}, [
@@ -129,19 +126,22 @@ class Sheet extends Component {
     }
 
     generate_current_rows(){
-        let rows = this.current_data.map((item, index) => {
-            return (
-                new SheetRow(
-                    {
-                        id: this.props.id,
-                        row_data: item,
-                        colWidth: this.props.colWidth,
-                        height: this.props.rowHeight,
-                        rowIndexName: index  //TODO: note currently the row name is simply index
-                    }
-                ).build()
-            )
-        })
+        let rows = [];
+        if (this.current_data !== null) {
+            rows = this.current_data.map((item, index) => {
+                return (
+                    new SheetRow(
+                        {
+                            id: this.props.id,
+                            row_data: item,
+                            colWidth: this.props.colWidth,
+                            height: this.props.rowHeight,
+                            rowIndexName: index  //TODO: note currently the row name is simply index
+                        }
+                    ).build()
+                )
+            })
+        }
         return rows;
     }
 
@@ -197,15 +197,20 @@ class Sheet extends Component {
     }
 
     fetchData(start_row, end_row, start_column, end_column){
-        let data = [];
-        for(var i=0; i < this.offset/2; i++){
-            let row = [];
-            for (var j=0; j < Math.min(this.props.columnNames.length, this.max_num_columns); j++){
-                row.push(Math.random().toString())
-            }
-            data.push(row)
-        }
+        // TODO@
+    }
 
+    /* I handle data updating for the Sheet. I need to know whether
+     * this is a `replace` or a `row` or `column` type of update.
+     * If it is `row` or `column` I need to know the direction `prepend`
+     * or `append`.
+     */
+    _updateData(dataInfo) {
+        if (dataInfo.type === "replace") {
+            this.current_data = dataInfo.data;
+            this.columNames = dataInfo.column_names;
+        }
+        // TODO: deal with the other updates here
     }
 
     /* Helper functions to determine a 'reasonable' number of columns and rows
@@ -347,10 +352,6 @@ Sheet.propTypes = {
     rowCount: {
         description: "Number of rows.",
         type: PropTypes.oneOf([PropTypes.number])
-    },
-    columnNames: {
-        description: "Array of column names.",
-        type: PropTypes.oneOf([PropTypes.object])
     },
 };
 

@@ -28,6 +28,33 @@ def cellUpdated(cell):
     return structure
 
 
+def cellDataUpdated(cell):
+    """Message of this type reflect updated data in the cells. For example,
+    Sheet (table) data pagination.
+    """
+    parent_id = None
+    if cell.parent is not None:
+        parent_id = cell.parent.identity
+
+    structure = getStructure(
+        parent_id,
+        cell,
+        None,
+        expand=True)
+    envelope = {
+        "channel": "#main",
+        "type": "#cellDataUpdated",
+        "shouldDisplay": cell.shouldDisplay,
+        "data": cell.data,
+        "info": cell.info
+    }
+    structure.update(envelope)
+    if cell.postscript:
+        structure['postscript'] = cell.postscript
+
+    return structure
+
+
 def cellDiscarded(cell):
     """A lifecycle message formatter
     to be used when a Cell is discarded

@@ -754,7 +754,7 @@ describe("Sheet and Update Data Tests", () => {
             ["index1", 1, 2, 3],
             ["index2", 2, 3, 4],
         ]
-        // not here we are append and poping rows
+        // note here we are appending and poping rows
         let test_data = [
             ["index1", 1, 2, 3],
             ["index2", 2, 3, 4],
@@ -801,7 +801,7 @@ describe("Sheet and Update Data Tests", () => {
             ['index2', 1, 2],
             ['index3', 1, 2],
         ]
-        // not here we are append and poping rows
+        // note here we are appending and poping columns
         let test_column_names = ["col1", "col2", "col3"]
         let test_data = [
             ["index1", 1, 2, 1],
@@ -847,7 +847,7 @@ describe("Sheet and Update Data Tests", () => {
             ['index2', 1, 2],
             ['index3', 1, 2],
         ]
-        // not here we are append and poping rows
+        // note here we are appending and poping columns
         let test_column_names = ["col3", "col4", "col5"]
         let test_data = [
             ["index1", 3, 1, 2],
@@ -868,5 +868,84 @@ describe("Sheet and Update Data Tests", () => {
         handler.receive(updateMessage);
         assert.equal(stored.current_data.toString(), test_data.toString());
         assert.equal(stored.column_names.toString(), test_column_names.toString());
+    });
+    it("Column append row number mismatch fail in a Sheet component", () => {
+        let stored = handler.activeComponents[simpleSheet.id];
+        column_names = ["col1", "col2", "col3"]
+        let data = [
+            ["index1", 1, 2, 3],
+            ["index2", 2, 3, 4],
+            ["index3", 3, 4, 5],
+        ]
+        let updateMessage = {
+            id: simpleSheet.id,
+            type: "#cellDataUpdated",
+            dataInfo : {
+                action: "replace",
+                column_names : column_names,
+                data : data
+            }
+        }
+        handler.receive(updateMessage);
+        new_column_names = ["col4", "col5"]
+        let new_data = [
+            ['index1', 1, 2],
+            ['index2', 1, 2],
+        ]
+        updateMessage = {
+            id: simpleSheet.id,
+            type: "#cellDataUpdated",
+            dataInfo : {
+                action: "append",
+                axis: "column",
+                column_names: new_column_names,
+                data : new_data
+            }
+        }
+        try {
+            handler.receive(updateMessage);
+        } catch(e) {
+            assert.equal(e, "Incoming data does not match row number");
+        }
+    });
+    it("Column append row index mismatch fail in a Sheet component", () => {
+        let stored = handler.activeComponents[simpleSheet.id];
+        column_names = ["col1", "col2", "col3"]
+        let data = [
+            ["index1", 1, 2, 3],
+            ["index2", 2, 3, 4],
+            ["index3", 3, 4, 5],
+        ]
+        let updateMessage = {
+            id: simpleSheet.id,
+            type: "#cellDataUpdated",
+            dataInfo : {
+                action: "replace",
+                column_names : column_names,
+                data : data
+            }
+        }
+        handler.receive(updateMessage);
+        new_column_names = ["col4", "col5"]
+        let new_data = [
+            ['index1', 1, 2],
+            ['index2', 1, 2],
+            ['BAD_INDEX', 1, 2],
+        ]
+        updateMessage = {
+            id: simpleSheet.id,
+            type: "#cellDataUpdated",
+            dataInfo : {
+                action: "append",
+                axis: "column",
+                column_names: new_column_names,
+                data : new_data
+            }
+        }
+        try {
+            handler.receive(updateMessage);
+        } catch(e) {
+            assert.equal(e, "row index index3 does not match incoming row index BAD_INDEX");
+        }
     });
 });

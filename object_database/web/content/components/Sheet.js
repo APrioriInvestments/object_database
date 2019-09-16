@@ -209,22 +209,56 @@ class Sheet extends Component {
         } else if (dataInfo.action === "prepend") {
             if (dataInfo.axis === "row") {
                 // note we pop off from the end the same number of rows as we prepend
-                console.log(this.current_data.slice(-dataInfo.data.length))
                 this.current_data = dataInfo.data.concat(this.current_data.slice(0, -dataInfo.data.length))
             } else if (dataInfo.axis === "column") {
-                this.current_data = dataInfo.data;
-                this.column_names = dataInfo.column_names;
+                // make sure that we have the same number of rows coming as before
+                if (this.current_data.length !== dataInfo.data.length) {
+                    throw "Incoming data does not match row number"
+                }
+                // put the columns together
+                let x_dim = dataInfo.column_names.length - 1;
+                this.column_names = dataInfo.column_names.concat(this.column_names.slice(0, x_dim))
+                // now the rows
+                let new_data = [];
+                for (let i = 0; i < this.current_data.length; i++){
+                    let old_row = this.current_data[i];
+                    let new_row = dataInfo.data[i];
+                    if (old_row[0] !== new_row[0]){
+                        throw "row index " + old_row[0] + " does not match incoming row index " + new_row[0]
+                    }
+                    new_data.push(
+                        new_row.concat(old_row.slice(1, old_row.length - new_row.length + 1))
+                    )
+                }
+                this.current_data = new_data;
             }
         } else if (dataInfo.action === "append") {
             if (dataInfo.axis === "row") {
                 // note we pop off from the top the same number of rows as we append
                 this.current_data = this.current_data.slice(dataInfo.data.length).concat(dataInfo.data)
             } else if (dataInfo.axis === "column") {
-                this.current_data = dataInfo.data;
-                this.column_names = dataInfo.column_names;
+                // make sure that we have the same number of rows coming as before
+                if (this.current_data.length !== dataInfo.data.length) {
+                    throw "Incoming data does not match row number"
+                }
+                // put the columns together
+                let x_dim = dataInfo.column_names.length - 1;
+                this.column_names = this.column_names.slice(x_dim + 1).concat(dataInfo.column_names);
+                // now the rows
+                let new_data = [];
+                for (let i = 0; i < this.current_data.length; i++){
+                    let old_row = this.current_data[i];
+                    let new_row = dataInfo.data[i];
+                    if (old_row[0] !== new_row[0]){
+                        throw "row index " + old_row[0] + " does not match incoming row index " + new_row[0]
+                    }
+                    new_data.push(
+                        old_row.slice(0, 1).concat(old_row.slice(new_row.length)).concat(new_row.slice(1))
+                    )
+                }
+                this.current_data = new_data;
             }
         }
-        // TODO: deal with the other updates here
     }
 
     /* Helper functions to determine a 'reasonable' number of columns and rows

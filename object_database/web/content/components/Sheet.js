@@ -157,17 +157,17 @@ class Sheet extends Component {
         // we make sure that we have 1/2 of the offset as buffer
         let offset = this.offset/2
         if (leftDiff > offset*this.props.colWidth) {
-            this.paginate("column", "right")
+            this.paginate("column", "append")
             this.scrollLeft = element.scrollLeft;
         } else if (-1*leftDiff > offset*this.props.colWidth) {
             this.scrollLeft = element.scrollLeft;
-            this.paginate("column", "left")
+            this.paginate("column", "prepend")
         }
         if (topDiff > offset*this.props.rowHeight) {
-            this.paginate("row", "down")
+            this.paginate("row", "append")
             this.scrollTop = element.scrollTop;
         } else if (-1*topDiff > offset*this.props.rowHeight) {
-            this.paginate("row", "up")
+            this.paginate("row", "prepend")
             this.scrollTop = element.scrollTop;
         }
     }
@@ -175,23 +175,20 @@ class Sheet extends Component {
     /* I handle row/column pagination by adding 1/2*this offset and removing
      * rows/columns as needed.
      */
-    paginate(axis, direction){
+    paginate(axis, action){
         // TODO: this should be handled with http calls to the server
-        let handler = window._cellHandler;
-        if (axis === "column"){
-            if (direction === "right"){
-
-            } else if (direction === "left"){
+        // let handler = window._cellHandler;
+        if (dataInfo.action === "prepend") {
+            if (axis === "row") {
+                // this.fetchData() -- TODO
+            } else if (axis === "column") {
+                // this.fetchData() -- TODO
             }
-        } else if (axis === "row") {
-            if (direction === "up") {
-                console.log("adding data at the up")
-                this.fetch
-                this.current_data = data.concat(this.current_data.slice(-1*this.offset/2))
-            } else if (direction === "down") {
-                console.log("adding data at the down")
-                // dropping the first this.offset/2 rows from the top
-                this.current_data = this.current_data.slice(this.offset/2).concat(data)
+        } else if (dataInfo.action === "append") {
+            if (axis === "row") {
+                // this.fetchData() -- TODO
+            } else if (axis === "column") {
+                // this.fetchData() -- TODO
             }
         }
     }
@@ -206,9 +203,26 @@ class Sheet extends Component {
      * or `append`.
      */
     _updateData(dataInfo) {
-        if (dataInfo.type === "replace") {
+        if (dataInfo.action === "replace") {
             this.current_data = dataInfo.data;
             this.column_names = dataInfo.column_names;
+        } else if (dataInfo.action === "prepend") {
+            if (dataInfo.axis === "row") {
+                // note we pop off from the end the same number of rows as we prepend
+                console.log(this.current_data.slice(-dataInfo.data.length))
+                this.current_data = dataInfo.data.concat(this.current_data.slice(0, -dataInfo.data.length))
+            } else if (dataInfo.axis === "column") {
+                this.current_data = dataInfo.data;
+                this.column_names = dataInfo.column_names;
+            }
+        } else if (dataInfo.action === "append") {
+            if (dataInfo.axis === "row") {
+                // note we pop off from the top the same number of rows as we append
+                this.current_data = this.current_data.slice(dataInfo.data.length).concat(dataInfo.data)
+            } else if (dataInfo.axis === "column") {
+                this.current_data = dataInfo.data;
+                this.column_names = dataInfo.column_names;
+            }
         }
         // TODO: deal with the other updates here
     }

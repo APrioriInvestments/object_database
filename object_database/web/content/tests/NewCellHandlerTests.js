@@ -777,4 +777,96 @@ describe("Sheet and Update Data Tests", () => {
         assert.equal(stored.current_data.toString(), test_data.toString());
         assert.equal(stored.column_names.toString(), column_names.toString());
     });
+    it("Column prepend in a Sheet component", () => {
+        let stored = handler.activeComponents[simpleSheet.id];
+        column_names = ["col3", "col4", "col5"]
+        let data = [
+            ["index1", 1, 2, 3],
+            ["index2", 2, 3, 4],
+            ["index3", 3, 4, 5],
+        ]
+        let updateMessage = {
+            id: simpleSheet.id,
+            type: "#cellDataUpdated",
+            dataInfo : {
+                action: "replace",
+                column_names : column_names,
+                data : data
+            }
+        }
+        handler.receive(updateMessage);
+        new_column_names = ["col1", "col2"]
+        let new_data = [
+            ['index1', 1, 2],
+            ['index2', 1, 2],
+            ['index3', 1, 2],
+        ]
+        // not here we are append and poping rows
+        let test_column_names = ["col1", "col2", "col3"]
+        let test_data = [
+            ["index1", 1, 2, 1],
+            ["index2", 1, 2, 2],
+            ["index3", 1, 2, 3],
+        ]
+
+        updateMessage = {
+            id: simpleSheet.id,
+            type: "#cellDataUpdated",
+            dataInfo : {
+                action: "prepend",
+                axis: "column",
+                column_names: new_column_names,
+                data : new_data
+            }
+        }
+        handler.receive(updateMessage);
+        assert.equal(stored.current_data.toString(), test_data.toString());
+        assert.equal(stored.column_names.toString(), test_column_names.toString());
+    });
+    it("Column append in a Sheet component", () => {
+        let stored = handler.activeComponents[simpleSheet.id];
+        column_names = ["col1", "col2", "col3"]
+        let data = [
+            ["index1", 1, 2, 3],
+            ["index2", 2, 3, 4],
+            ["index3", 3, 4, 5],
+        ]
+        let updateMessage = {
+            id: simpleSheet.id,
+            type: "#cellDataUpdated",
+            dataInfo : {
+                action: "replace",
+                column_names : column_names,
+                data : data
+            }
+        }
+        handler.receive(updateMessage);
+        new_column_names = ["col4", "col5"]
+        let new_data = [
+            ['index1', 1, 2],
+            ['index2', 1, 2],
+            ['index3', 1, 2],
+        ]
+        // not here we are append and poping rows
+        let test_column_names = ["col3", "col4", "col5"]
+        let test_data = [
+            ["index1", 3, 1, 2],
+            ["index2", 4, 1, 2],
+            ["index3", 5, 1, 2],
+        ]
+
+        updateMessage = {
+            id: simpleSheet.id,
+            type: "#cellDataUpdated",
+            dataInfo : {
+                action: "append",
+                axis: "column",
+                column_names: new_column_names,
+                data : new_data
+            }
+        }
+        handler.receive(updateMessage);
+        assert.equal(stored.current_data.toString(), test_data.toString());
+        assert.equal(stored.column_names.toString(), test_column_names.toString());
+    });
 });

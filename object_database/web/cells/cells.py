@@ -2453,17 +2453,16 @@ class CodeEditor(Cell):
 class Sheet(Cell):
     """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""
 
-    def __init__(self, columnNames, rowCount, rowFun,
-                 colWidth=30, rowHeight=20,
+    def __init__(self, columnFun, rowFun, colWidth=30, rowHeight=20,
                  onCellDblClick=None):
         """
-        columnNames:
-            names to go in column Header
-        rowCount:
-            number of rows in table
+        columnFun:
+            function taking integer column as argument that returns list of values
+            to populate the header of the table
         rowFun:
             function taking integer row as argument that returns list of values
-            to populate that row of the table
+            to populate that row of the table; Note the first value, i.e.
+            row[0], of each row is the named index
         colWidth:
             height of columns in pixels
         rowHeight:
@@ -2476,15 +2475,12 @@ class Sheet(Cell):
         """
         super().__init__()
 
-        self.columnNames = columnNames
-        self.rowCount = rowCount
-        # for a row, the value of all the columns in a list.
         self.rowFun = rowFun
+        self.columnFun = columnFun
         self.colWidth = colWidth
         self.rowHeight = rowHeight
         self.error = Slot(None)
         self._overflow = "auto"
-        self.rowsSent = set()
 
         self._hookfns = {}
         if onCellDblClick is not None:
@@ -2512,8 +2508,6 @@ class Sheet(Cell):
         # Should now be implemented completely
         # in the JS side component.
 
-        self.exportData['columnNames'] = [x for x in self.columnNames]
-        self.exportData['rowCount'] = self.rowCount
         self.exportData['colWidth'] = self.colWidth
         self.exportData['rowHeight'] = self.rowHeight
         self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
@@ -2524,35 +2518,21 @@ class Sheet(Cell):
         to the JS side"""
 
         if msgFrame["event"] == 'sheet_needs_data':
-            row = msgFrame['data']
-
-            if row in self.rowsSent:
-                return
-
-            rows = []
-            for rowToRender in range(max(0, row-100), min(row+100, self.rowCount)):
-                if rowToRender not in self.rowsSent:
-                    self.rowsSent.add(rowToRender)
-                    rows.append(rowToRender)
-
-                    rowData = self.rowFun(rowToRender)
-
-                    self.triggerPostscript(
-                        """
-                        var hot = handsOnTables["__identity__"].table
-
-                        hot.getSettings().data.cache[__row__] = __data__
-                        """
-                        .replace("__row__", str(rowToRender))
-                        .replace("__identity__", self._identity)
-                        .replace("__data__", json.dumps(rowData))
-                    )
-
-            if rows:
-                self.triggerPostscript(
-                    """handsOnTables["__identity__"].table.render()"""
-                    .replace("__identity__", self._identity)
-                )
+            rowsToSend = [self.rowFun(index) for index in
+                          range(msgFrame('start_row'), msgFrame('end_row'))]
+            columnsToSend = [self.rowFun(index) for index in
+                             range(msgFrame('start_column'),
+                                   msgFrame('end_column'))]
+            dataToSend = {
+                "id": self._identity,
+                "dataInfo": {
+                    "data": rowsToSend,
+                    "column_names": columnsToSend,
+                    "action": msgFrame["action"],
+                    "axis": msgFrame["axis"]
+                }
+            }
+            # TODO: get this across the socket
         else:
             return self._hookfns[msgFrame["event"]](self, msgFrame)
 

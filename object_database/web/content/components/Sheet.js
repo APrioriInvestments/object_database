@@ -31,12 +31,9 @@ class Sheet extends Component {
 
         // offset is used as a buffer for lazy loading, i.e. we have this many extra
         // columns/rows
+        this.max_num_rows = null;
+        this.max_num_columns = null;
         this.offset = 10;
-        // TODO: make sure these make sense
-        this.max_num_columns = this._calc_max_num_columns();
-        // console.log("max num of columns: " + this.max_num_columns)
-        this.max_num_rows = this._calc_max_num_rows();
-        // console.log("max num of rows: " + this.max_num_rows)
         this.current_data = null;
         this.column_names = null;
         this.current_start_row_index = null;
@@ -65,6 +62,16 @@ class Sheet extends Component {
 
     componentDidLoad(){
         console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
+        this.max_num_columns = this._calc_max_num_columns();
+        // console.log("max num of columns: " + this.max_num_columns)
+        this.max_num_rows = this._calc_max_num_rows();
+        this.fetchData(
+            this.current_start_row_index,
+            this.current_end_row_index + this.offset,
+            this.current_start_column_index,
+            this.current_end_column_index + this.offset
+        )
+        // console.log("max num of rows: " + this.max_num_rows)
         // if(this.props.extraData['handlesDoubleClick']){
         //     this.initializeHooks();
         // }
@@ -79,15 +86,9 @@ class Sheet extends Component {
     initializeTable(){
         console.log(`#initializeTable called for Sheet ${this.props.id}`);
         this.current_start_row_index = 0;
-        this.current_end_row_index = this.max_num_rows - 1;
+        this.current_end_row_index = this.max_num_rows;
         this.current_start_column_index = 0;
-        this.current_end_column_index = this.max_num_columns - 1;
-        this.fetchData(
-            this.current_start_row_index,
-            this.current_end_row_index,
-            this.current_start_column_index,
-            this.current_end_column_index
-        )
+        this.current_end_column_index = this.max_num_columns;
     }
 
 
@@ -102,15 +103,17 @@ class Sheet extends Component {
                 onscroll: this.handleScrolling,
             }, [
                 h("table", {class: "sheet"}, [
-                    h("thead", {}, this.generate_header(0, this.max_num_columns)), //TODO: this should be dynamic and paginated
+                    h("thead", {}, this.generate_header()),
                     h("tbody", {}, this.generate_current_rows())
                 ])
             ])
         );
     }
 
-    generate_header(start, end){
+    generate_header(){
         let header = [];
+        let start = this.current_start_column_index;
+        let end = this.current_end_column_index;
         if (this.column_names !== null) {
             header = this.column_names.slice(start, end).map((item) => {
                 return h("th", {class: "header-item"}, [item])
@@ -126,9 +129,11 @@ class Sheet extends Component {
     }
 
     generate_current_rows(){
-        let rows = [];
+        let rows = ["Just a sec..."];
+        let start = this.current_start_row_index;
+        let end = this.current_end_row_index;
         if (this.current_data !== null) {
-            rows = this.current_data.map((item) => {
+            rows = this.current_data.slice(start, end).map((item) => {
                 return (
                     new SheetRow(
                         {
@@ -136,7 +141,7 @@ class Sheet extends Component {
                             row_data: item.slice(1),
                             colWidth: this.props.colWidth,
                             height: this.props.rowHeight,
-                            rowIndexName: item[0]  //TODO: note currently the row name is simply index
+                            rowIndexName: item[0]
                         }
                     ).build()
                 )
@@ -147,7 +152,7 @@ class Sheet extends Component {
 
     /* I handle scrolling events and trigger callbacks to get more data as
      * needed. As the user scrolls in a given direction (left, right, up, down)
-     * I wait until 1/2*this.offset number of columns or rows have been scrolled
+     * I wait until this.offset number of columns or rows have been scrolled
      * and trigger the callback. This way we always maintain a buffer for lazy loading.
      */
     handleScrolling(event){
@@ -156,17 +161,17 @@ class Sheet extends Component {
         let topDiff = element.scrollTop - this.scrollTop
         // we make sure that we have 1/2 of the offset as buffer
         let offset = this.offset/2
-        if (leftDiff > offset*this.props.colWidth) {
+        if (leftDiff > offset * this.props.colWidth) {
             this.paginate("column", "append")
             this.scrollLeft = element.scrollLeft;
-        } else if (-1*leftDiff > offset*this.props.colWidth) {
+        } else if (-1 * leftDiff > offset * this.props.colWidth) {
             this.scrollLeft = element.scrollLeft;
             this.paginate("column", "prepend")
         }
-        if (topDiff > offset*this.props.rowHeight) {
+        if (topDiff > offset * this.props.rowHeight) {
             this.paginate("row", "append")
             this.scrollTop = element.scrollTop;
-        } else if (-1*topDiff > offset*this.props.rowHeight) {
+        } else if (-1 * topDiff > offset * this.props.rowHeight) {
             this.paginate("row", "prepend")
             this.scrollTop = element.scrollTop;
         }
@@ -178,17 +183,39 @@ class Sheet extends Component {
     paginate(axis, action){
         // TODO: this should be handled with http calls to the server
         // let handler = window._cellHandler;
+        // we make sure that we have 1/2 of the offset as buffer
+        let offset = this.offset/2
         if (dataInfo.action === "prepend") {
             if (axis === "row") {
-                // this.fetchData() -- TODO
+                this.fetchData(
+                    Math.max(this.current_start_row_index - offset, 0),
+                    this.current_end_start_index,
+                    this.current_start_column_index,
+                    this.current_end_column_index
+                )
             } else if (axis === "column") {
-                // this.fetchData() -- TODO
+                this.fetchData(
+                    this.current_start_row_index,
+                    this.current_end_start_index,
+                    Math.min(this.current_start_column_index - offset, 0),
+                    this.current_start_column_index
+                )
             }
         } else if (dataInfo.action === "append") {
             if (axis === "row") {
-                // this.fetchData() -- TODO
+                this.fetchData(
+                    this.current_end_row_index,
+                    this.current_end_row_index + offset,
+                    this.current_start_column_index,
+                    this.current_end_column_index
+                )
             } else if (axis === "column") {
-                // this.fetchData() -- TODO
+                this.fetchData(
+                    this.current_start_row_index,
+                    this.current_end_start_index,
+                    this.current_end_column_index,
+                    this.current_end_column_index + offset
+                )
             }
         }
     }

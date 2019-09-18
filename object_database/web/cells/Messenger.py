@@ -32,27 +32,15 @@ def cellDataUpdated(cell):
     """Message of this type reflect updated data in the cells. For example,
     Sheet (table) data pagination.
     """
-    parent_id = None
-    if cell.parent is not None:
-        parent_id = cell.parent.identity
-
-    structure = getStructure(
-        parent_id,
-        cell,
-        None,
-        expand=True)
-    envelope = {
+    # TODO update this
+    data = {
         "channel": "#main",
         "type": "#cellDataUpdated",
         "shouldDisplay": cell.shouldDisplay,
-        "data": cell.data,
-        "info": cell.info
+        "id": cell.identity,
+        "dataInfo": cell.extraData["dataInfo"]
     }
-    structure.update(envelope)
-    if cell.postscript:
-        structure['postscript'] = cell.postscript
-
-    return structure
+    return data
 
 
 def cellDiscarded(cell):

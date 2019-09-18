@@ -52,6 +52,7 @@ class Sheet extends Component {
         this.generate_header = this.generate_header.bind(this);
         this.handleScrolling = this.handleScrolling.bind(this);
         this.paginate = this.paginate.bind(this);
+        this.jump_to_cell = this.jump_to_cell.bind(this);
         // this.handleClick = this.handleClick.bind(this);
         // this.initializeHooks = this.initializeHooks.bind(this);
         // this.makeError = this.makeError.bind(this);
@@ -116,6 +117,7 @@ class Sheet extends Component {
             })
             // NOTE: we add one more column to account for the row index
         }
+        // TODO potentially make this an input for this.jump_to_cell;
         header.unshift(h("th", {class: "header-item zero"}, []))
         return (
             h("tr"), {}, [
@@ -304,6 +306,20 @@ class Sheet extends Component {
         }
     }
 
+    /* I allow this user to jump to a specific cell, putting it at the top
+     * left, i.e. coordinate (0, 0), on the screen
+     */
+    jump_to_cell(x, y){
+        // TODO this won't exactly get the requested cell in the top left
+        this.fetchData(
+            Math.min(0, x - this.offset)
+            x + this.max_num_rows + this.offset,
+            Math.min(0, y - this.offset),
+            y + this.max_num_columns + this.offset,
+            "replace",
+            null
+        )
+    }
     /* Helper functions to determine a 'reasonable' number of columns and rows
      * for the current view. For the moment we use window.innerHeight and
      * window.innerWidth divided by the number provided height and width of the
@@ -490,6 +506,9 @@ class SheetCell extends Component {
     constructor(props, ...args){
         super(props, ...args);
         this.style = `max-width: ${this.props.width}px; width: ${this.props.width}px`
+
+        // Bind component methods
+        this.onHover = this.onHover.bind(this);
     }
 
     componentDidLoad(){
@@ -498,10 +517,15 @@ class SheetCell extends Component {
     build(){
         return (
             h("td",
-                {class: "sheet-cell", style: this.style},
+                {class: "sheet-cell", style: this.style, onhover: this.onhover},
                 [this.props.data.toString()]
             )
         );
+    }
+
+    onHover(){
+        console.log(this.props.data)
+        // TODO: build a nice hover over view
     }
 }
 

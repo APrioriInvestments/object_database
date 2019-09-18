@@ -53,7 +53,6 @@ class Sheet extends Component {
         this.handleScrolling = this.handleScrolling.bind(this);
         this.paginate = this.paginate.bind(this);
         // this.handleClick = this.handleClick.bind(this);
-        // this.currentTable = null;
         // this.initializeHooks = this.initializeHooks.bind(this);
         // this.makeError = this.makeError.bind(this);
 
@@ -69,7 +68,9 @@ class Sheet extends Component {
             this.current_start_row_index,
             this.current_end_row_index + this.offset,
             this.current_start_column_index,
-            this.current_end_column_index + this.offset
+            this.current_end_column_index + this.offset,
+            "replace",
+            null
         )
         // console.log("max num of rows: " + this.max_num_rows)
         // if(this.props.extraData['handlesDoubleClick']){
@@ -110,6 +111,7 @@ class Sheet extends Component {
         );
     }
 
+    /* I generate the table header.*/
     generate_header(){
         let header = [];
         let start = this.current_start_column_index;
@@ -128,6 +130,9 @@ class Sheet extends Component {
         )
     }
 
+    /* I generate the rows, including the passing in row indexes (which are
+     * assumed to be element row[0])
+     */
     generate_current_rows(){
         let rows = ["Just a sec..."];
         let start = this.current_start_row_index;
@@ -191,14 +196,18 @@ class Sheet extends Component {
                     Math.max(this.current_start_row_index - offset, 0),
                     this.current_end_start_index,
                     this.current_start_column_index,
-                    this.current_end_column_index
+                    this.current_end_column_index,
+                    "prepend",
+                    "row"
                 )
             } else if (axis === "column") {
                 this.fetchData(
                     this.current_start_row_index,
                     this.current_end_start_index,
                     Math.min(this.current_start_column_index - offset, 0),
-                    this.current_start_column_index
+                    this.current_start_column_index,
+                    "prepend",
+                    "column"
                 )
             }
         } else if (dataInfo.action === "append") {
@@ -207,21 +216,34 @@ class Sheet extends Component {
                     this.current_end_row_index,
                     this.current_end_row_index + offset,
                     this.current_start_column_index,
-                    this.current_end_column_index
+                    this.current_end_column_index,
+                    "append",
+                    "row"
                 )
             } else if (axis === "column") {
                 this.fetchData(
                     this.current_start_row_index,
                     this.current_end_start_index,
                     this.current_end_column_index,
-                    this.current_end_column_index + offset
+                    this.current_end_column_index + offset,
+                    "append",
+                    "column"
                 )
             }
         }
     }
 
-    fetchData(start_row, end_row, start_column, end_column){
-        // TODO@
+    /* I make WS requests to the server */
+    fetchData(start_row, end_row, start_column, end_column, action, axis){
+        cellSocket.sendString(JSON.stringify({
+            event: "sheet_needs_data",
+            target_cell: this.props.id,
+            start_row: start_row,
+            end_row: end_row,
+            start_column: end_column,
+            action: action,
+            axis: axis
+        }));
     }
 
     /* I handle data updating for the Sheet. I need to know whether

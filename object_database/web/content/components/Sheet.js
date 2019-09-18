@@ -76,12 +76,6 @@ class Sheet extends Component {
         // if(this.props.extraData['handlesDoubleClick']){
         //     this.initializeHooks();
         // }
-        // Request initial data?
-        // cellSocket.sendString(JSON.stringify({
-        //    event: "sheet_needs_data",
-        //    target_cell: this.props.id,
-        //    data: 0
-        //}));
     }
 
     initializeTable(){
@@ -325,66 +319,6 @@ class Sheet extends Component {
     }
     /// OLD HORROR - TODO: remove when ready!
     //----------------------------------------
-    old_build(){
-        console.log(`Rendering sheet ${this.props.id}`);
-        return (
-            h('div', {
-                id: this.props.id,
-                "data-cell-id": this.props.id,
-                "data-cell-type": "Sheet",
-                class: "cell"
-            }, [
-                h('div', {
-                    id: `sheet${this.props.id}`,
-                    class: "handsontable"
-                }, [this.makeError()])
-            ])
-        );
-    }
-
-    old_initializeTable(){
-        console.log(`#initializeTable called for Sheet ${this.props.id}`);
-        let getProperty = function(index){
-            return function(row){
-                return row[index];
-            };
-        };
-        let emptyRow = [];
-        let dataNeededCallback = function(eventObject){
-            eventObject.target_cell = this.props.id;
-            cellSocket.sendString(JSON.stringify(eventObject));
-        }.bind(this);
-        let data = new SyntheticIntegerArray(this.props.extraData.rowCount, emptyRow, dataNeededCallback);
-        let container = document.getElementById(`sheet${this.props.id}`);
-        let columnNames = this.props.extraData.columnNames;
-        let columns = columnNames.map((name, idx) => {
-            emptyRow.push("");
-            return {data: getProperty(idx)};
-        });
-
-        this.currentTable = new Handsontable(container, {
-            data,
-            dataSchema: function(opts){return {};},
-            colHeaders: columnNames,
-            columns,
-            rowHeaders:true,
-            rowHeaderWidth: 100,
-            viewportRowRenderingOffset: 100,
-            autoColumnSize: false,
-            autoRowHeight: false,
-            manualColumnResize: true,
-            colWidths: this.props.extraData.columnWidth,
-            rowHeights: 23,
-            readOnly: true,
-            ManualRowMove: false
-        });
-        handsOnTables[this.props.id] = {
-            table: this.currentTable,
-            lastCellClicked: {row: -100, col: -100},
-            dblClicked: true
-        };
-    }
-
     old_initializeHooks(){
         Handsontable.hooks.add("beforeOnCellMouseDown", (event, data) => {
             let handsOnObj = handsOnTables[this.props.id];
@@ -528,39 +462,5 @@ SheetCell.propTypes = {
     },
 };
 
-/// OLD HORROR - TODO: remove when ready!
-//----------------------------------------
-/** Copied over from Cells implementation **/
-const SyntheticIntegerArray = function(size, emptyRow = [], callback){
-    this.length = size;
-    this.cache = {};
-    this.push = function(){};
-    this.splice = function(){};
-
-    this.slice = function(low, high){
-        if(high === undefined){
-            high = this.length;
-        }
-
-        let res = Array(high - low);
-        let initLow = low;
-        while(low < high){
-            let out = this.cache[low];
-            if(out === undefined){
-                if(callback){
-                    callback({
-                        event: 'sheet_needs_data',
-                        data: low
-                    });
-                }
-                out = emptyRow;
-            }
-            res[low - initLow] = out;
-            low += 1;
-        }
-        return res;
-    };
-};
-//----------------------------------------
 
 export {Sheet, Sheet as default};

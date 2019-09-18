@@ -2571,18 +2571,16 @@ class CodeEditor(Cell):
 class Sheet(Cell):
     """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""
 
-    def __init__(self, columnNames, rowCount, rowFun,
-                 colWidth=30, rowHeight=20,
+    def __init__(self, columnFun, rowFun, colWidth=30, rowHeight=20,
                  onCellDblClick=None):
         """
         columnFun:
-            function taking 'start' and 'end' integer column as arguments and
-            returns that returns a list of values to populate the header of the table
+            function taking integer column as argument that returns list of values
+            to populate the header of the table
         rowFun:
-            function taking integer 'start_row' and 'end_row' row indexes and
-            'start_column' and 'end_column' that
-            returns a list of rows, themselves list of values, to populate the
-            table; Note the first value, i.e. row[0], of each row is the named index
+            function taking integer row as argument that returns list of values
+            to populate that row of the table; Note the first value, i.e.
+            row[0], of each row is the named index
         colWidth:
             height of columns in pixels
         rowHeight:
@@ -2625,8 +2623,6 @@ class Sheet(Cell):
         # Should now be implemented completely
         # in the JS side component.
 
-        self.exportData['columnNames'] = [x for x in self.columnNames]
-        self.exportData['rowCount'] = self.rowCount
         self.exportData['colWidth'] = self.colWidth
         self.exportData['rowHeight'] = self.rowHeight
         self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
@@ -2637,30 +2633,21 @@ class Sheet(Cell):
         to the JS side"""
 
         if msgFrame["event"] == 'sheet_needs_data':
-            start_row = msgFrame['start_row']
-            end_row = msgFrame['end_row']
-            start_column = msgFrame['start_column']
-            end_column = msgFrame['end_column']
-            rowsToSend = self.rowFun(start_row,
-                                     end_row,
-                                     start_column,
-                                     end_column)
-            columnsToSend = self.columnFun(start_column,
-                                           end_column)
-            if (not all([len(columnsToSend) == (len(row) - 1) for row in
-                         rowsToSend])):
-                self._logger.error(
-                    "Sheet.rowFun generated rows don't match column length. "
-                )
-            dataInfo = {
-                "data": rowsToSend,
-                "column_names": columnsToSend,
-                "action": msgFrame["action"],
-                "axis": msgFrame["axis"]
+            rowsToSend = [self.rowFun(index) for index in
+                          range(msgFrame('start_row'), msgFrame('end_row'))]
+            columnsToSend = [self.rowFun(index) for index in
+                             range(msgFrame('start_column'),
+                                   msgFrame('end_column'))]
+            dataToSend = {
+                "id": self._identity,
+                "dataInfo": {
+                    "data": rowsToSend,
+                    "column_names": columnsToSend,
+                    "action": msgFrame["action"],
+                    "axis": msgFrame["axis"]
+                }
             }
-            self.exportData["dataInfo"] = dataInfo
-            self.wasDataUpdated = True
-            self.markDirty()
+            # TODO: get this across the socket
         else:
             return self._hookfns[msgFrame["event"]](self, msgFrame)
 

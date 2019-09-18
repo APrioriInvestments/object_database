@@ -160,6 +160,9 @@ class Cells:
         self._nodesToBroadcast = set()
 
         # set(Cell)
+        self._nodesToDataUpdate = set()
+
+        # set(Cell)
         self._nodesToDiscard = set()
 
         self._transactionQueue = queue.Queue()
@@ -361,6 +364,11 @@ class Cells:
         for nodeToSend in list(updatedNodesToSend):
             res.append(Messenger.cellUpdated(nodeToSend))
 
+        # make messages for data updated nodes
+        for node in self._nodesToDataUpdate:
+            res.append(Messenger.cellDataUpdated(node))
+
+        # make messages for discarding
         for n in self._nodesToDiscard:
             if n.cells is not None:
                 assert n.cells == self
@@ -2523,15 +2531,13 @@ class Sheet(Cell):
             columnsToSend = [self.rowFun(index) for index in
                              range(msgFrame('start_column'),
                                    msgFrame('end_column'))]
-            dataToSend = {
-                "id": self._identity,
-                "dataInfo": {
-                    "data": rowsToSend,
-                    "column_names": columnsToSend,
-                    "action": msgFrame["action"],
-                    "axis": msgFrame["axis"]
-                }
+            dataInfo = {
+                "data": rowsToSend,
+                "column_names": columnsToSend,
+                "action": msgFrame["action"],
+                "axis": msgFrame["axis"]
             }
+            self.exportData["dataInfo"] = dataInfo
             # TODO: get this across the socket
         else:
             return self._hookfns[msgFrame["event"]](self, msgFrame)

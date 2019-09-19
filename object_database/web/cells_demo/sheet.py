@@ -18,8 +18,25 @@ from object_database.web.CellsTestPage import CellsTestPage
 
 class BasicSheet(CellsTestPage):
     def cell(self):
-        colFun = lambda colIx: "Col_%s" % colIx
-        rowFun = lambda rowIx: ["(%s) ts" % rowIx, rowIx, rowIx+1, rowIx+2]
+        num_columns = 3
+
+        def colFun(start, end, cutoff=num_columns):
+            columns = []
+            if start >= cutoff:
+                return columns
+            for i in range(start, min(end, cutoff)):
+                columns.append("column_%s" % i)
+            return columns
+
+        def rowFun(start, end, cutoff=100, num_columns=num_columns):
+            rows = []
+            if start >= cutoff:
+                return rows
+            for i in range(start, min(end, cutoff)):
+                r = ["index_%s" % i] + ["entry_%s_%s" % (i, j) for j in
+                                        range(num_columns)]
+                rows.append(r)
+            return rows
         return cells.Sheet(colFun, rowFun, colWidth=50, rowHeight=25)
 
     def text(self):
@@ -28,9 +45,26 @@ class BasicSheet(CellsTestPage):
 
 class BiggerSheet(CellsTestPage):
     def cell(self):
+        num_columns = 300
         num_rows = 10000
-        colFun = lambda colIx: "Col_%s" % colIx
-        rowFun = lambda rowIx: ["(%s) ts" % rowIx for rowIx in range(num_rows)]
+
+        def colFun(start, end, cutoff=num_columns):
+            columns = []
+            if start >= cutoff:
+                return columns
+            for i in range(start, min(end, cutoff)):
+                columns.append("column_%s" % i)
+            return columns
+
+        def rowFun(start, end, cutoff=num_rows, num_columns=num_columns):
+            rows = []
+            if start >= cutoff:
+                return rows
+            for i in range(start, min(end, cutoff)):
+                r = ["index_%s" % i] + ["entry_%s_%s" % (i, j) for j in
+                                        range(num_columns)]
+                rows.append(r)
+            return rows
         return cells.Sheet(colFun, rowFun)
 
     def text(self):

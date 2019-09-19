@@ -67,9 +67,9 @@ class Sheet extends Component {
         this.max_num_rows = this._calc_max_num_rows();
         this.fetchData(
             this.current_start_row_index,
-            this.current_end_row_index + this.offset,
+            this.max_num_rows + this.offset,
             this.current_start_column_index,
-            this.current_end_column_index + this.offset,
+            this.max_num_columns + this.offset,
             "replace",
             null
         )
@@ -236,7 +236,8 @@ class Sheet extends Component {
             target_cell: this.props.id,
             start_row: start_row,
             end_row: end_row,
-            start_column: end_column,
+            start_column: start_column,
+            end_column: end_column,
             action: action,
             axis: axis
         }));
@@ -312,7 +313,7 @@ class Sheet extends Component {
     jump_to_cell(x, y){
         // TODO this won't exactly get the requested cell in the top left
         this.fetchData(
-            Math.min(0, x - this.offset)
+            Math.min(0, x - this.offset),
             x + this.max_num_rows + this.offset,
             Math.min(0, y - this.offset),
             y + this.max_num_columns + this.offset,

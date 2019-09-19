@@ -18,10 +18,9 @@ from object_database.web.CellsTestPage import CellsTestPage
 
 class BasicSheet(CellsTestPage):
     def cell(self):
-        cols = ["A", "B", "C"]
-        num_rows = 10
-        arg = lambda rowIx: ["(%s) ts" % rowIx, rowIx, rowIx+1, rowIx+2]
-        return cells.Sheet(cols, num_rows, arg, colWidth=50, rowHeight=25)
+        colFun = lambda colIx: "Col_%s" % colIx
+        rowFun = lambda rowIx: ["(%s) ts" % rowIx, rowIx, rowIx+1, rowIx+2]
+        return cells.Sheet(colFun, rowFun, colWidth=50, rowHeight=25)
 
     def text(self):
         return "You should see a basic sheet."
@@ -29,11 +28,10 @@ class BasicSheet(CellsTestPage):
 
 class BiggerSheet(CellsTestPage):
     def cell(self):
-        num_cols = 100
-        num_rows = 1000
-        cols = ["col_%s" % s for s in range(num_cols)]
-        arg = lambda rowIx: ["cell_%s_%s" % (rowIx, i) for i in range(num_cols)]
-        return cells.Sheet(cols, num_rows, arg)
+        num_rows = 10000
+        colFun = lambda colIx: "Col_%s" % colIx
+        rowFun = lambda rowIx: ["(%s) ts" % rowIx for rowIx in range(num_rows)]
+        return cells.Sheet(colFun, rowFun)
 
     def text(self):
         return "You should see a bigger sheet."

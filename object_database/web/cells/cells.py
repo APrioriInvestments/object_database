@@ -338,6 +338,11 @@ class Cells:
 
         self._nodesToBroadcast.add(node)
 
+    def markToDataUpdate(self, node):
+        assert node.cells is self
+
+        self._nodesToDataUpdate.add(node)
+
     def findStableParent(self, cell):
         if not cell.parent:
             return cell
@@ -430,7 +435,10 @@ class Cells:
             node = self._dirtyNodes.pop()
 
             if not n.garbageCollected:
-                self.markToBroadcast(n)
+                if n.wasDataUpdated:
+                    self.markToDataUpdate(n)
+                else:
+                    self.markToBroadcast(n)
                 # TODO: lifecycle attribute; see cell.updateLifecycleState()
 
                 origChildren = self._cellsKnownChildren[n.identity]
@@ -655,6 +663,7 @@ class Cell:
         # cells is handled by self.updateLifecycleState.
         self.wasCreated = True
         self.wasUpdated = False
+        self.wasDataUpdated = False  # Whether or not this cell has updated data
         self.wasRemoved = False
 
         self._logger = logging.getLogger(__name__)
@@ -684,6 +693,8 @@ class Cell:
             self.wasCreated = False
         if (self.wasUpdated):
             self.wasUpdated = False
+        if (self.wasDataUpdated):
+            self.wasDataUpdated = False
         # NOTE: self.wasRemoved is set to False for self.prepareForReuse
         if (self.wasRemoved):
             self.wasRemoved = False
@@ -2629,7 +2640,7 @@ class Sheet(Cell):
 
         self.exportData['colWidth'] = self.colWidth
         self.exportData['rowHeight'] = self.rowHeight
-        self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
+        # self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
 
     def onMessage(self, msgFrame):
         """TODO: We will need to update the Cell lifecycle
@@ -2638,10 +2649,10 @@ class Sheet(Cell):
 
         if msgFrame["event"] == 'sheet_needs_data':
             rowsToSend = [self.rowFun(index) for index in
-                          range(msgFrame('start_row'), msgFrame('end_row'))]
+                          range(msgFrame['start_row'], msgFrame['end_row'])]
             columnsToSend = [self.rowFun(index) for index in
-                             range(msgFrame('start_column'),
-                                   msgFrame('end_column'))]
+                             range(msgFrame['start_column'],
+                                   msgFrame['end_column'])]
             dataInfo = {
                 "data": rowsToSend,
                 "column_names": columnsToSend,
@@ -2649,7 +2660,8 @@ class Sheet(Cell):
                 "axis": msgFrame["axis"]
             }
             self.exportData["dataInfo"] = dataInfo
-            # TODO: get this across the socket
+            self.wasDataUpdated = True
+            self.markDirty()
         else:
             return self._hookfns[msgFrame["event"]](self, msgFrame)
 

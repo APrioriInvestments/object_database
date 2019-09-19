@@ -38,7 +38,7 @@ def cellDataUpdated(cell):
         "type": "#cellDataUpdated",
         "shouldDisplay": cell.shouldDisplay,
         "id": cell.identity,
-        "dataInfo": cell.extraData["dataInfo"]
+        "dataInfo": cell.exportData["dataInfo"]
     }
     return data
 

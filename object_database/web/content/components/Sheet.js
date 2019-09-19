@@ -65,11 +65,15 @@ class Sheet extends Component {
         this.max_num_columns = this._calc_max_num_columns();
         // console.log("max num of columns: " + this.max_num_columns)
         this.max_num_rows = this._calc_max_num_rows();
+        this.current_start_row_index = 0;
+        this.current_start_column_index = 0;
+        this.current_end_row_index = this.max_num_rows + this.offset,
+        this.current_end_column_index = this.max_num_columns + this.offset,
         this.fetchData(
             this.current_start_row_index,
-            this.max_num_rows + this.offset,
+            this.current_end_row_index,
             this.current_start_column_index,
-            this.max_num_columns + this.offset,
+            this.current_end_column_index,
             "replace",
             null
         )
@@ -109,21 +113,18 @@ class Sheet extends Component {
     /* I generate the table header.*/
     generate_header(){
         let header = [];
-        let start = this.current_start_column_index;
-        let end = this.current_end_column_index;
-        if (this.column_names !== null) {
-            header = this.column_names.slice(start, end).map((item) => {
-                return h("th", {class: "header-item"}, [item])
-            })
-            // NOTE: we add one more column to account for the row index
+        if (this.column_names === null){
+            return header;
         }
+        header = this.column_names.map((item) => {
+            return h("th", {class: "header-item"}, [item.toString()])
+        })
+        // NOTE: we add one more column to account for the row index
         // TODO potentially make this an input for this.jump_to_cell;
         header.unshift(h("th", {class: "header-item zero"}, []))
-        return (
-            h("tr"), {}, [
-                header
-            ]
-        )
+        return [
+            h("tr", {}, header)
+        ]
     }
 
     /* I generate the rows, including the passing in row indexes (which are
@@ -131,10 +132,8 @@ class Sheet extends Component {
      */
     generate_current_rows(){
         let rows = ["Just a sec..."];
-        let start = this.current_start_row_index;
-        let end = this.current_end_row_index;
         if (this.current_data !== null) {
-            rows = this.current_data.slice(start, end).map((item) => {
+            rows = this.current_data.map((item) => {
                 return (
                     new SheetRow(
                         {
@@ -160,68 +159,73 @@ class Sheet extends Component {
         let element = event.target;
         let leftDiff = element.scrollLeft - this.scrollLeft
         let topDiff = element.scrollTop - this.scrollTop
-        // we make sure that we have 1/2 of the offset as buffer
-        let offset = this.offset/2
-        if (leftDiff > offset * this.props.colWidth) {
+        // we make sure that we have the offset as buffer
+        if (leftDiff > this.offset * this.props.colWidth) {
             this.paginate("column", "append")
             this.scrollLeft = element.scrollLeft;
-        } else if (-1 * leftDiff > offset * this.props.colWidth) {
+        } else if (-1 * leftDiff > this.offset * this.props.colWidth) {
             this.scrollLeft = element.scrollLeft;
             this.paginate("column", "prepend")
         }
-        if (topDiff > offset * this.props.rowHeight) {
+        if (topDiff > this.offset * this.props.rowHeight) {
             this.paginate("row", "append")
             this.scrollTop = element.scrollTop;
-        } else if (-1 * topDiff > offset * this.props.rowHeight) {
+        } else if (-1 * topDiff > this.offset * this.props.rowHeight) {
             this.paginate("row", "prepend")
             this.scrollTop = element.scrollTop;
         }
     }
 
-    /* I handle row/column pagination by adding 1/2*this offset and removing
+    /* I handle row/column pagination by adding this.offset and removing
      * rows/columns as needed.
      */
     paginate(axis, action){
         // TODO: this should be handled with http calls to the server
         // let handler = window._cellHandler;
-        // we make sure that we have 1/2 of the offset as buffer
-        let offset = this.offset/2
-        if (dataInfo.action === "prepend") {
+        if (action === "prepend") {
             if (axis === "row") {
+                this.current_start_row_index = Math.max(this.current_start_row_index - this.offset, 0)
+                this.current_end_row_index = Math.max(this.current_end_row_index - this.offset, 0)
                 this.fetchData(
-                    Math.max(this.current_start_row_index - offset, 0),
-                    this.current_end_start_index,
+                    this.current_start_row_index,
+                    this.current_end_row_index,
                     this.current_start_column_index,
                     this.current_end_column_index,
                     "prepend",
                     "row"
                 )
             } else if (axis === "column") {
+                this.current_start_column_index = Math.min(this.current_start_column_index - this.offset, 0)
+                this.current_end_column_index = Math.min(this.current_end_column_index - this.offset, 0)
                 this.fetchData(
                     this.current_start_row_index,
-                    this.current_end_start_index,
-                    Math.min(this.current_start_column_index - offset, 0),
+                    this.current_end_row_index,
                     this.current_start_column_index,
+                    this.current_end_column_index,
                     "prepend",
                     "column"
                 )
             }
-        } else if (dataInfo.action === "append") {
+        } else if (action === "append") {
             if (axis === "row") {
+                this.current_end_row_index = this.current_end_row_index + this.offset,
+                this.current_start_row_index = this.current_start_row_index + this.offset,
                 this.fetchData(
+                    this.current_start_row_index,
                     this.current_end_row_index,
-                    this.current_end_row_index + offset,
                     this.current_start_column_index,
                     this.current_end_column_index,
                     "append",
                     "row"
                 )
             } else if (axis === "column") {
+                this.current_end_column_index = this.current_end_column_index + this.offset,
+                this.current_start_column_index = this.current_start_column_index + this.offset,
                 this.fetchData(
                     this.current_start_row_index,
-                    this.current_end_start_index,
+                    this.current_end_row_index,
+                    this.current_start_column_index,
                     this.current_end_column_index,
-                    this.current_end_column_index + offset,
                     "append",
                     "column"
                 )
@@ -231,7 +235,7 @@ class Sheet extends Component {
 
     /* I make WS requests to the server */
     fetchData(start_row, end_row, start_column, end_column, action, axis){
-        cellSocket.sendString(JSON.stringify({
+        let request = JSON.stringify({
             event: "sheet_needs_data",
             target_cell: this.props.id,
             start_row: start_row,
@@ -240,7 +244,9 @@ class Sheet extends Component {
             end_column: end_column,
             action: action,
             axis: axis
-        }));
+        });
+        console.log(request);
+        cellSocket.sendString(request);
     }
 
     /* I handle data updating for the Sheet. I need to know whether

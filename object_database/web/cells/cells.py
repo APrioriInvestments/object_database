@@ -2590,12 +2590,12 @@ class Sheet(Cell):
                  onCellDblClick=None):
         """
         columnFun:
-            function taking integer column as argument that returns list of values
-            to populate the header of the table
+            function taking 'start' and 'end' integer column as arguments and
+            returns that returns a list of values to populate the header of the table
         rowFun:
-            function taking integer row as argument that returns list of values
-            to populate that row of the table; Note the first value, i.e.
-            row[0], of each row is the named index
+            function taking integer 'start' and 'end' row indexes that
+            returns a list of rows, themselves list of values, to populate the
+            table; Note the first value, i.e. row[0], of each row is the named index
         colWidth:
             height of columns in pixels
         rowHeight:
@@ -2648,11 +2648,9 @@ class Sheet(Cell):
         to the JS side"""
 
         if msgFrame["event"] == 'sheet_needs_data':
-            rowsToSend = [self.rowFun(index) for index in
-                          range(msgFrame['start_row'], msgFrame['end_row'])]
-            columnsToSend = [self.rowFun(index) for index in
-                             range(msgFrame['start_column'],
-                                   msgFrame['end_column'])]
+            rowsToSend = self.rowFun(msgFrame['start_row'], msgFrame['end_row'])
+            columnsToSend = self.columnFun(msgFrame['start_column'],
+                                           msgFrame['end_column'])
             dataInfo = {
                 "data": rowsToSend,
                 "column_names": columnsToSend,

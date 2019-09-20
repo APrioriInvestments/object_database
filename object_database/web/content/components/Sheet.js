@@ -101,6 +101,8 @@ class Sheet extends Component {
                 "data-cell-type": "Sheet",
                 class: "cell sheet-wrapper",
                 onscroll: this.handleScrolling,
+                scrollTop: this.scrollTop,
+                scrollLeft: this.scrollLeft
             }, [
                 h("table", {class: "sheet"}, [
                     h("thead", {}, this.generate_header()),
@@ -161,17 +163,21 @@ class Sheet extends Component {
         let topDiff = element.scrollTop - this.scrollTop
         // we make sure that we have the offset as buffer
         if (leftDiff > this.offset * this.props.colWidth) {
+            console.log("scrolling right")
             this.paginate("column", "append")
             this.scrollLeft = element.scrollLeft;
         } else if (-1 * leftDiff > this.offset * this.props.colWidth) {
             this.scrollLeft = element.scrollLeft;
+            console.log("scrolling left")
             this.paginate("column", "prepend")
         }
         if (topDiff > this.offset * this.props.rowHeight) {
             this.paginate("row", "append")
+            console.log("scrolling down")
             this.scrollTop = element.scrollTop;
         } else if (-1 * topDiff > this.offset * this.props.rowHeight) {
             this.paginate("row", "prepend")
+            console.log("scrolling up")
             this.scrollTop = element.scrollTop;
         }
     }
@@ -208,16 +214,16 @@ class Sheet extends Component {
             }
         } else if (action === "append") {
             if (axis === "row") {
-                this.current_end_row_index = this.current_end_row_index + this.offset,
-                this.current_start_row_index = this.current_start_row_index + this.offset,
                 this.fetchData(
-                    this.current_start_row_index,
                     this.current_end_row_index,
+                    this.current_end_row_index + this.offset,
                     this.current_start_column_index,
                     this.current_end_column_index,
                     "append",
                     "row"
                 )
+                this.current_end_row_index = this.current_end_row_index + this.offset
+                this.current_start_row_index = this.current_start_row_index + this.offset
             } else if (axis === "column") {
                 this.current_end_column_index = this.current_end_column_index + this.offset,
                 this.current_start_column_index = this.current_start_column_index + this.offset,
@@ -287,7 +293,8 @@ class Sheet extends Component {
         } else if (dataInfo.action === "append") {
             if (dataInfo.axis === "row") {
                 // note we pop off from the top the same number of rows as we append
-                this.current_data = this.current_data.slice(dataInfo.data.length).concat(dataInfo.data)
+                // this.current_data = this.current_data.slice(dataInfo.data.length).concat(dataInfo.data)
+                this.current_data = this.current_data.concat(dataInfo.data)
             } else if (dataInfo.axis === "column") {
                 // make sure that we have the same number of rows coming as before
                 if (this.current_data.length !== dataInfo.data.length) {

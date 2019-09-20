@@ -80,6 +80,7 @@ const ComponentRegistry = {
     Modal,
     Octicon,
     Padding,
+    Panel,
     PageView,
     Popover,
     ResizablePanel,

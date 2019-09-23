@@ -279,7 +279,8 @@ td.row-index-item {
     border-radius: 10px;
 }
 
-.cell-panel.flex-child {
+.cell-panel.flex-child,
+.flex-parent > .cell-panel {
     width: auto;
     height: auto;
 }

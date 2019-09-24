@@ -674,6 +674,14 @@ class Cell:
         # when composing DOM.
         self.exportData = {}
 
+    def applyCellDecorator(self, decorator):
+        """Return a new cell which applies the function 'decorator' to 'self'.
+
+        By default we just call the function. But some subclasses may want to apply
+        the decorator to child cells instead.
+        """
+        return decorator(self)
+
     def updateLifecycleState(self):
         """Handles cell lifecycle state.
 
@@ -1644,12 +1652,6 @@ class Subscribed(Cell):
         # we call it and watch which view values it reads to know
         # when to recalculate the element.
         self.cellFactory = f
-
-        # We need this to properly
-        # cooperate with nested
-        # Sequences
-        self.wrapsSequence = False
-        self.wrapsHorizSequence = False
 
         # We need this to properly
         # cooperate with nested

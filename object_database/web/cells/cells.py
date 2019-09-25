@@ -437,6 +437,8 @@ class Cells:
             if not n.garbageCollected:
                 if n.wasDataUpdated:
                     self.markToDataUpdate(n)
+                    # TODO this should be cleaned up
+                    continue
                 else:
                     self.markToBroadcast(n)
                 # TODO: lifecycle attribute; see cell.updateLifecycleState()

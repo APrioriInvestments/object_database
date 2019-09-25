@@ -162,23 +162,33 @@ class Sheet extends Component {
         let leftDiff = element.scrollLeft - this.scrollLeft
         let topDiff = element.scrollTop - this.scrollTop
         // we make sure that we have the offset as buffer
-        if (leftDiff > this.offset * this.props.colWidth) {
-            console.log("scrolling right")
-            this.paginate("column", "append")
-            this.scrollLeft = element.scrollLeft;
-        } else if (-1 * leftDiff > this.offset * this.props.colWidth) {
-            this.scrollLeft = element.scrollLeft;
-            console.log("scrolling left")
-            this.paginate("column", "prepend")
+        // TODO: figure out why scrollLeft can fire as 0 seemingly randomly
+        if (element.scollLeft !== 0) {
+            if (leftDiff > this.offset * this.props.colWidth) {
+                console.log("scrolling right")
+                this.paginate("column", "append")
+                this.scrollLeft = element.scrollLeft;
+            } else if (-1 * leftDiff > this.offset * this.props.colWidth) {
+                this.scrollLeft = element.scrollLeft;
+                console.log("scrolling left")
+                this.paginate("column", "prepend")
+            }
         }
-        if (topDiff > this.offset * this.props.rowHeight) {
-            this.paginate("row", "append")
-            console.log("scrolling down")
-            this.scrollTop = element.scrollTop;
-        } else if (-1 * topDiff > this.offset * this.props.rowHeight) {
-            this.paginate("row", "prepend")
-            console.log("scrolling up")
-            this.scrollTop = element.scrollTop;
+        // TODO: figure out why scrollTop can fire as 0 seemingly randomly
+        if (element.scollTop !== 0) {
+            if (topDiff > this.offset * this.props.rowHeight) {
+                this.paginate("row", "append")
+                console.log("element.scrollTop: " + element.scrollTop)
+                console.log(element)
+                console.log("scrolling down")
+                this.scrollTop = element.scrollTop;
+            } else if (-1 * topDiff > this.offset * this.props.rowHeight) {
+                this.paginate("row", "prepend")
+                console.log("element.scrollTop: " + element.scrollTop)
+                console.log(element)
+                console.log("scrolling up")
+                this.scrollTop = element.scrollTop;
+            }
         }
     }
 
@@ -261,61 +271,65 @@ class Sheet extends Component {
      * or `append`.
      */
     _updateData(dataInfo) {
-        if (dataInfo.action === "replace") {
-            this.current_data = dataInfo.data;
-            this.column_names = dataInfo.column_names;
-        } else if (dataInfo.action === "prepend") {
-            if (dataInfo.axis === "row") {
-                // note we pop off from the end the same number of rows as we prepend
-                this.current_data = dataInfo.data.concat(this.current_data.slice(0, -dataInfo.data.length))
-            } else if (dataInfo.axis === "column") {
-                // make sure that we have the same number of rows coming as before
-                if (this.current_data.length !== dataInfo.data.length) {
-                    throw "Incoming data does not match row number"
-                }
-                // put the columns together
-                let x_dim = dataInfo.column_names.length - 1;
-                this.column_names = dataInfo.column_names.concat(this.column_names.slice(0, x_dim))
-                // now the rows
-                let new_data = [];
-                for (let i = 0; i < this.current_data.length; i++){
-                    let old_row = this.current_data[i];
-                    let new_row = dataInfo.data[i];
-                    if (old_row[0] !== new_row[0]){
-                        throw "row index " + old_row[0] + " does not match incoming row index " + new_row[0]
+        console.log(dataInfo.data);
+        // make sure the data is not empty
+        if (dataInfo.data && dataInfo.data.length){
+            if (dataInfo.action === "replace") {
+                this.current_data = dataInfo.data;
+                this.column_names = dataInfo.column_names;
+            } else if (dataInfo.action === "prepend") {
+                if (dataInfo.axis === "row") {
+                    // note we pop off from the end the same number of rows as we prepend
+                    this.current_data = dataInfo.data.concat(this.current_data.slice(0, -dataInfo.data.length))
+                } else if (dataInfo.axis === "column") {
+                    // make sure that we have the same number of rows coming as before
+                    if (this.current_data.length !== dataInfo.data.length) {
+                        throw "Incoming data does not match row number"
                     }
-                    new_data.push(
-                        new_row.concat(old_row.slice(1, old_row.length - new_row.length + 1))
-                    )
-                }
-                this.current_data = new_data;
-            }
-        } else if (dataInfo.action === "append") {
-            if (dataInfo.axis === "row") {
-                // note we pop off from the top the same number of rows as we append
-                // this.current_data = this.current_data.slice(dataInfo.data.length).concat(dataInfo.data)
-                this.current_data = this.current_data.concat(dataInfo.data)
-            } else if (dataInfo.axis === "column") {
-                // make sure that we have the same number of rows coming as before
-                if (this.current_data.length !== dataInfo.data.length) {
-                    throw "Incoming data does not match row number"
-                }
-                // put the columns together
-                let x_dim = dataInfo.column_names.length - 1;
-                this.column_names = this.column_names.slice(x_dim + 1).concat(dataInfo.column_names);
-                // now the rows
-                let new_data = [];
-                for (let i = 0; i < this.current_data.length; i++){
-                    let old_row = this.current_data[i];
-                    let new_row = dataInfo.data[i];
-                    if (old_row[0] !== new_row[0]){
-                        throw "row index " + old_row[0] + " does not match incoming row index " + new_row[0]
+                    // put the columns together
+                    let x_dim = dataInfo.column_names.length - 1;
+                    this.column_names = dataInfo.column_names.concat(this.column_names.slice(0, x_dim))
+                    // now the rows
+                    let new_data = [];
+                    for (let i = 0; i < this.current_data.length; i++){
+                        let old_row = this.current_data[i];
+                        let new_row = dataInfo.data[i];
+                        if (old_row[0] !== new_row[0]){
+                            throw "row index " + old_row[0] + " does not match incoming row index " + new_row[0]
+                        }
+                        new_data.push(
+                            new_row.concat(old_row.slice(1, old_row.length - new_row.length + 1))
+                        )
                     }
-                    new_data.push(
-                        old_row.slice(0, 1).concat(old_row.slice(new_row.length)).concat(new_row.slice(1))
-                    )
+                    this.current_data = new_data;
                 }
-                this.current_data = new_data;
+            } else if (dataInfo.action === "append") {
+                if (dataInfo.axis === "row") {
+                    // note we pop off from the top the same number of rows as we append
+                    // this.current_data = this.current_data.slice(dataInfo.data.length).concat(dataInfo.data)
+                    this.current_data = this.current_data.concat(dataInfo.data)
+                } else if (dataInfo.axis === "column") {
+                    // make sure that we have the same number of rows coming as before
+                    if (this.current_data.length !== dataInfo.data.length) {
+                        throw "Incoming data does not match row number"
+                    }
+                    // put the columns together
+                    let x_dim = dataInfo.column_names.length - 1;
+                    this.column_names = this.column_names.slice(x_dim + 1).concat(dataInfo.column_names);
+                    // now the rows
+                    let new_data = [];
+                    for (let i = 0; i < this.current_data.length; i++){
+                        let old_row = this.current_data[i];
+                        let new_row = dataInfo.data[i];
+                        if (old_row[0] !== new_row[0]){
+                            throw "row index " + old_row[0] + " does not match incoming row index " + new_row[0]
+                        }
+                        new_data.push(
+                            old_row.slice(0, 1).concat(old_row.slice(new_row.length)).concat(new_row.slice(1))
+                        )
+                    }
+                    this.current_data = new_data;
+                }
             }
         }
     }

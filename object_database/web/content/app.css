@@ -275,6 +275,10 @@ td.row-index-item {
     display: block;
 }
 
+.sequence-vertical > [data-cell-type="CodeEditor"].flex-child {
+    width: 100%;
+}
+
 /* Panel
  * ============================================================== */
 .cell-panel {

@@ -20,24 +20,27 @@ class BasicSheet(CellsTestPage):
     def cell(self):
         num_columns = 3
 
-        def colFun(start, end, cutoff=num_columns):
+        def colFun(start_column, end_column, num_columns=num_columns):
             columns = []
-            if start >= cutoff:
+            if start_column >= num_columns:
                 return columns
-            for i in range(start, min(end, cutoff)):
+            for i in range(start_column, min(end_column, num_columns)):
                 columns.append("column_%s" % i)
             return columns
 
-        def rowFun(start, end, cutoff=100, num_columns=num_columns):
+        def rowFun(start_row, end_row, start_column, end_column,
+                   num_rows=100, num_columns=num_columns):
             rows = []
-            if start >= cutoff:
+            if start_row >= num_rows or start_column > num_columns:
                 return rows
-            for i in range(start, min(end, cutoff)):
+            end_column = min(end_column, num_columns)
+            end_row = min(end_row, num_rows)
+            for i in range(start_row, end_row):
                 r = ["index_%s" % i] + ["entry_%s_%s" % (i, j) for j in
-                                        range(num_columns)]
+                                        range(end_column)]
                 rows.append(r)
             return rows
-        return cells.Sheet(colFun, rowFun, colWidth=50, rowHeight=25)
+        return cells.Sheet(colFun, rowFun, colWidth=70, rowHeight=25)
 
     def text(self):
         return "You should see a basic sheet."
@@ -48,23 +51,27 @@ class BiggerSheet(CellsTestPage):
         num_columns = 300
         num_rows = 10000
 
-        def colFun(start, end, cutoff=num_columns):
+        def colFun(start_column, end_column, num_columns=num_columns):
             columns = []
-            if start >= cutoff:
+            if start_column >= num_columns:
                 return columns
-            for i in range(start, min(end, cutoff)):
+            for i in range(start_column, min(end_column, num_columns)):
                 columns.append("column_%s" % i)
             return columns
 
-        def rowFun(start, end, cutoff=num_rows, num_columns=num_columns):
+        def rowFun(start_row, end_row, start_column, end_column,
+                   num_rows=num_rows, num_columns=num_columns):
             rows = []
-            if start >= cutoff:
+            if start_row >= num_rows or start_column > num_columns:
                 return rows
-            for i in range(start, min(end, cutoff)):
+            end_column = min(end_column, num_columns)
+            end_row = min(end_row, num_rows)
+            for i in range(start_row, end_row):
                 r = ["index_%s" % i] + ["entry_%s_%s" % (i, j) for j in
-                                        range(num_columns)]
+                                        range(end_column)]
                 rows.append(r)
             return rows
+
         return cells.Sheet(colFun, rowFun, colWidth=80)
 
     def text(self):

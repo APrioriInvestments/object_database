@@ -34,8 +34,6 @@ class Sheet extends Component {
         this.max_num_rows = null;
         this.max_num_columns = null;
         this.offset = 10;
-        this.current_data = null;
-        this.column_names = null;
         this.current_start_row_index = null;
         this.current_end_row_index = null;
         this.current_start_column_index = null;
@@ -48,7 +46,7 @@ class Sheet extends Component {
 
         // Bind context to methods
         this.initializeTable = this.initializeTable.bind(this);
-        this.generate_current_rows = this.generate_current_rows.bind(this);
+        this.generate_rows = this.generate_rows.bind(this);
         this.generate_header = this.generate_header.bind(this);
         this.handleScrolling = this.handleScrolling.bind(this);
         this.paginate = this.paginate.bind(this);
@@ -62,9 +60,11 @@ class Sheet extends Component {
 
     componentDidLoad(){
         console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
-        this.max_num_columns = this._calc_max_num_columns();
+        let container = document.getElementById(this.props.id).parentNode;
+        this.max_num_columns = this._calc_max_num_columns(container.offsetWidth);
+        this.max_num_rows = this._calc_max_num_rows(container.offsetHeight);
+        // console.log("max num of rows: " + this.max_num_rows)
         // console.log("max num of columns: " + this.max_num_columns)
-        this.max_num_rows = this._calc_max_num_rows();
         this.current_start_row_index = 0;
         this.current_start_column_index = 0;
         this.current_end_row_index = this.max_num_rows + this.offset,
@@ -94,6 +94,7 @@ class Sheet extends Component {
 
     build(){
         console.log(`Rendering custom sheet ${this.props.id}`);
+        let rows = ["Just a sec..."];
         return (
             h("div", {
                 id: this.props.id,
@@ -104,21 +105,21 @@ class Sheet extends Component {
                 scrollTop: this.scrollTop,
                 scrollLeft: this.scrollLeft
             }, [
-                h("table", {class: "sheet"}, [
-                    h("thead", {}, this.generate_header()),
-                    h("tbody", {}, this.generate_current_rows())
+                h("table", {class: "sheet", style: "table-layout:fixed"}, [
+                    h("thead", {id: `sheet-${this.props.id}-head`}, []),
+                    h("tbody", {id: `sheet-${this.props.id}-body`}, rows)
                 ])
             ])
         );
     }
 
     /* I generate the table header.*/
-    generate_header(){
+    generate_header(column_names){
         let header = [];
-        if (this.column_names === null){
+        if (column_names === null){
             return header;
         }
-        header = this.column_names.map((item) => {
+        header = column_names.map((item) => {
             return h("th", {class: "header-item"}, [item.toString()])
         })
         // NOTE: we add one more column to account for the row index
@@ -132,24 +133,20 @@ class Sheet extends Component {
     /* I generate the rows, including the passing in row indexes (which are
      * assumed to be element row[0])
      */
-    generate_current_rows(){
-        let rows = ["Just a sec..."];
-        if (this.current_data !== null) {
-            rows = this.current_data.map((item) => {
-                return (
-                    new SheetRow(
-                        {
-                            id: this.props.id,
-                            row_data: item.slice(1),
-                            colWidth: this.props.colWidth,
-                            height: this.props.rowHeight,
-                            rowIndexName: item[0]
-                        }
-                    ).build()
-                )
-            })
-        }
-        return rows;
+    generate_rows(data){
+        return data.map((item) => {
+            return (
+                new SheetRow(
+                    {
+                        id: this.props.id,
+                        row_data: item.slice(1),
+                        colWidth: this.props.colWidth,
+                        height: this.props.rowHeight,
+                        rowIndexName: item[0]
+                    }
+                ).build()
+            )
+        })
     }
 
     /* I handle scrolling events and trigger callbacks to get more data as
@@ -161,6 +158,7 @@ class Sheet extends Component {
         let element = event.target;
         let leftDiff = element.scrollLeft - this.scrollLeft
         let topDiff = element.scrollTop - this.scrollTop
+        console.log(element.scrollTop);
         // we make sure that we have the offset as buffer
         // TODO: figure out why scrollLeft can fire as 0 seemingly randomly
         if (element.scollLeft !== 0) {
@@ -178,14 +176,14 @@ class Sheet extends Component {
         if (element.scollTop !== 0) {
             if (topDiff > this.offset * this.props.rowHeight) {
                 this.paginate("row", "append")
-                console.log("element.scrollTop: " + element.scrollTop)
-                console.log(element)
+                // console.log("element.scrollTop: " + element.scrollTop)
+                // console.log(element)
                 console.log("scrolling down")
                 this.scrollTop = element.scrollTop;
             } else if (-1 * topDiff > this.offset * this.props.rowHeight) {
                 this.paginate("row", "prepend")
-                console.log("element.scrollTop: " + element.scrollTop)
-                console.log(element)
+                // console.log("element.scrollTop: " + element.scrollTop)
+                // console.log(element)
                 console.log("scrolling up")
                 this.scrollTop = element.scrollTop;
             }
@@ -270,17 +268,22 @@ class Sheet extends Component {
      * If it is `row` or `column` I need to know the direction `prepend`
      * or `append`.
      */
-    _updateData(dataInfo) {
+    _updateData(dataInfo, projector) {
+        console.log("updating data for sheet: " + this.props.id)
         console.log(dataInfo.data);
         // make sure the data is not empty
         if (dataInfo.data && dataInfo.data.length){
             if (dataInfo.action === "replace") {
-                this.current_data = dataInfo.data;
-                this.column_names = dataInfo.column_names;
+                let body = document.getElementById(`sheet-${this.props.id}-body`)
+                body.firstChild.remove()
+                this.generate_rows(dataInfo.data).map((row) => {
+                    projector.append(body, () => {return row})
+                })
+
             } else if (dataInfo.action === "prepend") {
                 if (dataInfo.axis === "row") {
                     // note we pop off from the end the same number of rows as we prepend
-                    this.current_data = dataInfo.data.concat(this.current_data.slice(0, -dataInfo.data.length))
+                    // this.current_data = dataInfo.data.concat(this.current_data.slice(0, -dataInfo.data.length))
                 } else if (dataInfo.axis === "column") {
                     // make sure that we have the same number of rows coming as before
                     if (this.current_data.length !== dataInfo.data.length) {
@@ -288,7 +291,7 @@ class Sheet extends Component {
                     }
                     // put the columns together
                     let x_dim = dataInfo.column_names.length - 1;
-                    this.column_names = dataInfo.column_names.concat(this.column_names.slice(0, x_dim))
+                    // this.column_names = dataInfo.column_names.concat(this.column_names.slice(0, x_dim))
                     // now the rows
                     let new_data = [];
                     for (let i = 0; i < this.current_data.length; i++){
@@ -307,7 +310,13 @@ class Sheet extends Component {
                 if (dataInfo.axis === "row") {
                     // note we pop off from the top the same number of rows as we append
                     // this.current_data = this.current_data.slice(dataInfo.data.length).concat(dataInfo.data)
-                    this.current_data = this.current_data.concat(dataInfo.data)
+                    let body = document.getElementById(`sheet-${this.props.id}-body`)
+                    // for (let i = 0; i < this.offset; i++){
+                    //      body.firstChild.remove();
+                    //}
+                    this.generate_rows(dataInfo.data).map((row) => {
+                        projector.append(body, () => {return row})
+                    })
                 } else if (dataInfo.axis === "column") {
                     // make sure that we have the same number of rows coming as before
                     if (this.current_data.length !== dataInfo.data.length) {
@@ -354,12 +363,12 @@ class Sheet extends Component {
      * rows, columns, respecitively and then add a bit more for lazy loading.
      * TODO: this uses the entire window which a table will almost never take up
      */
-    _calc_max_num_rows(){
-        return Math.ceil(window.innerHeight/this.props.rowHeight + this.offset);
+    _calc_max_num_rows(max_height){
+        return Math.ceil(max_height/this.props.rowHeight + this.offset);
     }
 
-    _calc_max_num_columns(){
-        return Math.ceil(window.innerWidth/this.props.colWidth + this.offset);
+    _calc_max_num_columns(max_width){
+        return Math.ceil(max_width/this.props.colWidth + this.offset);
     }
     /// OLD HORROR - TODO: remove when ready!
     //----------------------------------------

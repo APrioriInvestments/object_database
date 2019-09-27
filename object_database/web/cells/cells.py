@@ -2487,7 +2487,7 @@ class CodeEditor(Cell):
 class Sheet(Cell):
     """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""
 
-    def __init__(self, columnFun, rowFun, colWidth=30, rowHeight=20,
+    def __init__(self, columnFun, rowFun, colWidth=50, rowHeight=30,
                  onCellDblClick=None):
         """
         columnFun:

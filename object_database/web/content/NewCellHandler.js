@@ -175,12 +175,12 @@ class NewCellHandler {
      */
     cellDataUpdated(message){
         let component = this._getDataUpdatedComponent(message);
-        let velement = render(component);
-        let domElement = document.getElementById(component.props.id);
-        this.projector.replace(domElement, () => {
-            return velement;
-        });
-        return component;
+        // let velement = render(component);
+        // let domElement = document.getElementById(component.props.id);
+        // this.projector.replace(domElement, () => {
+        //     return velement;
+        // });
+        // return component;
     }
 
     /**
@@ -331,7 +331,7 @@ class NewCellHandler {
             console.error("data update fail; no component with id: " + description.id)
         }
         let component = this.activeComponents[description.id];
-        component._updateData(description.dataInfo);
+        component._updateData(description.dataInfo, this.projector);
         this._updatedComponents.push(component);
         return component;
     }

@@ -322,7 +322,7 @@ class Component {
      * Updates this components data
      * based on an incoming object
      */
-    _updateData(incomingData){
+    _updateData(incomingData, projector){
     }
 
     /**

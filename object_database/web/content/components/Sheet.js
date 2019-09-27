@@ -33,7 +33,7 @@ class Sheet extends Component {
         // columns/rows
         this.max_num_rows = null;
         this.max_num_columns = null;
-        this.offset = 10;
+        this.offset = 1;
         this.current_start_row_index = null;
         this.current_end_row_index = null;
         this.current_start_column_index = null;
@@ -49,6 +49,7 @@ class Sheet extends Component {
         this.generate_rows = this.generate_rows.bind(this);
         this.generate_header = this.generate_header.bind(this);
         this.handleScrolling = this.handleScrolling.bind(this);
+        this.handleKeyDown = this.handleKeyDown.bind(this);
         this.paginate = this.paginate.bind(this);
         this.jump_to_cell = this.jump_to_cell.bind(this);
         // this.handleClick = this.handleClick.bind(this);
@@ -81,6 +82,8 @@ class Sheet extends Component {
         // if(this.props.extraData['handlesDoubleClick']){
         //     this.initializeHooks();
         // }
+        // TODO do we need to add this at the document level? (seems so, but why?)
+        document.addEventListener("keydown", this.handleKeyDown)
     }
 
     initializeTable(){
@@ -101,7 +104,8 @@ class Sheet extends Component {
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Sheet",
                 class: "cell sheet-wrapper",
-                onscroll: this.handleScrolling,
+                //onscroll: this.handleScrolling,
+                // keydown: (e) => {console.log(e)},
                 scrollTop: this.scrollTop,
                 scrollLeft: this.scrollLeft
             }, [
@@ -147,6 +151,21 @@ class Sheet extends Component {
                 ).build()
             )
         })
+    }
+
+    handleKeyDown(event){
+        console.log(event);
+
+        if (event.key === "ArrowUp"){
+            this.paginate("row", "prepend")
+        } else if (event.key === "ArrowDown"){
+            this.paginate("row", "append")
+            this.scrollTop = this.props.rowHeight;
+        } else if (event.key === "ArrowLeft"){
+            this.paginate("column", "prepend")
+        } else if (event.key === "ArrowRight"){
+            this.paginate("column", "append")
+        }
     }
 
     /* I handle scrolling events and trigger callbacks to get more data as
@@ -311,9 +330,9 @@ class Sheet extends Component {
                     // note we pop off from the top the same number of rows as we append
                     // this.current_data = this.current_data.slice(dataInfo.data.length).concat(dataInfo.data)
                     let body = document.getElementById(`sheet-${this.props.id}-body`)
-                    // for (let i = 0; i < this.offset; i++){
-                    //      body.firstChild.remove();
-                    //}
+                    for (let i = 0; i < this.offset; i++){
+                          body.firstChild.remove();
+                    }
                     this.generate_rows(dataInfo.data).map((row) => {
                         projector.append(body, () => {return row})
                     })

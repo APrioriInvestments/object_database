@@ -2597,7 +2597,8 @@ class Sheet(Cell):
             function taking 'start' and 'end' integer column as arguments and
             returns that returns a list of values to populate the header of the table
         rowFun:
-            function taking integer 'start' and 'end' row indexes that
+            function taking integer 'start_row' and 'end_row' row indexes and
+            'start_column' and 'end_column' that
             returns a list of rows, themselves list of values, to populate the
             table; Note the first value, i.e. row[0], of each row is the named index
         colWidth:
@@ -2652,7 +2653,10 @@ class Sheet(Cell):
         to the JS side"""
 
         if msgFrame["event"] == 'sheet_needs_data':
-            rowsToSend = self.rowFun(msgFrame['start_row'], msgFrame['end_row'])
+            rowsToSend = self.rowFun(msgFrame['start_row'],
+                                     msgFrame['end_row'],
+                                     msgFrame['start_column'],
+                                     msgFrame['end_column'])
             columnsToSend = self.columnFun(msgFrame['start_column'],
                                            msgFrame['end_column'])
             dataInfo = {

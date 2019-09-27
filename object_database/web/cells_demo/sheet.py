@@ -65,7 +65,7 @@ class BiggerSheet(CellsTestPage):
                                         range(num_columns)]
                 rows.append(r)
             return rows
-        return cells.Sheet(colFun, rowFun)
+        return cells.Sheet(colFun, rowFun, colWidth=80)
 
     def text(self):
         return "You should see a bigger sheet."

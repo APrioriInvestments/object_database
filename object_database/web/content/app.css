@@ -280,6 +280,10 @@ td.row-index-item {
     height: 100%;
 }
 
+.sequence-vertical > .split-view {
+    display: flex;
+}
+
 /* Panel
  * ============================================================== */
 .cell-panel {

@@ -20,6 +20,7 @@ class Subscribed extends Component {
 
         // Bind component methods
         this.makeContent = this.makeContent.bind(this);
+        this.toString = this.toString.bind(this);
     }
 
     build(){
@@ -50,6 +51,10 @@ class Subscribed extends Component {
 
     makeContent(){
         return this.renderChildNamed('content');
+    }
+
+    toString(){
+        return `Sub[${this.props.id}]<${this.props.namedChildren.content}>`;
     }
 }
 

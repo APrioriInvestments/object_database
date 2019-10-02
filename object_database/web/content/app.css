@@ -324,6 +324,13 @@ td.row-index-item {
     height: 100%;
 }
 
+.code-editor-inner {
+    width: 100%;
+    min-height: 100%;
+    margin: auto;
+    border: 1px solid lightgray;
+}
+
 .sequence-horizontal:not(.flex-parent) > .code-editor {
     min-width: 300px;
     flex: 1;

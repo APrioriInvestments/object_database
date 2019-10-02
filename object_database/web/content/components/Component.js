@@ -50,6 +50,7 @@ class Component {
         this.validateProps();
 
         // Bind context to methods
+        this.toString = this.toString.bind(this);
         this.getReplacementElementFor = this.getReplacementElementFor.bind(this);
         this.getReplacementElementsFor = this.getReplacementElementsFor.bind(this);
         this.getDOMElement = this.getDOMElement.bind(this);

@@ -68,16 +68,18 @@ class Sheet extends Component {
         // console.log("max num of columns: " + this.max_num_columns)
         this.current_start_row_index = 0;
         this.current_start_column_index = 0;
-        this.current_end_row_index = this.max_num_rows + this.offset,
-        this.current_end_column_index = this.max_num_columns + this.offset,
-        this.fetchData(
-            this.current_start_row_index,
-            this.current_end_row_index,
-            this.current_start_column_index,
-            this.current_end_column_index,
-            "replace",
-            null
-        )
+        this.current_end_row_index = this.max_num_rows + this.offset;
+        this.current_end_column_index = this.max_num_columns + this.offset;
+        if (this.props.dontFetch != true){
+            this.fetchData(
+                this.current_start_row_index,
+                this.current_end_row_index,
+                this.current_start_column_index,
+                this.current_end_column_index,
+                "replace",
+                null
+            )
+        }
         // console.log("max num of rows: " + this.max_num_rows)
         // if(this.props.extraData['handlesDoubleClick']){
         //     this.initializeHooks();
@@ -521,6 +523,10 @@ Sheet.propTypes = {
     rowCount: {
         description: "Number of rows.",
         type: PropTypes.oneOf([PropTypes.number])
+    },
+    dontFetch: {
+        description: "Don't fetch data after load; mostly used for testing.",
+        type: PropTypes.oneOf([PropTypes.bool])
     },
 };
 

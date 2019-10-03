@@ -313,7 +313,6 @@ class Sheet extends Component {
             } else if (dataInfo.action === "prepend") {
                 if (dataInfo.axis === "row") {
                     // note we pop off from the end the same number of rows as we prepend
-                    // this.current_data = dataInfo.data.concat(this.current_data.slice(0, -dataInfo.data.length))
                     for (let i = 0; i < this.offset; i++){
                           body.lastChild.remove();
                     }
@@ -323,17 +322,9 @@ class Sheet extends Component {
                     })
                 } else if (dataInfo.axis === "column") {
                     // make sure that we have the same number of rows coming as before
-                    // if (this.current_data.length !== dataInfo.data.length) {
-                    //     throw "Incoming data does not match row number"
-                    // }
-                    // put the columns together
-                    // make sure that we have the same number of rows coming as before
-                    // put the columns together
-                    // let x_dim = dataInfo.column_names.length - 1;
-                    // this.column_names = this.column_names.slice(x_dim + 1).concat(dataInfo.column_names);
-                    // TODO add checks that the rows numbers match up
-                    // TODO add some condition so that we don't remove columns in view
-                    // now the rows
+                    if (body.children.length !== dataInfo.data.length) {
+                         throw "Incoming number of rows don't match current sheet"
+                    }
                     // NOTE: we remove N columns we remove N elements from the each row; then we add columns by
                     // appending all the new row data with a new SheetData h-element to each row
                     for (let r_index = 0; r_index < body.children.length; r_index++){
@@ -343,9 +334,22 @@ class Sheet extends Component {
                               row.lastChild.remove();
                         }
                         let data_row = dataInfo.data[r_index];
-                        // TODO check that indeces match up
+                        if (dataInfo.column_names.length !== data_row.length - 1) { //ingore the row index
+                            throw (
+                                `Incoming row length does not incoming number of columns.
+                                Column Names: ${dataInfo.column_names.length}; Row: ${data_row.length - 1}`
+                          )
+                        }
+                        // check that row indices match up
+                        if (row.children[0].textContent != data_row[0]){
+                            throw (
+                                `Sheet row index ${row.children[0].textContent} does not match incoming
+                                row index ${data_row[0]}`
+                            )
+                        }
                         // recall we skip the first row item which is the index
                         for (let c_index = 1; c_index < data_row.length; c_index++){
+                            // TODO check that indeces match up
                             let item = data_row[c_index];
                             let cell = new SheetCell(
                             {
@@ -367,7 +371,6 @@ class Sheet extends Component {
             } else if (dataInfo.action === "append") {
                 if (dataInfo.axis === "row") {
                     // note we pop off from the top the same number of rows as we append
-                    // this.current_data = this.current_data.slice(dataInfo.data.length).concat(dataInfo.data)
                     for (let i = 0; i < this.offset; i++){
                           body.firstChild.remove();
                     }
@@ -376,11 +379,9 @@ class Sheet extends Component {
                     })
                 } else if (dataInfo.axis === "column") {
                     // make sure that we have the same number of rows coming as before
-                    // put the columns together
-                    // let x_dim = dataInfo.column_names.length - 1;
-                    // this.column_names = this.column_names.slice(x_dim + 1).concat(dataInfo.column_names);
-                    // TODO add checks that the rows numbers match up
-                    // now the rows
+                    if (body.children.length !== dataInfo.data.length) {
+                         throw "Incoming number of rows don't match current sheet"
+                    }
                     // NOTE: we remove N columns we remove N elements from the each row; then we add columns by
                     // appending all the new row data with a new SheetData h-element to each row
                     for (let r_index = 0; r_index < body.children.length; r_index++){
@@ -390,9 +391,22 @@ class Sheet extends Component {
                               row.children[c_index].remove();
                         }
                         let data_row = dataInfo.data[r_index];
-                        // TODO check that indeces match up
+                        if (dataInfo.column_names.length !== data_row.length - 1) {
+                             throw (
+                                 `Incoming row length does not incoming number of columns.
+                                 Column Names: ${dataInfo.column_names.length}; Row: ${data_row.length - 1}`
+                             )
+                        }
+                        // check that row indices match up
+                        if (row.children[0].textContent != data_row[0]){
+                            throw (
+                                `Sheet row index ${row.children[0].textContent} does not match incoming
+                                row index ${data_row[0]}`
+                            )
+                        }
                         // recall we skip the first row item which is the index
                         for (let c_index = 1; c_index < data_row.length; c_index++){
+                            // TODO check that indeces match up
                             let item = data_row[c_index];
                             let cell = new SheetCell(
                             {

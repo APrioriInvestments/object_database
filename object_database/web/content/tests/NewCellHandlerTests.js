@@ -59,12 +59,7 @@ let simpleSequence = {
 let simpleSheet = {
     id: 6,
     cellType: "Sheet",
-    extraData: {
-        "columnNames": ["Col1", "Col2", "Col3"],
-        "num_rows": 10,
-        "colWidth": 100,
-        "rowHeight": 20
-    },
+    extraData: {dontFetch: true},
     namedChildren: {}
 };
 

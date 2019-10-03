@@ -6,6 +6,17 @@ import {h} from 'maquette';
 import {PropTypes} from './util/PropertyValidator.js';
 
 /**
+ * About Replacements
+ * ------------------
+ * This component has two single type
+ * replacements:
+ * * `content`
+ * * `panel`
+ * Note that `panel` is only rendered
+ * if the panel is expanded
+ */
+
+/**
  * About Named Children
  * --------------------
  * `content` (single) - The current content Cell of the panel
@@ -21,35 +32,10 @@ class CollapsiblePanel extends Component {
     }
 
     build(){
-        if(this.props.extraData.isExpanded){
-            return(
-                h('div', {
-                    class: "cell d-flex",
-                    "data-cell-id": this.props.id,
-                    "data-cell-type": "CollapsiblePanel",
-                    "data-expanded": true,
-                    id: this.props.id,
-                }, [
-                    h('div', {class: "row flex-nowrap no-gutters"}, [
-                        h('div', {class: "col-md-auto", style: "flex-grow:1"},[
-                            this.makePanel()
-                        ]),
-                        h('div', {class: "col-sm", style: "flex-grow:5"}, [
-                            this.makeContent()
-                        ])
-                    ])
-                ])
-            );
-        } else {
-            return (
-                h('div', {
-                    class: "cell container-fluid",
-                    "data-cell-id": this.props.id,
-                    "data-cell-type": "CollapsiblePanel",
-                    "data-expanded": false,
-                    id: this.props.id,
-                }, [this.makeContent()])
-            );
+        let content = this.makeContent();
+        let panel = null;
+        if(this.props.isExpanded){
+            panel = this.makePanel();
         }
         return (
             h('div', {
@@ -63,14 +49,24 @@ class CollapsiblePanel extends Component {
     }
 
     makeContent(){
-        let result = this.renderChildNamed('content');
+        let result = null;
+        if(this.usesReplacements){
+            result = this.getReplacementElementFor('content');
+        } else {
+            result = this.renderChildNamed('content');
+        }
         return (
             h('div', {class: "collapsible-panel-content"}, [result])
         );
     }
 
     makePanel(){
-        let result = this.renderChildNamed('panel');
+        let result = null;
+        if(this.usesReplacements){
+            result = this.getReplacementElementFor('panel');
+        } else {
+            result = this.renderChildNamed('panel');
+        }
         return (
             h('div', {class: "collapsible-panel-panel"}, [result])
         );

@@ -63,6 +63,12 @@ class CodeEditor extends Component {
         }
     }
 
+    componentDidUpdate(){
+        let newEditor = ace.edit(`editor${this.props.id}`);
+        newEditor.setSession(this.editor.session);
+        this.editor = newEditor;
+    }
+
 
     build(){
         return h('div',
@@ -71,6 +77,7 @@ class CodeEditor extends Component {
                 id: this.props.id,
                 "data-cell-id": this.props.id,
                 "data-cell-type": "CodeEditor",
+                key: this
             },
                  [h('div', { id: "editor" + this.props.id, class: "code-editor-inner" }, [])
         ]);

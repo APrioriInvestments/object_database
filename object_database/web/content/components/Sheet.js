@@ -110,7 +110,13 @@ class Sheet extends Component {
                 scrollLeft: this.scrollLeft
             }, [
                 h("table", {class: "sheet", style: "table-layout:fixed"}, [
-                    h("thead", {id: `sheet-${this.props.id}-head`}, []),
+                    h("thead", {}, [
+                        h("tr", {id: `sheet-${this.props.id}-head`}, [
+                            // NOTE: we add one more column to account for the row index
+                            // TODO potentially make this an input for this.jump_to_cell;
+                            h("th", {class: "header-item zero"}, [])
+                        ])
+                    ]),
                     h("tbody", {id: `sheet-${this.props.id}-body`}, rows)
                 ])
             ])
@@ -126,12 +132,7 @@ class Sheet extends Component {
         header = column_names.map((item) => {
             return h("th", {class: "header-item"}, [item.toString()])
         })
-        // NOTE: we add one more column to account for the row index
-        // TODO potentially make this an input for this.jump_to_cell;
-        header.unshift(h("th", {class: "header-item zero"}, []))
-        return [
-            h("tr", {}, header)
-        ]
+        return header;
     }
 
     /* I generate the rows, including the passing in row indexes (which are
@@ -217,7 +218,8 @@ class Sheet extends Component {
         // let handler = window._cellHandler;
         if (action === "prepend") {
             if (axis === "row") {
-                if (this.current_start_row_index - this.offset >= 0){
+                // no need to do anything if we are already at row 0
+                if (this.current_start_row_index > 0){
                     this.current_start_row_index = Math.max(this.current_start_row_index - this.offset, 0)
                     this.current_end_row_index = Math.max(this.current_end_row_index - this.offset, 0)
                     this.fetchData(
@@ -230,16 +232,19 @@ class Sheet extends Component {
                     )
                 }
             } else if (axis === "column") {
-                this.current_start_column_index = Math.min(this.current_start_column_index - this.offset, 0)
-                this.current_end_column_index = Math.min(this.current_end_column_index - this.offset, 0)
-                this.fetchData(
-                    this.current_start_row_index,
-                    this.current_end_row_index,
-                    this.current_start_column_index,
-                    this.current_end_column_index,
-                    "prepend",
-                    "column"
-                )
+                // no need to do anything if we are at column 0
+                if (this.current_start_column_index > 0){
+                    this.current_start_column_index = Math.max(this.current_start_column_index - this.offset, 0)
+                    this.current_end_column_index = Math.max(this.current_end_column_index - this.offset, 0)
+                    this.fetchData(
+                        this.current_start_row_index,
+                        this.current_end_row_index,
+                        this.current_start_column_index,
+                        this.current_start_column_index + this.offset,
+                        "prepend",
+                        "column"
+                    )
+                }
             }
         } else if (action === "append") {
             if (axis === "row") {
@@ -294,12 +299,15 @@ class Sheet extends Component {
         console.log(dataInfo.data);
         // make sure the data is not empty
         let body = document.getElementById(`sheet-${this.props.id}-body`)
+        let head = document.getElementById(`sheet-${this.props.id}-head`)
         if (dataInfo.data && dataInfo.data.length){
             if (dataInfo.action === "replace") {
-                let body = document.getElementById(`sheet-${this.props.id}-body`)
                 body.firstChild.remove()
                 this.generate_rows(dataInfo.data).map((row) => {
                     projector.append(body, () => {return row})
+                })
+                this.generate_header(dataInfo.column_names).map((col) => {
+                    projector.append(head, () => {return col})
                 })
 
             } else if (dataInfo.action === "prepend") {
@@ -309,9 +317,9 @@ class Sheet extends Component {
                     for (let i = 0; i < this.offset; i++){
                           body.lastChild.remove();
                     }
-                    let first_child = body.firstChild;
+                    let first_row = body.firstChild;
                     this.generate_rows(dataInfo.data).map((row) => {
-                        projector.insertBefore(first_child, () => {return row})
+                        projector.insertBefore(first_row, () => {return row})
                     })
                 } else if (dataInfo.axis === "column") {
                     // make sure that we have the same number of rows coming as before
@@ -347,6 +355,14 @@ class Sheet extends Component {
                             projector.insertBefore(row.children[1], () => {return cell})
                         }
                     }
+                    // now the columns
+                    for (let i = 0; i < this.offset; i++){
+                          head.lastChild.remove();
+                    }
+                    let first_column = head.children[1]; // NOTE: this first element is a placehold
+                    this.generate_header(dataInfo.column_names).map((col) => {
+                        projector.insertBefore(first_column, () => {return col})
+                    })
                 }
             } else if (dataInfo.action === "append") {
                 if (dataInfo.axis === "row") {
@@ -386,6 +402,13 @@ class Sheet extends Component {
                             projector.append(row, () => {return cell})
                         }
                     }
+                    // now update the header
+                    for (let c_index = 1; c_index < this.offset + 1; c_index++){
+                        head.children[c_index].remove();
+                    }
+                    this.generate_header(dataInfo.column_names).map((col) => {
+                        projector.append(head, () => {return col})
+                    })
                 }
             }
         }

@@ -8,12 +8,6 @@ import {h} from 'maquette';
 import * as moment from 'moment';
 
 /**
- * About Replacements
- * ------------------
- * This component contains no replacements
- */
-
-/**
  * About Named Children
  * Thi component contains no named children
  */
@@ -21,11 +15,11 @@ class Timestamp extends Component {
     constructor(props, ...args){
         super(props, ...args);
 
-        this.timeformat = 'YYYY-MM-D HH:mm:ss'
-        this.timezone = this.getCurrentTimeZone()
-        this.timestamp = moment.unix(this.props.timestamp)
+        this.timeformat = 'YYYY-MM-D HH:mm:ss';
+        this.timezone = this.getCurrentTimeZone();
+        this.timestamp = moment.unix(this.props.timestamp);
         // make sure user knows to hover over
-        this.style = "cursor: default"
+        this.style = "cursor: default";
 
         // Bind component methods
         this.handleMouseover = this.handleMouseover.bind(this);
@@ -49,23 +43,23 @@ class Timestamp extends Component {
     }
 
     getMilliseconds() {
-        let ms = this.timestamp.milliseconds()
-        ms = ms.toString()
+        let ms = this.timestamp.milliseconds();
+        ms = ms.toString();
         if (ms.length === 2) {
-            ms = "0" + ms
+            ms = "0" + ms;
         } else if(ms.length === 1) {
-            ms = "00" + ms
+            ms = "00" + ms;
         }
-        return ms
+        return ms;
     }
 
     getCurrentTimeZone(){
-        let now = new Date()
+        let now = new Date();
         // ex format: "14:16:26 GMT-0400 (Eastern Daylight Time)"
-        now = now.toTimeString()
+        now = now.toTimeString();
         // ex format: "Eastern Daylight Time"
-        let tz = now.split("(")[1].slice(0, -1)
-        return tz
+        let tz = now.split("(")[1].slice(0, -1);
+        return tz;
     }
 
     /**
@@ -73,8 +67,8 @@ class Timestamp extends Component {
      * hover/mouseover to display the current time and this.timestamp
      */
     handleMouseover(event) {
-        let timediff = moment().diff(this.timestamp, "seconds")
-        event.target.title = this._timediffString(timediff) + "(" + this.timezone + ")"
+        let timediff = moment().diff(this.timestamp, "seconds");
+        event.target.title = this._timediffString(timediff) + "(" + this.timezone + ")";
     }
 
     /**
@@ -82,22 +76,22 @@ class Timestamp extends Component {
      */
     _timediffString(timediff) {
         if (timediff === 1){
-            return timediff + " second ago "
+            return timediff + " second ago ";
         } else if(timediff < 60){
-            return timediff + " seconds ago "
+            return timediff + " seconds ago ";
         } else if (timediff < 3600) {
-            let minutediff = Math.round(timediff/60)
+            let minutediff = Math.round(timediff/60);
             if (minutediff === 1) {
-                return minutediff + " minute ago "
+                return minutediff + " minute ago ";
             } else {
-                return minutediff + " minutes ago "
+                return minutediff + " minutes ago ";
             }
         } else {
-            let hourdiff = Math.round(timediff/3600)
+            let hourdiff = Math.round(timediff/3600);
             if (hourdiff === 1) {
-                return hourdiff + " hour ago "
+                return hourdiff + " hour ago ";
             } else {
-                return hourdiff + " hours ago "
+                return hourdiff + " hours ago ";
             }
         }
     }

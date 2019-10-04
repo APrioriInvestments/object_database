@@ -5,13 +5,6 @@ import {Component} from './Component';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * This component has a single replacement:
- * `content`
- */
-
-/**
  * About Named Children
  * --------------------
  * `content` (single) - The content Cell in the Panel

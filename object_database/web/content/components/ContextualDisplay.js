@@ -6,14 +6,6 @@ import {Component} from './Component';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * This component has a single
- * regular replacement:
- * * `child`
- */
-
-/**
  * About Named Children
  * --------------------
  * `child` (single) - A child cell to display in a context
@@ -38,11 +30,7 @@ class ContextualDisplay extends Component {
     }
 
     makeChild(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('child');
-        } else {
-            return this.renderChildNamed('child');
-        }
+        return this.renderChildNamed('child');
     }
 }
 

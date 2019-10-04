@@ -49,24 +49,14 @@ class CollapsiblePanel extends Component {
     }
 
     makeContent(){
-        let result = null;
-        if(this.usesReplacements){
-            result = this.getReplacementElementFor('content');
-        } else {
-            result = this.renderChildNamed('content');
-        }
+        let result = this.renderChildNamed('content');
         return (
             h('div', {class: "collapsible-panel-content"}, [result])
         );
     }
 
     makePanel(){
-        let result = null;
-        if(this.usesReplacements){
-            result = this.getReplacementElementFor('panel');
-        } else {
-            result = this.renderChildNamed('panel');
-        }
+        let result = this.renderChildNamed('panel');
         return (
             h('div', {class: "collapsible-panel-panel"}, [result])
         );

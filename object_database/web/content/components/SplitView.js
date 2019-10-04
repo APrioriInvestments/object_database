@@ -7,23 +7,14 @@
  * components according to an array of proportions
  * that are passed in.
  */
-
-/**
- * About Replacements
- * -----------------------
- * This component has a single enumerated
- * replacement:
- * * `element`
- */
+import {Component} from './Component';
+import {h} from 'maquette';
 
 /**
  * About Named Children
  * ---------------------
  * `elements` (array) - The contained component elements
  */
-import {Component} from './Component';
-import {h} from 'maquette';
-
 class SplitView extends Component {
     constructor(props, ...args){
         super(props, ...args);
@@ -67,21 +58,12 @@ class SplitView extends Component {
     }
 
     makeChildElements(){
-        if(this.usesReplacements){
-            return this.getReplacementElementsFor('element').map((child, idx) => {
-                return h('div', {
-                    style: this.makeChildStyle(idx),
-                    class: "split-view-area overflow"
-                }, [child]);
-            });
-        } else {
-            return this.renderChildrenNamed('elements').map((child, idx) => {
-                return h('div', {
-                    style: this.makeChildStyle(idx),
-                    class: "split-view-area overflow"
-                }, [child]);
-            });
-        }
+        return this.renderChildrenNamed('elements').map((child, idx) => {
+            return h('div', {
+                style: this.makeChildStyle(idx),
+                class: "split-view-area overflow"
+            }, [child]);
+        });
     }
 }
 

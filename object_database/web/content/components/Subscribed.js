@@ -6,14 +6,6 @@ import {Component} from './Component';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * This component has a single
- * regular replacement:
- * * `contents`
- */
-
-/**
  * About Named Children
  * --------------------
  * `content` (single) - The underlying Cell that is subscribed
@@ -52,11 +44,7 @@ class Subscribed extends Component {
     }
 
     makeContent(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('contents');
-        } else {
-            return this.renderChildNamed('content');
-        }
+        return this.renderChildNamed('content');
     }
 }
 

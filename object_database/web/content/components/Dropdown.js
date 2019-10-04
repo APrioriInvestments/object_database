@@ -55,10 +55,10 @@ class Dropdown extends Component {
                 return render(new DropdownItem({
                     id: `${this.props.id}-item-${idx}`,
                     index: idx,
-                    childSubstitute: itemComponent.render(),
+                    childSubstitute: element,
                     targetIdentity: this.props.targetIdentity,
                     dropdownItemInfo: this.props.dropdownItemInfo
-                }));
+                }).render();
             });
         } else {
             if(this.props.namedChildren.dropdownItems){
@@ -68,8 +68,8 @@ class Dropdown extends Component {
                         id: `${this.props.id}-item-${idx}`,
                         index: idx,
                         childSubstitute: itemComponent.render(),
-                        targetIdentity: this.props.extraData.targetIdentity,
-                        dropdownItemInfo: this.props.extraData.dropdownItemInfo
+                        targetIdentity: this.props.targetIdentity,
+                        dropdownItemInfo: this.props.dropdownItemInfo
                     }));
                 });
             } else {

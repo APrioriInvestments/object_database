@@ -503,7 +503,6 @@ class SheetCell extends Component {
         this.style = `max-width: ${this.props.width}px; width: ${this.props.width}px`
 
         // Bind component methods
-        this.onHover = this.onHover.bind(this);
     }
 
     componentDidLoad(){
@@ -512,15 +511,14 @@ class SheetCell extends Component {
     build(){
         return (
             h("td",
-                {class: "sheet-cell", style: this.style, onhover: this.onhover},
-                [this.props.data.toString()]
+                {class: "sheet-cell custom-tooltip", style: this.style},
+                [
+                    h("span", {}, [this.props.data.toString()]),
+                    h("span", {class: "tooltiptext"}, [this.props.data.toString()]),
+
+                ]
             )
         );
-    }
-
-    onHover(){
-        console.log(this.props.data)
-        // TODO: build a nice hover over view
     }
 }
 

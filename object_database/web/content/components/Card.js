@@ -53,22 +53,11 @@ class Card extends Component {
     }
 
     makeBody(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('contents');
-        } else {
-            return this.renderChildNamed('body');
-        }
+        return this.renderChildNamed('body');
     }
 
     makeHeader(){
-        if(this.usesReplacements){
-            if(this.replacements.hasReplacement('header')){
-                return this.getReplacementElementFor('header');
-            }
-            return null;
-        } else {
-            return this.renderChildNamed('header');
-        }
+        return this.renderChildNamed('header');
     }
 }
 

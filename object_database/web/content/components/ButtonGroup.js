@@ -40,11 +40,7 @@ class ButtonGroup extends Component {
     }
 
     makeButtons(){
-        if(this.usesReplacements){
-            return this.getReplacementElementsFor('button');
-        } else {
-            return this.renderChildrenNamed('buttons');
-        }
+        return this.renderChildrenNamed('buttons');
     }
 
 }

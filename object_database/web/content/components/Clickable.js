@@ -53,11 +53,7 @@ class Clickable extends Component {
     }
 
     makeContent(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('contents');
-        } else {
-            return this.renderChildNamed('content');
-        }
+        return this.renderChildNamed('content');
     }
 
     _getEvent(eventName) {

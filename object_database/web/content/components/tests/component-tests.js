@@ -44,18 +44,6 @@ describe("Base Component Class", () => {
             assert.exists(instance.props.namedChildren);
             assert.typeOf(instance.props.namedChildren, 'object');
         });
-        it('Sets usesReplacements to true if replacement are passed', () => {
-            let instance = new SubComponent({
-                id: 'testComponent'
-            }, ['____contents__', '____item_0__', '____item_1__']);
-            assert.isTrue(instance.usesReplacements);
-        });
-        it('Sets usesReplacements to false if replacements are not passed', () => {
-            let instance = new SubComponent({
-                id: 'testcomponent'
-            });
-            assert.isFalse(instance.usesReplacements);
-        });
     });
 
     describe('Base Component Relationships', () => {

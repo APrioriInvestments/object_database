@@ -6,17 +6,6 @@ import {Component, render} from './Component';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * This component has one regular
- * replacement:
- * * `title`
- * This component has one
- * enumerated replacement:
- * * `child`
- */
-
-/**
  * About Named Children
  * --------------------
  * `title` (single) - A Cell that will comprise the title of
@@ -56,44 +45,23 @@ class Dropdown extends Component {
     }
 
     makeTitle(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('title');
-        } else {
-            return this.renderChildNamed('title');
-        }
+        return this.renderChildNamed('title');
     }
 
     makeItems(){
-        if(this.usesReplacements){
-            // For some reason, due again to the Cell implementation,
-            // sometimes there are not these child replacements.
-            if(!this.replacements.hasReplacement('child')){
-                return [];
-            }
-            return this.getReplacementElementsFor('child').map((element, idx) => {
-                return new DropdownItem({
+        if(this.props.namedChildren.dropdownItems){
+            return this.props.namedChildren.dropdownItems.map((itemComponent, idx) => {
+                // TODO: Clean up instantiation and rendering
+                return render(new DropdownItem({
                     id: `${this.props.id}-item-${idx}`,
                     index: idx,
-                    childSubstitute: element,
+                    childSubstitute: itemComponent.render(),
                     targetIdentity: this.props.targetIdentity,
                     dropdownItemInfo: this.props.dropdownItemInfo
-                }).render();
+                }));
             });
         } else {
-            if(this.props.namedChildren.dropdownItems){
-                return this.props.namedChildren.dropdownItems.map((itemComponent, idx) => {
-                    // TODO: Clean up instantiation and rendering
-                    return render(new DropdownItem({
-                        id: `${this.props.id}-item-${idx}`,
-                        index: idx,
-                        childSubstitute: itemComponent.render(),
-                        targetIdentity: this.props.targetIdentity,
-                        dropdownItemInfo: this.props.dropdownItemInfo
-                    }));
-                });
-            } else {
-                return [];
-            }
+            return [];
         }
     }
 }

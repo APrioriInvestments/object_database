@@ -234,3 +234,21 @@ td.row-index-item {
 .child-margin-5 > * {
     margin: 3rem!important;
 }
+
+.custom-tooltip .tooltiptext{
+    visibility: hidden;
+    width: 120px;
+    background-color: lightgray;
+    color: white;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+
+    /* Position the tooltip */
+    position: absolute;
+    z-index: 1;
+}
+
+.custom-tooltip:hover .tooltiptext{
+    visibility: visible;
+}

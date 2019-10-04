@@ -18,12 +18,8 @@ class Component {
         this.isComponent = true;
         this._updateProps(props);
 
-        // Whether or not the the component
-        // is a Subscribed. We do this
-        // because Subscribed is a proxy
-        // for its children and we check it
-        // in NewCellHandler.
-        this.isSubscribed = false;
+        // Replacements handling
+        this.replacements = new ReplacementsHandler(replacements);
 
         // Whether or not the the component
         // is a Subscribed. We do this
@@ -65,6 +61,10 @@ class Component {
         this._updateProps = this._updateProps.bind(this);
         this._updateData = this._updateData.bind(this);
         this._recursivelyMapNamedChildren = this._recursivelyMapNamedChildren.bind(this);
+    }
+
+    get usesReplacements(){
+        throw Error('#usesReplacements is now deprecated!');
     }
 
     build(){
@@ -333,8 +333,8 @@ class Component {
      * when refactoring away from the replacement
      * structure
      */
-    _updateData(incomingData, projector){
-
+    _updateReplacements(replacementKeys){
+        this.replacements = new ReplacementsHandler(replacementKeys);
     }
 
     /**

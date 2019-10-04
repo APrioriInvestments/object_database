@@ -55,37 +55,9 @@ class Grid extends Component {
     }
 
     makeRows(){
-        if(this.usesReplacements){
-            return this._makeReplacementRowElements();
-        } else {
-            return this.renderChildrenNamed('dataCells').map((dataRow, rowIdx) => {
-                let columns = dataRow.map((column, colIdx) => {
-                    return(
-                        h('td', {key: `${this.props.id}-grid-col-${rowIdx}-${colIdx}`}, [
-                            column
-                        ])
-                    );
-                });
-                let rowLabelEl = null;
-                if(this.props.namedChildren.rowLabels && this.props.namedChildren.rowLabels.length > 0){
-                    rowLabelEl = h('th', {key: `${this.props.id}-grid-col-${rowIdx}`}, [
-                        this.props.namedChildren.rowLabels[rowIdx].render()
-                    ]);
-                }
-                return (
-                    h('tr', {key: `${this.props.id}-grid-row-${rowIdx}`}, [
-                        rowLabelEl,
-                        ...columns
-                    ])
-                );
-            });
-        }
-    }
-
-    _makeReplacementRowElements(){
-        return this.getReplacementElementsFor('child').map((row, rowIdx) => {
-            let columns = row.map((column, colIdx) => {
-                return (
+        return this.renderChildrenNamed('dataCells').map((dataRow, rowIdx) => {
+            let columns = dataRow.map((column, colIdx) => {
+                return(
                     h('td', {key: `${this.props.id}-grid-col-${rowIdx}-${colIdx}`}, [
                         column
                     ])

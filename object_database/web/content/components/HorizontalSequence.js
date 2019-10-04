@@ -7,14 +7,6 @@ import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * This component has the following
- * enumerated replacement:
- * * `c`
- */
-
-/**
  * About Named Children
  * --------------------
  * `elements` (array) - A list of Cells that are in the
@@ -41,19 +33,14 @@ class HorizontalSequence extends Component {
     }
 
     makeElements(){
-        if(this.usesReplacements){
-            return this.getReplacementElementsFor('c');
-        } else {
-            //return this.renderChildrenNamed('elements');
-            let elements = this.props.namedChildren['elements'];
-            return elements.map(childComponent => {
-                let hyperscript = render(childComponent);
-                if(childComponent.props.flexChild == true && this.props.flexParent){
-                    hyperscript.properties.class += " flex-child";
-                }
-                return hyperscript;
-            });
-        }
+        let elements = this.props.namedChildren['elements'];
+        return elements.map(childComponent => {
+            let hyperscript = render(childComponent);
+            if(childComponent.props.flexChild == true && this.props.flexParent){
+                hyperscript.properties.class += " flex-child";
+            }
+            return hyperscript;
+        });
     }
 
     makeClasses(){

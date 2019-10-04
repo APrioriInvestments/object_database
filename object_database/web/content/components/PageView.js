@@ -7,16 +7,6 @@ import {Component} from './Component';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * This component has three regular
- * replacements:
- * * `header`
- * * `main`
- * * `footer`
- */
-
-/**
  * About Named Children
  * `header` - An optional header cell
  * `main` - A required main content cell
@@ -46,12 +36,7 @@ class PageView extends Component {
     }
 
     makeHeader(){
-        let headerContent = null;
-        if(this.usesReplacements){
-            headerContent = this.getReplacementElementFor('header');
-        } else {
-            headerContent = this.renderChildNamed('header');
-        }
+        let headerContent = this.renderChildNamed('header');
         if(headerContent){
             return h('header', {
                 class: 'page-view-header'
@@ -62,22 +47,11 @@ class PageView extends Component {
     }
 
     makeMain(){
-        let mainContent;
-        if(this.usesReplacements){
-            mainContent = this.getReplacementElementFor('main');
-        } else {
-            mainContent = this.renderChildNamed('main');
-        }
-        return mainContent;
+        return this.renderChildNamed('main');
     }
 
     makeFooter(){
-        let footerContent = null;
-        if(this.usesReplacements){
-            footerContent = this.getReplacementElementFor('footer');
-        } else {
-            footerContent = this.renderChildNamed('footer');
-        }
+        let footerContent = this.renderChildNamed('footer');
         if(footerContent){
             return h('footer', {
                 class: 'page-view-footer'

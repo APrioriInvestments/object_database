@@ -55,26 +55,13 @@ class Dropdown extends Component {
                 return render(new DropdownItem({
                     id: `${this.props.id}-item-${idx}`,
                     index: idx,
-                    childSubstitute: element,
+                    childSubstitute: itemComponent.render(),
                     targetIdentity: this.props.targetIdentity,
                     dropdownItemInfo: this.props.dropdownItemInfo
-                }).render();
+                }));
             });
         } else {
-            if(this.props.namedChildren.dropdownItems){
-                return this.props.namedChildren.dropdownItems.map((itemComponent, idx) => {
-                    // TODO: Clean up instantiation and rendering
-                    return render(new DropdownItem({
-                        id: `${this.props.id}-item-${idx}`,
-                        index: idx,
-                        childSubstitute: itemComponent.render(),
-                        targetIdentity: this.props.targetIdentity,
-                        dropdownItemInfo: this.props.dropdownItemInfo
-                    }));
-                });
-            } else {
-                return [];
-            }
+            return [];
         }
     }
 }

@@ -43,21 +43,6 @@ class Subscribed extends Component {
         return null;
     }
 
-    getDOMElement(){
-        // Sometimes you can have a Subscribed in another Subscribed,
-        // which can really throw off the whole "non-display"
-        // rendering process. So, as long as the parent of this
-        // instance isn't a Subscribed, we do a basic lookup.
-        // Otherwise, call the same method on the parent.
-        let el = document.querySelector(`[data-subscribed-to="${this.props.id}"]`);
-        if(el){
-            return el;
-        } else if(this.parent && this.parent.name == "Subscribed"){
-            return this.parent.getDOMElement();
-        }
-        return null;
-    }
-
     makeContent(){
         return this.renderChildNamed('content');
     }

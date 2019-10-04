@@ -34,22 +34,14 @@ class Sequence extends Component {
     }
 
     makeElements(){
-        if(this.usesReplacements){
-            return this.getReplacementElementsFor('c');
-        } else {
-            let elements = this.props.namedChildren['elements'];
-            return elements.map(childComponent => {
-                let hyperscript = render(childComponent);
-                if(childComponent.props.flexChild == true && this.props.flexParent){
-                    hyperscript.properties.class += " flex-child";
-                }
-                return hyperscript;
-            });
-        }
-        if (this.props.margin){
-            classes.push(`child-margin-${this.props.margin}`);
-        }
-        return classes.join(" ");
+        let elements = this.props.namedChildren['elements'];
+        return elements.map(childComponent => {
+            let hyperscript = render(childComponent);
+            if(childComponent.props.flexChild == true && this.props.flexParent){
+                hyperscript.properties.class += " flex-child";
+            }
+            return hyperscript;
+        });
     }
 
     makeClasses(){

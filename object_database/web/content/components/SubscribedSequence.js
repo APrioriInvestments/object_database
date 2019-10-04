@@ -32,19 +32,15 @@ class SubscribedSequence extends Component {
     }
 
     makeChildren(){
-        if(this.usesReplacements){
-            return this.getReplacementElementsFor("child");
-        } else {
-            let elements = this.props.namedChildren["elements"];
-            return elements.map(childComponent => {
-                let hyperscript = render(childComponent);
-                let childComponentName = childComponent.constructor.name;
-                if(childComponent.props.flexChild == true && this.props.flexParent){
-                    hyperscript.properties.class += " flex-child";
-                }
-                return hyperscript;
-            });
-        }
+        let elements = this.props.namedChildren["elements"];
+        return elements.map(childComponent => {
+            let hyperscript = render(childComponent);
+            let childComponentName = childComponent.constructor.name;
+            if(childComponent.props.flexChild == true && this.props.flexParent){
+                hyperscript.properties.class += " flex-child";
+            }
+            return hyperscript;
+        });
     }
 
     makeClass() {

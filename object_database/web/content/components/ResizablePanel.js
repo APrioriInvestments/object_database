@@ -65,12 +65,7 @@ class ResizablePanel extends Component {
     }
 
     makeSecondChild(){
-        let inner = null;
-        if(this.usesReplacements){
-            inner = this.getReplacementElementFor('second');
-        } else {
-            inner = this.renderChildNamed('second');
-        }
+        let inner = this.renderChildNamed('second');
         // Our panel items must be uniquely identifiable in order to properly insert
         // the resize splitter. See the .afterCreate().
         return (

@@ -7,14 +7,6 @@ import {h} from 'maquette';
 import {Component} from './Component';
 import {PropTypes} from './util/PropertyValidator';
 
-
-/**
- * About Replacements
- * This component has one regular
- * replacement:
- * * `error`
- */
-
 /**
  * About Named Children
  * --------------------

@@ -6,14 +6,6 @@ import {Component} from './Component';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * This component has one enumerated
- * kind of replacement:
- * * `c`
- */
-
-/**
  * About Named Children
  * --------------------
  * `elements` (array) - Cell column elements
@@ -40,17 +32,7 @@ class Columns extends Component {
     }
 
     makeInnerChildren(){
-        if(this.usesReplacements){
-            return this.getReplacementElementsFor('c').map(replElement => {
-                return (
-                    h('div', {
-                        class: "col-sm"
-                    }, [replElement])
-                );
-            });
-        } else {
-            return this.renderChildrenNamed('elements');
-        }
+        return this.renderChildrenNamed('elements');
     }
 }
 

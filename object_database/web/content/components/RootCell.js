@@ -6,14 +6,6 @@ import {Component} from './Component';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * --------------------
- * This component has a one
- * regular-kind replacement:
- * * `c`
- */
-
-/**
  * About Named Children
  * --------------------
  * `child` (single) - The child cell this container contains
@@ -37,11 +29,7 @@ class RootCell extends Component {
     }
 
     makeChild(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('c');
-        } else {
-            return this.renderChildNamed('child');
-        }
+        return this.renderChildNamed('child');
     }
 }
 

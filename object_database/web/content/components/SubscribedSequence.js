@@ -7,14 +7,6 @@ import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * This component has a single
- * enumerated replacement:
- * * `child`
- */
-
-/**
  * About Named Replacements
  * ------------------------
  * `elements` (array) - An array of Cells that are subscribed
@@ -40,19 +32,15 @@ class SubscribedSequence extends Component {
     }
 
     makeChildren(){
-        if(this.usesReplacements){
-            return this.getReplacementElementsFor("child");
-        } else {
-            let elements = this.props.namedChildren["elements"];
-            return elements.map(childComponent => {
-                let hyperscript = render(childComponent);
-                let childComponentName = childComponent.constructor.name;
-                if(childComponent.props.flexChild == true && this.props.flexParent){
-                    hyperscript.properties.class += " flex-child";
-                }
-                return hyperscript;
-            });
-        }
+        let elements = this.props.namedChildren["elements"];
+        return elements.map(childComponent => {
+            let hyperscript = render(childComponent);
+            let childComponentName = childComponent.constructor.name;
+            if(childComponent.props.flexChild == true && this.props.flexParent){
+                hyperscript.properties.class += " flex-child";
+            }
+            return hyperscript;
+        });
     }
 
     makeClass() {

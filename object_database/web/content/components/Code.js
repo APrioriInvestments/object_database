@@ -39,11 +39,7 @@ class Code extends Component {
     }
 
     makeCode(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('child');
-        } else {
-            return this.renderChildNamed('code');
-        }
+        return this.renderChildNamed('code');
     }
 }
 

@@ -5,18 +5,6 @@
 import {Component} from './Component';
 import {h} from 'maquette';
 
-
-/**
- * About Replacements
- * ------------------
- * This component had a single
- * regular replacement:
- * * `display`
- * This component has a single
- * enumerated replacement:
- * * `header`
- */
-
 /**
  * About Named Children
  * --------------------
@@ -53,19 +41,11 @@ class Tabs extends Component {
     }
 
     makeDisplay(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('display');
-        } else {
-            return this.renderChildNamed('display');
-        }
+        return this.renderChildNamed('display');
     }
 
     makeHeaders(){
-        if(this.usesReplacements){
-            return this.getReplacementElementsFor('header');
-        } else {
-            return this.renderChildrenNamed('headers');
-        }
+        return this.renderChildrenNamed('headers');
     }
 }
 

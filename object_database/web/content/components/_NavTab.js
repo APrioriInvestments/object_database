@@ -10,14 +10,6 @@ import {Component} from './Component';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * -------------------
- * This component has one regular
- * replacement:
- * * `child`
- */
-
-/**
  * About Named Children
  * --------------------
  * `child` (single) - The cell inside of the navigation tab
@@ -53,11 +45,7 @@ class _NavTab extends Component {
     }
 
     makeChild(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('child');
-        } else {
-            return this.renderChildNamed('child');
-        }
+        return this.renderChildNamed('child');
     }
 
     clickHandler(event){

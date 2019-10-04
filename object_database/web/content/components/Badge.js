@@ -18,7 +18,7 @@ import {h} from 'maquette';
  */
 class Badge extends Component {
     constructor(props, ...args){
-        super(...args);
+        super(props, ...args);
 
         // Bind component methods
         this.makeInner = this.makeInner.bind(this);
@@ -27,11 +27,11 @@ class Badge extends Component {
     build(){
         return(
             h('span', {
-                class: `cell badge badge-${this.props.extraData.badgeStyle}`,
+                class: `cell badge badge-${this.props.badgeStyle}`,
                 id: this.props.id,
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Badge"
-            }, [this.makeContent()])
+            }, [this.makeInner()])
         );
     }
 

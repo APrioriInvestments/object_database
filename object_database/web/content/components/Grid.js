@@ -41,7 +41,7 @@ class Grid extends Component {
 
     build(){
         let topTableHeader = null;
-        if(this.props.extraData.hasTopHeader){
+        if(this.props.hasTopHeader){
             topTableHeader = h('th');
         }
         return (
@@ -87,7 +87,7 @@ class Grid extends Component {
                 });
                 let rowLabelEl = null;
                 if(this.props.namedChildren.rowLabels && this.props.namedChildren.rowLabels.length > 0){
-                    rowLabelEl = h('th', {key: `${this.props.id}-grid-col-${rowIdx}-${colIdx}`}, [
+                    rowLabelEl = h('th', {key: `${this.props.id}-grid-col-${rowIdx}`}, [
                         this.props.namedChildren.rowLabels[rowIdx].render()
                     ]);
                 }

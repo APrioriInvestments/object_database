@@ -6,15 +6,6 @@ import {Component} from './Component';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * This component contains the following
- * regular replacements:
- * * `title`
- * * `detail`
- * * `contents`
- */
-
-/**
  * About Named Children
  * --------------------
  * `content` (single) - The content of the popover
@@ -66,27 +57,15 @@ class Popover extends Component {
     }
 
     makeContent(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('contents');
-        } else {
-            return this.renderChildNamed('content');
-        }
+        return this.renderChildNamed('content');
     }
 
     makeDetail(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('detail');
-        } else {
-            return this.renderChildNamed('detail');
-        }
+        return this.renderChildNamed('detail');
     }
 
     makeTitle(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('title');
-        } else {
-            return this.renderChildNamed('title');
-        }
+        return this.renderChildNamed('title');
     }
 }
 

@@ -7,14 +7,6 @@ import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * --------------------
- * This component has a one
- * regular-kind replacement:
- * * `child`
- */
-
-/**
  * About Named Children
  * --------------------
  * `child` (single) - The cell/component this instance contains
@@ -44,11 +36,7 @@ class Scrollable extends Component {
     }
 
     makeChild(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('child');
-        } else {
-            return this.renderChildNamed('child');
-        }
+        return this.renderChildNamed('child');
     }
 }
 

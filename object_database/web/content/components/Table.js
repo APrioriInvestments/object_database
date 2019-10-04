@@ -5,23 +5,6 @@
 import {Component} from './Component';
 import {h} from 'maquette';
 
-
-/**
- * About Replacements
- * ------------------
- * This component has 3 regular
- * replacements:
- * * `page`
- * * `left`
- * * `right`
- * This component has 2 enumerated
- * replacements:
- * * `child`
- * * `header`
- * NOTE: `child` enumerated replacements
- * are two dimensional arrays!
- */
-
 /**
  * About Named Children
  * --------------------
@@ -67,32 +50,17 @@ class Table extends Component {
     }
 
     makeHeaderElements(){
-        if(this.usesReplacements){
-            return this.getReplacementElementsFor('header').map((replacement, idx) => {
-                return h('th', {
-                    style: "vertical-align:top;",
-                    key: `${this.props.id}-table-header-${idx}`
-                }, [replacement]);
-            });
-        } else {
-            return this.renderChildrenNamed('headers').map((replacement, idx) => {
-                return h('th', {
-                    style: "vertical-align:top;",
-                    key: `${this.props.id}-table-header-${idx}`
-                }, [replacement]);
-            });
-        }
+        return this.renderChildrenNamed('headers').map((replacement, idx) => {
+            return h('th', {
+                style: "vertical-align:top;",
+                key: `${this.props.id}-table-header-${idx}`
+            }, [replacement]);
+        });
     }
 
     makeRows(){
-        if(this.usesReplacements){
-            return this._makeRowElements(this.getReplacementElementsFor('child'));
-        } else {
-            return this._makeRowElements(this.renderChildrenNamed('dataCells'));
-        }
+        return this._makeRowElements(this.renderChildrenNamed('dataCells'));
     }
-
-
 
     _makeRowElements(elements){
         // Note: rows are the *first* dimension
@@ -130,19 +98,11 @@ class Table extends Component {
     }
 
     _getRowDisplayElements(){
-        if(this.usesReplacements){
-            return [
-                this.getReplacementElementFor('left'),
-                this.getReplacementElementFor('right'),
-                this.getReplacementElementFor('page'),
-            ];
-        } else {
-            return [
-                this.renderChildNamed('left'),
-                this.renderChildNamed('right'),
-                this.renderChildNamed('page')
-            ];
-        }
+        return [
+            this.renderChildNamed('left'),
+            this.renderChildNamed('right'),
+            this.renderChildNamed('page')
+        ];
     }
 }
 

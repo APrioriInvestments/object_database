@@ -21,7 +21,6 @@ class Component {
 
         // Replacements handling
         this.replacements = new ReplacementsHandler(replacements);
-        this.usesReplacements = (replacements.length > 0);
 
         // Whether or not the the component
         // is a Subscribed. We do this
@@ -63,6 +62,10 @@ class Component {
         this._updateProps = this._updateProps.bind(this);
         this._updateData = this._updateData.bind(this);
         this._recursivelyMapNamedChildren = this._recursivelyMapNamedChildren.bind(this);
+    }
+
+    get usesReplacements(){
+        throw Error('#usesReplacements is now deprecated!');
     }
 
     build(){
@@ -357,7 +360,6 @@ class Component {
      */
     _updateReplacements(replacementKeys){
         this.replacements = new ReplacementsHandler(replacementKeys);
-        this.usesReplacements = (replacementKeys.length > 0);
     }
 
     /**

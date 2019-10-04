@@ -33,7 +33,7 @@ class _NavTab extends Component {
 
     build(){
         let innerClass = "nav-link";
-        if(this.props.extraData.isActive){
+        if(this.props.isActive){
             innerClass += " active";
         }
         return (
@@ -62,7 +62,7 @@ class _NavTab extends Component {
 
     clickHandler(event){
         cellSocket.sendString(
-            JSON.stringify(this.props.extraData.clickData, null, 4)
+            JSON.stringify(this.props.clickData, null, 4)
         );
     }
 }

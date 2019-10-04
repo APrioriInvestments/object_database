@@ -40,7 +40,7 @@ class AsyncDropdown extends Component {
                 "data-cell-type": "AsyncDropdown",
                 class: "cell btn-group"
             }, [
-                h('a', {class: "btn btn-xs btn-outline-secondary"}, [this.props.extraData.labelText]),
+                h('a', {class: "btn btn-xs btn-outline-secondary"}, [this.props.labelText]),
                 h('button', {
                     class: "btn btn-xs btn-outline-secondary dropdown-toggle dropdown-toggle-split",
                     type: "button",

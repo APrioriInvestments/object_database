@@ -58,7 +58,7 @@ class Modal extends Component {
 
     makeClasses(){
         let classes = ["cell", "modal-cell"];
-        if(this.props.extraData.show){
+        if(this.props.show){
             classes.push("modal-cell-show");
         }
         return classes.join(" ");

@@ -32,8 +32,8 @@ class Card extends Component {
 
     build(){
         let bodyClass = "card-body";
-        if(this.props.extraData.padding){
-            bodyClass = `card-body p-${this.props.extraData.padding}`;
+        if(this.props.padding){
+            bodyClass = `card-body p-${this.props.padding}`;
         }
         let bodyArea = h('div', {
             class: bodyClass

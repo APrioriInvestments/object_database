@@ -43,9 +43,9 @@ class ResizablePanel extends Component {
 
     build(){
         let classString = "";
-        if(this.props.extraData.split == 'vertical'){
+        if(this.props.split == 'vertical'){
             classString = " horizontal-panel";
-        } else if(this.props.extraData.split == 'horizontal'){
+        } else if(this.props.split == 'horizontal'){
             classString = " vertical-panel";
         }
         return (
@@ -110,7 +110,7 @@ class ResizablePanel extends Component {
         // to case them out and provide the opposite as
         // a Splitjs constructor option
         let reverseDirection = 'horizontal';
-        if(this.props.extraData.split == 'horizontal'){
+        if(this.props.split == 'horizontal'){
             reverseDirection = 'vertical';
         }
         element._splitter = new Split(

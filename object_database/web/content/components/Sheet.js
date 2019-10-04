@@ -48,13 +48,12 @@ class Sheet extends Component {
         this.initializeTable = this.initializeTable.bind(this);
         this.generate_rows = this.generate_rows.bind(this);
         this.generate_header = this.generate_header.bind(this);
-        this.handleScrolling = this.handleScrolling.bind(this);
+        this.__updateDataAppend = this.__updateDataAppend.bind(this);
+        this.__updateDataPrepend = this.__updateDataPrepend.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.paginate = this.paginate.bind(this);
         this.jump_to_cell = this.jump_to_cell.bind(this);
         // this.handleClick = this.handleClick.bind(this);
-        // this.initializeHooks = this.initializeHooks.bind(this);
-        // this.makeError = this.makeError.bind(this);
 
         this.initializeTable();
     }
@@ -80,10 +79,6 @@ class Sheet extends Component {
                 null
             )
         }
-        // console.log("max num of rows: " + this.max_num_rows)
-        // if(this.props.extraData['handlesDoubleClick']){
-        //     this.initializeHooks();
-        // }
         // TODO do we need to add this at the document level? (seems so, but why?)
         document.addEventListener("keydown", this.handleKeyDown)
     }
@@ -106,7 +101,6 @@ class Sheet extends Component {
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Sheet",
                 class: "cell sheet-wrapper",
-                //onscroll: this.handleScrolling,
                 // keydown: (e) => {console.log(e)},
                 scrollTop: this.scrollTop,
                 scrollLeft: this.scrollLeft
@@ -168,47 +162,6 @@ class Sheet extends Component {
             this.paginate("column", "prepend")
         } else if (event.key === "ArrowRight"){
             this.paginate("column", "append")
-        }
-    }
-
-    /* I handle scrolling events and trigger callbacks to get more data as
-     * needed. As the user scrolls in a given direction (left, right, up, down)
-     * I wait until this.offset number of columns or rows have been scrolled
-     * and trigger the callback. This way we always maintain a buffer for lazy loading.
-     */
-    handleScrolling(event){
-        let element = event.target;
-        let leftDiff = element.scrollLeft - this.scrollLeft
-        let topDiff = element.scrollTop - this.scrollTop
-        console.log(element.scrollTop);
-        // we make sure that we have the offset as buffer
-        // TODO: figure out why scrollLeft can fire as 0 seemingly randomly
-        if (element.scollLeft !== 0) {
-            if (leftDiff > this.offset * this.props.colWidth) {
-                console.log("scrolling right")
-                this.paginate("column", "append")
-                this.scrollLeft = element.scrollLeft;
-            } else if (-1 * leftDiff > this.offset * this.props.colWidth) {
-                this.scrollLeft = element.scrollLeft;
-                console.log("scrolling left")
-                this.paginate("column", "prepend")
-            }
-        }
-        // TODO: figure out why scrollTop can fire as 0 seemingly randomly
-        if (element.scollTop !== 0) {
-            if (topDiff > this.offset * this.props.rowHeight) {
-                this.paginate("row", "append")
-                // console.log("element.scrollTop: " + element.scrollTop)
-                // console.log(element)
-                console.log("scrolling down")
-                this.scrollTop = element.scrollTop;
-            } else if (-1 * topDiff > this.offset * this.props.rowHeight) {
-                this.paginate("row", "prepend")
-                // console.log("element.scrollTop: " + element.scrollTop)
-                // console.log(element)
-                console.log("scrolling up")
-                this.scrollTop = element.scrollTop;
-            }
         }
     }
 
@@ -322,122 +275,132 @@ class Sheet extends Component {
                 })
 
             } else if (dataInfo.action === "prepend") {
-                if (dataInfo.axis === "row") {
-                    // note we pop off from the end the same number of rows as we prepend
-                    for (let i = 0; i < dataInfo.data.length; i++){
-                          body.lastChild.remove();
-                    }
-                    let first_row = body.firstChild;
-                    this.generate_rows(dataInfo.data).map((row) => {
-                        projector.insertBefore(first_row, () => {return row})
-                    })
-                } else if (dataInfo.axis === "column") {
-                    // make sure that we have the same number of rows coming as before
-                    if (body.children.length !== dataInfo.data.length) {
-                         throw "Incoming number of rows don't match current sheet"
-                    }
-                    // NOTE: we remove N columns we remove N elements from the each row; then we add columns by
-                    // appending all the new row data with a new SheetData h-element to each row
-                    for (let r_index = 0; r_index < body.children.length; r_index++){
-                        let row = body.children[r_index];
-                        // Don't forget we keep the index element (firstChild)
-                        for (let i = 0; i < dataInfo.column_names.length ; i++){
-                              row.lastChild.remove();
-                        }
-                        let data_row = dataInfo.data[r_index];
-                        if (dataInfo.column_names.length !== data_row.length - 1) { //ingore the row index
-                            throw (
-                                `Incoming row length does not incoming number of columns.
-                                Column Names: ${dataInfo.column_names.length}; Row: ${data_row.length - 1}`
-                          )
-                        }
-                        // check that row indices match up
-                        if (row.children[0].textContent != data_row[0]){
-                            throw (
-                                `Sheet row index ${row.children[0].textContent} does not match incoming
-                                row index ${data_row[0]}`
-                            )
-                        }
-                        // recall we skip the first row item which is the index
-                        for (let c_index = 1; c_index < data_row.length; c_index++){
-                            // TODO check that indeces match up
-                            let item = data_row[data_row.length - c_index];
-                            let cell = new SheetCell(
-                            {
-                                id: this.props.id, data: item, width: this.props.colWidth
-                            }).build()
-
-                            projector.insertBefore(row.children[1], () => {return cell})
-                        }
-                    }
-                    // now the columns
-                    for (let i = 0; i < dataInfo.column_names.length; i++){
-                          head.lastChild.remove();
-                    }
-                    let first_column = head.children[1]; // NOTE: this first element is a placehold
-                    this.generate_header(dataInfo.column_names).map((col) => {
-                        projector.insertBefore(first_column, () => {return col})
-                    })
-                }
+                this.__updateDataPrepend(body, head, dataInfo, projector)
             } else if (dataInfo.action === "append") {
-                if (dataInfo.axis === "row") {
-                    // note we pop off from the top the same number of rows as we append
-                    for (let i = 0; i < dataInfo.data.length; i++){
-                          body.firstChild.remove();
-                    }
-                    this.generate_rows(dataInfo.data).map((row) => {
-                        projector.append(body, () => {return row})
-                    })
-                } else if (dataInfo.axis === "column") {
-                    // make sure that we have the same number of rows coming as before
-                    if (body.children.length !== dataInfo.data.length) {
-                         throw "Incoming number of rows don't match current sheet"
-                    }
-                    // NOTE: we remove N columns we remove N elements from the each row; then we add columns by
-                    // appending all the new row data with a new SheetData h-element to each row
-                    for (let r_index = 0; r_index < body.children.length; r_index++){
-                        let row = body.children[r_index];
-                        // Don't forget we keep the index element (firstChild)
-                        for (let c_index = 1; c_index < dataInfo.column_names.length + 1; c_index++){
-                              row.children[c_index].remove();
-                        }
-                        let data_row = dataInfo.data[r_index];
-                        if (dataInfo.column_names.length !== data_row.length - 1) {
-                             throw (
-                                 `Incoming row length does not incoming number of columns.
-                                 Column Names: ${dataInfo.column_names.length}; Row: ${data_row.length - 1}`
-                             )
-                        }
-                        // check that row indices match up
-                        if (row.children[0].textContent != data_row[0]){
-                            throw (
-                                `Sheet row index ${row.children[0].textContent} does not match incoming ` +
-                                `row index ${data_row[0]}`
-                            )
-                        }
-                        // recall we skip the first row item which is the index
-                        for (let c_index = 1; c_index < data_row.length; c_index++){
-                            // TODO check that indeces match up
-                            let item = data_row[c_index];
-                            let cell = new SheetCell(
-                            {
-                                id: this.props.id, data: item, width: this.props.colWidth
-                            }).build()
-
-                            projector.append(row, () => {return cell})
-                        }
-                    }
-                    // now update the header
-                    for (let c_index = 1; c_index < dataInfo.column_names.length + 1; c_index++){
-                        head.children[c_index].remove();
-                    }
-                    this.generate_header(dataInfo.column_names).map((col) => {
-                        projector.append(head, () => {return col})
-                    })
-                }
+                this.__updateDataAppend(body, head, dataInfo, projector)
             }
         }
     }
+
+    /* Update data helpers */
+    __updateDataPrepend(body, head, dataInfo, projector){
+        if (dataInfo.axis === "row") {
+            // note we pop off from the end the same number of rows as we prepend
+            for (let i = 0; i < dataInfo.data.length; i++){
+                  body.lastChild.remove();
+            }
+            let first_row = body.firstChild;
+            this.generate_rows(dataInfo.data).map((row) => {
+                projector.insertBefore(first_row, () => {return row})
+            })
+        } else if (dataInfo.axis === "column") {
+            // make sure that we have the same number of rows coming as before
+            if (body.children.length !== dataInfo.data.length) {
+                 throw "Incoming number of rows don't match current sheet"
+            }
+            // NOTE: we remove N columns we remove N elements from the each row; then we add columns by
+            // appending all the new row data with a new SheetData h-element to each row
+            for (let r_index = 0; r_index < body.children.length; r_index++){
+                let row = body.children[r_index];
+                // Don't forget we keep the index element (firstChild)
+                for (let i = 0; i < dataInfo.column_names.length ; i++){
+                      row.lastChild.remove();
+                }
+                let data_row = dataInfo.data[r_index];
+                if (dataInfo.column_names.length !== data_row.length - 1) { //ingore the row index
+                    throw (
+                        `Incoming row length does not incoming number of columns.
+                        Column Names: ${dataInfo.column_names.length}; Row: ${data_row.length - 1}`
+                  )
+                }
+                // check that row indices match up
+                if (row.children[0].textContent != data_row[0]){
+                    throw (
+                        `Sheet row index ${row.children[0].textContent} does not match incoming
+                        row index ${data_row[0]}`
+                    )
+                }
+                // recall we skip the first row item which is the index
+                for (let c_index = 1; c_index < data_row.length; c_index++){
+                    // TODO check that indeces match up
+                    let item = data_row[data_row.length - c_index];
+                    let cell = new SheetCell(
+                    {
+                        id: this.props.id, data: item, width: this.props.colWidth
+                    }).build()
+
+                    projector.insertBefore(row.children[1], () => {return cell})
+                }
+            }
+            // now the columns
+            for (let i = 0; i < dataInfo.column_names.length; i++){
+                  head.lastChild.remove();
+            }
+            let first_column = head.children[1]; // NOTE: this first element is a placehold
+            this.generate_header(dataInfo.column_names).map((col) => {
+                projector.insertBefore(first_column, () => {return col})
+            })
+        }
+    }
+
+    __updateDataAppend(body, head, dataInfo, projector){
+        if (dataInfo.axis === "row") {
+            // note we pop off from the top the same number of rows as we append
+            for (let i = 0; i < dataInfo.data.length; i++){
+                  body.firstChild.remove();
+            }
+            this.generate_rows(dataInfo.data).map((row) => {
+                projector.append(body, () => {return row})
+            })
+        } else if (dataInfo.axis === "column") {
+            // make sure that we have the same number of rows coming as before
+            if (body.children.length !== dataInfo.data.length) {
+                 throw "Incoming number of rows don't match current sheet"
+            }
+            // NOTE: we remove N columns we remove N elements from the each row; then we add columns by
+            // appending all the new row data with a new SheetData h-element to each row
+            for (let r_index = 0; r_index < body.children.length; r_index++){
+                let row = body.children[r_index];
+                // Don't forget we keep the index element (firstChild)
+                for (let c_index = 1; c_index < dataInfo.column_names.length + 1; c_index++){
+                      row.children[c_index].remove();
+                }
+                let data_row = dataInfo.data[r_index];
+                if (dataInfo.column_names.length !== data_row.length - 1) {
+                     throw (
+                         `Incoming row length does not incoming number of columns.
+                         Column Names: ${dataInfo.column_names.length}; Row: ${data_row.length - 1}`
+                     )
+                }
+                // check that row indices match up
+                if (row.children[0].textContent != data_row[0]){
+                    throw (
+                        `Sheet row index ${row.children[0].textContent} does not match incoming ` +
+                        `row index ${data_row[0]}`
+                    )
+                }
+                // recall we skip the first row item which is the index
+                for (let c_index = 1; c_index < data_row.length; c_index++){
+                    // TODO check that indeces match up
+                    let item = data_row[c_index];
+                    let cell = new SheetCell(
+                    {
+                        id: this.props.id, data: item, width: this.props.colWidth
+                    }).build()
+
+                    projector.append(row, () => {return cell})
+                }
+            }
+            // now update the header
+            for (let c_index = 1; c_index < dataInfo.column_names.length + 1; c_index++){
+                head.children[c_index].remove();
+            }
+            this.generate_header(dataInfo.column_names).map((col) => {
+                projector.append(head, () => {return col})
+            })
+        }
+    }
+
 
     /* I allow this user to jump to a specific cell, putting it at the top
      * left, i.e. coordinate (0, 0), on the screen
@@ -466,112 +429,7 @@ class Sheet extends Component {
     _calc_max_num_columns(max_width){
         return Math.ceil(max_width/this.props.colWidth + this.offset);
     }
-    /// OLD HORROR - TODO: remove when ready!
-    //----------------------------------------
-    old_initializeHooks(){
-        Handsontable.hooks.add("beforeOnCellMouseDown", (event, data) => {
-            let handsOnObj = handsOnTables[this.props.id];
-            let lastRow = handsOnObj.lastCellClicked.row;
-            let lastCol = handsOnObj.lastCellClicked.col;
 
-            if((lastRow == data.row) && (lastCol = data.col)){
-                handsOnObj.dblClicked = true;
-                setTimeout(() => {
-                    if(handsOnObj.dblClicked){
-                        cellSocket.sendString(JSON.stringify({
-                            event: 'onCellDblClick',
-                            target_cell: this.props.id,
-                            row: data.row,
-                            col: data.col
-                        }));
-                    }
-                ).build()
-            )
-        })
-    }
-
-    /* I listen for arrow keys and call this.paginate when I see one. */
-
-    handleKeyDown(event){
-        if (event.key === "ArrowUp"){
-            event.preventDefault();
-            this.paginate("row", "prepend")
-        } else if (event.key === "ArrowDown"){
-            event.preventDefault();
-            this.paginate("row", "append")
-            this.scrollTop = this.props.rowHeight;
-        } else if (event.key === "ArrowLeft"){
-            event.preventDefault();
-            this.paginate("column", "prepend")
-        } else if (event.key === "ArrowRight"){
-            event.preventDefault();
-            this.paginate("column", "append")
-        }
-    }
-
-    /* I handle row/column pagination by adding this.offset and removing
-     * rows/columns as needed.
-     */
-    paginate(axis, action){
-        // TODO: this should be handled with http calls to the server
-        // let handler = window._cellHandler;
-        if (action === "prepend") {
-            if (axis === "row") {
-                // no need to do anything if we are already at row 0
-                if (this.current_start_row_index > 0){
-                    this.current_start_row_index = Math.max(this.current_start_row_index - this.offset, 0)
-                    this.current_end_row_index = Math.max(this.current_end_row_index - this.offset, 0)
-                    this.fetchData(
-                        this.current_start_row_index,
-                        this.current_start_row_index + this.offset,
-                        this.current_start_column_index,
-                        this.current_end_column_index,
-                        "prepend",
-                        "row"
-                    )
-                }
-            } else if (axis === "column") {
-                // no need to do anything if we are at column 0
-                if (this.current_start_column_index > 0){
-                    this.current_start_column_index = Math.max(this.current_start_column_index - this.offset, 0)
-                    this.current_end_column_index = Math.max(this.current_end_column_index - this.offset, 0)
-                    this.fetchData(
-                        this.current_start_row_index,
-                        this.current_end_row_index,
-                        this.current_start_column_index,
-                        this.current_start_column_index + this.offset,
-                        "prepend",
-                        "column"
-                    )
-                }
-            }
-        } else if (action === "append") {
-            if (axis === "row") {
-                this.fetchData(
-                    this.current_end_row_index,
-                    this.current_end_row_index + this.offset,
-                    this.current_start_column_index,
-                    this.current_end_column_index,
-                    "append",
-                    "row"
-                )
-                this.current_end_row_index = this.current_end_row_index + this.offset
-                this.current_start_row_index = this.current_start_row_index + this.offset
-            } else if (axis === "column") {
-                this.fetchData(
-                    this.current_start_row_index,
-                    this.current_end_row_index,
-                    this.current_end_column_index,
-                    this.current_end_column_index + this.offset,
-                    "append",
-                    "column"
-                )
-                this.current_start_column_index = this.current_start_column_index + this.offset
-                this.current_end_column_index = this.current_end_column_index + this.offset
-            }
-        }
-    }
-    //----------------------------------------
 }
 
 Sheet.propTypes = {

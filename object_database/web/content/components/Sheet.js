@@ -51,8 +51,10 @@ class Sheet extends Component {
         this.__updateDataAppend = this.__updateDataAppend.bind(this);
         this.__updateDataPrepend = this.__updateDataPrepend.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
+        this._handleCoordInput = this._handleCoordInput.bind(this);
         this.paginate = this.paginate.bind(this);
         this.jump_to_cell = this.jump_to_cell.bind(this);
+        this.make_header_item_zero = this.make_header_item_zero.bind(this);
         // this.handleClick = this.handleClick.bind(this);
 
         this.initializeTable();
@@ -108,9 +110,6 @@ class Sheet extends Component {
                 h("table", {class: "sheet", style: "table-layout:fixed"}, [
                     h("thead", {}, [
                         h("tr", {id: `sheet-${this.props.id}-head`}, [
-                            // NOTE: we add one more column to account for the row index
-                            // TODO potentially make this an input for this.jump_to_cell;
-                            h("th", {class: "header-item zero"}, [])
                         ])
                     ]),
                     h("tbody", {id: `sheet-${this.props.id}-body`}, rows)
@@ -118,6 +117,27 @@ class Sheet extends Component {
             ])
         );
     }
+
+    /* I am a special element that allows for sheet data navigation */
+    make_header_item_zero(){
+        let style = `max-width: ${this.props.colWidth/2}px; width: ${this.props.colWidth/2}px`
+        return h("th", {class: "header-item zero"},
+            [
+                h("input", {id: `sheet-${this.props.id}-xinput`, style: style, onchange: this._handleCoordInput}, []),
+                h("input", {id: `sheet-${this.props.id}-yinput`, style: style, onchange: this._handleCoordInput}, []),
+            ]
+        )
+    }
+
+    _handleCoordInput(){
+        // TODO this lookup doesn't have to be at the document level
+        let x = document.getElementById(`sheet-${this.props.id}-xinput`)
+        let y = document.getElementById(`sheet-${this.props.id}-yinput`)
+        if (x.value && y.value){
+            console.log(event)
+        }
+    }
+
 
     /* I generate the table header.*/
     generate_header(column_names){
@@ -253,8 +273,8 @@ class Sheet extends Component {
         console.log("updating data for sheet: " + this.props.id)
         // console.log(dataInfo.data);
         // make sure the data is not empty
-        let body = document.getElementById(`sheet-${this.props.id}-body`)
-        let head = document.getElementById(`sheet-${this.props.id}-head`)
+        let body = document.getElementById(`sheet-${this.props.id}-body`);
+        let head = document.getElementById(`sheet-${this.props.id}-head`);
         if (dataInfo.data && dataInfo.data.length){
             if (dataInfo.action === "replace") {
                 while(body.firstChild){
@@ -263,9 +283,9 @@ class Sheet extends Component {
                 while(head.firstChild){
                     head.firstChild.remove()
                 }
-                // recall we always keep the column 0 element
+                // NOTE: we add one more column to account for the row index
                 projector.append(head, () => {
-                    return h("th", {class: "header-item zero"}, [])
+                    return this.make_header_item_zero();
                 })
                 this.generate_rows(dataInfo.data).map((row) => {
                     projector.append(body, () => {return row})

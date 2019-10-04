@@ -298,13 +298,22 @@ class Sheet extends Component {
      */
     _updateData(dataInfo, projector) {
         console.log("updating data for sheet: " + this.props.id)
-        console.log(dataInfo.data);
+        // console.log(dataInfo.data);
         // make sure the data is not empty
         let body = document.getElementById(`sheet-${this.props.id}-body`)
         let head = document.getElementById(`sheet-${this.props.id}-head`)
         if (dataInfo.data && dataInfo.data.length){
             if (dataInfo.action === "replace") {
-                body.firstChild.remove()
+                while(body.firstChild){
+                    body.firstChild.remove()
+                }
+                while(head.firstChild){
+                    head.firstChild.remove()
+                }
+                // recall we always keep the column 0 element
+                projector.append(head, () => {
+                    return h("th", {class: "header-item zero"}, [])
+                })
                 this.generate_rows(dataInfo.data).map((row) => {
                     projector.append(body, () => {return row})
                 })
@@ -315,7 +324,7 @@ class Sheet extends Component {
             } else if (dataInfo.action === "prepend") {
                 if (dataInfo.axis === "row") {
                     // note we pop off from the end the same number of rows as we prepend
-                    for (let i = 0; i < this.offset; i++){
+                    for (let i = 0; i < dataInfo.data.length; i++){
                           body.lastChild.remove();
                     }
                     let first_row = body.firstChild;
@@ -332,7 +341,7 @@ class Sheet extends Component {
                     for (let r_index = 0; r_index < body.children.length; r_index++){
                         let row = body.children[r_index];
                         // Don't forget we keep the index element (firstChild)
-                        for (let i = 0; i < this.offset ; i++){
+                        for (let i = 0; i < dataInfo.column_names.length ; i++){
                               row.lastChild.remove();
                         }
                         let data_row = dataInfo.data[r_index];
@@ -352,7 +361,7 @@ class Sheet extends Component {
                         // recall we skip the first row item which is the index
                         for (let c_index = 1; c_index < data_row.length; c_index++){
                             // TODO check that indeces match up
-                            let item = data_row[c_index];
+                            let item = data_row[data_row.length - c_index];
                             let cell = new SheetCell(
                             {
                                 id: this.props.id, data: item, width: this.props.colWidth
@@ -362,7 +371,7 @@ class Sheet extends Component {
                         }
                     }
                     // now the columns
-                    for (let i = 0; i < this.offset; i++){
+                    for (let i = 0; i < dataInfo.column_names.length; i++){
                           head.lastChild.remove();
                     }
                     let first_column = head.children[1]; // NOTE: this first element is a placehold
@@ -373,7 +382,7 @@ class Sheet extends Component {
             } else if (dataInfo.action === "append") {
                 if (dataInfo.axis === "row") {
                     // note we pop off from the top the same number of rows as we append
-                    for (let i = 0; i < this.offset; i++){
+                    for (let i = 0; i < dataInfo.data.length; i++){
                           body.firstChild.remove();
                     }
                     this.generate_rows(dataInfo.data).map((row) => {
@@ -389,7 +398,7 @@ class Sheet extends Component {
                     for (let r_index = 0; r_index < body.children.length; r_index++){
                         let row = body.children[r_index];
                         // Don't forget we keep the index element (firstChild)
-                        for (let c_index = 1; c_index < this.offset + 1; c_index++){
+                        for (let c_index = 1; c_index < dataInfo.column_names.length + 1; c_index++){
                               row.children[c_index].remove();
                         }
                         let data_row = dataInfo.data[r_index];
@@ -402,8 +411,8 @@ class Sheet extends Component {
                         // check that row indices match up
                         if (row.children[0].textContent != data_row[0]){
                             throw (
-                                `Sheet row index ${row.children[0].textContent} does not match incoming
-                                row index ${data_row[0]}`
+                                `Sheet row index ${row.children[0].textContent} does not match incoming ` +
+                                `row index ${data_row[0]}`
                             )
                         }
                         // recall we skip the first row item which is the index
@@ -419,7 +428,7 @@ class Sheet extends Component {
                         }
                     }
                     // now update the header
-                    for (let c_index = 1; c_index < this.offset + 1; c_index++){
+                    for (let c_index = 1; c_index < dataInfo.column_names.length + 1; c_index++){
                         head.children[c_index].remove();
                     }
                     this.generate_header(dataInfo.column_names).map((col) => {

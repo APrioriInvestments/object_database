@@ -50,7 +50,7 @@ class SplitView extends Component {
         // denote the direction
         let classes = ["cell", "split-view"];
         let directionClass = "split-view-row";
-        if(this.props.extraData.split == "horizontal"){
+        if(this.props.split == "horizontal"){
             directionClass = "split-view-column";
         }
         classes.push(directionClass);
@@ -58,7 +58,7 @@ class SplitView extends Component {
     }
 
     makeChildStyle(index){
-        let proportion = this.props.extraData.proportions[index];
+        let proportion = this.props.proportions[index];
         if(typeof(proportion) == 'string'){
             return `width:${proportion};`;
         } else {

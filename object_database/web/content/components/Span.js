@@ -18,7 +18,7 @@ class Span extends Component {
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Span",
                 class: "cell"
-            }, [this.props.extraData.text])
+            }, [this.props.text])
         );
     }
 }

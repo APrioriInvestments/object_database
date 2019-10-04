@@ -16,7 +16,7 @@ class LoadContentsFromUrl extends Component {
                 id: this.props.id,
                 "data-cell-id": this.props.id,
                 "data-cell-type": "LoadContentsFromUrl",
-            }, [h('div', {id: this.props.extraData['loadTargetId']}, [])]
+            }, [h('div', {id: this.props['loadTargetId']}, [])]
             )
         );
     }

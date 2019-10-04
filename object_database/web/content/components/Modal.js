@@ -6,17 +6,6 @@ import {Component} from './Component';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * Modal has the following single replacements:
- * *`title`
- * *`message`
- * And has the following enumerated
- * replacements
- * * `button`
- */
-
-/**
  * About Named Children
  * --------------------
  * `title` (single) - A Cell containing the title
@@ -65,37 +54,20 @@ class Modal extends Component {
     }
 
     makeFooter(){
-        if(this.usesReplacements){
-            return this.getReplacementElementsFor('button');
-        } else {
-            return this.renderChildrenNamed('buttons');
-        }
+        return this.renderChildrenNamed('buttons');
     }
 
     makeBody(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('message');
-        } else {
-            return this.renderChildNamed('message');
-        }
+        return this.renderChildNamed('message');
     }
 
     makeHeader(){
         var title = null;
-        if(this.usesReplacements){
-            title = this.getReplacementElementFor('title');
-            if(title){
-                return h('h5', {class: "modal-title", id: `${this.props.id}-modalTitle`}, [
-                    title
-                ]);
-            }
-        } else {
-            title = this.renderChildNamed('title');
-            if(title){
-                return h('h5', {class: "modal-title", id: `${this.props.id}-modalTitle`}, [
-                    title
-                ]);
-            }
+        title = this.renderChildNamed('title');
+        if(title){
+            return h('h5', {class: "modal-title", id: `${this.props.id}-modalTitle`}, [
+                title
+            ]);
         }
         return null;
     }

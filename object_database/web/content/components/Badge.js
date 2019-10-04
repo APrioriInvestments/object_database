@@ -36,11 +36,7 @@ class Badge extends Component {
     }
 
     makeInner(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('child');
-        } else {
-            return this.renderChildNamed('inner');
-        }
+        return this.renderChildNamed('inner');
     }
 }
 

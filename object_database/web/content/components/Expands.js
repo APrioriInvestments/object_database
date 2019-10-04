@@ -14,16 +14,6 @@
 import {Component} from './Component';
 import {h} from 'maquette';
 
-
-/**
- * About Replacements
- * ------------------
- * This component has two
- * regular replacements:
- * * `icon`
- * * `child`
- */
-
 /**
  * About Named Children
  * --------------------
@@ -63,19 +53,11 @@ class Expands extends Component {
     }
 
     makeContent(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('child');
-        } else {
-            return this.renderChildNamed('content');
-        }
+        return this.renderChildNamed('content');
     }
 
     makeIcon(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('icon');
-        } else {
-            return this.renderChildNamed('icon');
-        }
+        return this.renderChildNamed('icon');
     }
 
     _getEvent(eventName) {

@@ -6,16 +6,6 @@ import {Component} from './Component';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * This component has three separate
- * enumerated replacements:
- * * `left`
- * * `right`
- * * `center`
- */
-
-/**
  * About Named Children
  * --------------------
  * `leftItems` (array) - The items that will be on the left
@@ -51,7 +41,7 @@ class HeaderBar extends Component {
 
     makeLeft(){
         let innerElements = [];
-        if(this.replacements.hasReplacement('left') || this.props.namedChildren.leftItems){
+        if(this.props.namedChildren.leftItems){
             innerElements = this.makeElements('left');
         }
         return (
@@ -66,7 +56,7 @@ class HeaderBar extends Component {
 
     makeCenter(){
         let innerElements = [];
-        if(this.replacements.hasReplacement('center') || this.props.namedChildren.centerItems){
+        if(this.props.namedChildren.centerItems){
             innerElements = this.makeElements('center');
         }
         return (
@@ -81,7 +71,7 @@ class HeaderBar extends Component {
 
     makeRight(){
         let innerElements = [];
-        if(this.replacements.hasReplacement('right') || this.props.namedChildren.rightItems){
+        if(this.props.namedChildren.rightItems){
             innerElements = this.makeElements('right');
         }
         return (
@@ -95,19 +85,11 @@ class HeaderBar extends Component {
     }
 
     makeElements(position){
-        if(this.usesReplacements){
-            return this.getReplacementElementsFor(position).map(element => {
-                return (
-                    h('span', {class: "flex-item px-3"}, [element])
-                );
-            });
-        } else {
-            return this.renderChildrenNamed(`${position}Items`).map(element => {
-                return (
-                    h('span', {class: "flex-item px-3"}, [element])
-                );
-            });
-        }
+        return this.renderChildrenNamed(`${position}Items`).map(element => {
+            return (
+                h('span', {class: "flex-item px-3"}, [element])
+            );
+        });
     }
 }
 

@@ -6,15 +6,6 @@ import {Component} from './Component';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * This component contains the following
- * regular replacements:
- * * `chart-updater`
- * * `error`
- */
-
-/**
  * About Named Children
  * --------------------
  * `chartUpdater` (single) - The Updater cell
@@ -50,19 +41,11 @@ class Plot extends Component {
     }
 
     makeChartUpdater(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('chart-updater');
-        } else {
-            return this.renderChildNamed('chartUpdater');
-        }
+        return this.renderChildNamed('chartUpdater');
     }
 
     makeError(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('error');
-        } else {
-            return this.renderChildNamed('error');
-        }
+        return this.renderChildNamed('error');
     }
 
     setupPlot(){

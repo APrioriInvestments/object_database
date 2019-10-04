@@ -11,14 +11,9 @@
  * of global event listeners etc associated
  * with resizing and dragging items.
  */
-
-/**
- * About Replacements
- * ---------------------
- * This component has two regular replacements:
- * * `first` - The first cell in the two part splitview
- * * `second` - The second cell in the two part splitview
- */
+import {Component} from './Component';
+import {h} from 'maquette';
+import Split from 'split.js';
 
 /**
  * About Named Children
@@ -26,10 +21,6 @@
  * `first` (single) - The first cell to show in the view
  * `second` (single) - The second cell to show in the view
  */
-import {Component} from './Component';
-import {h} from 'maquette';
-import Split from 'split.js';
-
 class ResizablePanel extends Component {
     constructor(props, ...args){
         super(props, ...args);
@@ -64,12 +55,7 @@ class ResizablePanel extends Component {
     }
 
     makeFirstChild(){
-        let inner = null;
-        if(this.usesReplacements){
-            inner = this.getReplacementElementFor('first');
-        } else {
-            inner = this.renderChildNamed('first');
-        }
+        let inner = this.renderChildNamed('first');
         return (
             h('div', {
                 class: 'resizable-panel-item',
@@ -79,12 +65,7 @@ class ResizablePanel extends Component {
     }
 
     makeSecondChild(){
-        let inner = null;
-        if(this.usesReplacements){
-            inner = this.getReplacementElementFor('second');
-        } else {
-            inner = this.renderChildNamed('second');
-        }
+        let inner = this.renderChildNamed('second');
         // Our panel items must be uniquely identifiable in order to properly insert
         // the resize splitter. See the .afterCreate().
         return (

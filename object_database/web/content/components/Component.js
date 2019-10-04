@@ -18,9 +18,6 @@ class Component {
         this.isComponent = true;
         this._updateProps(props);
 
-        // Replacements handling
-        this.replacements = new ReplacementsHandler(replacements);
-
         // Whether or not the the component
         // is a Subscribed. We do this
         // because Subscribed is a proxy
@@ -47,8 +44,6 @@ class Component {
 
         // Bind context to methods
         this.toString = this.toString.bind(this);
-        this.getReplacementElementFor = this.getReplacementElementFor.bind(this);
-        this.getReplacementElementsFor = this.getReplacementElementsFor.bind(this);
         this.getDOMElement = this.getDOMElement.bind(this);
         this.componentDidLoad = this.componentDidLoad.bind(this);
         this.componentDidUpdate = this.componentDidUpdate.bind(this);
@@ -153,18 +148,6 @@ class Component {
      * See `Subscribed` for an example of
      * an alternative override/use.
      * I am consumed by updates in the handler.
-     */
-    getDOMElement(){
-        return document.getElementById(this.props.id);
-    }
-
-    /**
-     * Responds with a hyperscript object
-     * that represents a div that is formatted
-     * already for the regular replacement.
-     * This only works for regular type replacements.
-     * For enumerated replacements, use
-     * #getReplacementElementsFor()
      */
     getDOMElement(){
         return document.getElementById(this.props.id);
@@ -324,17 +307,7 @@ class Component {
      * based on an incoming object
      */
     _updateData(incomingData, projector){
-    }
 
-    /**
-     * Updates the mapped replacement keys internal
-     * object for the component.
-     * TODO: Remove this internal lifecycle method
-     * when refactoring away from the replacement
-     * structure
-     */
-    _updateReplacements(replacementKeys){
-        this.replacements = new ReplacementsHandler(replacementKeys);
     }
 
     /**

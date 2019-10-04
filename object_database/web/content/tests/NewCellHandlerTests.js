@@ -651,12 +651,25 @@ describe("Sheet and Update Data Tests", () => {
         handler.receive(updateMessage);
         let stored = handler.activeComponents[child.id];
         assert.exists(stored);
+        let sheet = document.getElementById(simpleSheet.id);
+        assert.exists(sheet);
+        let head = document.getElementById(`sheet-${simpleSheet.id}-head`);
+        assert.exists(head);
+        let body = document.getElementById(`sheet-${simpleSheet.id}-body`);
+        assert.exists(body);
+        assert.equal(body.children.length, 0);
+        assert.equal(head.children.length, 1); // recall we always have the placeholder, column 0
     });
     it("Loads initial data into a Sheet component", () => {
-        let stored = handler.activeComponents[simpleSheet.id];
-        assert.exists(stored);
-        assert.equal(stored.current_data, null);
-        assert.equal(stored.column_names, null);
+        let sheet = document.getElementById(simpleSheet.id);
+        assert.exists(sheet);
+        let head = document.getElementById(`sheet-${simpleSheet.id}-head`);
+        assert.exists(head);
+        let body = document.getElementById(`sheet-${simpleSheet.id}-body`);
+        assert.exists(body);
+        assert.equal(body.children.length, 0);
+        assert.equal(head.children.length, 1); // recall we always have the placeholder, column 0
+        // assert.equal(stored.column_names, null);
         column_names = ["col1", "col2", "col3"],
         data = [
             ["index1", 1, 2, 3],
@@ -673,11 +686,45 @@ describe("Sheet and Update Data Tests", () => {
             }
         }
         handler.receive(updateMessage);
-        assert.equal(stored.current_data.toString(), data.toString());
-        assert.equal(stored.column_names.toString(), column_names.toString());
+        assert.equal(body.children.length, data.length);
+        assert.equal(head.children.length, column_names.length + 1); // recall we always have the placeholder, column 0
+    });
+    it("Replacing data in a Sheet component", () => {
+        let sheet = document.getElementById(simpleSheet.id);
+        assert.exists(sheet);
+        let head = document.getElementById(`sheet-${simpleSheet.id}-head`);
+        assert.exists(head);
+        let body = document.getElementById(`sheet-${simpleSheet.id}-body`);
+        assert.exists(body);
+        column_names = ["col1", "col2", "col3"],
+        data = [
+            ["index1", 1, 2, 3],
+            ["index2", 2, 3, 4],
+            ["index3", 3, 4, 5],
+            ["index4", 2, 3, 4],
+            ["index5", 3, 4, 5],
+            ["index6", 4, 5, 6],
+        ]
+        let updateMessage = {
+            id: simpleSheet.id,
+            type: "#cellDataUpdated",
+            dataInfo : {
+                action: "replace",
+                column_names : column_names,
+                data : data
+            }
+        }
+        handler.receive(updateMessage);
+        assert.equal(body.children.length, data.length);
+        assert.equal(head.children.length, column_names.length + 1); // recall we always have the placeholder, column 0
     });
     it("Row append in a Sheet component", () => {
-        let stored = handler.activeComponents[simpleSheet.id];
+        let sheet = document.getElementById(simpleSheet.id);
+        assert.exists(sheet);
+        let head = document.getElementById(`sheet-${simpleSheet.id}-head`);
+        assert.exists(head);
+        let body = document.getElementById(`sheet-${simpleSheet.id}-body`);
+        assert.exists(body);
         column_names = ["col1", "col2", "col3"]
         let data = [
             ["index1", 1, 2, 3],
@@ -701,16 +748,6 @@ describe("Sheet and Update Data Tests", () => {
             ["index7", 4, 5, 6],
             ["index8", 4, 5, 6],
         ]
-        // not here we are append and poping rows
-        let test_data = [
-            ["index3", 3, 4, 5],
-            ["index4", 2, 3, 4],
-            ["index5", 3, 4, 5],
-            ["index6", 4, 5, 6],
-            ["index7", 4, 5, 6],
-            ["index8", 4, 5, 6],
-        ]
-
         updateMessage = {
             id: simpleSheet.id,
             type: "#cellDataUpdated",
@@ -721,11 +758,18 @@ describe("Sheet and Update Data Tests", () => {
             }
         }
         handler.receive(updateMessage);
-        assert.equal(stored.current_data.toString(), test_data.toString());
-        assert.equal(stored.column_names.toString(), column_names.toString());
+        assert.equal(body.children.length, data.length); // recall the total data length is stable
+        assert.equal(head.children.length, column_names.length + 1); // recall we always have the placeholder, column 0
+        assert.equal(body.firstChild.firstChild.textContent, data[new_data.length][0])
+        assert.equal(body.lastChild.firstChild.textContent, new_data[1][0])
     });
     it("Row prepend in a Sheet component", () => {
-        let stored = handler.activeComponents[simpleSheet.id];
+        let sheet = document.getElementById(simpleSheet.id);
+        assert.exists(sheet);
+        let head = document.getElementById(`sheet-${simpleSheet.id}-head`);
+        assert.exists(head);
+        let body = document.getElementById(`sheet-${simpleSheet.id}-body`);
+        assert.exists(body);
         column_names = ["col1", "col2", "col3"]
         let data = [
             ["index3", 3, 4, 5],
@@ -748,15 +792,6 @@ describe("Sheet and Update Data Tests", () => {
         let new_data = [
             ["index1", 1, 2, 3],
             ["index2", 2, 3, 4],
-        ]
-        // note here we are appending and poping rows
-        let test_data = [
-            ["index1", 1, 2, 3],
-            ["index2", 2, 3, 4],
-            ["index3", 3, 4, 5],
-            ["index4", 2, 3, 4],
-            ["index5", 3, 4, 5],
-            ["index6", 4, 5, 6],
         ]
 
         updateMessage = {
@@ -769,11 +804,22 @@ describe("Sheet and Update Data Tests", () => {
             }
         }
         handler.receive(updateMessage);
-        assert.equal(stored.current_data.toString(), test_data.toString());
-        assert.equal(stored.column_names.toString(), column_names.toString());
+        console.log("new")
+        for (let i  = 0; i < body.children.length; i++){
+            console.log(body.children[i].firstChild.textContent);
+        }
+        assert.equal(body.children.length, data.length); // recall the total data length is stable
+        assert.equal(head.children.length, column_names.length + 1); // recall we always have the placeholder, column 0
+        assert.equal(body.firstChild.firstChild.textContent, new_data[0][0])
+        assert.equal(body.lastChild.firstChild.textContent, data[data.length - new_data.length -1][0])
     });
     it("Column prepend in a Sheet component", () => {
-        let stored = handler.activeComponents[simpleSheet.id];
+        let sheet = document.getElementById(simpleSheet.id);
+        assert.exists(sheet);
+        let head = document.getElementById(`sheet-${simpleSheet.id}-head`);
+        assert.exists(head);
+        let body = document.getElementById(`sheet-${simpleSheet.id}-body`);
+        assert.exists(body);
         column_names = ["col3", "col4", "col5"]
         let data = [
             ["index1", 1, 2, 3],
@@ -792,18 +838,10 @@ describe("Sheet and Update Data Tests", () => {
         handler.receive(updateMessage);
         new_column_names = ["col1", "col2"]
         let new_data = [
-            ['index1', 1, 2],
-            ['index2', 1, 2],
-            ['index3', 1, 2],
+            ['index1', 'a11', 'a21'],
+            ['index2', 'b21', 'b22'],
+            ['index3', 'c31', 'c23'],
         ]
-        // note here we are appending and poping columns
-        let test_column_names = ["col1", "col2", "col3"]
-        let test_data = [
-            ["index1", 1, 2, 1],
-            ["index2", 1, 2, 2],
-            ["index3", 1, 2, 3],
-        ]
-
         updateMessage = {
             id: simpleSheet.id,
             type: "#cellDataUpdated",
@@ -815,11 +853,20 @@ describe("Sheet and Update Data Tests", () => {
             }
         }
         handler.receive(updateMessage);
-        assert.equal(stored.current_data.toString(), test_data.toString());
-        assert.equal(stored.column_names.toString(), test_column_names.toString());
+        assert.equal(body.children.length, data.length); // recall the total data length is stable
+        assert.equal(head.children.length, column_names.length + 1); // recall we always have the placeholder, column 0
+        assert.equal(head.children[1].textContent, new_column_names[0])
+        assert.equal(body.firstChild.children[1].textContent, new_data[0][1])
+        assert.equal(head.lastChild.textContent, column_names[column_names.length - new_column_names.length - 1])
+        assert.equal(body.firstChild.lastChild.textContent, data[0][data.length - new_data.length + 1])
     });
     it("Column append in a Sheet component", () => {
-        let stored = handler.activeComponents[simpleSheet.id];
+        let sheet = document.getElementById(simpleSheet.id);
+        assert.exists(sheet);
+        let head = document.getElementById(`sheet-${simpleSheet.id}-head`);
+        assert.exists(head);
+        let body = document.getElementById(`sheet-${simpleSheet.id}-body`);
+        assert.exists(body);
         column_names = ["col1", "col2", "col3"]
         let data = [
             ["index1", 1, 2, 3],
@@ -842,14 +889,6 @@ describe("Sheet and Update Data Tests", () => {
             ['index2', 1, 2],
             ['index3', 1, 2],
         ]
-        // note here we are appending and poping columns
-        let test_column_names = ["col3", "col4", "col5"]
-        let test_data = [
-            ["index1", 3, 1, 2],
-            ["index2", 4, 1, 2],
-            ["index3", 5, 1, 2],
-        ]
-
         updateMessage = {
             id: simpleSheet.id,
             type: "#cellDataUpdated",
@@ -861,11 +900,20 @@ describe("Sheet and Update Data Tests", () => {
             }
         }
         handler.receive(updateMessage);
-        assert.equal(stored.current_data.toString(), test_data.toString());
-        assert.equal(stored.column_names.toString(), test_column_names.toString());
+        assert.equal(body.children.length, data.length); // recall the total data length is stable
+        assert.equal(head.children.length, column_names.length + 1); // recall we always have the placeholder, column 0
+        assert.equal(head.lastChild.textContent, new_column_names[new_column_names.length - 1])
+        assert.equal(body.firstChild.lastChild.textContent, new_data[0][new_data[0].length - 1])
+        assert.equal(head.children[1].textContent, column_names[new_column_names.length - 1])
+        assert.equal(body.firstChild.children[1].textContent, data[0][new_data.length - 1])
     });
     it("Column append row number mismatch fail in a Sheet component", () => {
-        let stored = handler.activeComponents[simpleSheet.id];
+        let sheet = document.getElementById(simpleSheet.id);
+        assert.exists(sheet);
+        let head = document.getElementById(`sheet-${simpleSheet.id}-head`);
+        assert.exists(head);
+        let body = document.getElementById(`sheet-${simpleSheet.id}-body`);
+        assert.exists(body);
         column_names = ["col1", "col2", "col3"]
         let data = [
             ["index1", 1, 2, 3],
@@ -900,11 +948,16 @@ describe("Sheet and Update Data Tests", () => {
         try {
             handler.receive(updateMessage);
         } catch(e) {
-            assert.equal(e, "Incoming data does not match row number");
+            assert.equal(e, "Incoming number of rows don't match current sheet");
         }
     });
     it("Column append row index mismatch fail in a Sheet component", () => {
-        let stored = handler.activeComponents[simpleSheet.id];
+        let sheet = document.getElementById(simpleSheet.id);
+        assert.exists(sheet);
+        let head = document.getElementById(`sheet-${simpleSheet.id}-head`);
+        assert.exists(head);
+        let body = document.getElementById(`sheet-${simpleSheet.id}-body`);
+        assert.exists(body);
         column_names = ["col1", "col2", "col3"]
         let data = [
             ["index1", 1, 2, 3],
@@ -940,7 +993,7 @@ describe("Sheet and Update Data Tests", () => {
         try {
             handler.receive(updateMessage);
         } catch(e) {
-            assert.equal(e, "row index index3 does not match incoming row index BAD_INDEX");
+            assert.equal(e, "Sheet row index index3 does not match incoming row index BAD_INDEX");
         }
     });
 });

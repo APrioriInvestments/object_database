@@ -3,7 +3,6 @@
  * Should be extended by other
  * Cell classes on JS side.
  */
-import {ReplacementsHandler} from './util/ReplacementsHandler';
 import {KeyListener} from './util/KeyListener';
 import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
@@ -18,9 +17,6 @@ class Component {
     constructor(props = {}, replacements = []){
         this.isComponent = true;
         this._updateProps(props);
-
-        // Replacements handling
-        this.replacements = new ReplacementsHandler(replacements);
 
         // Whether or not the the component
         // is a Subscribed. We do this
@@ -48,8 +44,6 @@ class Component {
 
         // Bind context to methods
         this.toString = this.toString.bind(this);
-        this.getReplacementElementFor = this.getReplacementElementFor.bind(this);
-        this.getReplacementElementsFor = this.getReplacementElementsFor.bind(this);
         this.getDOMElement = this.getDOMElement.bind(this);
         this.componentDidLoad = this.componentDidLoad.bind(this);
         this.componentDidUpdate = this.componentDidUpdate.bind(this);
@@ -157,42 +151,6 @@ class Component {
      */
     getDOMElement(){
         return document.getElementById(this.props.id);
-    }
-
-    /**
-     * Responds with a hyperscript object
-     * that represents a div that is formatted
-     * already for the regular replacement.
-     * This only works for regular type replacements.
-     * For enumerated replacements, use
-     * #getReplacementElementsFor()
-     */
-    getReplacementElementFor(replacementName){
-        let replacement = this.replacements.getReplacementFor(replacementName);
-        if(replacement){
-            let newId = `${this.props.id}_${replacement}`;
-            return h('div', {id: newId, key: newId}, []);
-        }
-        return null;
-    }
-
-    /**
-     * Respond with an array of hyperscript
-     * objects that are divs with ids that match
-     * replacement string ids for the kind of
-     * replacement list that is enumerated,
-     * ie `____button_1`, `____button_2__` etc.
-     */
-    getReplacementElementsFor(replacementName){
-        if(!this.replacements.hasReplacement(replacementName)){
-            return [];
-        }
-        return this.replacements.mapReplacementsFor(replacementName, replacement => {
-            let newId = `${this.props.id}_${replacement}`;
-            return (
-                h('div', {id: newId, key: newId})
-            );
-        });
     }
 
     /**
@@ -349,17 +307,7 @@ class Component {
      * based on an incoming object
      */
     _updateData(incomingData, projector){
-    }
 
-    /**
-     * Updates the mapped replacement keys internal
-     * object for the component.
-     * TODO: Remove this internal lifecycle method
-     * when refactoring away from the replacement
-     * structure
-     */
-    _updateReplacements(replacementKeys){
-        this.replacements = new ReplacementsHandler(replacementKeys);
     }
 
     /**

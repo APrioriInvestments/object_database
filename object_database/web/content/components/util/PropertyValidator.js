@@ -31,7 +31,72 @@ const PropTypes = {
         }.bind(this);
     },
 
+    arrayOf: function(typeValidator){
+        return function(componentName, propName, propValue, isRequired){
+            // First, validate that the current propValue
+            // is an Array to begin with
+            let arrValidator = this.getArrayValidator();
+            if(!arrValidator(componentName, propName, propValue, isRequired, true)){
+                return false;
+            }
+            for(let i = 0; i < propValue.length; i++){
+                let item = propValue[i];
+                let isValid = typeValidator(componentName, propName, item, isRequired, true);
+                if(!isValid){
+                    let message = `${componentName} >> ${propName} must be an array of type ${typeValidator.constructor.name}`;
+                    report(message, this.errorMode, this.silentMode);
+                    return false;
+                }
+            }
+            return true;
+        }.bind(this);
+    },
+
+    getArrayValidator(){
+        // Here we construct a validator function for Arrays.
+        // Because Arrays are typeof([]) == 'object', we need
+        // to implement this as a separate function using
+        // Javascript's Array.isArray() method.
+        let typeStr = 'array';
+        return function(componentName, propName, propValue, isRequired, inCompound = false){
+            if(inCompound){
+                // In this case we are in a 'compound' (using `oneOf` or similar)
+                // validator and normal reporting should be silenced, with
+                // the exception of required props.
+                if(isRequired && (propValue == undefined || propValue == null)){
+                    let message = `${componentName} >> ${propName} is a required prop, but was passed as ${propValue}!`;
+                    report(message, this.errorMode, this.silentMode);
+                    return false;
+                } else if(!isRequired && (propValue == undefined || propValue == null)){
+                    return true;
+                }
+                return Array.isArray(propValue);
+            } else {
+                // Otherwise this is a normal propType check.
+                if(Array.isArray(propValue)){
+                    return true;
+                } else if(!isRequired && (propValue == undefined || propValue == null)){
+                    return true;
+                } else if(isRequired){
+                    let message = `${componentName} >> ${propName} is a required prop, but as passed as ${propValue}!`;
+                    report(message, this.errorMode, this.silentMode);
+                    return false;
+                }
+                let message = `${componentName} >> ${propName} must be of type ${typeStr}!`;
+                report(message, this.errorMode, this.silentMode);
+                return false;
+            }
+        };
+    },
+
     getValidatorForType(typeStr){
+        // First, we handle a typeStr of 'array'
+        // in a separate function, since Array checking
+        // is bizarre in Javascript
+        if(typeStr == 'array'){
+            return this.getArrayValidator();
+        }
+
         return function(componentName, propName, propValue, isRequired, inCompound = false){
             // We are 'in a compound validation' when the individual
             // PropType checkers (ie func, number, string, etc) are
@@ -86,6 +151,10 @@ const PropTypes = {
 
     get func(){
         return this.getValidatorForType('function').bind(this);
+    },
+
+    get array(){
+        return this.getValidatorForType('array').bind(this);
     },
 
     validate: function(componentName, props, propInfo){
@@ -162,78 +231,3 @@ const PropTypes = {
 export {
     PropTypes
 };
-
-
-/***
-number: function(componentName, propName, propValue, inCompound = false){
-        if(inCompound == false){
-            if(typeof(propValue) == 'number'){
-                return true;
-            } else {
-                let message = `${componentName} >> ${propName} must be of type number!`;
-                report(message, this.errorMode, this.silentMode);
-                return false;
-            }
-        } else {
-            return typeof(propValue) == 'number';
-        }
-
-    }.bind(this),
-
-    string: function(componentName, propName, propValue, inCompound = false){
-        if(inCompound == false){
-            if(typeof(propValue) == 'string'){
-                return true;
-            } else {
-                let message = `${componentName} >> ${propName} must be of type string!`;
-                report(message, this.errorMode, this.silentMode);
-                return false;
-            }
-        } else {
-            return typeof(propValue) == 'string';
-        }
-    }.bind(this),
-
-    boolean: function(componentName, propName, propValue, inCompound = false){
-        if(inCompound == false){
-            if(typeof(propValue) == 'boolean'){
-                return true;
-            } else {
-                let message = `${componentName} >> ${propName} must be of type boolean!`;
-                report(message, this.errorMode, this.silentMode);
-                return false;
-            }
-        } else {
-            return typeof(propValue) == 'boolean';
-        }
-    }.bind(this),
-
-    object: function(componentName, propName, propValue, inCompound = false){
-        if(inCompound == false){
-            if(typeof(propValue) == 'object'){
-                return true;
-            } else {
-                let message = `${componentName} >> ${propName} must be of type object!`;
-                report(message, this.errorMode, this.silentMode);
-                return false;
-            }
-        } else {
-            return typeof(propValue) == 'object';
-        }
-    }.bind(this),
-
-    func: function(componentName, propName, propValue, inCompound = false){
-        if(inCompound == false){
-            if(typeof(propValue) == 'function'){
-                return true;
-            } else {
-                let message = `${componentName} >> ${propName} must be of type function!`;
-                report(message, this.errorMode, this.silentMode);
-                return false;
-            }
-        } else {
-            return typeof(propValue) == 'function';
-        }
-    }.bind(this),
-
-***/

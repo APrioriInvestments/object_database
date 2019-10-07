@@ -2,15 +2,8 @@
  * Clickable Cell Component
  */
 import {Component} from './Component';
+import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
-
-/**
- * About Replacements
- * ------------------
- * This component has a single
- * regular replacement:
- * * `contents`
- */
 
 /**
  * About Named Children
@@ -60,5 +53,16 @@ class Clickable extends Component {
         return this.props.events[eventName];
     }
 }
+
+Clickable.propTypes = {
+    bold: {
+        description: "Whether to display label text as bold",
+        type: PropTypes.boolean
+    },
+    events: {
+        description: "A dictionary of event names to arbitrary JS code that should fire on that event",
+        type: PropTypes.object
+    }
+};
 
 export {Clickable, Clickable as default};

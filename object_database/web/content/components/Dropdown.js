@@ -3,6 +3,7 @@
  */
 
 import {Component, render} from './Component';
+import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**
@@ -66,6 +67,18 @@ class Dropdown extends Component {
     }
 }
 
+Dropdown.propTypes = {
+    targetIdentity: {
+        description: "Cell id of the target that will be sent to server when click is fired",
+        type: PropTypes.oneOf([PropTypes.number, PropTypes.string])
+    },
+
+    dropdownItemInfo: {
+        description: "A dictionary mapping index keys to actions that should be taken for each menu item when selected. Examples include 'callback' to trigger callbacks",
+        type: PropTypes.object
+    }
+};
+
 
 /**
  * A private subcomponent for each
@@ -111,5 +124,28 @@ class DropdownItem extends Component {
         }
     }
 }
+
+DropdownItem.propTypes = {
+    targetIdentity: {
+        description: "Cell id of the target that will be sent to server when click is fired",
+        type: PropTypes.oneOf([PropTypes.number, PropTypes.string])
+    },
+
+    dropdownItemInfo: {
+        description: "A dictionary mapping index keys to actions that should be taken for each menu item when selected. Examples include 'callback' to trigger callbacks",
+        type: PropTypes.object
+    },
+
+    index: {
+        description: "The index of this item in its parent Dropdown menu",
+        type: PropTypes.number,
+        isRequired: true
+    },
+
+    childSubstitute: {
+        description: "A maquette velement representing the menu item to display",
+        type: PropTypes.object
+    }
+};
 
 export {Dropdown, Dropdown as default};

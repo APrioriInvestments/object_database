@@ -3,6 +3,7 @@
  */
 
 import {Component} from './Component';
+import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**
@@ -85,13 +86,12 @@ class AsyncDropdown extends Component {
     }
 }
 
-/**
- * About Replacements
- * ------------------
- * This component has a single regular
- * replacement:
- * * `contents`
- */
+AsyncDropdown.propTypes = {
+    labelText: {
+        description: "Text for the Dropdown label",
+        type: PropTypes.string
+    }
+};
 
 /**
  * About Named Children
@@ -119,11 +119,7 @@ class AsyncDropdownContent extends Component {
     }
 
     makeContent(){
-        if(this.usesReplacements){
-            return this.getReplacementElementFor('contents');
-        } else {
-            return this.renderChildNamed('content');
-        }
+        return this.renderChildNamed('content');
     }
 }
 

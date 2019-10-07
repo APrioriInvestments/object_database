@@ -3,14 +3,8 @@
  */
 
 import {Component} from './Component';
+import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
-
-/**
- * About Replacements
- * ------------------
- * This component has one regular replacement:
- * `contents`
- */
 
 /**
  * About Named Children
@@ -62,5 +56,35 @@ class Button extends Component {
         return classes.join(" ").trim();
     }
 }
+
+Button.propTypes = {
+    active: {
+        description: "Indicates whether or not the Button is active/deactivated",
+        type: PropTypes.boolean
+    },
+    small: {
+        description: "Sets the Button to display as a small button. Defaults to false.",
+        type: PropTypes.boolean
+    },
+    style: {
+        description: "A Bootstrap name for the button style.",
+        type: PropTypes.oneOf([
+            'primary',
+            'secondary',
+            'success',
+            'danger',
+            'warning',
+            'info',
+            'light',
+            'dark',
+            'link'
+        ])
+    },
+
+    events: {
+        description: "A dictionary of event names to arbitrary JS code that should fire on that event",
+        type: PropTypes.object
+    }
+};
 
 export {Button, Button as default};

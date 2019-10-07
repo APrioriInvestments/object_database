@@ -7,15 +7,6 @@ import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * This component contains two
- * regular replacements:
- * * `contents`
- * * `header`
- */
-
-/**
  * About Named Children
  * `body` (single) - The cell to put in the body of the Card
  * `header` (single) - An optional header cell to put above

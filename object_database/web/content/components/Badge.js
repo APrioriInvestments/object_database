@@ -2,6 +2,7 @@
  * Badge Cell Component
  */
 import {Component} from './Component';
+import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**
@@ -39,5 +40,12 @@ class Badge extends Component {
         return this.renderChildNamed('inner');
     }
 }
+
+Badge.propTypes = {
+    badgeStyle: {
+        description: "The style for the Badge. Can be 'primary' or ??",
+        type: PropTypes.oneOf(['primary'])
+    }
+};
 
 export {Badge, Badge as default};

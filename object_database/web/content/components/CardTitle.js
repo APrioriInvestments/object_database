@@ -5,15 +5,6 @@
 import {Component} from './Component';
 import {h} from 'maquette';
 
-
-/**
- * About Replacements
- * ------------------
- * This component has  single regular
- * replacement:
- * * `contents`
- */
-
 /**
  * About Named Children
  * --------------------

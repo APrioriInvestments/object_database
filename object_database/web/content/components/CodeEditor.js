@@ -3,6 +3,7 @@
  */
 
 import {Component} from './Component';
+import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 class CodeEditor extends Component {
@@ -35,23 +36,23 @@ class CodeEditor extends Component {
             this.editor.session.setMode("ace/mode/python");
             this.editor.setAutoScrollEditorIntoView(true);
             this.editor.session.setUseSoftTabs(true);
-            this.editor.setValue(this.props.extraData.initialText);
+            this.editor.setValue(this.props.initialText);
 
-            if (this.props.extraData.autocomplete) {
+            if (this.props.autocomplete) {
                 this.editor.setOptions({enableBasicAutocompletion: true});
                 this.editor.setOptions({enableLiveAutocompletion: true});
             }
 
-            if (this.props.extraData.noScroll) {
+            if (this.props.noScroll) {
                 this.editor.setOption("maxLines", Infinity);
             }
 
-            if (this.props.extraData.fontSize !== undefined) {
-                this.editor.setOption("fontSize", this.props.extraData.fontSize);
+            if (this.props.fontSize !== undefined) {
+                this.editor.setOption("fontSize", this.props.fontSize);
             }
 
-            if (this.props.extraData.minLines !== undefined) {
-                this.editor.setOption("minLines", this.props.extraData.minLines);
+            if (this.props.minLines !== undefined) {
+                this.editor.setOption("minLines", this.props.minLines);
             } else {
                 this.editor.setOption("minLines", Infinity);
             }
@@ -138,7 +139,7 @@ class CodeEditor extends Component {
     }
 
     setupKeybindings() {
-        this.props.extraData.keybindings.map((kb) => {
+        this.props.keybindings.map((kb) => {
             this.editor.commands.addCommand(
                 {
                     name: 'cmd' + kb,
@@ -177,5 +178,37 @@ class CodeEditor extends Component {
         }
     }
 }
+
+CodeEditor.propTypes = {
+    keybindings: {
+        description: "An array of keys bound to the primary control key for the OS",
+        type: PropTypes.array
+    },
+
+    initialText: {
+        description: "The initial text content to show in the Ace Editor",
+        type: PropTypes.string
+    },
+
+    autocomplete: {
+        description: "Whether or not the Ace Editor should enable autocomplete mode",
+        type: PropTypes.boolean
+    },
+
+    noScroll: {
+        description: "If true, sets Ace Editor's maxLines to Infinity",
+        type: PropTypes.boolean
+    },
+
+    fontSize: {
+        description: "Set the font size for the Ace Editor",
+        type: PropTypes.oneOf([PropTypes.number, PropTypes.string])
+    },
+
+    minLines: {
+        description: "Sets the minimum number of lines in the Ace Editor",
+        type: PropTypes.number
+    }
+};
 
 export {CodeEditor, CodeEditor as default};

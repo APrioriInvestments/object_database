@@ -44,6 +44,56 @@ describe('Property Validation Tests', () => {
             assert.isFalse(PropTypes.func(null, null, false));
             assert.isFalse(PropTypes.func(null, null, {foo: () => {}}));
         });
+        it('#array validates only arrays', () => {
+            assert.isTrue(PropTypes.array(null, null, []));
+            assert.isFalse(PropTypes.array(null, null, 2));
+            assert.isFalse(PropTypes.array(null, null, 'array'));
+            assert.isFalse(PropTypes.array(null, null, false));
+            assert.isFalse(PropTypes.array(null, null, () => {return []}));
+        });
+        it('#arrayOf validates array of numbers correctly', () => {
+            let example = {
+                foo: PropTypes.arrayOf(PropTypes.number)
+            };
+            assert.isTrue(example.foo('SomeComponent', 'foo', [2]));
+            assert.isFalse(example.foo('SomeComponent', 'foo', [false]));
+            assert.isFalse(example.foo('SomeComponent', 'foo', ['hello']));
+            assert.isFalse(example.foo('SomeComponent', 'foo', [[]]));
+            assert.isFalse(example.foo('SomeComponent', 'foo', [{}]));
+        });
+        it('#arrayOf validates array of strings correctly', () => {
+            let example = {
+                foo: PropTypes.arrayOf(PropTypes.string)
+            };
+            assert.isTrue(example.foo('SomeComponent', 'foo', ['hello']));
+            assert.isFalse(example.foo('SomeComponent', 'foo', [2]));
+            assert.isFalse(example.foo('SomeComponent', 'foo', [false]));
+            assert.isFalse(example.foo('SomeComponent', 'foo', [[]]));
+            assert.isFalse(example.foo('SomeComponent', 'foo', [{}]));
+        });
+        it('#arrayOf validates array of boolean correctly', () => {
+            let example = {
+                foo: PropTypes.arrayOf(PropTypes.boolean)
+            };
+            assert.isTrue(example.foo('SomeComponent', 'foo', [false, true, false]));
+            assert.isFalse(example.foo('SomeComponent', 'foo', ['hello', 'there']));
+            assert.isFalse(example.foo('SomeComponent', 'foo', [2, 4, 10.1]));
+            assert.isFalse(example.foo('SomeComponent', 'foo', [[], [true, false]]));
+            assert.isFalse(example.foo('SomeComponent', 'foo', [{}, {foo: true}]));
+        });
+        it('#arrayOf validates array of #oneOf correctly', () => {
+            let example = {
+                foo: PropTypes.arrayOf(PropTypes.oneOf([
+                    PropTypes.number,
+                    PropTypes.func,
+                    "TEST"
+                ]))
+            };
+            assert.isTrue(example.foo('X', 'foo', [2, 3, 4]));
+            assert.isTrue(example.foo('X', 'foo', [() => {return true;}]));
+            assert.isTrue(example.foo('X', 'foo', ["TEST", 2, 3]));
+            assert.isFalse(example.foo('X', 'foo', ["TEST", true, 1, 3]));
+        });
         it('#oneOf validates PropType types correctly', () => {
             let exampleProp = {
                 foo: PropTypes.oneOf([PropTypes.number, PropTypes.string])

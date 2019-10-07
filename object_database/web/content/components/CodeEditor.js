@@ -51,8 +51,8 @@ class CodeEditor extends Component {
                 this.editor.setOption("fontSize", this.props.fontSize);
             }
 
-            if (this.props.extraData.minLines !== undefined) {
-                this.editor.setOption("minLines", this.props.extraData.minLines);
+            if (this.props.minLines !== undefined) {
+                this.editor.setOption("minLines", this.props.minLines);
             } else {
                 this.editor.setOption("minLines", Infinity);
             }
@@ -139,7 +139,7 @@ class CodeEditor extends Component {
     }
 
     setupKeybindings() {
-        this.props.extraData.keybindings.map((kb) => {
+        this.props.keybindings.map((kb) => {
             this.editor.commands.addCommand(
                 {
                     name: 'cmd' + kb,

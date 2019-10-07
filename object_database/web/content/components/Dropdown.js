@@ -3,6 +3,7 @@
  */
 
 import {Component, render} from './Component';
+import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**

@@ -1216,7 +1216,7 @@ class HorizontalSequence(Cell):
         self.updateChildren()
         if self.isFlexParent:
             self.exportData['flexParent'] = True
-        self.exportData['overflow'] = self.overflow
+        #self.exportData['overflow'] = self.overflow
         self.exportData['margin'] = self.margin
         self.exportData['wrap'] = self.wrap
 

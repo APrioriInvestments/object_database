@@ -40,6 +40,8 @@ class Component {
         // Add any extra utility properties
         this.numRenders = 0;
 
+        // Validate the incoming props
+        // on initialization
         this.validateProps();
 
         // Bind context to methods

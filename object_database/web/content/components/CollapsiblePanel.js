@@ -4,18 +4,6 @@
 import {Component} from './Component.js';
 import {h} from 'maquette';
 import {PropTypes} from './util/PropertyValidator.js';
-
-/**
- * About Replacements
- * ------------------
- * This component has two single type
- * replacements:
- * * `content`
- * * `panel`
- * Note that `panel` is only rendered
- * if the panel is expanded
- */
-
 /**
  * About Named Children
  * --------------------

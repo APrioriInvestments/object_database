@@ -6,14 +6,6 @@ import {Component} from './Component';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * This component has a single
- * regular replacement:
- * * `child`
- */
-
-/**
  * About Named Children
  * --------------------
  * `code` (single) - Code that will be rendered inside

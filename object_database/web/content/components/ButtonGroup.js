@@ -6,14 +6,6 @@ import {Component} from './Component';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * This component has a single enumerated
- * replacement:
- * * `button`
- */
-
-/**
  * About Named Children
  * --------------------
  * `buttons` (array) - The constituent button cells

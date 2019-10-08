@@ -259,3 +259,29 @@ class CellChildrenTests(unittest.TestCase):
             for inner in outer:
                 self.assertTrue(inner in children._reverseLookup)
                 self.assertEqual(children._reverseLookup[inner], 'test')
+
+    def test_remove_all(self):
+        # One dimensional child
+        zero_dm = DummyObject()
+
+        # Two dimensional child
+        one_dm = [DummyObject() for d in range(10)]
+
+        # Three dimensional child
+        two_dm = [
+            [DummyObject() for d in range(10)] for c in range(10)
+        ]
+
+        # Add the children
+        children = Children()
+        children['zero'] = zero_dm
+        children['one'] = one_dm
+        children['two'] = two_dm
+        self.assertEqual(len(children.allChildren), 111)
+        self.assertEqual(len(children.namedChildren.keys()), 3)
+
+        # Now remove all and ensure children
+        # is zeroed out
+        children.removeAll()
+        self.assertEqual(len(children.allChildren), 0)
+        self.assertEqual(len(children.namedChildren.keys()), 0)

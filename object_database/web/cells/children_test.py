@@ -224,3 +224,38 @@ class CellChildrenTests(unittest.TestCase):
         for outer in child:
             for inner in outer:
                 self.assertIsNone(inner.parent)
+
+    def test_add_reverse_lookup_zero_dm(self):
+        children = Children()
+        child = DummyObject()
+        otherChild = DummyObject()
+        children['test'] = child
+        children['other_test'] = otherChild
+        self.assertTrue(child in children._reverseLookup)
+        self.assertEqual(children._reverseLookup[child], 'test')
+        self.assertTrue(otherChild in children._reverseLookup)
+        self.assertEqual(children._reverseLookup[otherChild], 'other_test')
+
+    def test_add_reverse_lookup_one_dm(self):
+        children = Children()
+        child = [DummyObject() for d in range(5)]
+        children['test'] = child
+        other_child = [DummyObject() for d in range(6)]
+        children['other_test'] = other_child
+        for item in child:
+            self.assertTrue(item in children._reverseLookup)
+            self.assertEqual(children._reverseLookup[item], 'test')
+        for item in other_child:
+            self.assertTrue(item in children._reverseLookup)
+            self.assertEqual(children._reverseLookup[item], 'other_test')
+
+    def test_add_reverse_lookup_two_dm(self):
+        children = Children()
+        child = [
+            [DummyObject() for d in range(5)] for c in range(10)
+        ]
+        children['test'] = child
+        for outer in child:
+            for inner in outer:
+                self.assertTrue(inner in children._reverseLookup)
+                self.assertEqual(children._reverseLookup[inner], 'test')

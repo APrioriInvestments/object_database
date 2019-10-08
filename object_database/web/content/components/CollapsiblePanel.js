@@ -4,6 +4,7 @@
 import {Component} from './Component.js';
 import {h} from 'maquette';
 import {PropTypes} from './util/PropertyValidator.js';
+
 /**
  * About Named Children
  * --------------------

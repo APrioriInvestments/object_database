@@ -38,6 +38,9 @@ class Children():
     def hasChild(self, child):
         return child in self.allChildren
 
+    def hasChildNamed(self, name):
+        return name in self.namedChildren
+
     def findNameFor(self, child):
         if child in self._reverseLookup:
             return self._reverseLookup[child]

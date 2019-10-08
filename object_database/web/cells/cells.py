@@ -1078,10 +1078,7 @@ class CollapsiblePanel(Cell):
     def recalculate(self):
         expanded = self.evaluateWithDependencies(self.isExpanded)
         self.exportData['isExpanded'] = expanded
-        self.children = {
-            '____content__': self.content
-        }
-        self.namedChildren['content'] = self.content
+        self.children['content'] = self.content
         if expanded:
             self.children['panel'] = self.panel
 
@@ -1138,9 +1135,7 @@ class Sequence(Cell):
         elements = [Cell.makeCell(x) for x in elements]
 
         self.elements = elements
-        self.namedChildren['elements'] = elements
-        self.children = {"____c_%s__" %
-                         i: elements[i] for i in range(len(elements))}
+        self.children['elements'] = elements
         self.overflow = overflow
         self.margin = margin
         self.isFlexParent = False
@@ -1157,7 +1152,7 @@ class Sequence(Cell):
         self.updateChildren()
         if self.isFlexParent:
             self.exportData['flexParent'] = True
-        self.namedChildren['elements'] = self.elements
+        self.children['elements'] = self.elements
         self.exportData['margin'] = self.margin
 
     def updateChildren(self):
@@ -1171,9 +1166,7 @@ class Sequence(Cell):
             else:
                 newElements.append(childCell)
         self.elements = newElements
-        self.children = {"____c_%s__" %
-                         i: self.elements[i] for i in range(len(self.elements))}
-        self.namedChildren['elements'] = self.elements
+        self.children['elements'] = self.elements
 
     def sortsAs(self):
         if self.elements:
@@ -1216,7 +1209,6 @@ class HorizontalSequence(Cell):
         self.updateChildren()
         if self.isFlexParent:
             self.exportData['flexParent'] = True
-        #self.exportData['overflow'] = self.overflow
         self.exportData['margin'] = self.margin
         self.exportData['wrap'] = self.wrap
 
@@ -1231,10 +1223,7 @@ class HorizontalSequence(Cell):
             else:
                 newElements.append(childCell)
         self.elements = newElements
-        self.namedChildren['elements'] = self.elements
-        self.children = {}
-        for i in range(len(self.elements)):
-            self.children["____c_{}__".format(i)] = self.elements[i]
+        self.children['elements'] = self.elements
 
     def sortAs(self):
         if self.elements:
@@ -1336,8 +1325,7 @@ class Tabs(Cell):
         for i in range(len(self.headersAndChildren)):
             headerCell = _NavTab(
                 self.whichSlot, i, self._identity, self.headersAndChildren[i][0])
-            headersToAdd.append(headerCell)
-        self.children['headers'] = headersToAdd
+            self.children['headers'].append(headerCell)
 
     def onMessage(self, msgFrame):
         self.whichSlot.set(int(msgFrame['ix']))
@@ -1390,8 +1378,7 @@ class Dropdown(Cell):
         for i in range(len(self.headersAndLambdas)):
             header, onDropdown = self.headersAndLambdas[i]
             childCell = Cell.makeCell(header)
-            #self.namedChildren['dropdownItems'].append(childCell)
-            itemsToAdd.append(childCell)
+            self.namedChildren['dropdownItems'].append(childCell)
             if not isinstance(onDropdown, str):
                 self.exportData['dropdownItemInfo'][i] = 'callback'
             else:
@@ -1457,9 +1444,7 @@ class AsyncDropdown(Cell):
         if not loadingIndicatorCell:
             loadingIndicatorCell = CircleLoader()
         self.contentCell = Cell.makeCell(AsyncDropdownContent(self.slot, contentCellFunc, loadingIndicatorCell))
-        self.children = {'____contents__': Cell.makeCell(self.contentCell)}
-        self.namedChildren['content'] = Cell.makeCell(self.contentCell)
-        # self.namedChildren['loadingIndicator'] = loadingIndicatorCell
+        self.children['content'] = Cell.makeCell(self.contentCell)
 
     def onMessage(self, messageFrame):
         """On `dropdown` events sent to this
@@ -1514,12 +1499,8 @@ class AsyncDropdownContent(Cell):
         self.contentFunc = contentFunc
         self.loadingCell = loadingIndicatorCell
         self.contentCell = Subscribed(self.changeHandler)
-        self.children = {
-            '____contents__': Cell.makeCell(self.contentCell)
-        }
-        self.namedChildren = {
-            'content': Cell.makeCell(self.contentCell)
-        }
+        self.children.addFromDict({
+            'content': Cell.makeCell(self.contentCell)})
 
     def changeHandler(self):
         """If the slot is true, the
@@ -1552,8 +1533,7 @@ class Container(Cell):
         self.setContents("", child)
 
     def setContents(self, newContents, newChildren):
-        #self.namedChildren['child'] = list(newChildren.values())[0]  # Hacky!
-        self.children['child'] = Cell.makeCell(newChildren)
+        self.namedChildren['child'] = list(newChildren.values())[0]  # Hacky!
         self.markDirty()
 
 

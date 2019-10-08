@@ -1625,8 +1625,7 @@ class ContextualDisplay(Cell):
     def recalculate(self):
         with self.view():
             childCell = self.getChild()
-            self.children = {"____child__": childCell}
-            self.namedChildren['child'] = childCell
+            self.children['child'] = childCell
 
 
 class Subscribed(Cell):
@@ -1682,15 +1681,13 @@ class Subscribed(Cell):
                     self.wrapsSequence = True
                 elif isinstance(c, HorizontalSequence):
                     self.wrapsHorizSequence = True
-                self.children = {'____contents__': c}
-                self.namedChildren['content'] = c
+                self.children['content'] = c
             except SubscribeAndRetry:
                 raise
             except Exception:
                 tracebackCell = Traceback(
                     traceback.format_exc())
-                self.children = {'____contents__': tracebackCell}
-                self.namedChildren['content'] = tracebackCell
+                self.children['content'] = tracebackCell
                 self._logger.error(
                     "Subscribed inner function threw exception:\n%s", traceback.format_exc())
 
@@ -1814,13 +1811,11 @@ class SubscribedSequence(Cell):
 
             self._processChild(current_child, new_children)
 
-        self.children = {"____child_%s__" %
-                         i: new_children[i] for i in range(len(new_children))}
-        self.namedChildren['elements'] = new_children
+        self.children['elements'] = new_children
 
     def sortAs(self):
-        if len(self.namedChildren['elements']):
-            return self.namedChildren['elements'][0].sortAs()
+        if len(self.children['elements']):
+            return self.children['elements'][0].sortAs()
 
     def _processChild(self, child, children):
         """Determines whether or not to flatten nested
@@ -1836,7 +1831,7 @@ class SubscribedSequence(Cell):
             # or SubscribedSequence of some kind.
             # In this case, we need to flatten its elements.
             # Note that only matching orientations flatten.
-            children += child.namedChildren['content'].namedChildren['elements']
+            children += child.children['content'].children['elements']
         else:
             children.append(child)
 
@@ -1895,23 +1890,18 @@ class Popover(Cell):
         contentCell = Cell.makeCell(contents)
         detailCell = Cell.makeCell(detail)
         titleCell = Cell.makeCell(title)
-        self.children = {
-            '____contents__': contentCell,
-            '____detail__': detailCell,
-            '____title__': titleCell
-        }
-        self.namedChildren = {
+        self.children.addFromDict({
             'content': contentCell,
             'detail': detailCell,
             'title': titleCell
-        }
+        })
 
     def recalculate(self):
         self.exportData['width'] = self.width
 
     def sortsAs(self):
-        if '____title__' in self.children:
-            return self.children['____title__'].sortsAs()
+        if self.children.hasChildNamed('title'):
+            return self.children['title'].sortAs()
 
 
 class Grid(Cell):
@@ -1960,7 +1950,6 @@ class Grid(Cell):
 
             self._resetSubscriptionsToViewReads(v)
 
-        new_children = {}
         new_named_children = {
             'headers': [],
             'rowLabels': [],
@@ -1971,23 +1960,17 @@ class Grid(Cell):
         for col_ix, col in enumerate(self.cols):
             seen.add((None, col))
             if (None, col) in self.existingItems:
-                new_children["____header_%s__" %
-                             (col_ix)] = self.existingItems[(None, col)]
                 new_named_children['headers'].append(self.existingItems[(None, col)])
             else:
                 try:
                     headerCell = Cell.makeCell(self.headerFun(col[0]))
-                    self.existingItems[(None, col)] = \
-                        new_children["____header_%s__" % col_ix] = \
-                        headerCell
+                    self.existingItems[(None, col)] = headerCell
                     new_named_children['headers'].append(headerCell)
                 except SubscribeAndRetry:
                     raise
                 except Exception:
                     tracebackCell = Traceback(traceback.format_exc)()
-                    self.existingItems[(None, col)] = \
-                        new_children["____header_%s__" % col_ix] = \
-                        tracebackCell
+                    self.existingItems[(None, col)] = tracebackCell
                     new_named_children['headers'].append(tracebackCell)
 
         if self.rowLabelFun is not None:
@@ -1995,23 +1978,17 @@ class Grid(Cell):
                 seen.add((None, row))
                 if (row, None) in self.existingItems:
                     rowLabelCell = self.existingItems[(row, None)]
-                    new_children["____rowlabel_%s__" %
-                                 (row_ix)] = rowLabelCell
                     new_named_children['rowLabels'].append(rowLabelCell)
                 else:
                     try:
                         rowLabelCell = Cell.makeCell(self.rowLabelFun(row[0]))
-                        self.existingItems[(row, None)] = \
-                            new_children["____rowlabel_%s__" % row_ix] = \
-                            rowLabelCell
+                        self.existingItems[(row, None)] = rowLabelCell
                         new_named_children['rowLabels'].append(rowLabelCell)
                     except SubscribeAndRetry:
                         raise
                     except Exception:
                         tracebackCell = Traceback(traceback.format_exc())
-                        self.existingItems[(row, None)] = \
-                            new_children["____rowlabel_%s__" % row_ix] = \
-                            tracebackCell
+                        self.existingItems[(row, None)] = tracebackCell
                         new_named_children['rowLabels'].append(tracebackCell)
 
         seen = set()
@@ -2021,27 +1998,21 @@ class Grid(Cell):
             for col_ix, col in enumerate(self.cols):
                 seen.add((row, col))
                 if (row, col) in self.existingItems:
-                    new_children["____child_%s_%s__" % (row_ix, col_ix)] = \
-                        self.existingItems[(row, col)]
                     new_named_children_column.append(self.existingItems[(row, col)])
                 else:
                     try:
                         dataCell = Cell.makeCell(self.rendererFun(row[0], col[0]))
-                        self.existingItems[(row, col)] = \
-                            new_children["____child_%s_%s__" % (row_ix, col_ix)] = \
-                            dataCell
+                        self.existingItems[(row, col)] = dataCell
                         new_named_children_column.append(dataCell)
                     except SubscribeAndRetry:
                         raise
                     except Exception:
                         tracebackCell = Traceback(traceback.format_exc())
-                        self.existingItems[(row, col)] = \
-                            new_children["____child_%s_%s__" % (row_ix, col_ix)] = \
-                            tracebackCell
+                        self.existingItems[(row, col)] = tracebackCell
                         new_named_children_column.append(tracebackCell)
 
-        self.children = new_children
-        self.namedChildren = new_named_children
+        self.children = Children(self)
+        self.children.addFromDict(new_named_children)
 
         for i in list(self.existingItems):
             if i not in seen:
@@ -2248,7 +2219,6 @@ class Table(Cell):
 
             self._resetSubscriptionsToViewReads(v)
 
-        new_children = {}
         new_named_children = {
             'headers': [],
             'dataCells': [],
@@ -2261,23 +2231,17 @@ class Table(Cell):
         for col_ix, col in enumerate(self.cols):
             seen.add((None, col))
             if (None, col) in self.existingItems:
-                new_children["____header_%s__" %
-                             (col_ix)] = self.existingItems[(None, col)]
                 new_named_children['headers'].append(self.existingItems[(None, col)])
             else:
                 try:
                     headerCell = self.makeHeaderCell(col_ix)
-                    self.existingItems[(None, col)] = \
-                        new_children["____header_%s__" % col_ix] = \
-                        headerCell
+                    self.existingItems[(None, col)] = headerCell
                     new_named_children['headers'].append(headerCell)
                 except SubscribeAndRetry:
                     raise
                 except Exception:
                     tracebackCell = Traceback(traceback.format_exc())
-                    self.existingItems[(None, col)] = \
-                        new_children["____header_%s__" % col_ix] = \
-                        tracebackCell
+                    self.existingItems[(None, col)] = tracebackCell
                     new_named_children['headers'].append(tracebackCell)
 
         seen = set()
@@ -2287,27 +2251,21 @@ class Table(Cell):
             for col_ix, col in enumerate(self.cols):
                 seen.add((row, col))
                 if (row, col) in self.existingItems:
-                    new_children["____child_%s_%s__" % (row_ix, col_ix)] = \
-                        self.existingItems[(row, col)]
                     new_named_children_columns.append(self.existingItems[(row, col)])
                 else:
                     try:
                         dataCell = Cell.makeCell(self.rendererFun(row, col))
-                        self.existingItems[(row, col)] = \
-                            new_children["____child_%s_%s__" % (row_ix, col_ix)] = \
-                            dataCell
+                        self.existingItems[(row, col)] = dataCell
                         new_named_children_columns.append(dataCell)
                     except SubscribeAndRetry:
                         raise
                     except Exception:
                         tracebackCell = Traceback(traceback.format_exc())
-                        self.existingItems[(row, col)] = \
-                            new_children["____child_%s_%s__" % (row_ix, col_ix)] = \
-                            tracebackCell
+                        self.existingItems[(row, col)] = tracebackCell
                         new_named_children_columns.append(tracebackCell)
 
-        self.children = new_children
-        self.namedChildren = new_named_children
+        self.children = Children(self)
+        self.children.addFromDict(new_named_children)
 
         for i in list(self.existingItems):
             if i not in seen:
@@ -2317,8 +2275,7 @@ class Table(Cell):
 
         if totalPages <= 1:
             pageCell = Cell.makeCell(totalPages).nowrap()
-            self.children['____page__'] = pageCell
-            self.namedChildren['page'] = pageCell
+            self.children['page'] = pageCell
         else:
             pageCell = (
                 SingleLineTextBox(self.curPage, pattern="[0-9]+")
@@ -2326,13 +2283,11 @@ class Table(Cell):
                 .height(20)
                 .nowrap()
             )
-            self.children['____page__'] = pageCell
-            self.namedChildren['page'] = pageCell
+            self.children['page'] = pageCell
         if self.curPage.get() == "1":
             leftCell = Octicon(
                 "triangle-left", color="lightgray").nowrap()
-            self.children['____left__'] = leftCell
-            self.namedChildren['left'] = leftCell
+            self.children['left'] = leftCell
         else:
             leftCell = (
                 Clickable(
@@ -2340,13 +2295,11 @@ class Table(Cell):
                     lambda: self.curPage.set(str(int(self.curPage.get())-1))
                 ).nowrap()
             )
-            self.children['____left__'] = leftCell
-            self.namedChildren['left'] = leftCell
+            self.children['left'] = leftCell
         if self.curPage.get() == str(totalPages):
             rightCell = Octicon(
                 "triangle-right", color="lightgray").nowrap()
-            self.children['____right__'] = rightCell
-            self.namedChildren['right'] = rightCell
+            self.children['right'] = rightCell
         else:
             rightCell = (
                 Clickable(
@@ -2354,8 +2307,7 @@ class Table(Cell):
                     lambda: self.curPage.set(str(int(self.curPage.get())+1))
                 ).nowrap()
             )
-            self.children['____right__'] = rightCell
-            self.namedChildren['right'] = rightCell
+            self.children['right'] = rightCell
 
         # temporary js WS refactoring data
         self.exportData['totalPages'] = totalPages
@@ -2380,8 +2332,7 @@ class Clickable(Cell):
             )
 
     def recalculate(self):
-        self.children = {'____contents__': self.content}
-        self.namedChildren = {'content': self.content}
+        self.children = {'content': self.content}
         self.exportData['bold'] = self.bold
 
         # TODO: this event handling situation must be refactored
@@ -2405,8 +2356,7 @@ class Button(Clickable):
         self.style = style
 
     def recalculate(self):
-        self.children = {'____contents__': self.content}
-        self.namedChildren = {'content': self.content}
+        self.children = {'content': self.content}
 
         isActive = False
         if self.active:
@@ -2427,9 +2377,7 @@ class ButtonGroup(Cell):
         self.buttons = buttons
 
     def recalculate(self):
-        self.children = {
-            f'____button_{i}__': self.buttons[i] for i in range(len(self.buttons))}
-        self.namedChildren['buttons'] = self.buttons
+        self.children['buttons'] = self.buttons
 
 
 class LoadContentsFromUrl(Cell):
@@ -2498,14 +2446,10 @@ class Expands(Cell):
     def recalculate(self):
         inlineScript = "cellSocket.sendString(JSON.stringify({'event':'click', 'target_cell': '%s'}))" % self.identity
 
-        self.children = {
-            '____child__': self.open if self.isExpanded else self.closed,
-            '____icon__': self.openedIcon if self.isExpanded else self.closedIcon
-        }
-        self.namedChildren = {
+        self.children.addFromDict({
             'content': self.open if self.isExpanded else self.closed,
             'icon': self.openedIcon if self.isExpanded else self.closedIcon
-        }
+        })
 
         # TODO: Refactor this. We shouldn't need to send
         # an inline script!
@@ -2517,7 +2461,6 @@ class Expands(Cell):
 
     def onMessage(self, msgFrame):
         self.isExpanded = not self.isExpanded
-
         self.markDirty()
 
 
@@ -2676,10 +2619,7 @@ class Sheet(Cell):
 
     def recalculate(self):
         errorCell = Subscribed(lambda: Traceback(self.error.get()) if self.error.get() is not None else Text(""))
-        self.children = {
-            '____error__': errorCell
-        }
-        self.namedChildren['error'] = errorCell
+        self.children['error'] = errorCell
 
         # Deleted the postscript that was here.
         # Should now be implemented completely
@@ -2741,14 +2681,10 @@ class Plot(Cell):
     def recalculate(self):
         chartUpdaterCell = Subscribed(lambda: _PlotUpdater(self))
         errorCell = Subscribed(lambda: Traceback(self.error.get()) if self.error.get() is not None else Text(""))
-        self.children = {
-            '____chart_updater__': chartUpdaterCell,
-            '____error__': errorCell
-        }
-        self.namedChildren = {
+        self.children.addFromDict({
             'chartUpdater': chartUpdaterCell,
             'error': errorCell
-        }
+        })
         self.postscript = ""
 
     def onMessage(self, msgFrame):
@@ -2856,7 +2792,6 @@ class _PlotUpdater(Cell):
     def recalculate(self):
         with self.view() as v:
             # we only exist to run our postscript
-            self.children = {}  # Does this Cell type ever have children?
             self.postscript = ""
             self.linePlot.error.set(None)
 
@@ -2940,5 +2875,4 @@ class Panel(Cell):
         self.content = Cell.makeCell(content)
 
     def recalculate(self):
-        self.children['____content__'] = Cell.makeCell(self.content)
-        self.namedChildren['content'] = Cell.makeCell(self.content)
+        self.children['content'] = Cell.makeCell(self.content)

@@ -11,6 +11,10 @@ class Children():
             self.removeChildNamed(name)
         self.namedChildren[name] = self._addChildStructure(childStructure, name)
 
+    def addFromDict(self, childrenDict):
+        for key, val in childrenDict:
+            self[key] = val
+
     def removeChildNamed(self, name):
         if not name in self.namedChildren:
             return False
@@ -20,6 +24,12 @@ class Children():
             return False
         del self.namedChildren[name]
         return True
+
+    def removeAll(self):
+        for child in self.allChildren:
+            self._unsetParent(child)
+        self.namedChildren = {}
+        self.allChildren = []
 
     def dimensionsForChildNamed(self, name):
         found = self.namedChildren[name]

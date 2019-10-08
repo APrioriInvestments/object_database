@@ -25,6 +25,7 @@ import threading
 import numpy
 
 from object_database.web.cells import Messenger
+from object_database.web.cells.children import Children
 
 from inspect import signature
 
@@ -641,8 +642,7 @@ class Cell:
         self.cells = None  # will get set when its added to a 'Cells' object
         self.parent = None
         self.level = None
-        self.children = {}  # local node def to global node def
-        self.namedChildren = {}  # The explicitly named version for front-end (refactoring)
+        self.children = Children(self)
         self.contents = ""  # some contents containing a local node def
         self.shouldDisplay = True  # Whether or not this is a cell that will be displayed
         self.isShrinkWrapped = False # If will be shrinkwrapped inside flex parent
@@ -982,13 +982,11 @@ class Card(Cell):
 
     def recalculate(self):
         bodyCell = Cell.makeCell(self.body)
-        self.children = {"____contents__": bodyCell}
-        self.namedChildren['body'] = bodyCell
+        self.children['body'] = bodyCell
 
         if self.header is not None:
             headerCell = Cell.makeCell(self.header)
-            self.children['____header__'] = headerCell
-            self.namedChildren['header'] = headerCell
+            self.children['header'] = headerCell
 
         self.exportData['padding'] = self.padding
 
@@ -1000,8 +998,7 @@ class CardTitle(Cell):
     def __init__(self, inner):
         super().__init__()
         innerCell = Cell.makeCell(inner)
-        self.children = {"____contents__": innerCell}
-        self.namedChildren['inner'] = innerCell
+        self.children['inner'] = innerCell
 
     def sortsAs(self):
         return self.inner.sortsAs()
@@ -1035,12 +1032,13 @@ class Modal(Cell):
             self.buttons['____button_{}__'.format(i)] = button
 
     def recalculate(self):
-        self.children = dict(self.buttons)
-        self.namedChildren['buttons'] = list(self.buttons.values())
-        self.children["____title__"] = self.title
-        self.namedChildren['title'] = self.title
-        self.children["____message__"] = self.message
-        self.namedChildren['message'] = self.message
+        #self.namedChildren['buttons'] = list(self.buttons.values())
+        #self.namedChildren['title'] = self.title
+        #self.namedChildren['message'] = self.message
+        self.children.addFromDict({
+            'buttons': list(self.buttons.values()),
+            'title': self.title,
+            'message': self.message})
         self.exportData['show'] = self.show.get()
 
 
@@ -1070,8 +1068,7 @@ class Badge(Cell):
         return self.inner.sortsAs()
 
     def recalculate(self):
-        self.children = {'____child__': self.inner}
-        self.namedChildren['inner'] = self.inner
+        self.children['inner'] = self.inner
 
 
 class CollapsiblePanel(Cell):
@@ -1086,13 +1083,9 @@ class CollapsiblePanel(Cell):
     def recalculate(self):
         expanded = self.evaluateWithDependencies(self.isExpanded)
         self.exportData['isExpanded'] = expanded
-        self.children = {
-            '____content__': self.content
-        }
-        self.namedChildren['content'] = self.content
+        self.children['content'] = self.content
         if expanded:
-            self.children['____panel__'] = self.panel
-            self.namedChildren['panel'] = self.panel
+            self.children['panel'] = self.panel
 
 
 class Text(Cell):
@@ -1147,9 +1140,7 @@ class Sequence(Cell):
         elements = [Cell.makeCell(x) for x in elements]
 
         self.elements = elements
-        self.namedChildren['elements'] = elements
-        self.children = {"____c_%s__" %
-                         i: elements[i] for i in range(len(elements))}
+        self.children['elements'] = elements
         self.overflow = overflow
         self.margin = margin
         self.isFlexParent = False
@@ -1166,7 +1157,7 @@ class Sequence(Cell):
         self.updateChildren()
         if self.isFlexParent:
             self.exportData['flexParent'] = True
-        self.namedChildren['elements'] = self.elements
+        self.children['elements'] = self.elements
         self.exportData['margin'] = self.margin
 
     def updateChildren(self):
@@ -1180,9 +1171,7 @@ class Sequence(Cell):
             else:
                 newElements.append(childCell)
         self.elements = newElements
-        self.children = {"____c_%s__" %
-                         i: self.elements[i] for i in range(len(self.elements))}
-        self.namedChildren['elements'] = self.elements
+        self.children['elements'] = self.elements
 
     def sortsAs(self):
         if self.elements:
@@ -1225,7 +1214,6 @@ class HorizontalSequence(Cell):
         self.updateChildren()
         if self.isFlexParent:
             self.exportData['flexParent'] = True
-        #self.exportData['overflow'] = self.overflow
         self.exportData['margin'] = self.margin
         self.exportData['wrap'] = self.wrap
 
@@ -1240,10 +1228,7 @@ class HorizontalSequence(Cell):
             else:
                 newElements.append(childCell)
         self.elements = newElements
-        self.namedChildren['elements'] = self.elements
-        self.children = {}
-        for i in range(len(self.elements)):
-            self.children["____c_{}__".format(i)] = self.elements[i]
+        self.children['elements'] = self.elements
 
     def sortAs(self):
         if self.elements:
@@ -1257,9 +1242,7 @@ class Columns(Cell):
         elements = [Cell.makeCell(x) for x in elements]
 
         self.elements = elements
-        self.children = {"____c_%s__" %
-                         i: elements[i] for i in range(len(elements))}
-        self.namedChildren['elements'] = self.elements
+        self.children['elements'] = self.elements
 
     def __add__(self, other):
         other = Cell.makeCell(other)
@@ -1286,25 +1269,16 @@ class HeaderBar(Cell):
         self.centerItems = centerItems
         self.rightItems = rightItems
 
-        self.namedChildren = {
+        self.children.addFromDict({
             'leftItems': self.leftItems,
             'centerItems': self.centerItems,
-            'rightItems': self.rightItems
-        }
-
-        self.children = {'____left_%s__' %
-                         i: self.leftItems[i] for i in range(len(self.leftItems))}
-        self.children.update(
-            {'____center_%s__' % i: self.centerItems[i] for i in range(len(self.centerItems))})
-        self.children.update(
-            {'____right_%s__' % i: self.rightItems[i] for i in range(len(self.rightItems))})
+            'rightItems': self.rightItems})
 
 
 class Main(Cell):
     def __init__(self, child):
         super().__init__()
-        self.children = {'____child__': child}
-        self.namedChildren['child'] = child
+        self.children['child'] = child
 
 
 class _NavTab(Cell):
@@ -1329,8 +1303,7 @@ class _NavTab(Cell):
             self.exportData['isActive'] = False
 
         childCell = Cell.makeCell(self.child)
-        self.children['____child__'] = childCell
-        self.namedChildren['child'] = childCell
+        self.children['child'] = childCell
 
 
 class Tabs(Cell):
@@ -1350,15 +1323,13 @@ class Tabs(Cell):
     def recalculate(self):
         displayCell = Subscribed(
             lambda: self.headersAndChildren[self.whichSlot.get()][1])
-        self.children['____display__'] = displayCell
-        self.namedChildren['display'] = displayCell
-        self.namedChildren['headers'] = []
+        self.children['display'] = displayCell
+        self.children['headers'] = []
 
         for i in range(len(self.headersAndChildren)):
             headerCell = _NavTab(
                 self.whichSlot, i, self._identity, self.headersAndChildren[i][0])
-            self.children['____header_{ix}__'.format(ix=i)] = headerCell
-            self.namedChildren['headers'].append(headerCell)
+            self.children['headers'].append(headerCell)
 
     def onMessage(self, msgFrame):
         self.whichSlot.set(int(msgFrame['ix']))
@@ -1397,9 +1368,8 @@ class Dropdown(Cell):
         return self.title.sortsAs()
 
     def recalculate(self):
-        self.children['____title__'] = self.title
-        self.namedChildren['title'] = self.title
-        self.namedChildren['dropdownItems'] = []
+        self.children['title'] = self.title
+        self.children['dropdownItems'] = []
 
         # Because the items here are not separate cells,
         # we have to perform an extra hack of a dict
@@ -1411,7 +1381,6 @@ class Dropdown(Cell):
         for i in range(len(self.headersAndLambdas)):
             header, onDropdown = self.headersAndLambdas[i]
             childCell = Cell.makeCell(header)
-            self.children["____child_%s__" % i] = childCell
             self.namedChildren['dropdownItems'].append(childCell)
             if not isinstance(onDropdown, str):
                 self.exportData['dropdownItemInfo'][i] = 'callback'
@@ -1477,9 +1446,7 @@ class AsyncDropdown(Cell):
         if not loadingIndicatorCell:
             loadingIndicatorCell = CircleLoader()
         self.contentCell = Cell.makeCell(AsyncDropdownContent(self.slot, contentCellFunc, loadingIndicatorCell))
-        self.children = {'____contents__': Cell.makeCell(self.contentCell)}
-        self.namedChildren['content'] = Cell.makeCell(self.contentCell)
-        # self.namedChildren['loadingIndicator'] = loadingIndicatorCell
+        self.children['content'] = Cell.makeCell(self.contentCell)
 
     def onMessage(self, messageFrame):
         """On `dropdown` events sent to this
@@ -1534,12 +1501,8 @@ class AsyncDropdownContent(Cell):
         self.contentFunc = contentFunc
         self.loadingCell = loadingIndicatorCell
         self.contentCell = Subscribed(self.changeHandler)
-        self.children = {
-            '____contents__': Cell.makeCell(self.contentCell)
-        }
-        self.namedChildren = {
-            'content': Cell.makeCell(self.contentCell)
-        }
+        self.children.addFromDict({
+            'content': Cell.makeCell(self.contentCell)})
 
     def changeHandler(self):
         """If the slot is true, the
@@ -1563,19 +1526,15 @@ class Container(Cell):
     def __init__(self, child=None):
         super().__init__()
         if child is None:
-            self.children = {}
-            self.namedChildren['child'] = None
+            self.children['child'] = None
         else:
             childCell = Cell.makeCell(child)
-            self.children = {"____child__": childCell}
-            self.namedChildren['child'] = childCell
+            self.children['child'] = childCell
 
     def setChild(self, child):
-        self.setContents("",
-                         {"____child__": Cell.makeCell(child)})
+        self.setContents("", child)
 
     def setContents(self, newContents, newChildren):
-        self.children = newChildren
         self.namedChildren['child'] = list(newChildren.values())[0]  # Hacky!
         self.markDirty()
 
@@ -1592,7 +1551,7 @@ class RootCell(Container):
         return "page_root"
 
     def setChild(self, child):
-        self.setContents("", {"____c__": child})
+        self.setContents("", child)
 
 
 class Traceback(Cell):
@@ -1604,8 +1563,7 @@ class Traceback(Cell):
         super().__init__()
         self.traceback = traceback
         tracebackCell = Cell.makeCell(traceback)
-        self.children = {"____child__": tracebackCell}
-        self.namedChildren['traceback'] = tracebackCell
+        self.children['traceback'] = tracebackCell
 
     def sortsAs(self):
         return self.traceback
@@ -1619,8 +1577,7 @@ class Code(Cell):
         super().__init__()
         self.codeContents = codeContents
         codeContentsCell = Cell.makeCell(codeContents)
-        self.children = {"____child__": codeContentsCell}
-        self.namedChildren['code'] = codeContentsCell
+        self.children['code'] = codeContentsCell
 
     def sortsAs(self):
         return self.codeContents

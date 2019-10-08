@@ -61,6 +61,7 @@ class Component {
         this.renderChildrenNamed = this.renderChildrenNamed.bind(this);
         this._setupChildRelationships = this._setupChildRelationships.bind(this);
         this._updateProps = this._updateProps.bind(this);
+        this._updateData = this._updateData.bind(this);
         this._recursivelyMapNamedChildren = this._recursivelyMapNamedChildren.bind(this);
     }
 
@@ -338,6 +339,13 @@ class Component {
         this.props.children = incomingProps.children || [];
         this.props.namedChildren = incomingProps.namedChildren || {};
         this._setupChildRelationships();
+    }
+
+    /**
+     * Updates this components data
+     * based on an incoming object
+     */
+    _updateData(incomingData, projector){
     }
 
     /**

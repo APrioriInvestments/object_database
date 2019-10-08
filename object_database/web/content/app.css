@@ -125,7 +125,50 @@
 }
 
 
+/* Sheet (table) and related 
+* =============================================================*/
+.sheet-cell {
+    border: solid 1px lightblue;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 2px;
+    padding-left: 2px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+}
 
+.sheet-wrapper {
+    width: 100%;
+    max-height: 100%!important;
+    display: flex;
+    /* overflow: scroll; */
+}
+
+th.header-item {
+    text-align: center;
+    border: solid 2px lightgray;
+    border-bottom: solid 2px black;
+    padding-right: 2px;
+    padding-left: 2px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+}
+
+th.header-item.zero {
+    border-right: solid 2px black;
+}
+
+td.row-index-item {
+    font-weight: bold;
+    text-align: center;
+    border: solid 2px lightgray;
+    border-right: solid 2px black;
+    padding-right: 2px;
+    padding-left: 2px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+}
 /* Modals (bypasses Bootstrap implementation)
 * =============================================================*/
 

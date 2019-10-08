@@ -96,6 +96,8 @@ class NewCellHandler {
         switch(message.type){
         case '#cellUpdated':
             return this.cellUpdated(message);
+        case '#cellDataUpdated':
+            return this.cellDataUpdated(message);
         case '#cellDiscarded':
             return this.cellDiscarded(message);
         case '#appendPostscript':
@@ -163,6 +165,23 @@ class NewCellHandler {
             this.postscripts.push(message.postscript);
         }
         return component;
+    }
+
+    /**
+     * Primary handler for messages in which a given
+     * existing Cell/Component needs to update its
+     * internal data store.
+     * @returns {Component} - A component that is configured
+     * and rendered, along with all of its children.
+     */
+    cellDataUpdated(message){
+        let component = this._getDataUpdatedComponent(message);
+        // let velement = render(component);
+        // let domElement = document.getElementById(component.props.id);
+        // this.projector.replace(domElement, () => {
+        //     return velement;
+        // });
+        // return component;
     }
 
     /**
@@ -290,6 +309,33 @@ class NewCellHandler {
         return component;
     }
 
+    /**
+     * Attempts to find and update the data of a component based
+     * on a description of the corresponding Cell
+     * present in a message object.
+     * If the id of the description is not in the
+     * current dictionary of activeComponents, we
+     * create it and proceed. Otherwise we find the
+     * component and update its props and children
+     * recursively.
+     * @param {Object} description - A description of the Cell
+     * that needs to have its data updated. This is usually a part
+     * of an incoming socket message object, and includes all of
+     * the information needed to properly update the data store of
+     * a cell component.
+     * @returns {Component} - A configured Component (with children)
+     * prepared for rendering.
+     */
+    _getDataUpdatedComponent(description){
+        if(!Object.keys(this.activeComponents).includes(description.id.toString())){
+            // something went wrong; can't find the component
+            console.error("data update fail; no component with id: " + description.id)
+        }
+        let component = this.activeComponents[description.id];
+        component._updateData(description.dataInfo, this.projector);
+        this._updatedComponents.push(component);
+        return component;
+    }
     /**
      * Handles the creation and registration of a new Component
      * based on a Cell description in a message object.

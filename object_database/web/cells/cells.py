@@ -160,6 +160,9 @@ class Cells:
         self._nodesToBroadcast = set()
 
         # set(Cell)
+        self._nodesToDataUpdate = set()
+
+        # set(Cell)
         self._nodesToDiscard = set()
 
         self._transactionQueue = queue.Queue()
@@ -334,6 +337,11 @@ class Cells:
 
         self._nodesToBroadcast.add(node)
 
+    def markToDataUpdate(self, node):
+        assert node.cells is self
+
+        self._nodesToDataUpdate.add(node)
+
     def findStableParent(self, cell):
         if not cell.parent:
             return cell
@@ -344,6 +352,7 @@ class Cells:
     def renderMessages(self):
         self._processCallbacks()
         self._recalculateCells()
+        # self._processDataUpdates()
 
         res = []
 
@@ -361,6 +370,11 @@ class Cells:
         for nodeToSend in list(updatedNodesToSend):
             res.append(Messenger.cellUpdated(nodeToSend))
 
+        # make messages for data updated nodes
+        for node in self._nodesToDataUpdate:
+            res.append(Messenger.cellDataUpdated(node))
+
+        # make messages for discarding
         for n in self._nodesToDiscard:
             if n.cells is not None:
                 assert n.cells == self
@@ -389,9 +403,21 @@ class Cells:
             node.updateLifecycleState()
 
         self._nodesToBroadcast = set()
+        self._nodesToDataUpdate = set()
         self._nodesToDiscard = set()
 
         return res
+
+    def _processDataUpdates(self):
+        """ Handle all data updates. """
+        # TODO we should not be going through all the cells here
+        for node in self._cells:
+            if node.wasDataUpdated:
+                print()
+                print("whoa found one")
+                print(node)
+                print()
+                self.markToDataUpdate(node)
 
     def _recalculateCells(self):
         # handle all the transactions so far
@@ -408,7 +434,12 @@ class Cells:
             n = self._dirtyNodes.pop()
 
             if not n.garbageCollected:
-                self.markToBroadcast(n)
+                if n.wasDataUpdated:
+                    self.markToDataUpdate(n)
+                    # TODO this should be cleaned up
+                    continue
+                else:
+                    self.markToBroadcast(n)
                 # TODO: lifecycle attribute; see cell.updateLifecycleState()
 
                 origChildren = self._cellsKnownChildren[n.identity]
@@ -639,6 +670,7 @@ class Cell:
         # cells is handled by self.updateLifecycleState.
         self.wasCreated = True
         self.wasUpdated = False
+        self.wasDataUpdated = False  # Whether or not this cell has updated data
         self.wasRemoved = False
 
         self._logger = logging.getLogger(__name__)
@@ -676,6 +708,8 @@ class Cell:
             self.wasCreated = False
         if (self.wasUpdated):
             self.wasUpdated = False
+        if (self.wasDataUpdated):
+            self.wasDataUpdated = False
         # NOTE: self.wasRemoved is set to False for self.prepareForReuse
         if (self.wasRemoved):
             self.wasRemoved = False
@@ -2638,19 +2672,21 @@ class CodeEditor(Cell):
 class Sheet(Cell):
     """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""
 
-    def __init__(self, columnNames, rowCount, rowFun,
-                 colWidth=200,
+    def __init__(self, columnFun, rowFun, colWidth=50, rowHeight=30,
                  onCellDblClick=None):
         """
-        columnNames:
-            names to go in column Header
-        rowCount:
-            number of rows in table
+        columnFun:
+            function taking 'start' and 'end' integer column as arguments and
+            returns that returns a list of values to populate the header of the table
         rowFun:
-            function taking integer row as argument that returns list of values
-            to populate that row of the table
+            function taking integer 'start_row' and 'end_row' row indexes and
+            'start_column' and 'end_column' that
+            returns a list of rows, themselves list of values, to populate the
+            table; Note the first value, i.e. row[0], of each row is the named index
         colWidth:
-            width of columns
+            height of columns in pixels
+        rowHeight:
+            height of row in pixels
         onCellDblClick:
             function to run after user double clicks a cell. It takes as keyword
             arguments row, col, and sheet where row and col represent the row and
@@ -2659,14 +2695,12 @@ class Sheet(Cell):
         """
         super().__init__()
 
-        self.columnNames = columnNames
-        self.rowCount = rowCount
-        # for a row, the value of all the columns in a list.
         self.rowFun = rowFun
+        self.columnFun = columnFun
         self.colWidth = colWidth
+        self.rowHeight = rowHeight
         self.error = Slot(None)
         self._overflow = "auto"
-        self.rowsSent = set()
 
         self._hookfns = {}
         if onCellDblClick is not None:
@@ -2694,10 +2728,9 @@ class Sheet(Cell):
         # Should now be implemented completely
         # in the JS side component.
 
-        self.exportData['columnNames'] = [x for x in self.columnNames]
-        self.exportData['rowCount'] = self.rowCount
-        self.exportData['columnWidth'] = self.colWidth
-        self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
+        self.exportData['colWidth'] = self.colWidth
+        self.exportData['rowHeight'] = self.rowHeight
+        # self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
 
     def onMessage(self, msgFrame):
         """TODO: We will need to update the Cell lifecycle
@@ -2705,35 +2738,37 @@ class Sheet(Cell):
         to the JS side"""
 
         if msgFrame["event"] == 'sheet_needs_data':
-            row = msgFrame['data']
-
-            if row in self.rowsSent:
-                return
-
-            rows = []
-            for rowToRender in range(max(0, row-100), min(row+100, self.rowCount)):
-                if rowToRender not in self.rowsSent:
-                    self.rowsSent.add(rowToRender)
-                    rows.append(rowToRender)
-
-                    rowData = self.rowFun(rowToRender)
-
-                    self.triggerPostscript(
-                        """
-                        var hot = handsOnTables["__identity__"].table
-
-                        hot.getSettings().data.cache[__row__] = __data__
-                        """
-                        .replace("__row__", str(rowToRender))
-                        .replace("__identity__", self._identity)
-                        .replace("__data__", json.dumps(rowData))
-                    )
-
-            if rows:
-                self.triggerPostscript(
-                    """handsOnTables["__identity__"].table.render()"""
-                    .replace("__identity__", self._identity)
+            start_row = msgFrame['start_row']
+            end_row = msgFrame['end_row']
+            start_column = msgFrame['start_column']
+            end_column = msgFrame['end_column']
+            rowsToSend = self.rowFun(start_row,
+                                     end_row,
+                                     start_column,
+                                     end_column)
+            columnsToSend = self.columnFun(start_column,
+                                           end_column)
+            if(len(rowsToSend) != (end_row - start_row)):
+                self._logger.error("Sheet.rowFun generating incorrect number "
+                                   "of rows")
+            if(len(columnsToSend) != (end_column - start_column)):
+                self._logger.error(
+                    "Sheet.columnFun generating incorrect number of columns"
                 )
+            if (not all([len(columnsToSend) == (len(row) - 1) for row in
+                         rowsToSend])):
+                self._logger.error(
+                    "Sheet.rowFun generated rows don't match column length. "
+                )
+            dataInfo = {
+                "data": rowsToSend,
+                "column_names": columnsToSend,
+                "action": msgFrame["action"],
+                "axis": msgFrame["axis"]
+            }
+            self.exportData["dataInfo"] = dataInfo
+            self.wasDataUpdated = True
+            self.markDirty()
         else:
             return self._hookfns[msgFrame["event"]](self, msgFrame)
 

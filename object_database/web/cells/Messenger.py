@@ -28,6 +28,21 @@ def cellUpdated(cell):
     return structure
 
 
+def cellDataUpdated(cell):
+    """Message of this type reflect updated data in the cells. For example,
+    Sheet (table) data pagination.
+    """
+    # TODO update this
+    data = {
+        "channel": "#main",
+        "type": "#cellDataUpdated",
+        "shouldDisplay": cell.shouldDisplay,
+        "id": cell.identity,
+        "dataInfo": cell.exportData["dataInfo"]
+    }
+    return data
+
+
 def cellDiscarded(cell):
     """A lifecycle message formatter
     to be used when a Cell is discarded

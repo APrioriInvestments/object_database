@@ -45,7 +45,6 @@ class Sheet extends Component {
         this.scrollLeft = 0;
 
         // Bind context to methods
-        this.initializeTable = this.initializeTable.bind(this);
         this.generate_rows = this.generate_rows.bind(this);
         this.generate_header = this.generate_header.bind(this);
         this.__updateDataAppend = this.__updateDataAppend.bind(this);
@@ -55,9 +54,7 @@ class Sheet extends Component {
         this.paginate = this.paginate.bind(this);
         this.jump_to_cell = this.jump_to_cell.bind(this);
         this.make_header_item_zero = this.make_header_item_zero.bind(this);
-        // this.handleClick = this.handleClick.bind(this);
 
-        this.initializeTable();
     }
 
     componentDidLoad(){
@@ -84,15 +81,6 @@ class Sheet extends Component {
         // TODO do we need to add this at the document level? (seems so, but why?)
         document.addEventListener("keydown", this.handleKeyDown)
     }
-
-    initializeTable(){
-        console.log(`#initializeTable called for Sheet ${this.props.id}`);
-        this.current_start_row_index = 0;
-        this.current_end_row_index = this.max_num_rows;
-        this.current_start_column_index = 0;
-        this.current_end_column_index = this.max_num_columns;
-    }
-
 
     build(){
         console.log(`Rendering custom sheet ${this.props.id}`);

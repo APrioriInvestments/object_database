@@ -84,4 +84,6 @@ from object_database.web.cells.util import (
 
 from object_database.web.cells.views.resizable_panel import ResizablePanel
 
+from object_database.web.cells.children import Children
+
 MAX_FPS = 10

@@ -1679,8 +1679,7 @@ class Subscribed(Cell):
                     self.wrapsSequence = True
                 elif isinstance(c, HorizontalSequence):
                     self.wrapsHorizSequence = True
-                self.children = {'____contents__': c}
-                self.namedChildren['content'] = c
+                self.children['content'] = c
             except SubscribeAndRetry:
                 raise
             except Exception:
@@ -1810,13 +1809,11 @@ class SubscribedSequence(Cell):
 
             self._processChild(current_child, new_children)
 
-        self.children = {"____child_%s__" %
-                         i: new_children[i] for i in range(len(new_children))}
-        self.namedChildren['elements'] = new_children
+        self.children['elements'] = new_children
 
     def sortAs(self):
-        if len(self.namedChildren['elements']):
-            return self.namedChildren['elements'][0].sortAs()
+        if len(self.children['elements']):
+            return self.children['elements'][0].sortAs()
 
     def _processChild(self, child, children):
         """Determines whether or not to flatten nested
@@ -1832,7 +1829,7 @@ class SubscribedSequence(Cell):
             # or SubscribedSequence of some kind.
             # In this case, we need to flatten its elements.
             # Note that only matching orientations flatten.
-            children += child.namedChildren['content'].namedChildren['elements']
+            children += child.children['content'].children['elements']
         else:
             children.append(child)
 
@@ -2287,8 +2284,7 @@ class Table(Cell):
         if self.curPage.get() == "1":
             leftCell = Octicon(
                 "triangle-left", color="lightgray").nowrap()
-            self.children['____left__'] = leftCell
-            self.namedChildren['left'] = leftCell
+            self.children['left'] = leftCell
         else:
             leftCell = (
                 Clickable(
@@ -2300,8 +2296,7 @@ class Table(Cell):
         if self.curPage.get() == str(totalPages):
             rightCell = Octicon(
                 "triangle-right", color="lightgray").nowrap()
-            self.children['____right__'] = rightCell
-            self.namedChildren['right'] = rightCell
+            self.children['right'] = rightCell
         else:
             rightCell = (
                 Clickable(
@@ -2334,7 +2329,7 @@ class Clickable(Cell):
             )
 
     def recalculate(self):
-        self.children['content'] = self.content
+        self.children = {'content': self.content}
         self.exportData['bold'] = self.bold
 
         # TODO: this event handling situation must be refactored
@@ -2358,7 +2353,7 @@ class Button(Clickable):
         self.style = style
 
     def recalculate(self):
-        self.children['content'] = self.content
+        self.children = {'content': self.content}
 
         isActive = False
         if self.active:
@@ -2450,7 +2445,7 @@ class Expands(Cell):
         self.children.addFromDict({
             'content': self.open if self.isExpanded else self.closed,
             'icon': self.openedIcon if self.isExpanded else self.closedIcon
-        }
+        })
 
         # TODO: Refactor this. We shouldn't need to send
         # an inline script!
@@ -2874,5 +2869,4 @@ class Panel(Cell):
         self.content = Cell.makeCell(content)
 
     def recalculate(self):
-        self.children['____content__'] = Cell.makeCell(self.content)
-        self.namedChildren['content'] = Cell.makeCell(self.content)
+        self.children['content'] = Cell.makeCell(self.content)

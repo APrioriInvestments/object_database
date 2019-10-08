@@ -6,13 +6,6 @@ import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**
- * About Replacements
- * ------------------
- * Badge has a single replacement:
- * * `child`
- */
-
-/**
  * About Named Children
  * --------------------
  * `inner` - The concent cell of the Badge

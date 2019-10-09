@@ -203,11 +203,12 @@ class Reactor:
                     exceptionsInARow = 0
                 except Exception:
                     exceptionsInARow += 1
-                    logging.error(
-                        "Unexpected exception in Reactor user code (%s occurrences in a row):\n%s",
-                        exceptionsInARow,
-                        traceback.format_exc()
-                    )
+                    if exceptionsInARow < 10 or exceptionsInARow < 100 and exceptionsInARow % 10 == 0 or exceptionsInARow % 100 == 0:
+                        logging.error(
+                            "Unexpected exception in Reactor user code (%s occurrences in a row):\n%s",
+                            exceptionsInARow,
+                            traceback.format_exc()
+                        )
                     time.sleep(0.001 * exceptionsInARow)
 
                 if readKeys is not None:

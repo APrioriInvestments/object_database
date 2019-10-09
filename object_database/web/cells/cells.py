@@ -1541,7 +1541,7 @@ class Container(Cell):
 
     def setContents(self, newContents, newChildren):
         #self.namedChildren['child'] = list(newChildren.values())[0]  # Hacky!
-        self.children['child'] = newChildren
+        self.children['child'] = Cell.makeCell(newChildren)
         self.markDirty()
 
 

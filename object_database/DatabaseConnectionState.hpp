@@ -18,12 +18,12 @@
 #include <map>
 #include <memory>
 
-#include "../typed_python/SerializationContext.hpp"
-#include "../typed_python/DeserializationBuffer.hpp"
+#include <typed_python/SerializationContext.hpp>
+#include <typed_python/DeserializationBuffer.hpp>
 #include "VersionedObjects.hpp"
 #include "ObjectFieldId.hpp"
 #include "IndexId.hpp"
-#include "../typed_python/direct_types/all.hpp"
+#include "direct_types/all.hpp"
 
 /*************
 DatabaseConnectionState stores a set of versioned objects for a single database

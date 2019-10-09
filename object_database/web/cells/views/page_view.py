@@ -29,11 +29,8 @@ class PageView(Cell):
         self.updateChildren()
 
     def updateChildren(self):
-        self.children['____main__'] = self.main
-        self.namedChildren['main'] = self.main
+        self.children['main'] = self.main
         if self.header:
-            self.children['____header__'] = self.header
-            self.namedChildren['header'] = self.header
+            self.children['header'] = self.header
         if self.footer:
-            self.children['____footer__'] = self.footer
-            self.namedChildren['footer'] = self.footer
+            self.children['footer'] = self.footer

@@ -59,20 +59,12 @@ class SplitView(Cell):
         self.childrenTuples = childrenTuples
         self.split = split
 
-        self.updateReplacements()
         self.updateNamedChildren()
         self.updateProportionInfo()
 
     def recalculate(self):
-        self.updateReplacements()
         self.updateNamedChildren()
         self.updateProportionInfo()
-
-        # For now, we have to put something in contents
-        # to avoid the Cell/Cells infrastructure
-        # from throwing an error about replacements
-        # not being used.
-        self.contents = "\n".join(self.children.keys())
 
     def updateProportionInfo(self):
         """
@@ -88,14 +80,9 @@ class SplitView(Cell):
         self.exportData['proportions'] = proportions
         self.exportData['split'] = self.split
 
-    def updateReplacements(self):
-        for i in range(len(self.childrenTuples)):
-            childTuple = self.childrenTuples[i]
-            self.children["____element_{}__".format(i)] = Cell.makeCell(childTuple[0])
-
     def updateNamedChildren(self):
         newChildren = []
         for i in range(len(self.childrenTuples)):
             childTuple = self.childrenTuples[i]
             newChildren.append(Cell.makeCell(childTuple[0]))
-        self.namedChildren['elements'] = newChildren
+        self.children['elements'] = newChildren

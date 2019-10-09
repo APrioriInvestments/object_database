@@ -150,7 +150,7 @@ def _getFlatStructure(parent_id, cell, name_in_parent):
 
 def _getFlatChildren(cell):
     own_children = {}
-    for child_name, child in cell.namedChildren.items():
+    for child_name, child in cell.children.items():
         own_children[child_name] = _resolveFlatChild(child)
 
     return own_children
@@ -178,7 +178,7 @@ def _getExpandedStructure(parent_id, cell, name_in_parent):
 
 def _getExpandedChildren(cell):
     own_children = {}
-    for child_name, child in cell.namedChildren.items():
+    for child_name, child in cell.children.items():
         own_children[child_name] = _resolveExpandedChild(cell.identity, child,
                                                          child_name)
     return own_children

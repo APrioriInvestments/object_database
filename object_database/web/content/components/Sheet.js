@@ -31,8 +31,8 @@ class Sheet extends Component {
         this.current_start_column_index = null;
         this.current_end_column_index = null;
 
-        // scrolling attributes used to guage the direction of scrolling
-        // and make appropriate calls to lazy load data
+        // scrolling attributes used to guage the direction of key scrolling and offset
+        // then top/bottom appropriately
         this.scrollTop = 0;
         this.scrollLeft = 0;
 
@@ -51,9 +51,9 @@ class Sheet extends Component {
 
     componentDidLoad(){
         console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
-        let container = document.getElementById(this.props.id).parentNode;
-        this.max_num_columns = this._calc_max_num_columns(container.offsetWidth);
-        this.max_num_rows = this._calc_max_num_rows(container.offsetHeight);
+        this.container = document.getElementById(this.props.id).parentNode;
+        this.max_num_columns = this._calc_max_num_columns(this.container.offsetWidth);
+        this.max_num_rows = this._calc_max_num_rows(this.container.offsetHeight);
         // console.log("max num of rows: " + this.max_num_rows)
         // console.log("max num of columns: " + this.max_num_columns)
         this.current_start_row_index = 0;
@@ -110,11 +110,24 @@ class Sheet extends Component {
     }
 
     _handleCoordInput(){
-        // TODO this lookup doesn't have to be at the document level
         let x = document.getElementById(`sheet-${this.props.id}-xinput`)
         let y = document.getElementById(`sheet-${this.props.id}-yinput`)
-        if (x.value && y.value){
-            console.log(event)
+        let x_value = Number(x.value);
+        let y_value = Number(y.value);
+        if (x_value && y_value){
+            console.log("jumping")
+            this.current_start_row_index = x_value;
+            this.current_start_column_index = y_value;
+            this.current_end_row_index = this.max_num_rows + this.offset;
+            this.current_end_column_index = this.max_num_columns + this.offset;
+            this.fetchData(
+                this.current_start_row_index,
+                this.current_end_row_index,
+                this.current_start_column_index,
+                this.current_end_column_index,
+                "replace",
+                null
+            )
         }
     }
 
@@ -240,7 +253,7 @@ class Sheet extends Component {
             action: action,
             axis: axis
         });
-        console.log(request);
+        // console.log(request);
         cellSocket.sendString(request);
     }
 

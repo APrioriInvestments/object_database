@@ -152,7 +152,7 @@ class CellsTests(unittest.TestCase):
         self.assertEqual(pair[1].parent, sequence)
 
         # Assert that the first Container has a Cell child
-        self.assertIsInstance(pair[0].namedChildren['child'], Cell)
+        self.assertIsInstance(pair[0].children['child'], Cell)
 
     def test_cells_reusable(self):
         c1 = Card(Text("HI"))
@@ -498,7 +498,7 @@ class CellsMessagingTests(unittest.TestCase):
         self.assertEqual(msgs[0]['id'], sequence.identity)
 
         # Sequence's namedChildren should have a length now of 3
-        self.assertEqual(len(sequence.namedChildren['elements']), 3)
+        self.assertEqual(len(sequence.children['elements']), 3)
 
 
 class CellsStructureTests(unittest.TestCase):
@@ -759,7 +759,7 @@ class CellsSubscribedSequenceHandlingTests(unittest.TestCase):
         self.cells.withRoot(sub_seq)
         self.cells._recalculateCells()
         self.assertEqual(len(sub_seq.items), 50)
-        self.assertEqual(len(sub_seq.namedChildren['elements']), 50)
+        self.assertEqual(len(sub_seq.children['elements']), 50)
 
     def test_elements_length_changed(self):
         exampleData = self.exampleItems

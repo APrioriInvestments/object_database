@@ -296,7 +296,7 @@ class Cells:
         self.markDirty(cell)
 
     def _cellOutOfScope(self, cell):
-        for c in cell.children.values():
+        for c in cell.children.allChildren:
             self._cellOutOfScope(c)
 
         self.markToDiscard(cell)
@@ -746,9 +746,9 @@ class Cell:
             if stopSearchingAtFoundTag:
                 return cells
 
-        for child in self.children:
+        for child in self.children.allChildren:
             cells.extend(
-                self.children[child].findChildrenByTag(
+                child.findChildrenByTag(
                     tag, stopSearchingAtFoundTag)
             )
 
@@ -756,7 +756,7 @@ class Cell:
 
     def visitAllChildren(self, visitor):
         visitor(self)
-        for child in self.children.values():
+        for child in self.children.allChildren:
             child.visitAllChildren(visitor)
 
     def findChildrenMatching(self, filtr):
@@ -1541,7 +1541,7 @@ class Container(Cell):
 
     def setContents(self, newContents, newChildren):
         #self.namedChildren['child'] = list(newChildren.values())[0]  # Hacky!
-        self.children['child'] = newChildren
+        self.children['child'] = Cell.makeCell(newChildren)
         self.markDirty()
 
 

@@ -21,17 +21,12 @@ flask-sockets = "*"
 flask-wtf = "*"
 gevent = "*"
 ldap3 = "*"
-llvmlite = "*"
-lz4 = "*"
-numpy = "*"
-psutil = "*"
-pytz = "*"
 pyyaml = "*"
 redis = "*"
 requests = "*"
 websockets = "*"
 nodeenv = "*"
-nativepython = {editable = true,path = "."}
+typed_python = {git = "https://github.com/APrioriInvestments/typed_python.git",ref = "b118d0de45dfe89836afb0af45a1b23d081261fa"}
 
 [requires]
 python_version = "3.6"

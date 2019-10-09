@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import object_database
 from object_database.messages import ClientToServer, ServerToClient
 from object_database.identity import IdentityProducer
 from object_database.schema import FieldDefinition, ObjectFieldId, IndexId, indexValueFor

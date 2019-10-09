@@ -2664,13 +2664,6 @@ class Sheet(Cell):
                                      end_column)
             columnsToSend = self.columnFun(start_column,
                                            end_column)
-            if(len(rowsToSend) != (end_row - start_row)):
-                self._logger.error("Sheet.rowFun generating incorrect number "
-                                   "of rows")
-            if(len(columnsToSend) != (end_column - start_column)):
-                self._logger.error(
-                    "Sheet.columnFun generating incorrect number of columns"
-                )
             if (not all([len(columnsToSend) == (len(row) - 1) for row in
                          rowsToSend])):
                 self._logger.error(

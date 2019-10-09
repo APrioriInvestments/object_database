@@ -70,8 +70,8 @@ class Sheet extends Component {
                 null
             )
         }
-        // TODO do we need to add this at the document level? (seems so, but why?)
-        document.addEventListener("keydown", this.handleKeyDown)
+        // TODO do we need to add this at the window level? (seems so, but why?)
+        window.addEventListener("keydown", this.handleKeyDown)
     }
 
     build(){
@@ -109,17 +109,19 @@ class Sheet extends Component {
         )
     }
 
+    /* I handle navigation by coordinate input. I will only call fetch data if
+     * both x, y coordinates are filled with valid Number's
+     */
     _handleCoordInput(){
-        let x = document.getElementById(`sheet-${this.props.id}-xinput`)
-        let y = document.getElementById(`sheet-${this.props.id}-yinput`)
+        let x = document.getElementById(`sheet-${this.props.id}-xinput`);
+        let y = document.getElementById(`sheet-${this.props.id}-yinput`);
         let x_value = Number(x.value);
         let y_value = Number(y.value);
-        if (x_value && y_value){
-            console.log("jumping")
+        if (x.value !== "" && !isNaN(x_value) && y.value !== "" && !isNaN(y_value)){
             this.current_start_row_index = x_value;
             this.current_start_column_index = y_value;
-            this.current_end_row_index = this.max_num_rows + this.offset;
-            this.current_end_column_index = this.max_num_columns + this.offset;
+            this.current_end_row_index = this.current_start_row_index + this.max_num_rows + this.offset;
+            this.current_end_column_index = this.current_start_column_index + this.max_num_columns + this.offset;
             this.fetchData(
                 this.current_start_row_index,
                 this.current_end_row_index,
@@ -167,13 +169,17 @@ class Sheet extends Component {
 
     handleKeyDown(event){
         if (event.key === "ArrowUp"){
+            event.preventDefault();
             this.paginate("row", "prepend")
         } else if (event.key === "ArrowDown"){
+            event.preventDefault();
             this.paginate("row", "append")
             this.scrollTop = this.props.rowHeight;
         } else if (event.key === "ArrowLeft"){
+            event.preventDefault();
             this.paginate("column", "prepend")
         } else if (event.key === "ArrowRight"){
+            event.preventDefault();
             this.paginate("column", "append")
         }
     }

@@ -40,7 +40,7 @@ jobs:
       before_script:
         - ulimit -c unlimited -S       # enable core dumps
       script:
-        - pipenv lock --requirements > reqs.txt
+        - pipenv lock --dev --requirements > reqs.txt
         - pip install -r reqs.txt
         - pip install -e . # install object_database in 'editable' form.
         - sudo apt-get install -y gdb  # install gdb

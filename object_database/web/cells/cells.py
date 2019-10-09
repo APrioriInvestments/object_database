@@ -434,16 +434,16 @@ class Cells:
         while self._dirtyNodes:
             node = self._dirtyNodes.pop()
 
-            if not n.garbageCollected:
-                if n.wasDataUpdated:
-                    self.markToDataUpdate(n)
+            if not node.garbageCollected:
+                if node.wasDataUpdated:
+                    self.markToDataUpdate(node)
                     # TODO this should be cleaned up
                     continue
                 else:
-                    self.markToBroadcast(n)
+                    self.markToBroadcast(node)
                 # TODO: lifecycle attribute; see cell.updateLifecycleState()
 
-                origChildren = self._cellsKnownChildren[n.identity]
+                origChildren = self._cellsKnownChildren[node.identity]
 
                 try:
                     _cur_cell.cell = node
@@ -451,18 +451,18 @@ class Cells:
                     _cur_cell.isProcessingCell = True
                     while True:
                         try:
-                            n.prepare()
-                            n.recalculate()
-                            if not n.wasCreated:
+                            node.prepare()
+                            node.recalculate()
+                            if not node.wasCreated:
                                 # if a cell is marked to broadcast it is either new or has
                                 # been updated. Hence, if it's not new here that means it's
                                 # to be updated.
-                                n.wasUpdated = True
+                                node.wasUpdated = True
                             break
                         except SubscribeAndRetry as e:
                             e.callback(self.db)
                     # GLORP
-                    for childname, child_cell in n.children.items():
+                    for child_cell in node.children.allChildren:
                         # TODO: We are going to have to update this
                         # to deal with namedChildren structures (as opposed
                         # to plain children dicts) in the near future.
@@ -494,6 +494,11 @@ class Cells:
 
                 for child in newChildren.difference(origChildren):
                     self._addCell(child, node)
+
+                for child in origChildren.difference(newChildren):
+                    self._cellOutOfScope(child)
+
+                self._cellsKnownChildren[node.identity] = newChildren
 
     def childrenWithExceptions(self):
         return self._root.findChildrenMatching(lambda cell: isinstance(cell, Traceback))
@@ -1325,7 +1330,8 @@ class Tabs(Cell):
         for i in range(len(self.headersAndChildren)):
             headerCell = _NavTab(
                 self.whichSlot, i, self._identity, self.headersAndChildren[i][0])
-            self.children['headers'].append(headerCell)
+            headersToAdd.append(headerCell)
+        self.children['headers'] = headersToAdd
 
     def onMessage(self, msgFrame):
         self.whichSlot.set(int(msgFrame['ix']))
@@ -1378,7 +1384,8 @@ class Dropdown(Cell):
         for i in range(len(self.headersAndLambdas)):
             header, onDropdown = self.headersAndLambdas[i]
             childCell = Cell.makeCell(header)
-            self.namedChildren['dropdownItems'].append(childCell)
+            #self.namedChildren['dropdownItems'].append(childCell)
+            itemsToAdd.append(childCell)
             if not isinstance(onDropdown, str):
                 self.exportData['dropdownItemInfo'][i] = 'callback'
             else:
@@ -1533,7 +1540,8 @@ class Container(Cell):
         self.setContents("", child)
 
     def setContents(self, newContents, newChildren):
-        self.namedChildren['child'] = list(newChildren.values())[0]  # Hacky!
+        #self.namedChildren['child'] = list(newChildren.values())[0]  # Hacky!
+        self.children['child'] = newChildren
         self.markDirty()
 
 
@@ -2329,7 +2337,7 @@ class Clickable(Cell):
             )
 
     def recalculate(self):
-        self.children = {'content': self.content}
+        self.children['content'] = self.content
         self.exportData['bold'] = self.bold
 
         # TODO: this event handling situation must be refactored
@@ -2353,7 +2361,7 @@ class Button(Clickable):
         self.style = style
 
     def recalculate(self):
-        self.children = {'content': self.content}
+        self.children['content'] = self.content
 
         isActive = False
         if self.active:

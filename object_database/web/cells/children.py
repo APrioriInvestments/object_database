@@ -9,10 +9,12 @@ class Children():
     def addChildNamed(self, name, childStructure):
         if name in self.namedChildren:
             self.removeChildNamed(name)
+        if childStructure is None:
+            return
         self.namedChildren[name] = self._addChildStructure(childStructure, name)
 
     def addFromDict(self, childrenDict):
-        for key, val in childrenDict:
+        for key, val in childrenDict.items():
             self[key] = val
 
     def removeChildNamed(self, name):
@@ -45,6 +47,9 @@ class Children():
         if child in self._reverseLookup:
             return self._reverseLookup[child]
         return None
+
+    def items(self):
+        return self.namedChildren.items()
 
     def _getDimensions(self, item, dimensions=0):
         if isinstance(item, list):

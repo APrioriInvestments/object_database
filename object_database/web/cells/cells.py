@@ -432,43 +432,44 @@ class Cells:
             pass
 
         while self._dirtyNodes:
-            n = self._dirtyNodes.pop()
+            node = self._dirtyNodes.pop()
 
-            if not n.garbageCollected:
-                if n.wasDataUpdated:
-                    self.markToDataUpdate(n)
+            if not node.garbageCollected:
+                if node.wasDataUpdated:
+                    self.markToDataUpdate(node)
                     # TODO this should be cleaned up
                     continue
                 else:
-                    self.markToBroadcast(n)
+                    self.markToBroadcast(node)
                 # TODO: lifecycle attribute; see cell.updateLifecycleState()
 
-                origChildren = self._cellsKnownChildren[n.identity]
+                origChildren = self._cellsKnownChildren[node.identity]
 
                 try:
-                    _cur_cell.cell = n
+                    _cur_cell.cell = node
                     _cur_cell.isProcessingMessage = False
                     _cur_cell.isProcessingCell = True
                     while True:
                         try:
-                            n.prepare()
-                            n.recalculate()
-                            if not n.wasCreated:
+                            node.prepare()
+                            node.recalculate()
+                            if not node.wasCreated:
                                 # if a cell is marked to broadcast it is either new or has
                                 # been updated. Hence, if it's not new here that means it's
                                 # to be updated.
-                                n.wasUpdated = True
+                                node.wasUpdated = True
                             break
                         except SubscribeAndRetry as e:
                             e.callback(self.db)
                     # GLORP
-                    for childname, child_cell in n.children.items():
+                    for child_cell in node.children.allChildren:
                         # TODO: We are going to have to update this
                         # to deal with namedChildren structures (as opposed
                         # to plain children dicts) in the near future.
                         if not isinstance(child_cell, Cell):
+                            childname = node.children.findNameFor(child_cell)
                             raise Exception("Cell of type %s had a non-cell child %s of type %s != Cell." % (
-                                type(n),
+                                type(node),
                                 childname,
                                 type(child_cell)
                             ))
@@ -479,26 +480,25 @@ class Cells:
 
                 except Exception:
                     self._logger.error(
-                        "Node %s had exception during recalculation:\n%s", n, traceback.format_exc())
+                        "Node %s had exception during recalculation:\n%s", node, traceback.format_exc())
                     self._logger.error(
                         "Subscribed cell threw an exception:\n%s", traceback.format_exc())
-                    n.children = {'____contents__': Traceback(
-                        traceback.format_exc())}
-                    n.contents = "____contents__"
+                    tracebackCell = Traceback(traceback.format_exc())
+                    node.children['content'] = tracebackCell
                 finally:
                     _cur_cell.cell = None
                     _cur_cell.isProcessingMessage = False
                     _cur_cell.isProcessingCell = False
 
-                newChildren = set(n.children.values())
+                newChildren = set(node.children.allChildren)
 
-                for c in newChildren.difference(origChildren):
-                    self._addCell(c, n)
+                for child in newChildren.difference(origChildren):
+                    self._addCell(child, node)
 
-                for c in origChildren.difference(newChildren):
-                    self._cellOutOfScope(c)
+                for child in origChildren.difference(newChildren):
+                    self._cellOutOfScope(child)
 
-                self._cellsKnownChildren[n.identity] = newChildren
+                self._cellsKnownChildren[node.identity] = newChildren
 
     def childrenWithExceptions(self):
         return self._root.findChildrenMatching(lambda cell: isinstance(cell, Traceback))
@@ -917,7 +917,7 @@ class Cell:
         self._identity = None
         self.parent = None
 
-        for c in self.children.values():
+        for c in self.children.allChildren:
             c.prepareForReuse()
 
         return True
@@ -1326,10 +1326,12 @@ class Tabs(Cell):
         self.children['display'] = displayCell
         self.children['headers'] = []
 
+        headersToAdd = []
         for i in range(len(self.headersAndChildren)):
             headerCell = _NavTab(
                 self.whichSlot, i, self._identity, self.headersAndChildren[i][0])
-            self.children['headers'].append(headerCell)
+            headersToAdd.append(headerCell)
+        self.children['headers'] = headersToAdd
 
     def onMessage(self, msgFrame):
         self.whichSlot.set(int(msgFrame['ix']))
@@ -1378,14 +1380,17 @@ class Dropdown(Cell):
         self.exportData['targetIdentity'] = self.identity
         self.exportData['dropdownItemInfo'] = {}
 
+        itemsToAdd = []
         for i in range(len(self.headersAndLambdas)):
             header, onDropdown = self.headersAndLambdas[i]
             childCell = Cell.makeCell(header)
-            self.namedChildren['dropdownItems'].append(childCell)
+            #self.namedChildren['dropdownItems'].append(childCell)
+            itemsToAdd.append(childCell)
             if not isinstance(onDropdown, str):
                 self.exportData['dropdownItemInfo'][i] = 'callback'
             else:
                 self.exportData['dropdownItemInfo'][i] = onDropdown
+        self.children['dropdownItems'] = itemsToAdd
 
     def onMessage(self, msgFrame):
         self._logger.info(msgFrame)
@@ -1535,7 +1540,8 @@ class Container(Cell):
         self.setContents("", child)
 
     def setContents(self, newContents, newChildren):
-        self.namedChildren['child'] = list(newChildren.values())[0]  # Hacky!
+        #self.namedChildren['child'] = list(newChildren.values())[0]  # Hacky!
+        self.children['child'] = newChildren
         self.markDirty()
 
 
@@ -2055,7 +2061,6 @@ class SortWrapper:
 class SingleLineTextBox(Cell):
     def __init__(self, slot, pattern=None):
         super().__init__()
-        self.children = {}
         self.pattern = None
         self.slot = slot
 
@@ -2332,7 +2337,7 @@ class Clickable(Cell):
             )
 
     def recalculate(self):
-        self.children = {'content': self.content}
+        self.children['content'] = self.content
         self.exportData['bold'] = self.bold
 
         # TODO: this event handling situation must be refactored
@@ -2356,7 +2361,7 @@ class Button(Clickable):
         self.style = style
 
     def recalculate(self):
-        self.children = {'content': self.content}
+        self.children['content'] = self.content
 
         isActive = False
         if self.active:
@@ -2391,7 +2396,6 @@ class LoadContentsFromUrl(Cell):
         self.targetUrl = targetUrl
 
     def recalculate(self):
-        self.children = {}
         self.exportData['loadTargetId'] = 'loadtarget%s' % self._identity
 
         self.postscript = (
@@ -2525,8 +2529,6 @@ class CodeEditor(Cell):
                 self.onTextChange(msgFrame['buffer'], msgFrame['selection'])
 
     def recalculate(self):
-        self.children = {}  # Is there ever any children for this Cell type?
-
         # temporary js WS refactoring data
         self.exportData['initialText'] = self.initialText
         self.exportData['autocomplete'] = self.autocomplete

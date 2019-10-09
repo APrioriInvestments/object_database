@@ -2256,7 +2256,7 @@ class ObjectDatabaseOverChannelTestsWithRedis(unittest.TestCase, ObjectDatabaseT
             self.server._gc_interval = .1
             self.server.start()
         except Exception:
-            self.redisProcess.terminate()
+            self.redisProcess.tearDown()
             raise
 
     def createNewDb(self):

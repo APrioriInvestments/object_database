@@ -28,6 +28,7 @@ from object_database.web.cells import Messenger
 
 from inspect import signature
 
+import object_database
 from object_database.view import RevisionConflictException
 from object_database.view import current_transaction
 from object_database.util import Timer

@@ -1,5 +1,5 @@
 /******************************************************************************
-   Copyright 2017-2019 Nativepython Authors
+   Copyright 2017-2019 object_database Authors
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -13,8 +13,17 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 ******************************************************************************/
-
 #pragma once
 
-#include "direct_types/all.hpp"
-#include "direct_types/ClientToServer.hpp"
+#include <typed_python/Type.hpp>
+
+#include "Bytes.hpp"
+#include "ConstDict.hpp"
+#include "Dict.hpp"
+#include "ListOf.hpp"
+#include "None.hpp"
+#include "OneOf.hpp"
+#include "String.hpp"
+#include "TupleOf.hpp"
+#include <typed_python/hash_table_layout.hpp>
+#include "HashTableLayout.hpp"

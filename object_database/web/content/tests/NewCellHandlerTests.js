@@ -657,8 +657,6 @@ describe("Sheet and Update Data Tests", () => {
         assert.exists(head);
         let body = document.getElementById(`sheet-${simpleSheet.id}-body`);
         assert.exists(body);
-        assert.equal(body.children.length, 0);
-        assert.equal(head.children.length, 1); // recall we always have the placeholder, column 0
     });
     it("Loads initial data into a Sheet component", () => {
         let sheet = document.getElementById(simpleSheet.id);
@@ -667,8 +665,6 @@ describe("Sheet and Update Data Tests", () => {
         assert.exists(head);
         let body = document.getElementById(`sheet-${simpleSheet.id}-body`);
         assert.exists(body);
-        assert.equal(body.children.length, 0);
-        assert.equal(head.children.length, 1); // recall we always have the placeholder, column 0
         // assert.equal(stored.column_names, null);
         column_names = ["col1", "col2", "col3"],
         data = [
@@ -804,10 +800,6 @@ describe("Sheet and Update Data Tests", () => {
             }
         }
         handler.receive(updateMessage);
-        console.log("new")
-        for (let i  = 0; i < body.children.length; i++){
-            console.log(body.children[i].firstChild.textContent);
-        }
         assert.equal(body.children.length, data.length); // recall the total data length is stable
         assert.equal(head.children.length, column_names.length + 1); // recall we always have the placeholder, column 0
         assert.equal(body.firstChild.firstChild.textContent, new_data[0][0])
@@ -856,9 +848,9 @@ describe("Sheet and Update Data Tests", () => {
         assert.equal(body.children.length, data.length); // recall the total data length is stable
         assert.equal(head.children.length, column_names.length + 1); // recall we always have the placeholder, column 0
         assert.equal(head.children[1].textContent, new_column_names[0])
-        assert.equal(body.firstChild.children[1].textContent, new_data[0][1])
+        assert.equal(body.firstChild.children[1].firstChild.textContent, new_data[0][1])
         assert.equal(head.lastChild.textContent, column_names[column_names.length - new_column_names.length - 1])
-        assert.equal(body.firstChild.lastChild.textContent, data[0][data.length - new_data.length + 1])
+        assert.equal(body.firstChild.lastChild.firstChild.textContent, data[0][data.length - new_data.length + 1])
     });
     it("Column append in a Sheet component", () => {
         let sheet = document.getElementById(simpleSheet.id);
@@ -903,9 +895,9 @@ describe("Sheet and Update Data Tests", () => {
         assert.equal(body.children.length, data.length); // recall the total data length is stable
         assert.equal(head.children.length, column_names.length + 1); // recall we always have the placeholder, column 0
         assert.equal(head.lastChild.textContent, new_column_names[new_column_names.length - 1])
-        assert.equal(body.firstChild.lastChild.textContent, new_data[0][new_data[0].length - 1])
+        assert.equal(body.firstChild.lastChild.firstChild.textContent, new_data[0][new_data[0].length - 1])
         assert.equal(head.children[1].textContent, column_names[new_column_names.length - 1])
-        assert.equal(body.firstChild.children[1].textContent, data[0][new_data.length - 1])
+        assert.equal(body.firstChild.children[1].firstChild.textContent, data[0][new_data.length - 1])
     });
     it("Column append row number mismatch fail in a Sheet component", () => {
         let sheet = document.getElementById(simpleSheet.id);

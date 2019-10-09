@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include "../typed_python/AllTypes.hpp"
-#include "../typed_python/Instance.hpp"
-#include "../typed_python/DictType.hpp"
+#include <typed_python/AllTypes.hpp>
+#include <typed_python/Instance.hpp>
+#include <typed_python/DictType.hpp>
 
 /*******
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-   Copyright 2017-2019 Nativepython Authors
+   Copyright 2017-2019 object_database Authors
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -13,8 +13,33 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 ******************************************************************************/
-
 #pragma once
 
-#include "direct_types/all.hpp"
-#include "direct_types/ClientToServer.hpp"
+#include <typed_python/Type.hpp>
+#include <typed_python/PyInstance.hpp>
+
+class None {
+public:
+    static NoneType* getType() {
+        static NoneType* t = NoneType::Make();
+        return t;
+    }
+    None() {}
+    ~None() {}
+    None(None& other) {}
+    None& operator=(const None& other) { return *this; }
+};
+
+template<>
+class TypeDetails<None> {
+public:
+    static Type* getType() {
+        static Type* t = None::getType();
+        if (t->bytecount() != bytecount) {
+            throw std::runtime_error("None: somehow we have the wrong bytecount!");
+        }
+        return t;
+    }
+
+    static const uint64_t bytecount = 0;
+};

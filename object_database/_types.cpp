@@ -1,7 +1,7 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
-#include "../typed_python/AllTypes.hpp"
-#include "../typed_python/PyInstance.hpp"
+#include <typed_python/AllTypes.hpp>
+#include <typed_python/PyInstance.hpp>
 #include "PyVersionedIdSet.hpp"
 #include "PyDatabaseObjectType.hpp"
 #include "PyDatabaseConnectionState.hpp"

@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import object_database
 from object_database.schema import ObjectFieldId, IndexId, FieldDefinition, indexValueFor
 from object_database.messages import ClientToServer, getHeartbeatInterval
 from object_database.core_schema import core_schema

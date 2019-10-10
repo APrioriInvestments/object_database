@@ -10,6 +10,7 @@ flake8 = "*"
 coverage = "*"
 pytest = "*"
 flaky = "*"
+pre-commit = "*"
 
 [packages]
 boto3 = "*"

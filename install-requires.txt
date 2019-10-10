@@ -1,16 +1,14 @@
 boto3
-flask
 flask-cors
 flask-login
 flask-sockets
 flask-wtf
 gevent
-gevent-websocket
+typed_python @ git+https://github.com/APrioriInvestments/typed_python.git@b118d0de45dfe89836afb0af45a1b23d081261fa#egg=typed-python
+greenlet
 ldap3
 nodeenv
-numpy
 pyyaml
 redis
 requests
-typed_python @ git+https://github.com/APrioriInvestments/typed_python.git@b118d0de45dfe89836afb0af45a1b23d081261fa#egg=typed-python
 wtforms

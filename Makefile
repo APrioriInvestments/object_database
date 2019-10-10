@@ -57,7 +57,7 @@ install_local: $(VIRTUAL_ENV)
 	. $(VIRTUAL_ENV)/bin/activate; \
 		pip install pipenv==2018.11.26; \
 		pip install -e ../typed_python; \
-		pip install -e . \
+		pip install -e .
 
 .PHONY: test
 test: testcert.cert testcert.key install

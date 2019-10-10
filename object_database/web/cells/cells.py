@@ -1672,7 +1672,7 @@ class Subscribed(Cell):
         return Subscribed(newCellFactory)
 
     def sortsAs(self):
-        for c in self.children.values():
+        for c in self.children.allChildren:
             return c.sortsAs()
 
         return Cell.makeCell(self.cellFactory()).sortsAs()
@@ -2459,7 +2459,7 @@ class Expands(Cell):
         # an inline script!
         self.exportData['events'] = {"onclick": inlineScript}
 
-        for c in self.children.values():
+        for c in self.children.allChildren:
             if c.cells is not None:
                 c.prepareForReuse()
 

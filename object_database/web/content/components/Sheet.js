@@ -31,30 +31,29 @@ class Sheet extends Component {
         this.current_start_column_index = null;
         this.current_end_column_index = null;
 
-        // scrolling attributes used to guage the direction of scrolling
-        // and make appropriate calls to lazy load data
+        // scrolling attributes used to guage the direction of key scrolling and offset
+        // then top/bottom appropriately
         this.scrollTop = 0;
         this.scrollLeft = 0;
 
         // Bind context to methods
-        this.initializeTable = this.initializeTable.bind(this);
         this.generate_rows = this.generate_rows.bind(this);
         this.generate_header = this.generate_header.bind(this);
         this.__updateDataAppend = this.__updateDataAppend.bind(this);
         this.__updateDataPrepend = this.__updateDataPrepend.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
+        this._handleCoordInput = this._handleCoordInput.bind(this);
         this.paginate = this.paginate.bind(this);
         this.jump_to_cell = this.jump_to_cell.bind(this);
-        // this.handleClick = this.handleClick.bind(this);
+        this.make_header_item_zero = this.make_header_item_zero.bind(this);
 
-        this.initializeTable();
     }
 
     componentDidLoad(){
         console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
-        let container = document.getElementById(this.props.id).parentNode;
-        this.max_num_columns = this._calc_max_num_columns(container.offsetWidth);
-        this.max_num_rows = this._calc_max_num_rows(container.offsetHeight);
+        this.container = document.getElementById(this.props.id).parentNode;
+        this.max_num_columns = this._calc_max_num_columns(this.container.offsetWidth);
+        this.max_num_rows = this._calc_max_num_rows(this.container.offsetHeight);
         // console.log("max num of rows: " + this.max_num_rows)
         // console.log("max num of columns: " + this.max_num_columns)
         this.current_start_row_index = 0;
@@ -71,18 +70,9 @@ class Sheet extends Component {
                 null
             )
         }
-        // TODO do we need to add this at the document level? (seems so, but why?)
-        document.addEventListener("keydown", this.handleKeyDown)
+        // TODO do we need to add this at the window level? (seems so, but why?)
+        window.addEventListener("keydown", this.handleKeyDown)
     }
-
-    initializeTable(){
-        console.log(`#initializeTable called for Sheet ${this.props.id}`);
-        this.current_start_row_index = 0;
-        this.current_end_row_index = this.max_num_rows;
-        this.current_start_column_index = 0;
-        this.current_end_column_index = this.max_num_columns;
-    }
-
 
     build(){
         console.log(`Rendering custom sheet ${this.props.id}`);
@@ -100,9 +90,6 @@ class Sheet extends Component {
                 h("table", {class: "sheet", style: "table-layout:fixed"}, [
                     h("thead", {}, [
                         h("tr", {id: `sheet-${this.props.id}-head`}, [
-                            // NOTE: we add one more column to account for the row index
-                            // TODO potentially make this an input for this.jump_to_cell;
-                            h("th", {class: "header-item zero"}, [])
                         ])
                     ]),
                     h("tbody", {id: `sheet-${this.props.id}-body`}, rows)
@@ -110,6 +97,42 @@ class Sheet extends Component {
             ])
         );
     }
+
+    /* I am a special element that allows for sheet data navigation */
+    make_header_item_zero(){
+        let style = `max-width: ${this.props.colWidth/2}px; width: ${this.props.colWidth/2}px`
+        return h("th", {class: "header-item zero"},
+            [
+                h("input", {id: `sheet-${this.props.id}-xinput`, style: style, onchange: this._handleCoordInput}, []),
+                h("input", {id: `sheet-${this.props.id}-yinput`, style: style, onchange: this._handleCoordInput}, []),
+            ]
+        )
+    }
+
+    /* I handle navigation by coordinate input. I will only call fetch data if
+     * both x, y coordinates are filled with valid Number's
+     */
+    _handleCoordInput(){
+        let x = document.getElementById(`sheet-${this.props.id}-xinput`);
+        let y = document.getElementById(`sheet-${this.props.id}-yinput`);
+        let x_value = Number(x.value);
+        let y_value = Number(y.value);
+        if (x.value !== "" && !isNaN(x_value) && y.value !== "" && !isNaN(y_value)){
+            this.current_start_row_index = x_value;
+            this.current_start_column_index = y_value;
+            this.current_end_row_index = this.current_start_row_index + this.max_num_rows + this.offset;
+            this.current_end_column_index = this.current_start_column_index + this.max_num_columns + this.offset;
+            this.fetchData(
+                this.current_start_row_index,
+                this.current_end_row_index,
+                this.current_start_column_index,
+                this.current_end_column_index,
+                "replace",
+                null
+            )
+        }
+    }
+
 
     /* I generate the table header.*/
     generate_header(column_names){
@@ -146,13 +169,17 @@ class Sheet extends Component {
 
     handleKeyDown(event){
         if (event.key === "ArrowUp"){
+            event.preventDefault();
             this.paginate("row", "prepend")
         } else if (event.key === "ArrowDown"){
+            event.preventDefault();
             this.paginate("row", "append")
             this.scrollTop = this.props.rowHeight;
         } else if (event.key === "ArrowLeft"){
+            event.preventDefault();
             this.paginate("column", "prepend")
         } else if (event.key === "ArrowRight"){
+            event.preventDefault();
             this.paginate("column", "append")
         }
     }
@@ -232,7 +259,7 @@ class Sheet extends Component {
             action: action,
             axis: axis
         });
-        console.log(request);
+        // console.log(request);
         cellSocket.sendString(request);
     }
 
@@ -245,8 +272,8 @@ class Sheet extends Component {
         console.log("updating data for sheet: " + this.props.id)
         // console.log(dataInfo.data);
         // make sure the data is not empty
-        let body = document.getElementById(`sheet-${this.props.id}-body`)
-        let head = document.getElementById(`sheet-${this.props.id}-head`)
+        let body = document.getElementById(`sheet-${this.props.id}-body`);
+        let head = document.getElementById(`sheet-${this.props.id}-head`);
         if (dataInfo.data && dataInfo.data.length){
             if (dataInfo.action === "replace") {
                 while(body.firstChild){
@@ -255,9 +282,9 @@ class Sheet extends Component {
                 while(head.firstChild){
                     head.firstChild.remove()
                 }
-                // recall we always keep the column 0 element
+                // NOTE: we add one more column to account for the row index
                 projector.append(head, () => {
-                    return h("th", {class: "header-item zero"}, [])
+                    return this.make_header_item_zero();
                 })
                 this.generate_rows(dataInfo.data).map((row) => {
                     projector.append(body, () => {return row})
@@ -495,7 +522,6 @@ class SheetCell extends Component {
         this.style = `max-width: ${this.props.width}px; width: ${this.props.width}px`
 
         // Bind component methods
-        this.onHover = this.onHover.bind(this);
     }
 
     componentDidLoad(){
@@ -504,15 +530,14 @@ class SheetCell extends Component {
     build(){
         return (
             h("td",
-                {class: "sheet-cell", style: this.style, onhover: this.onhover},
-                [this.props.data.toString()]
+                {class: "sheet-cell custom-tooltip", style: this.style},
+                [
+                    h("span", {}, [this.props.data.toString()]),
+                    h("span", {class: "tooltiptext"}, [this.props.data.toString()]),
+
+                ]
             )
         );
-    }
-
-    onHover(){
-        console.log(this.props.data)
-        // TODO: build a nice hover over view
     }
 }
 

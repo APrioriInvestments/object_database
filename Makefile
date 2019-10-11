@@ -57,7 +57,7 @@ install_local: $(VIRTUAL_ENV)
 	. $(VIRTUAL_ENV)/bin/activate; \
 		pip install pipenv==2018.11.26; \
 		pip install -e ../typed_python; \
-		pip install -e . \
+		pip install -e .
 
 .PHONY: test
 test: testcert.cert testcert.key install
@@ -90,7 +90,6 @@ generatetesttypes: $(DT_SRC_PATH)/generate_types.py
 .PHONY: clean
 clean:
 	rm -rf build/
-	rm -f nose.*.log
 	rm -f object_database/_types.cpython-*.so
 	rm -f testcert.cert testcert.key
 	rm -rf .venv

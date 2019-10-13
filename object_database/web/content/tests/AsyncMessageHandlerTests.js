@@ -34,6 +34,7 @@ let bad_message_m_id = {
     id: 2,
     payload : {}
 };
+
 describe("Basic AsyncMessageHandler Tests", () => {
     it('Should be able to initialize', () => {
         let instance = new AsyncMessageHandler();
@@ -79,5 +80,54 @@ describe("Basic AsyncMessageHandler Tests", () => {
         } catch(e) {
             assert.equal(e, "Message missing component 'id'")
         }
+        try {
+            instance.addToQueue(bad_message_m_id);
+        } catch(e) {
+            assert.equal(e, "Message missing 'message_id'")
+        }
+    });
+    it('Removing message to queue errors', () => {
+        let instance = new AsyncMessageHandler();
+        assert.equal(instance.queue.toString(), {}.toString());
+        try {
+            instance.removeFromQueue(bad_message_id);
+        } catch(e) {
+            assert.equal(e, "Message missing component 'id'")
+        }
+        try {
+            instance.removeFromQueue(bad_message_m_id);
+        } catch(e) {
+            assert.equal(e, "Message missing 'message_id'")
+        }
+    });
+    it('Remove message to queue', () => {
+        let instance = new AsyncMessageHandler();
+        assert.equal(instance.queue.toString(), {}.toString());
+        instance.addToQueue(basic_message1);
+        instance.addToQueue(basic_message11);
+        let test_queue = {
+            "component_1": [1, 11]
+        }
+        assert.equal(instance.queue["component_1"].toString(), test_queue["component_1"].toString());
+        instance.removeFromQueue(basic_message11);
+        test_queue = {
+            "component_1": [1]
+        }
+        assert.equal(instance.queue["component_1"].toString(), test_queue["component_1"].toString());
+    });
+    it('Adding single message to cache queue', () => {
+        let instance = new AsyncMessageHandler();
+        assert.equal(instance.cache_queue.toString(), {}.toString());
+        instance._addToCacheQueue(basic_message1);
+        assert.equal(instance.cache_queue["component_1"].length, 1);
+    });
+    it('Remove single message from cache queue', () => {
+        let instance = new AsyncMessageHandler();
+        assert.equal(instance.cache_queue.toString(), {}.toString());
+        instance._addToCacheQueue(basic_message1);
+        assert.equal(instance.cache_queue["component_1"].length, 1);
+        let removed_message = instance._removeFromCacheQueue(basic_message1);
+        assert.equal(instance.cache_queue["component_1"].length, 0);
+        assert.equal(removed_message.toString(), basic_message1.toString());
     });
 });

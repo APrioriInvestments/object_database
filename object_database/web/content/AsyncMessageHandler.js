@@ -9,16 +9,16 @@
 
 class AsyncMessageHandler {
     constructor() {
-        this.queue = null;
+        this.queue = {};
         // this is where incoming messages that need to be cached for
         // later are stored
-        this.cashe_queue = null;
+        this.cache_queue = {};
 
         // Bind context to methods
         this.addToQueue = this.addToQueue.bind(this);
         this.removeFromQueue = this.removeFromQueue.bind(this);
-        this._addToCacheQueue = this._addToCacheQueue._bind(this);
-        this._removeFromCacheQueue = this._removeFromCacheQueue._bind(this);
+        this._addToCacheQueue = this._addToCacheQueue.bind(this);
+        this._removeFromCacheQueue = this._removeFromCacheQueue.bind(this);
     }
 
     /* I handle serve-side incoming messages and return a list
@@ -30,25 +30,30 @@ class AsyncMessageHandler {
     addToQueue(message){
         // make sure the message has the component name
         // and a timestamp
-        if (message.target_cell === null) {
-            throw "Message missing 'target_cell' id";
+        if (!message.id) {
+            throw "Message missing component 'id'";
         }
-        if (message.message_id === null) {
-            throw "Message missing 'message_id' id";
+        if (!message.message_id) {
+            throw "Message missing 'message_id'";
+        }
+
+        if (!this.queue[message.id]){
+            this.queue[message.id] = [message.message_id]
+        } else {
+            this.queue[message.id].push(message.message_id)
         }
     }
 
     removeFromQueue(message){
         // make sure the message has the component name
         // and a timestamp
-        if (message.target_cell === null) {
-            throw "Message missing 'target_cell' id";
+        if (!message.id) {
+            throw "Message missing component 'id'";
         }
-        if (message.message_id === null) {
-            throw "Message missing 'message_id' id";
+        if (!message.message_id) {
+            throw "Message missing 'message_id'";
         }
     }
-
 
     _addToCacheQueue(message){
     }
@@ -58,3 +63,5 @@ class AsyncMessageHandler {
     }
 
 }
+
+export {AsyncMessageHandler, AsyncMessageHandler as default};

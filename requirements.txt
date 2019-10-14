@@ -8,6 +8,7 @@ gevent
 gevent-websocket
 ldap3
 nodeenv
+numpy
 pyyaml
 redis
 requests

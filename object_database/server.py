@@ -18,7 +18,7 @@ from object_database.schema import FieldDefinition, ObjectFieldId, IndexId, inde
 from object_database.core_schema import core_schema
 from object_database.messages import SchemaDefinition
 from object_database.util import Timer
-from typed_python import serialize, deserialize, Class, Member, Dict, makeNamedTuple, NamedTuple
+from typed_python import serialize, deserialize, Class, Final, Member, Dict, makeNamedTuple, NamedTuple
 from typed_python.Codebase import Codebase as TypedPythonCodebase
 import queue
 import time
@@ -32,7 +32,7 @@ DEFAULT_GC_INTERVAL = 900.0
 ObjectBase = NamedTuple(_identity=int)
 
 
-class TypeMap(Class):
+class TypeMap(Class, Final):
     fieldDefToId = Member(Dict(FieldDefinition, int))
     fieldIdToDef = Member(Dict(int, FieldDefinition))
 

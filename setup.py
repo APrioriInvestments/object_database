@@ -29,13 +29,14 @@ class BuildExtension(build_ext):
 
     def run(self):
         self.include_dirs.append(
-            pkg_resources.resource_filename('numpy', 'core/include'))
+            pkg_resources.resource_filename('numpy', 'core/include')
+        )
 
         # the typed_python includes are inline. We want to find them as #include <typed_python/...>
         # so we kluge this together this way. Better to modify typed_python to export its includes
         # in a more reasonable way.
         self.include_dirs.append(
-            os.path.dirname(os.path.dirname(pkg_resources.resource_filename('typed_python', '.')))
+            os.path.dirname(pkg_resources.resource_filename('typed_python', ''))
         )
         build_ext.run(self)
 

@@ -118,7 +118,7 @@ describe("Basic AsyncMessageHandler Tests", () => {
     it('Adding single message to cache queue', () => {
         let instance = new AsyncMessageHandler();
         assert.equal(instance.cache_queue.toString(), {}.toString());
-        instance._addToCacheQueue(basic_message1);
+        instance._addToCacheQueue(basic_message1.id, basic_message1.message_id);
         assert.equal(instance.cache_queue["component_1"].length, 1);
     });
     it('Remove single message from cache queue', () => {

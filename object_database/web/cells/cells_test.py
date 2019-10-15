@@ -42,7 +42,13 @@ from object_database.test_util import (
     log_cells_stats
 )
 from object_database.web.cells.Messenger import getStructure
-from object_database.web.cells import Padding, Margin, MarginSides
+from object_database.web.cells import (
+    Padding, 
+    Margin, 
+    MarginSides,
+    MarginRight,
+    MarginLeft
+)
 
 import logging
 import unittest
@@ -811,6 +817,15 @@ class CellsUtilTests(unittest.TestCase):
         self.assertEqual('10px', cell.exportData['customStyle']['margin-right'])
         self.assertEqual('10px', cell.exportData['customStyle']['margin-left'])
 
+    def test_margin_right(self):
+        cell = Text("test")
+        MarginRight(12, cell)
+        self.assertTrue('margin-right' in cell.exportData['customStyle'])
+        self.assertEqual('12px', cell.exportData['customStyle']['margin-right'])
+        self.assertFalse('margin' in cell.exportData['customStyle'])
+        self.assertEqual('0px', cell.exportData['customStyle']['margin-left'])
+        self.assertEqual('0px', cell.exportData['customStyle']['margin-bottom'])
+        self.assertEqual('0px', cell.exportData['customStyle']['margin-top'])
 
 
 

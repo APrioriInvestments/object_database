@@ -43,7 +43,9 @@ from object_database.test_util import (
 )
 from object_database.web.cells.Messenger import getStructure
 from object_database.web.cells import (
-    Padding, 
+    Padding,
+    PaddingRight,
+    PaddingLeft,
     Margin, 
     MarginSides,
     MarginRight,
@@ -802,6 +804,20 @@ class CellsUtilTests(unittest.TestCase):
         Padding(10, cell)
         self.assertTrue('padding' in cell.exportData['customStyle'])
         self.assertEqual('10px', cell.exportData['customStyle']['padding'])
+
+    def test_padding_right(self):
+        cell = Text("test")
+        PaddingRight(22, cell)
+        self.assertFalse('padding' in cell.exportData['customStyle'])
+        self.assertTrue('padding-right' in cell.exportData['customStyle'])
+        self.assertEqual('22px', cell.exportData['customStyle']['padding-right'])
+
+    def test_padding_left(self):
+        cell = Text("test")
+        PaddingLeft(22, cell)
+        self.assertFalse('padding' in cell.exportData['customStyle'])
+        self.assertTrue('padding-left' in cell.exportData['customStyle'])
+        self.assertEqual('22px', cell.exportData['customStyle']['padding-left'])
 
     def test_margin_all_dimensions(self):
         cell = Text("test")

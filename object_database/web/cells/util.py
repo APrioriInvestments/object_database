@@ -210,3 +210,31 @@ def Margin(amount, cell=None):
 
     return CustomInset(cell, 'margin', top=amount,
                        right=amount, bottom=amount, left=amount)
+
+
+def MarginSides(amount, cell=None):
+    """Cell modifier function that
+    will add Margin on the left and right
+    sides to the resulting Cell component.
+
+    Parameters
+    ----------
+    amount: integer
+        The number of pxels in margin
+        that will be on the left and
+        right sides of the resulting
+        Cell's component
+    cell: Cell
+        The Cell instance that will be
+        modified. If None, then return
+        a CellDecorator
+
+    Returns
+    -------
+    A modified Cell instance or CellDecorator
+    """
+    if cell is None:
+        return CellDecorator(lambda cell: MarginSides(amount, cell), f"MarginSides({amount})")
+
+    return CustomInset(cell, 'margin', top=0,
+                        right=amount, bottom=0, left=amount)

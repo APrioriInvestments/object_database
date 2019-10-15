@@ -79,7 +79,8 @@ from object_database.web.cells.util import (
     Flex,
     ShrinkWrap,
     Padding,
-    Margin
+    Margin,
+    MarginSides
 )
 
 from object_database.web.cells.views.resizable_panel import ResizablePanel

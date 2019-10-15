@@ -185,6 +185,27 @@ def Padding(amount, cell=None):
                        right=amount, bottom=amount, left=amount)
 
 
+def PaddingDimension(amount, direction, cell=None):
+    assert direction in ['top', 'right', 'left', 'bottom'], f"Padding dimension error: {direction}"
+    if cell is None:
+        return CellDecorator(lambda cell: PaddingDimension(amount, direction, cell), f"PaddingDimension({amount}, {direction})")
+    dimensions = {
+        'top': 0,
+        'right': 0,
+        'bottom': 0,
+        'left': 0
+    }
+    dimensions[direction] = amount
+    return CustomInset(cell, 'padding', **dimensions)
+
+
+def PaddingRight(amount, cell=None):
+    return PaddingDimension(amount, 'right', cell)
+
+def PaddingLeft(amount, cell=None):
+    return PaddingDimension(amount, 'left', cell)
+
+
 def Margin(amount, cell=None):
     """Cell modifier function that
     adds Margin on all dimensions

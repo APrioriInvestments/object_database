@@ -36,16 +36,21 @@ class Expands extends Component {
         return(
             h('div', {
                 id: this.props.id,
+                class: 'cell expands',
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Expands",
             },
                 [
                     h('div', {
-                        style: 'display:inline-block;vertical-align:top',
+                        //style: 'display:inline-block;vertical-align:top',
+                        class: 'expands-button-area',
                         onclick: this._getEvent('onclick')
                     },
                       [this.makeIcon()]),
-                    h('div', {style:'display:inline-block'},
+                    h('div', {
+                        //style:'display:inline-block'
+                        class: 'expands-content-area'
+                    },
                       [this.makeContent()]),
                 ]
             )

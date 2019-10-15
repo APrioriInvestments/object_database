@@ -183,6 +183,25 @@ td.row-index-item {
     overflow-wrap: break-word;
     white-space: pre-wrap;
  }
+
+/* Expands
+ * ============================================================*/
+ .expands,
+ .sequence-vertical > .expands {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+ }
+
+ .expands-button-area {
+    width: auto;
+ }
+
+ .expands-content-area {
+    flex: 1;
+ }
+
 /* Modals (bypasses Bootstrap implementation)
 * =============================================================*/
 

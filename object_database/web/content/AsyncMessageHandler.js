@@ -25,36 +25,41 @@ class AsyncMessageHandler {
      * of messages (potenitally empty) to the CellHandler.
      */
     processMessage(message){
+        // messages to return
+        let messages = [];
         // check if component/element id is in the queue
         if (!this.queue[message.id]){
-            throw `Component id ${message.id} }has no messages in the queue.`
+            throw `Component id '${message.id}' has no messages in the queue.`
         }
         // check which order the current message_id takes in the queue for
         // that component
-        let message_index = this.queue[message.id][message.message_id];
+        let message_index = this.queue[message.id].indexOf(message.message_id);
         if (message_index === -1){
-            throw `Message ${message.message_id} not found in queue for component ${message.id}.`
-        } else if(message_index === 1){
+            throw `Message '${message.message_id}' not found in queue for component ${message.id}.`
+        } else if(message_index === 0){
             // if the message_id is first in the queue return and all subsequent
             // cached messages; remove the relevant message_ids from the queue and messages
             // from the cache_queue
             this.removeFromQueue(message);
-            let messages = [message];
+            messages.push(message);
             for (let i = 0; i < this.queue[message.id].length; i++){
                 // if the next message_id in the queue corresponds to the next
                 // message in the cache queue then we add it to the list of messages
                 // to return and remove from the queues
                 let message_id = this.queue[message.id][i];
+                console.log(message_id);
+                console.log(this.cache_queue);
                 let cache_message_id = this.cache_queue[message.id][i];
+                console.log(cache_message_id);
                 if (message_id === cache_message_id){
                     messages.push(this._removeFromCacheQueue(message.id, message_id));
                 }
             }
-            return messages;
         } else {
+            // if the message_id is not first in the queue cache the message for later
             this._addToCacheQueue(message);
         }
-        // if the message_id is not first in the queue cache the message for later
+        return messages;
     }
 
     addToQueue(message){

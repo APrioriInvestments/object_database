@@ -27,10 +27,9 @@ class HeaderBar extends Component {
         return (
             h('div', {
                 id: this.props.id,
-                class: "cell p-2 bg-light flex-container",
+                class: "cell header-bar bg-light",
                 "data-cell-id": this.props.id,
-                "data-cell-type": "HeaderBar",
-                style: 'display:flex;align-items:baseline;'
+                "data-cell-type": "HeaderBar"
             }, [
                 this.makeLeft(),
                 this.makeCenter(),

@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from flaky import flaky
 from typed_python import Alternative, TupleOf, OneOf, ConstDict
 from typed_python.SerializationContext import SerializationContext
 
@@ -787,6 +788,7 @@ class ObjectDatabaseTests:
             self.assertTrue(root.exists())
             self.assertEqual(root.obj.k.value, 23)
 
+    @flaky(max_runs=3, min_passes=1)
     def test_throughput_basic(self):
         db = self.createNewDb()
         db.subscribeToSchema(schema)
@@ -804,6 +806,7 @@ class ObjectDatabaseTests:
             self.assertTrue(root.obj.k.value > 500, root.obj.k.value)
             print(root.obj.k.value, "transactions per second")
 
+    @flaky(max_runs=3, min_passes=1)
     def test_throughput_read(self):
         db = self.createNewDb()
         db.subscribeToSchema(schema)
@@ -823,6 +826,7 @@ class ObjectDatabaseTests:
         self.assertGreater(count, 500000 / self.PERFORMANCE_FACTOR)
         print(count, " reads per second")  # I get about 3mm on my machine.
 
+    @flaky(max_runs=3, min_passes=1)
     def test_throughput_write_within_view(self):
         db = self.createNewDb()
         db.subscribeToSchema(schema)
@@ -843,6 +847,7 @@ class ObjectDatabaseTests:
         # I get about 2.8mm on my machine.
         print(count, " in-view writes per second")
 
+    @flaky(max_runs=3, min_passes=1)
     def test_throughput_write_indexed_value_within_view(self):
         db = self.createNewDb()
         db.subscribeToSchema(schema)

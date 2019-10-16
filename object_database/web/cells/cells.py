@@ -298,7 +298,8 @@ class Cells:
     def _cellOutOfScope(self, cell):
         for c in cell.children.allChildren:
             self._cellOutOfScope(c)
-
+        cell.wasCreated = False
+        cell.wasUpdated = False
         self.markToDiscard(cell)
 
         if cell.cells is not None:
@@ -322,7 +323,6 @@ class Cells:
     def markDirty(self, cell):
         assert not cell.garbageCollected, (cell, cell.text if isinstance(
             cell, Text) else "")
-
         self._dirtyNodes.add(cell)
 
     def markToDiscard(self, cell):
@@ -645,6 +645,7 @@ class Cell:
         self.children = Children(self)
         self.contents = ""  # some contents containing a local node def
         self.shouldDisplay = True  # Whether or not this is a cell that will be displayed
+        self.isRoot = False
         self.isShrinkWrapped = False # If will be shrinkwrapped inside flex parent
         self.isFlex = False # If it will be a flex child
         self.isFlexParent = False # If it will be a parent flex
@@ -1552,6 +1553,10 @@ class Scrollable(Container):
 
 
 class RootCell(Container):
+    def __init__(self, child=None):
+        super().__init__(child)
+        self.isRoot = True
+
     @property
     def identity(self):
         return "page_root"
@@ -1680,14 +1685,14 @@ class Subscribed(Cell):
     def recalculate(self):
         with self.view() as v:
             try:
-                c = Cell.makeCell(self.cellFactory())
-                if c.cells is not None:
-                    c.prepareForReuse()
-                if isinstance(c, Sequence):
+                newCell = Cell.makeCell(self.cellFactory())
+                if newCell.cells is not None:
+                    newCell.prepareForReuse()
+                if isinstance(newCell, Sequence):
                     self.wrapsSequence = True
-                elif isinstance(c, HorizontalSequence):
+                elif isinstance(newCell, HorizontalSequence):
                     self.wrapsHorizSequence = True
-                self.children['content'] = c
+                self.children['content'] = newCell
             except SubscribeAndRetry:
                 raise
             except Exception:
@@ -2636,6 +2641,12 @@ class Sheet(Cell):
         and data handling before we can move this
         to the JS side"""
 
+        # Note: this used to be
+        # 1, using the old assumption
+        # that rows would not come over with
+        # their first column values set.
+        ROW_LEN_OFFSET = 0
+
         if msgFrame["event"] == 'sheet_needs_data':
             start_row = msgFrame['start_row']
             end_row = msgFrame['end_row']
@@ -2647,7 +2658,7 @@ class Sheet(Cell):
                                      end_column)
             columnsToSend = self.columnFun(start_column,
                                            end_column)
-            if (not all([len(columnsToSend) == (len(row) - 1) for row in
+            if (not all([len(columnsToSend) == (len(row) - ROW_LEN_OFFSET) for row in
                          rowsToSend])):
                 self._logger.error(
                     "Sheet.rowFun generated rows don't match column length. "

@@ -70,7 +70,7 @@ ext_modules = [
     ),
 ]
 
-INSTALL_REQUIRES = [line.strip() for line in open('requirements.txt')]
+INSTALL_REQUIRES = [line.strip() for line in open('install-requires.txt')]
 
 setuptools.setup(
     name='object_database',

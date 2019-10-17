@@ -16,10 +16,12 @@ from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
 import time
 
+
 class NewBasicSheet(CellsTestPage):
     def cell(self):
         # Create the datasource
-        datasource = [["{},{}".format(i, j) for j in range(100)] for i in range(10)]
+        datasource = [["{},{}".format(i, j) for j in range(100)] for i in
+                      range(10)]
 
         def colFun(start_column, end_column, num_columns=10):
             columns = []
@@ -29,7 +31,8 @@ class NewBasicSheet(CellsTestPage):
                 columns.append("Column {}".format(i))
             return columns
 
-        def rowFun(start_row, end_row, start_column, end_column, num_rows=100, num_columns=10):
+        def rowFun(start_row, end_row, start_column, end_column, num_rows=100,
+                   num_columns=10):
             rows = []
             if start_row >= num_rows or start_column >= num_columns:
                 return rows
@@ -37,6 +40,7 @@ class NewBasicSheet(CellsTestPage):
             end_row = min(end_row, num_rows)
             for i in range(start_row, end_row):
                 r = [datasource[j][i] for j in range(start_column, end_column)]
+                r = ["row_%s" % i] + r
                 rows.append(r)
             return rows
         return cells.Sheet(colFun, rowFun, colWidth=75, rowHeight=30)
@@ -58,7 +62,8 @@ class NewBasicSheetWithDelay(CellsTestPage):
                 columns.append("Column {}".format(i))
             return columns
 
-        def rowFun(start_row, end_row, start_column, end_column, num_rows=100, num_columns=10):
+        def rowFun(start_row, end_row, start_column, end_column, num_rows=100,
+                   num_columns=10):
             rows = []
             if start_row >= num_rows or start_column >= num_columns:
                 return rows
@@ -66,6 +71,7 @@ class NewBasicSheetWithDelay(CellsTestPage):
             end_row = min(end_row, num_rows)
             for i in range(start_row, end_row):
                 r = [datasource[j][i] for j in range(start_column, end_column)]
+                r = ["row_%s" % i] + r
                 rows.append(r)
             time.sleep(0.2)
             return rows

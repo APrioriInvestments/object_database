@@ -31,7 +31,6 @@ class HorizontalSubscribedSequenceNotFlex(CellsTestPage):
     def text(self):
         return "Should display a horizontal sequence that is NOT flexed"
 
-
 class VerticalSubscribedSequenceNotFlex(CellsTestPage):
     def cell(self):
         x = cells.Slot(())

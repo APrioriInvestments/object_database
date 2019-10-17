@@ -1,5 +1,5 @@
 /******************************************************************************
-   Copyright 2017-2019 object_database Authors
+   Copyright 2017-2019 Nativepython Authors
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@
 #include <map>
 #include <memory>
 
-#include <typed_python/SerializationContext.hpp>
-#include <typed_python/DeserializationBuffer.hpp>
+#include "../typed_python/SerializationContext.hpp"
+#include "../typed_python/DeserializationBuffer.hpp"
 #include "VersionedObjects.hpp"
 #include "ObjectFieldId.hpp"
 #include "IndexId.hpp"
-#include "direct_types/all.hpp"
+#include "../typed_python/direct_types/all.hpp"
 
 /*************
 DatabaseConnectionState stores a set of versioned objects for a single database

@@ -18,8 +18,8 @@ from itertools import chain
 from object_database.web.ActiveWebServiceSchema import active_webservice_schema
 
 from object_database.web.cells import (
-    Main, Subscribed, Traceback, Span, Button, Octicon,
-    Tabs, Table, Clickable, Dropdown, Popover, HeaderBar,
+    Main, Subscribed, Sequence, Traceback, Span, Button, Octicon,
+    Padding, Tabs, Table, Clickable, Dropdown, Popover, HeaderBar,
     LargePendingDownloadDisplay, PageView,
     HorizontalSequence, SplitView
 )

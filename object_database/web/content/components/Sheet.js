@@ -68,8 +68,10 @@ class Sheet extends Component {
                 this.current_end_column_index,
                 "replace",
                 null
-            );
+            )
         }
+        // TODO do we need to add this at the window level? (seems so, but why?)
+        window.addEventListener("keydown", this.handleKeyDown)
     }
 
     build(){
@@ -81,15 +83,11 @@ class Sheet extends Component {
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Sheet",
                 class: "cell sheet-wrapper",
+                // keydown: (e) => {console.log(e)},
                 scrollTop: this.scrollTop,
                 scrollLeft: this.scrollLeft
             }, [
-                h("table", {
-                    class: "sheet",
-                    style: "table-layout:fixed",
-                    tabindex: "-1",
-                    onkeydown: this.handleKeyDown
-                }, [
+                h("table", {class: "sheet", style: "table-layout:fixed"}, [
                     h("thead", {}, [
                         h("tr", {id: `sheet-${this.props.id}-head`}, [
                         ])
@@ -285,9 +283,9 @@ class Sheet extends Component {
                     head.firstChild.remove()
                 }
                 // NOTE: we add one more column to account for the row index
-                /*projector.append(head, () => {
+                projector.append(head, () => {
                     return this.make_header_item_zero();
-                })*/
+                })
                 this.generate_rows(dataInfo.data).map((row) => {
                     projector.append(body, () => {return row})
                 })

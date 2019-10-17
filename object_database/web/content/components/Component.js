@@ -381,7 +381,6 @@ const styleToDict = (styleString) => {
     keysAndVals.forEach(part => {
         result[part[0]] = part[1];
     });
-    return result;
 };
 
 /**

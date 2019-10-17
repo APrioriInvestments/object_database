@@ -1,5 +1,5 @@
 /******************************************************************************
-   Copyright 2017-2019 object_database Authors
+   Copyright 2017-2019 Nativepython Authors
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,5 +16,5 @@
 
 #pragma once
 
-#include "direct_types/all.hpp"
-#include "direct_types/ClientToServer.hpp"
+#include "../typed_python/direct_types/all.hpp"
+#include "../typed_python/direct_types/ClientToServer.hpp"

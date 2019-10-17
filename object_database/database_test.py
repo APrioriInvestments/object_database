@@ -1,4 +1,4 @@
-#   Copyright 2017-2019 object_database Authors
+#   Coyright 2017-2019 Nativepython Authors
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -2256,7 +2256,7 @@ class ObjectDatabaseOverChannelTestsWithRedis(unittest.TestCase, ObjectDatabaseT
             self.server._gc_interval = .1
             self.server.start()
         except Exception:
-            self.redisProcess.tearDown()
+            self.redisProcess.terminate()
             raise
 
     def createNewDb(self):

@@ -29,9 +29,9 @@ class BasicCollapsiblePanel(CellsTestPage):
             panel=cells.SubscribedSequence(
                 lambda: [1],
                 lambda i: cells.Text("PANE") +
-                # somehow, the presence of this cell prevents you from opening and closing
-                # the panel more than once?
-                cells.Subscribed(lambda: "Some Text")
+                    # somehow, the presence of this cell prevents you from opening and closing
+                    # the panel more than once?
+                    cells.Subscribed(lambda: "Some Text")
             ),
             content=cells.ResizablePanel(
                 cells.Subscribed(lambda: cells.Card("I am some content")),

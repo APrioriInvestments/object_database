@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-#   Copyright 2017-2019 object_database Authors
+#   Coyright 2017-2019 Nativepython Authors
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -251,7 +251,7 @@ def main(argv=None):
                             logLevelName=level_name
                         )
                         logger.info("Connected the service-manager")
-                    except (ConnectionRefusedError, DisconnectedException, concurrent.futures._base.TimeoutError, OSError):
+                    except (ConnectionRefusedError, DisconnectedException, concurrent.futures._base.TimeoutError):
                         serviceManager = None
 
                     if serviceManager is None:
@@ -265,7 +265,7 @@ def main(argv=None):
                     try:
                         serviceManager.cleanup()
 
-                    except (ConnectionRefusedError, DisconnectedException, concurrent.futures._base.TimeoutError, OSError):
+                    except (ConnectionRefusedError, DisconnectedException, concurrent.futures._base.TimeoutError):
                         # try to reconnect
                         logger.error("Disconnected from object_database host. Attempting to reconnect.")
                         serviceManager.stop(gracefully=False)

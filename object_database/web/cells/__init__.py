@@ -22,6 +22,7 @@ from object_database.web.cells.cells import (
     Badge,
     CollapsiblePanel,
     Text,
+    Padding,
     Panel,
     Span,
     Sequence,
@@ -56,7 +57,6 @@ from object_database.web.cells.cells import (
     Expands,
     CodeEditor,
     Sheet,
-    OldSheet,
     Plot,
     _PlotUpdater,
     AsyncDropdown,
@@ -79,12 +79,7 @@ from object_database.web.cells.util import (
     Flex,
     ShrinkWrap,
     Padding,
-    PaddingRight,
-    PaddingLeft,
-    Margin,
-    MarginSides,
-    MarginRight,
-    MarginLeft
+    Margin
 )
 
 from object_database.web.cells.views.resizable_panel import ResizablePanel

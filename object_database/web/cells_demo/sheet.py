@@ -14,66 +14,6 @@
 
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
-import time
-
-
-class NewBasicSheet(CellsTestPage):
-    def cell(self):
-        # Create the datasource
-        datasource = [["{},{}".format(i, j) for j in range(100)] for i in range(10)]
-
-        def colFun(start_column, end_column, num_columns=10):
-            columns = []
-            if start_column >= num_columns:
-                return columns
-            for i in range(start_column, min(end_column, num_columns)):
-                columns.append("Column {}".format(i))
-            return columns
-
-        def rowFun(start_row, end_row, start_column, end_column, num_rows=100, num_columns=10):
-            rows = []
-            if start_row >= num_rows or start_column >= num_columns:
-                return rows
-            end_column = min(end_column, num_columns)
-            end_row = min(end_row, num_rows)
-            for i in range(start_row, end_row):
-                r = [datasource[j][i] for j in range(start_column, end_column)]
-                rows.append(r)
-            return rows
-        return cells.Sheet(colFun, rowFun, colWidth=75, rowHeight=30)
-
-    def text(self):
-        return "Basic demo on 10x100 datasource"
-
-
-class NewBasicSheetWithDelay(CellsTestPage):
-    def cell(self):
-        # Create the datasource
-        datasource = [["{},{}".format(i, j) for j in range(100)] for i in range(10)]
-
-        def colFun(start_column, end_column, num_columns=10):
-            columns = []
-            if start_column >= num_columns:
-                return columns
-            for i in range(start_column, min(end_column, num_columns)):
-                columns.append("Column {}".format(i))
-            return columns
-
-        def rowFun(start_row, end_row, start_column, end_column, num_rows=100, num_columns=10):
-            rows = []
-            if start_row >= num_rows or start_column >= num_columns:
-                return rows
-            end_column = min(end_column, num_columns)
-            end_row = min(end_row, num_rows)
-            for i in range(start_row, end_row):
-                r = [datasource[j][i] for j in range(start_column, end_column)]
-                rows.append(r)
-            time.sleep(0.2)
-            return rows
-        return cells.Sheet(colFun, rowFun, colWidth=75, rowHeight=30)
-
-    def text(self):
-        return "Basic demo on 10x100 datasource, with a 0.2s delay"
 
 
 class BasicSheet(CellsTestPage):

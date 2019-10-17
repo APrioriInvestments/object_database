@@ -1,4 +1,4 @@
-#   Copyright 2017-2019 object_database Authors
+#   Copyright 2017-2019 Nativepython Authors
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -298,8 +298,7 @@ class Cells:
     def _cellOutOfScope(self, cell):
         for c in cell.children.allChildren:
             self._cellOutOfScope(c)
-        cell.wasCreated = False
-        cell.wasUpdated = False
+
         self.markToDiscard(cell)
 
         if cell.cells is not None:
@@ -323,6 +322,7 @@ class Cells:
     def markDirty(self, cell):
         assert not cell.garbageCollected, (cell, cell.text if isinstance(
             cell, Text) else "")
+
         self._dirtyNodes.add(cell)
 
     def markToDiscard(self, cell):
@@ -645,10 +645,9 @@ class Cell:
         self.children = Children(self)
         self.contents = ""  # some contents containing a local node def
         self.shouldDisplay = True  # Whether or not this is a cell that will be displayed
-        self.isRoot = False
-        self.isShrinkWrapped = False  # If will be shrinkwrapped inside flex parent
-        self.isFlex = False  # If it will be a flex child
-        self.isFlexParent = False  # If it will be a parent flex
+        self.isShrinkWrapped = False # If will be shrinkwrapped inside flex parent
+        self.isFlex = False # If it will be a flex child
+        self.isFlexParent = False # If it will be a parent flex
         self._identity = None
         self._tag = None
         self._nowrap = None
@@ -1033,6 +1032,9 @@ class Modal(Cell):
             self.buttons['____button_{}__'.format(i)] = button
 
     def recalculate(self):
+        #self.namedChildren['buttons'] = list(self.buttons.values())
+        #self.namedChildren['title'] = self.title
+        #self.namedChildren['message'] = self.message
         self.children.addFromDict({
             'buttons': list(self.buttons.values()),
             'title': self.title,
@@ -1078,7 +1080,6 @@ class CollapsiblePanel(Cell):
 
     def sortsAs(self):
         return self.content.sortsAs()
-
     def recalculate(self):
         expanded = self.evaluateWithDependencies(self.isExpanded)
         self.exportData['isExpanded'] = expanded
@@ -1383,6 +1384,7 @@ class Dropdown(Cell):
         for i in range(len(self.headersAndLambdas)):
             header, onDropdown = self.headersAndLambdas[i]
             childCell = Cell.makeCell(header)
+            #self.namedChildren['dropdownItems'].append(childCell)
             itemsToAdd.append(childCell)
             if not isinstance(onDropdown, str):
                 self.exportData['dropdownItemInfo'][i] = 'callback'
@@ -1538,6 +1540,7 @@ class Container(Cell):
         self.setContents("", child)
 
     def setContents(self, newContents, newChildren):
+        #self.namedChildren['child'] = list(newChildren.values())[0]  # Hacky!
         self.children['child'] = Cell.makeCell(newChildren)
         self.markDirty()
 
@@ -1549,10 +1552,6 @@ class Scrollable(Container):
 
 
 class RootCell(Container):
-    def __init__(self, child=None):
-        super().__init__(child)
-        self.isRoot = True
-
     @property
     def identity(self):
         return "page_root"
@@ -1633,7 +1632,6 @@ class ContextualDisplay(Cell):
         with self.view():
             childCell = self.getChild()
             self.children['child'] = childCell
-            self.exportData['objectType'] = str(type(self.obj))
 
 
 class Subscribed(Cell):
@@ -1682,14 +1680,14 @@ class Subscribed(Cell):
     def recalculate(self):
         with self.view() as v:
             try:
-                newCell = Cell.makeCell(self.cellFactory())
-                if newCell.cells is not None:
-                    newCell.prepareForReuse()
-                if isinstance(newCell, Sequence):
+                c = Cell.makeCell(self.cellFactory())
+                if c.cells is not None:
+                    c.prepareForReuse()
+                if isinstance(c, Sequence):
                     self.wrapsSequence = True
-                elif isinstance(newCell, HorizontalSequence):
+                elif isinstance(c, HorizontalSequence):
                     self.wrapsHorizSequence = True
-                self.children['content'] = newCell
+                self.children['content'] = c
             except SubscribeAndRetry:
                 raise
             except Exception:
@@ -1800,6 +1798,7 @@ class SubscribedSequence(Cell):
         instance.
         See `_processChild` for deeper information
         """
+        count = 0
         new_children = []
         current_child = None
         for item in self.items:
@@ -1842,6 +1841,7 @@ class SubscribedSequence(Cell):
         else:
             children.append(child)
 
+
     def _getItems(self):
         """Retrieves the items using itemsFunc
         and updates this object's internal items
@@ -1876,13 +1876,10 @@ class SubscribedSequence(Cell):
             return child.wrapsHorizSequence
         return False
 
-
 def HorizontalSubscribedSequence(itemsFun, rendererFun):
     return SubscribedSequence(itemsFun, rendererFun, orientation='horizontal')
 
-
 HSubscribedSequence = HorizontalSubscribedSequence
-
 
 def VSubscribedSequence(itemsFun, rendererFun):
     return SubscribedSequence(itemsFun, rendererFun)
@@ -2461,7 +2458,6 @@ class Expands(Cell):
         # TODO: Refactor this. We shouldn't need to send
         # an inline script!
         self.exportData['events'] = {"onclick": inlineScript}
-        self.exportData['isOpen'] = self.isExpanded
 
         for c in self.children.allChildren:
             if c.cells is not None:
@@ -2575,107 +2571,6 @@ class CodeEditor(Cell):
             self.initialText = newSlotState[1]
 
 
-class OldSheet(Cell):
-    """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""
-
-    def __init__(self, columnNames, rowCount, rowFun,
-                 colWidth=200,
-                 onCellDblClick=None):
-        """
-        columnNames:
-            names to go in column Header
-        rowCount:
-            number of rows in table
-        rowFun:
-            function taking integer row as argument that returns list of values
-            to populate that row of the table
-        colWidth:
-            width of columns
-        onCellDblClick:
-            function to run after user double clicks a cell. It takes as keyword
-            arguments row, col, and sheet where row and col represent the row and
-            column clicked and sheet is the Sheet object. Clicks on row(col)
-            headers will return row(col) values of -1
-        """
-        super().__init__()
-
-        self.columnNames = columnNames
-        self.rowCount = rowCount
-        # for a row, the value of all the columns in a list.
-        self.rowFun = rowFun
-        self.colWidth = colWidth
-        self.error = Slot(None)
-        self._overflow = "auto"
-        self.rowsSent = set()
-
-        self._hookfns = {}
-        if onCellDblClick is not None:
-            def _makeOnCellDblClick(func):
-                def _onMessage(sheet, msgFrame):
-                    return onCellDblClick(sheet=sheet,
-                                          row=msgFrame["row"],
-                                          col=msgFrame["col"])
-                return _onMessage
-
-            self._hookfns["onCellDblClick"] = _makeOnCellDblClick(
-                onCellDblClick)
-
-    def _addHandsontableOnCellDblClick(self):
-        pass
-
-    def recalculate(self):
-        errorCell = Subscribed(lambda: Traceback(self.error.get()) if self.error.get() is not None else Text(""))
-        self.children['error'] = errorCell
-
-        # Deleted the postscript that was here.
-        # Should now be implemented completely
-        # in the JS side component.
-
-        self.exportData['divStyle'] = self._divStyle()
-        self.exportData['columnNames'] = [x for x in self.columnNames]
-        self.exportData['rowCount'] = self.rowCount
-        self.exportData['columnWidth'] = self.colWidth
-        self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
-
-    def onMessage(self, msgFrame):
-        """TODO: We will need to update the Cell lifecycle
-        and data handling before we can move this
-        to the JS side"""
-
-        if msgFrame["event"] == 'sheet_needs_data':
-            row = msgFrame['data']
-
-            if row in self.rowsSent:
-                return
-
-            rows = []
-            for rowToRender in range(max(0, row-100), min(row+100, self.rowCount)):
-                if rowToRender not in self.rowsSent:
-                    self.rowsSent.add(rowToRender)
-                    rows.append(rowToRender)
-
-                    rowData = self.rowFun(rowToRender)
-
-                    self.triggerPostscript(
-                        """
-                        var hot = handsOnTables["__identity__"].table
-
-                        hot.getSettings().data.cache[__row__] = __data__
-                        """
-                        .replace("__row__", str(rowToRender))
-                        .replace("__identity__", self._identity)
-                        .replace("__data__", json.dumps(rowData))
-                    )
-
-            if rows:
-                self.triggerPostscript(
-                    """handsOnTables["__identity__"].table.render()"""
-                    .replace("__identity__", self._identity)
-                )
-        else:
-            return self._hookfns[msgFrame["event"]](self, msgFrame)
-
-
 class Sheet(Cell):
     """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""
 
@@ -2741,12 +2636,6 @@ class Sheet(Cell):
         and data handling before we can move this
         to the JS side"""
 
-        # Note: this used to be
-        # 1, using the old assumption
-        # that rows would not come over with
-        # their first column values set.
-        ROW_LEN_OFFSET = 0
-
         if msgFrame["event"] == 'sheet_needs_data':
             start_row = msgFrame['start_row']
             end_row = msgFrame['end_row']
@@ -2758,7 +2647,7 @@ class Sheet(Cell):
                                      end_column)
             columnsToSend = self.columnFun(start_column,
                                            end_column)
-            if (not all([len(columnsToSend) == (len(row) - ROW_LEN_OFFSET) for row in
+            if (not all([len(columnsToSend) == (len(row) - 1) for row in
                          rowsToSend])):
                 self._logger.error(
                     "Sheet.rowFun generated rows don't match column length. "
@@ -2922,6 +2811,22 @@ class _PlotUpdater(Cell):
 
                 self._logger.error(traceback.format_exc())
                 self.linePlot.error.set(traceback.format_exc())
+                self.postscript = (
+                    """
+                    plotDiv = document.getElementById('plot__identity__');
+                    data = __data__.map(mapPlotlyData)
+                    console.log('Updating plot from python:');
+                    console.log(plotDiv);
+                    console.log(jsonDataToDraw);
+                    Plotly.react(
+                        plotDiv,
+                        data,
+                        plotDiv.layout,
+                        );
+                    """
+                    .replace("__identity__", self.chartId)
+                    .replace("__data__", json.dumps(jsonDataToDraw))
+                )
 
             self._resetSubscriptionsToViewReads(v)
 

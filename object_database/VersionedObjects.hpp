@@ -1,5 +1,5 @@
 /******************************************************************************
-   Copyright 2017-2019 object_database Authors
+   Copyright 2017-2019 Nativepython Authors
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 #include <memory>
 #include <map>
 
-#include <typed_python/Type.hpp>
+#include "../typed_python/Type.hpp"
 #include "Common.hpp"
 #include "HashFunctions.hpp"
 #include "VersionedObjectsOfType.hpp"

@@ -1,5 +1,5 @@
 /******************************************************************************
-   Copyright 2017-2019 object_database Authors
+   Copyright 2017-2019 Nativepython Authors
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -27,9 +27,9 @@
 #include "PyDatabaseConnectionState.hpp"
 #include "ObjectFieldId.hpp"
 #include "IndexId.hpp"
-#include <typed_python/SerializationBuffer.hpp>
-#include <typed_python/SerializationContext.hpp>
-#include <typed_python/PythonSerializationContext.hpp>
+#include "../typed_python/SerializationBuffer.hpp"
+#include "../typed_python/SerializationContext.hpp"
+#include "../typed_python/PythonSerializationContext.hpp"
 
 
 class PyView {

@@ -1,4 +1,4 @@
-#   Copyright 2017-2019 object_database Authors
+#   Copyright 2017-2019 Nativepython Authors
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -185,28 +185,6 @@ def Padding(amount, cell=None):
                        right=amount, bottom=amount, left=amount)
 
 
-def PaddingDimension(amount, direction, cell=None):
-    assert direction in ['top', 'right', 'left', 'bottom'], f"Padding dimension error: {direction}"
-    if cell is None:
-        return CellDecorator(lambda cell: PaddingDimension(amount, direction, cell), f"PaddingDimension({amount}, {direction})")
-    dimensions = {
-        'top': 0,
-        'right': 0,
-        'bottom': 0,
-        'left': 0
-    }
-    dimensions[direction] = amount
-    return CustomInset(cell, 'padding', **dimensions)
-
-
-def PaddingRight(amount, cell=None):
-    return PaddingDimension(amount, 'right', cell)
-
-
-def PaddingLeft(amount, cell=None):
-    return PaddingDimension(amount, 'left', cell)
-
-
 def Margin(amount, cell=None):
     """Cell modifier function that
     adds Margin on all dimensions
@@ -232,89 +210,3 @@ def Margin(amount, cell=None):
 
     return CustomInset(cell, 'margin', top=amount,
                        right=amount, bottom=amount, left=amount)
-
-
-def MarginRight(amount, cell=None):
-    """Cell modifier function that
-    will add Margin on the right side
-    of the resulting Cellc component.
-
-    Parameters
-    ----------
-    amount: integer
-        The number of pixels in margin
-        that will be added to the right
-        side of the resulting Cell's
-        component
-    cell: Cell
-        The Cell instance that will be
-        modified. If None, then returns
-        a CellDecorator
-
-    Returns
-    -------
-    A modified Cell instance or
-        CellDecorator instance
-    """
-    if cell is None:
-        return CellDecorator(lambda cell: MarginSides(amount, cell), f"MarginRight({amount})")
-
-    return CustomInset(cell, 'margin', top=0,
-                       right=amount, bottom=0, left=0)
-
-
-def MarginLeft(amount, cell=None):
-    """Cell modifier function that
-    will add Margin on the left side
-    of the resulting Cell component.
-
-    Parameters
-    ----------
-    amount: integer
-        The number of pixels in margin
-        that will be added to the left
-        side of the resulting Cell's
-        component
-    cell: Cell
-        The Cell instance that will be
-        modified. If None, then returns
-        a CellDecorator
-
-    Returns
-    -------
-    A modified Cell instance or
-        CellDecorator instance
-    """
-    if cell is None:
-        return CellDecorator(lambda cell: MarginSides(amount, cell), f"MarginRight({amount})")
-
-    return CustomInset(cell, 'margin', top=0,
-                       right=0, bottom=0, left=amount)
-
-
-def MarginSides(amount, cell=None):
-    """Cell modifier function that
-    will add Margin on the left and right
-    sides to the resulting Cell component.
-
-    Parameters
-    ----------
-    amount: integer
-        The number of pxels in margin
-        that will be on the left and
-        right sides of the resulting
-        Cell's component
-    cell: Cell
-        The Cell instance that will be
-        modified. If None, then return
-        a CellDecorator
-
-    Returns
-    -------
-    A modified Cell instance or CellDecorator
-    """
-    if cell is None:
-        return CellDecorator(lambda cell: MarginSides(amount, cell), f"MarginSides({amount})")
-
-    return CustomInset(cell, 'margin', top=0,
-                       right=amount, bottom=0, left=amount)

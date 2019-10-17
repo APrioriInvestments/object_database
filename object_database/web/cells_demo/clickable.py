@@ -12,6 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import traceback
+
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
 

@@ -1,4 +1,4 @@
-#   Copyright 2017-2019 object_database Authors
+#   Coyright 2017-2019 Nativepython Authors
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ from object_database.schema import FieldDefinition, ObjectFieldId, IndexId, inde
 from object_database.core_schema import core_schema
 from object_database.messages import SchemaDefinition
 from object_database.util import Timer
-from typed_python import serialize, deserialize, Class, Final, Member, Dict, makeNamedTuple, NamedTuple
+from typed_python import serialize, deserialize, Class, Member, Dict, makeNamedTuple, NamedTuple
 from typed_python.Codebase import Codebase as TypedPythonCodebase
 import queue
 import time
@@ -32,7 +32,7 @@ DEFAULT_GC_INTERVAL = 900.0
 ObjectBase = NamedTuple(_identity=int)
 
 
-class TypeMap(Class, Final):
+class TypeMap(Class):
     fieldDefToId = Member(Dict(FieldDefinition, int))
     fieldIdToDef = Member(Dict(int, FieldDefinition))
 
@@ -262,7 +262,7 @@ class Server:
     def dropConnection(self, channel):
         with self._lock:
             if channel not in self._clientChannels:
-                self._logger.warning('Tried to drop a nonexistent channel %s', channel)
+                self._logger.warn('Tried to drop a nonexistant channel %s', channel)
                 return
 
             connectedChannel = self._clientChannels[channel]

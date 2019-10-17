@@ -646,9 +646,9 @@ class Cell:
         self.contents = ""  # some contents containing a local node def
         self.shouldDisplay = True  # Whether or not this is a cell that will be displayed
         self.isRoot = False
-        self.isShrinkWrapped = False # If will be shrinkwrapped inside flex parent
-        self.isFlex = False # If it will be a flex child
-        self.isFlexParent = False # If it will be a parent flex
+        self.isShrinkWrapped = False  # If will be shrinkwrapped inside flex parent
+        self.isFlex = False  # If it will be a flex child
+        self.isFlexParent = False  # If it will be a parent flex
         self._identity = None
         self._tag = None
         self._nowrap = None
@@ -1033,9 +1033,6 @@ class Modal(Cell):
             self.buttons['____button_{}__'.format(i)] = button
 
     def recalculate(self):
-        #self.namedChildren['buttons'] = list(self.buttons.values())
-        #self.namedChildren['title'] = self.title
-        #self.namedChildren['message'] = self.message
         self.children.addFromDict({
             'buttons': list(self.buttons.values()),
             'title': self.title,
@@ -1081,6 +1078,7 @@ class CollapsiblePanel(Cell):
 
     def sortsAs(self):
         return self.content.sortsAs()
+
     def recalculate(self):
         expanded = self.evaluateWithDependencies(self.isExpanded)
         self.exportData['isExpanded'] = expanded
@@ -1385,7 +1383,6 @@ class Dropdown(Cell):
         for i in range(len(self.headersAndLambdas)):
             header, onDropdown = self.headersAndLambdas[i]
             childCell = Cell.makeCell(header)
-            #self.namedChildren['dropdownItems'].append(childCell)
             itemsToAdd.append(childCell)
             if not isinstance(onDropdown, str):
                 self.exportData['dropdownItemInfo'][i] = 'callback'
@@ -1541,7 +1538,6 @@ class Container(Cell):
         self.setContents("", child)
 
     def setContents(self, newContents, newChildren):
-        #self.namedChildren['child'] = list(newChildren.values())[0]  # Hacky!
         self.children['child'] = Cell.makeCell(newChildren)
         self.markDirty()
 
@@ -1804,7 +1800,6 @@ class SubscribedSequence(Cell):
         instance.
         See `_processChild` for deeper information
         """
-        count = 0
         new_children = []
         current_child = None
         for item in self.items:
@@ -1847,7 +1842,6 @@ class SubscribedSequence(Cell):
         else:
             children.append(child)
 
-
     def _getItems(self):
         """Retrieves the items using itemsFunc
         and updates this object's internal items
@@ -1882,10 +1876,13 @@ class SubscribedSequence(Cell):
             return child.wrapsHorizSequence
         return False
 
+
 def HorizontalSubscribedSequence(itemsFun, rendererFun):
     return SubscribedSequence(itemsFun, rendererFun, orientation='horizontal')
 
+
 HSubscribedSequence = HorizontalSubscribedSequence
+
 
 def VSubscribedSequence(itemsFun, rendererFun):
     return SubscribedSequence(itemsFun, rendererFun)
@@ -2677,6 +2674,7 @@ class OldSheet(Cell):
                 )
         else:
             return self._hookfns[msgFrame["event"]](self, msgFrame)
+
 
 class Sheet(Cell):
     """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""

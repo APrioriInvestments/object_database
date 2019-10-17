@@ -13,7 +13,6 @@
 #   limitations under the License.
 
 
-
 class Children():
     """A 'Collection-Like' object that holds Cell child references.
 
@@ -65,7 +64,6 @@ class Children():
         self.allChildren = []
         self.parent = parent
         self._reverseLookup = {}
-
 
     def addChildNamed(self, name, childStructure):
         """Adds a child with the given name.
@@ -147,7 +145,7 @@ class Children():
             The key to lookup for which all children
             should be removed.
         """
-        if not name in self.namedChildren:
+        if name not in self.namedChildren:
             return False
         found = self.namedChildren[name]
         success = self._removeChildStructure(found)
@@ -282,7 +280,7 @@ class Children():
         """
         try:
             child.parent = self.parent
-        except:
+        except Exception:
             pass
 
     def _unsetParent(self, child):
@@ -290,7 +288,7 @@ class Children():
         to None"""
         try:
             child.parent = None
-        except:
+        except Exception:
             pass
 
     def __getitem__(self, key):

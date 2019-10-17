@@ -2464,6 +2464,7 @@ class Expands(Cell):
         # TODO: Refactor this. We shouldn't need to send
         # an inline script!
         self.exportData['events'] = {"onclick": inlineScript}
+        self.exportData['isOpen'] = self.isExpanded
 
         for c in self.children.allChildren:
             if c.cells is not None:

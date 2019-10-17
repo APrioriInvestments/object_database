@@ -13,17 +13,11 @@
 #   limitations under the License.
 
 import traceback
-import textwrap
-import urllib
 import sys
 
-from typed_python.inspect_override import getsourcelines
 from object_database.service_manager.ServiceBase import ServiceBase
-from typed_python.Codebase import Codebase
 
 import object_database.web.cells as cells
-import object_database as object_database
-from object_database.web.CellsTestPage import CellsTestPage
 from object_database import Schema
 
 schema = Schema("core.web.EditorDisplayService")

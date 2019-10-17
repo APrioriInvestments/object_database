@@ -46,10 +46,9 @@ from object_database.web.cells import (
     Padding,
     PaddingRight,
     PaddingLeft,
-    Margin, 
+    Margin,
     MarginSides,
-    MarginRight,
-    MarginLeft
+    MarginRight
 )
 
 import logging
@@ -771,9 +770,11 @@ class CellsSubscribedSequenceHandlingTests(unittest.TestCase):
 
     def test_elements_length_changed(self):
         exampleData = self.exampleItems
+
         def itemsFun():
             exampleData.pop()
             return exampleData
+
         sub_seq = SubscribedSequence(itemsFun, self.rendererFun)
         self.cells.withRoot(sub_seq)
         self.cells._recalculateCells()
@@ -842,8 +843,6 @@ class CellsUtilTests(unittest.TestCase):
         self.assertEqual('0px', cell.exportData['customStyle']['margin-left'])
         self.assertEqual('0px', cell.exportData['customStyle']['margin-bottom'])
         self.assertEqual('0px', cell.exportData['customStyle']['margin-top'])
-
-
 
 
 if __name__ == '__main__':

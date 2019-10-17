@@ -2576,6 +2576,106 @@ class CodeEditor(Cell):
             self.initialText = newSlotState[1]
 
 
+class OldSheet(Cell):
+    """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""
+
+    def __init__(self, columnNames, rowCount, rowFun,
+                 colWidth=200,
+                 onCellDblClick=None):
+        """
+        columnNames:
+            names to go in column Header
+        rowCount:
+            number of rows in table
+        rowFun:
+            function taking integer row as argument that returns list of values
+            to populate that row of the table
+        colWidth:
+            width of columns
+        onCellDblClick:
+            function to run after user double clicks a cell. It takes as keyword
+            arguments row, col, and sheet where row and col represent the row and
+            column clicked and sheet is the Sheet object. Clicks on row(col)
+            headers will return row(col) values of -1
+        """
+        super().__init__()
+
+        self.columnNames = columnNames
+        self.rowCount = rowCount
+        # for a row, the value of all the columns in a list.
+        self.rowFun = rowFun
+        self.colWidth = colWidth
+        self.error = Slot(None)
+        self._overflow = "auto"
+        self.rowsSent = set()
+
+        self._hookfns = {}
+        if onCellDblClick is not None:
+            def _makeOnCellDblClick(func):
+                def _onMessage(sheet, msgFrame):
+                    return onCellDblClick(sheet=sheet,
+                                          row=msgFrame["row"],
+                                          col=msgFrame["col"])
+                return _onMessage
+
+            self._hookfns["onCellDblClick"] = _makeOnCellDblClick(
+                onCellDblClick)
+
+    def _addHandsontableOnCellDblClick(self):
+        pass
+
+    def recalculate(self):
+        errorCell = Subscribed(lambda: Traceback(self.error.get()) if self.error.get() is not None else Text(""))
+        self.children['error'] = errorCell
+
+        # Deleted the postscript that was here.
+        # Should now be implemented completely
+        # in the JS side component.
+
+        self.exportData['divStyle'] = self._divStyle()
+        self.exportData['columnNames'] = [x for x in self.columnNames]
+        self.exportData['rowCount'] = self.rowCount
+        self.exportData['columnWidth'] = self.colWidth
+        self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
+
+    def onMessage(self, msgFrame):
+        """TODO: We will need to update the Cell lifecycle
+        and data handling before we can move this
+        to the JS side"""
+
+        if msgFrame["event"] == 'sheet_needs_data':
+            row = msgFrame['data']
+
+            if row in self.rowsSent:
+                return
+
+            rows = []
+            for rowToRender in range(max(0, row-100), min(row+100, self.rowCount)):
+                if rowToRender not in self.rowsSent:
+                    self.rowsSent.add(rowToRender)
+                    rows.append(rowToRender)
+
+                    rowData = self.rowFun(rowToRender)
+
+                    self.triggerPostscript(
+                        """
+                        var hot = handsOnTables["__identity__"].table
+
+                        hot.getSettings().data.cache[__row__] = __data__
+                        """
+                        .replace("__row__", str(rowToRender))
+                        .replace("__identity__", self._identity)
+                        .replace("__data__", json.dumps(rowData))
+                    )
+
+            if rows:
+                self.triggerPostscript(
+                    """handsOnTables["__identity__"].table.render()"""
+                    .replace("__identity__", self._identity)
+                )
+        else:
+            return self._hookfns[msgFrame["event"]](self, msgFrame)
+
 class Sheet(Cell):
     """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""
 

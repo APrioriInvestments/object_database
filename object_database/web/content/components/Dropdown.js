@@ -21,6 +21,9 @@ class Dropdown extends Component {
         // Bind context to methods
         this.makeTitle = this.makeTitle.bind(this);
         this.makeItems = this.makeItems.bind(this);
+        this.onHide = this.onHide.bind(this);
+        this.onShow = this.onShow.bind(this);
+        this._afterCreate = this._afterCreate.bind(this);
     }
 
     build(){
@@ -29,7 +32,8 @@ class Dropdown extends Component {
                 id: this.props.id,
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Dropdown",
-                class: "btn-group"
+                class: "cell cell-dropdown dropdown btn-group",
+                afterCreate: this._afterCreate
             }, [
                 h('a', {class: "btn btn-xs btn-outline-secondary"}, [
                     this.makeTitle()
@@ -64,6 +68,19 @@ class Dropdown extends Component {
         } else {
             return [];
         }
+    }
+
+    onShow(e){
+        // Not currently utilized
+    }
+
+    onHide(e){
+        // Not currently utilized
+    }
+
+    _afterCreate(element){
+        $(element).on('show.bs.dropdown', this.onShow);
+        $(element).on('hide.bs.dropdown', this.onHide);
     }
 }
 

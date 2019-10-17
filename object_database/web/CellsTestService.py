@@ -127,30 +127,6 @@ def reload():
     import os
     os._exit(0)
 
-"""
-def selectionPanel(page):
-    availableCells = cells.Scrollable(
-        cells.Card(
-            cells.Sequence(
-                [cells.Clickable(
-                    x.category() + "." + x.name(),
-                    "CellsTestService?" + urllib.parse.urlencode(
-                        dict(category=x.category(), name=x.name())),
-                    makeBold=x is page)
-                    for perCategory in getPages().values()
-                    for x in perCategory.values()]
-            ), padding=4
-        )
-    )
-    reloadInput = cells.Card(
-        cells.Button(cells.Octicon("sync"), reload),
-        padding=4
-    )
-    return cells.SplitView([
-        (reloadInput, 1),
-        (availableCells, 6)
-    ], split="horizontal")
-"""
 
 def selectionPanel(page):
     availableCells = []

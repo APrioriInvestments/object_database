@@ -25,6 +25,7 @@ class Traceback(CellsTestPage):
     def text(self):
         return "You should see a properly formatted python stacktrace."
 
+
 class TracebackFromSubscribed(CellsTestPage):
     def cell(self):
         def aBadLambdaFunction():

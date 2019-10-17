@@ -21,7 +21,8 @@ class BasicPanel(CellsTestPage):
         return cells.Panel(cells.Text("Button in a Panel") + cells.Button("A Button", lambda: None))
 
     def text(self):
-        return "Should see Text and Button Vert Sequence inside of a bordered panel, taking up greedy space in both dimensions"
+        return ("Should see Text and Button Vert Sequence inside of a bordered panel,",
+                " taking up greedy space in both dimensions")
 
 
 class BasicPanelInFlexSequence(CellsTestPage):
@@ -35,23 +36,29 @@ class BasicPanelInFlexSequence(CellsTestPage):
         return outer
 
     def text(self):
-        return "Should see a flex parent vert sequence where the Panel is flexing as the child, no longer taking up 100% in both dimensions (since we are flexing)"
+        return ("Should see a flex parent vert sequence where the Panel is flexing as",
+                " the child, no longer taking up 100% in both dimensions (since we are flexing)")
 
 
 class NestedVertFlexPanel(CellsTestPage):
     def cell(self):
-        return cells.Panel(cells.Text("Button in a Panel") + cells.Button("A Button", lambda: None)) + cells.Flex(cells.Panel(cells.Text("something else")))
+        return cells.Panel(cells.Text("Button in a Panel") +
+                           cells.Button("A Button", lambda: None)) + cells.Flex(cells.Panel(cells.Text("something else")))
 
     def text(self):
-        return "Should see vertical sequence of two panels, the second is flexed, first is shrinkwrapped vertically, and both expand fully on horizontal axis"
+        return ("Should see vertical sequence of two panels, the second is ",
+                "flexed, first is shrinkwrapped vertically, and both expand fully on horizontal axis")
 
 
 class NestedVertHorizPanel(CellsTestPage):
     def cell(self):
-        return cells.Panel(cells.Text("Button in a Panel") + cells.Button("A Button", lambda: None)) >> cells.Flex(cells.Panel(cells.Text("something else")))
+        return cells.Panel(cells.Text("Button in a Panel") +
+                           cells.Button("A Button", lambda: None)) >> cells.Flex(
+                               cells.Panel(cells.Text("something else")))
 
     def text(self):
-        return "Should see horizontal sequence of two panels, the second is flexed, first is shrinkwrapped horizontally, and both expand fully on horizontal axis"
+        return ("Should see horizontal sequence of two panels, the second is flexed,",
+                " first is shrinkwrapped horizontally, and both expand fully on horizontal axis")
 
 
 class HorizPanelNonWrapSequence(CellsTestPage):

@@ -1637,6 +1637,7 @@ class ContextualDisplay(Cell):
         with self.view():
             childCell = self.getChild()
             self.children['child'] = childCell
+            self.exportData['objectType'] = str(type(self.obj))
 
 
 class Subscribed(Cell):

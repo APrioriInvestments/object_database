@@ -21,10 +21,11 @@ class ContextualDisplay extends Component {
     build(){
         return h('div',
             {
-                class: "cell contextualDisplay",
+                class: "cell contextual-display",
                 id: this.props.id,
                 "data-cell-id": this.props.id,
-                "data-cell-type": "ContextualDisplay"
+                "data-cell-type": "ContextualDisplay",
+                "data-context-object": this.props.objectType
             }, [this.makeChild()]
         );
     }

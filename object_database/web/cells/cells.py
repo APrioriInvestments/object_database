@@ -2922,22 +2922,6 @@ class _PlotUpdater(Cell):
 
                 self._logger.error(traceback.format_exc())
                 self.linePlot.error.set(traceback.format_exc())
-                self.postscript = (
-                    """
-                    plotDiv = document.getElementById('plot__identity__');
-                    data = __data__.map(mapPlotlyData)
-                    console.log('Updating plot from python:');
-                    console.log(plotDiv);
-                    console.log(jsonDataToDraw);
-                    Plotly.react(
-                        plotDiv,
-                        data,
-                        plotDiv.layout,
-                        );
-                    """
-                    .replace("__identity__", self.chartId)
-                    .replace("__data__", json.dumps(jsonDataToDraw))
-                )
 
             self._resetSubscriptionsToViewReads(v)
 

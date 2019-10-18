@@ -136,6 +136,19 @@ describe("Base Component Class", () => {
             assert.exists(result.properties);
         });
     });
+
+    /*describe('Extended Components Validation', () => {
+      Object.keys(AllComponents).forEach(aComponentName => {
+      let aComponent = AllComponents[aComponentName];
+      describe(`${aComponent.name} Validation`, () => {
+      it('Renders with the passed-in id in the top level hyperscript', () => {
+      let instance = new aComponent({id:'this-component', extraData: {}});
+      let rendered = instance.render();
+      assert.equal(rendered.properties.id, 'this-component');
+      });
+      });
+      });
+    });*/
 });
 
 describe("Module `render` function", () => {

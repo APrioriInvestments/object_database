@@ -16,7 +16,6 @@ from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
 import time
 
-
 class NewBasicSheet(CellsTestPage):
     def cell(self):
         # Create the datasource

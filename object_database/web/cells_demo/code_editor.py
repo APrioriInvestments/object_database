@@ -12,6 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import traceback
+
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
 
@@ -26,7 +28,6 @@ class CodeEditorDemo(CellsTestPage):
 
     def text(self):
         return "You should see a button that lets you see a text editor."
-
 
 class CodeEditorInHorizSequence(CellsTestPage):
     def cell(self):
@@ -45,12 +46,14 @@ class CodeEditorInHorizSequence(CellsTestPage):
             cells.Button("Show the editor", lambda: toggle(editorShown)) +
             cells.Button("Show the editor's contents", lambda: toggle(contentsShown)) +
             cells.Flex(cells.HorizontalSubscribedSequence(lambda:
-                                                          (["Ed"] if editorShown.get() else []) +
-                                                          (["Contents"] if contentsShown.get() else []),
-                                                          lambda which:
-                                                          cells.CodeEditor(onTextChange=onTextChange) if which == "Ed" else
-                                                          cells.Subscribed(lambda: contents.get()) if which == "Contents" else
-                                                          None)))
+                (["Ed"] if editorShown.get() else []) +
+                (["Contents"] if contentsShown.get() else []),
+                lambda which:
+                    cells.CodeEditor(onTextChange=onTextChange) if which == "Ed" else
+                    cells.Subscribed(lambda: contents.get()) if which == "Contents" else
+                    None
+            ))
+        )
 
     def text(self):
         return "You should see two buttons that let you turn the editor on and off, and also see its contents."
@@ -74,7 +77,6 @@ class CodeEditorBasicHorizSequence(CellsTestPage):
     def text(self):
         return "Should see a CodeEditor and its content (in panel) in a HorizontalSequence that is not a flex parent"
 
-
 class CodeEditorInSplitView(CellsTestPage):
     def cell(self):
         contents = cells.Slot("")
@@ -92,7 +94,6 @@ class CodeEditorInSplitView(CellsTestPage):
     def text(self):
         return "You should see a code editor and a mirror of its contents."
 
-
 class CodeEditorInSplitViewWithHeader(CellsTestPage):
     def cell(self):
         contents = cells.Slot("")
@@ -104,7 +105,7 @@ class CodeEditorInSplitViewWithHeader(CellsTestPage):
             cells.ResizablePanel(
                 cells.Text("This is an editor:") + cells.CodeEditor(onTextChange=onTextChange),
                 cells.Text("This should show what's in the editor") +
-                cells.Subscribed(lambda: cells.Code(contents.get())),
+                    cells.Subscribed(lambda: cells.Code(contents.get())),
             )
         )
 

@@ -202,7 +202,6 @@ def PaddingDimension(amount, direction, cell=None):
 def PaddingRight(amount, cell=None):
     return PaddingDimension(amount, 'right', cell)
 
-
 def PaddingLeft(amount, cell=None):
     return PaddingDimension(amount, 'left', cell)
 
@@ -260,8 +259,7 @@ def MarginRight(amount, cell=None):
         return CellDecorator(lambda cell: MarginSides(amount, cell), f"MarginRight({amount})")
 
     return CustomInset(cell, 'margin', top=0,
-                       right=amount, bottom=0, left=0)
-
+                        right=amount, bottom=0, left=0)
 
 def MarginLeft(amount, cell=None):
     """Cell modifier function that
@@ -289,8 +287,7 @@ def MarginLeft(amount, cell=None):
         return CellDecorator(lambda cell: MarginSides(amount, cell), f"MarginRight({amount})")
 
     return CustomInset(cell, 'margin', top=0,
-                       right=0, bottom=0, left=amount)
-
+                        right=0, bottom=0, left=amount)
 
 def MarginSides(amount, cell=None):
     """Cell modifier function that
@@ -317,4 +314,4 @@ def MarginSides(amount, cell=None):
         return CellDecorator(lambda cell: MarginSides(amount, cell), f"MarginSides({amount})")
 
     return CustomInset(cell, 'margin', top=0,
-                       right=amount, bottom=0, left=amount)
+                        right=amount, bottom=0, left=amount)

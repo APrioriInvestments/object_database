@@ -1,7 +1,6 @@
 import unittest
 from object_database.web.cells.children import Children
 
-
 class DummyObject():
     def __init__(self):
         self.parent = None

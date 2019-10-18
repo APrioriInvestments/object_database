@@ -159,20 +159,11 @@ np_str = externalCallTarget(
     Void.pointer(),
     UInt64
 )
-
 getattr_pyobj = externalCallTarget(
     "nativepython_runtime_getattr_pyobj",
     Void.pointer(),
     Void.pointer(),
     UInt8Ptr
-)
-
-setattr_pyobj = externalCallTarget(
-    "nativepython_runtime_setattr_pyobj",
-    Void,
-    Void.pointer(),
-    UInt8Ptr,
-    Void.pointer()
 )
 
 pyobj_to_typed = externalCallTarget(

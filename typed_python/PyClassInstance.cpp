@@ -320,27 +320,21 @@ void PyClassInstance::constructFromPythonArgumentsConcrete(Class* classT, uint8_
 }
 
 PyObject* PyClassInstance::tp_getattr_concrete(PyObject* pyAttrName, const char* attrName) {
-    int index = type()->getMemberIndex(attrName);
-    if (index >= 0) {
-        Type* eltType = type()->getMemberType(index);
+    for (long k = 0; k < type()->getMembers().size();k++) {
+        if (type()->getMemberName(k) == attrName) {
+            Type* eltType = type()->getMemberType(k);
 
-        if (!type()->checkInitializationFlag(dataPtr(), index)) {
-            PyErr_Format(
-                PyExc_AttributeError,
-                "Attribute '%S' is not initialized",
-                pyAttrName
-            );
-            return NULL;
+            if (!type()->checkInitializationFlag(dataPtr(),k)) {
+                PyErr_Format(
+                    PyExc_AttributeError,
+                    "Attribute '%S' is not initialized",
+                    pyAttrName
+                );
+                return NULL;
+            }
+
+            return extractPythonObject(type()->eltPtr(dataPtr(), k), eltType);
         }
-
-        return extractPythonObject(type()->eltPtr(dataPtr(), index), eltType);
-    }
-
-    BoundMethod* method = type()->getMemberFunctionMethodType(attrName);
-    if (method) {
-        return PyInstance::initializePythonRepresentation(method, [&](instance_ptr data) {
-            method->copy_constructor(data, dataPtr());
-        });
     }
 
     {
@@ -357,6 +351,17 @@ PyObject* PyClassInstance::tp_getattr_concrete(PyObject* pyAttrName, const char*
                 attrName
                 );
             return NULL;
+        }
+    }
+
+    {
+        auto it = type()->getMemberFunctions().find(attrName);
+        if (it != type()->getMemberFunctions().end()) {
+            BoundMethod* bm = BoundMethod::Make(type(), attrName);
+
+            return PyInstance::initializePythonRepresentation(bm, [&](instance_ptr data) {
+                bm->copy_constructor(data, dataPtr());
+            });
         }
     }
 

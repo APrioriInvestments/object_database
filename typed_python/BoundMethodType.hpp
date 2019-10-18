@@ -164,13 +164,9 @@ public:
         return nullptr;
     }
 
+private:
     std::string m_funcName;
-
     Type* m_first_arg;
-
-    bool m_function_initialized;
-
-    Function* m_function;
 };
 
 

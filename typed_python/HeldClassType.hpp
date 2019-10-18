@@ -20,7 +20,6 @@
 #include "ReprAccumulator.hpp"
 
 #include <unordered_set>
-#include <unordered_map>
 
 class HeldClass;
 class Function;
@@ -36,28 +35,6 @@ typedef std::pair<std::string, Function*> method_signature_type;
 typedef void* untyped_function_ptr;
 
 void destroyClassInstance(instance_ptr classInstDestroy);
-
-class ConstCharPtrsAreEqual {
-public:
-    bool operator()(const char* x, const char* y) const {
-        return strcmp(x, y) == 0;
-    }
-};
-
-class HashConstCharPtr {
-public:
-    int operator()(const char* str) const {
-        int seed = 131;
-        int hash = 0;
-
-        while (*str) {
-            hash = (hash * seed) + (*str);
-            str++;
-        }
-
-        return hash & (0x7FFFFFFF);
-    }
-};
 
 /****
 ClassDispatchTable
@@ -505,16 +482,6 @@ public:
         return m_members;
     }
 
-    int getMemberIndex(const char* attrName) const {
-        auto it = m_membersByName.find(attrName);
-
-        if (it == m_membersByName.end()) {
-            return -1;
-        }
-
-        return it->second;
-    }
-
     const std::map<std::string, Function*>& getMemberFunctions() const {
         return m_memberFunctions;
     }
@@ -602,13 +569,6 @@ public:
             membersSoFar.insert(std::get<0>(nameAndType));
 
             m_members.push_back(nameAndType);
-        }
-
-        for (long k = 0; k < m_members.size(); k++) {
-            // note that we explicitly leak the string so that the refcount on c_str
-            // stays active. I'm sure there's a better way to do this, but types are
-            // permanent, so we would never have cleaned this up anyways.
-            m_membersByName[(new std::string(std::get<0>(m_members[k])))->c_str()] = k;
         }
 
         for (HeldClass* ancestor: m_mro) {
@@ -714,8 +674,6 @@ public:
         return &mClassDispatchTables[offset];
     }
 
-    BoundMethod* getMemberFunctionMethodType(const char* attr);
-
 private:
     std::vector<size_t> m_byte_offsets;
 
@@ -759,11 +717,6 @@ private:
 
     std::map<std::string, PyObject*> m_own_classMembers;
 
-    std::unordered_map<const char*, size_t, HashConstCharPtr, ConstCharPtrsAreEqual> m_membersByName;
-
-    std::unordered_map<const char*, BoundMethod*, HashConstCharPtr, ConstCharPtrsAreEqual> m_memberFunctionMethodTypes;
-
     bool m_hasComparisonOperators;
-
 };
 

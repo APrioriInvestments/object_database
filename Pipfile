@@ -7,7 +7,6 @@ verify_ssl = true
 autopep8 = "*"
 beautifulsoup4 = "*"
 flake8 = "*"
-nose = "*"
 coverage = "*"
 pytest = "*"
 flaky = "*"
@@ -21,17 +20,13 @@ flask-sockets = "*"
 flask-wtf = "*"
 gevent = "*"
 ldap3 = "*"
-llvmlite = "*"
-lz4 = "*"
-numpy = "*"
-psutil = "*"
-pytz = "*"
 pyyaml = "*"
 redis = "*"
 requests = "*"
 websockets = "*"
+typed_python = {git = "https://github.com/APrioriInvestments/typed_python.git",ref = "b118d0de45dfe89836afb0af45a1b23d081261fa"}
+gevent-websocket = "*"
 nodeenv = "*"
-nativepython = {editable = true,path = "."}
 
 [requires]
 python_version = "3.6"

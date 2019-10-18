@@ -82,6 +82,7 @@ setuptools.setup(
     cmdclass={'build_ext': BuildExtension},
     ext_modules=ext_modules,
     install_requires=INSTALL_REQUIRES,
+    setup_requires=INSTALL_REQUIRES,
 
     # https://pypi.org/classifiers/
     classifiers=[

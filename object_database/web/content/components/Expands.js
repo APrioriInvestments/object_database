@@ -39,7 +39,6 @@ class Expands extends Component {
                 class: 'cell expands',
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Expands",
-                "data-is-open": this.props.isOpen.toString()
             },
                 [
                     h('div', {

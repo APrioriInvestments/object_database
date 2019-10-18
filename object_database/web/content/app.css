@@ -321,7 +321,6 @@ td.row-index-item {
  * ============================================================== */
 .cell-panel {
     display: block;
-    position: relative;
     width: 100%;
     height: 100%;
     border: 1px solid rgba(75, 75, 75, 0.3);
@@ -333,11 +332,6 @@ td.row-index-item {
 .flex-parent > .cell-panel {
     width: auto;
     height: auto;
-}
-
-.cell-panel > .sequence-vertical.flex-parent {
-    height: 100%;
-    overflow-y: auto;
 }
 
 .sequence-horizontal > .cell-panel {

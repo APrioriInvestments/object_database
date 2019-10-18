@@ -13,9 +13,8 @@
 #   limitations under the License.
 
 
-from typed_python import PointerTo, _types, OneOf
+from typed_python import PointerTo, _types
 from nativepython.type_wrappers.wrapper import Wrapper
-from nativepython.type_wrappers.one_of_wrapper import OneOfWrapper
 import nativepython.native_ast as native_ast
 import nativepython
 
@@ -104,7 +103,7 @@ class PythonTypedFunctionWrapper(Wrapper):
                 function pointer in the class vtable at link time.
 
         Returns:
-            a TypedCallTarget, or None
+            a TypedCallTarget
         """
         overloadAndIsExplicit = PythonTypedFunctionWrapper.pickSingleOverloadForCall(self.typeRepresentation, argTypes)
 
@@ -122,16 +121,7 @@ class PythonTypedFunctionWrapper(Wrapper):
 
         if returnType is None:
             # we have to take the union of the return types we might be dispatching to
-            possibleTypes = PythonTypedFunctionWrapper.determinePossibleReturnTypes(
-                converter,
-                self.typeRepresentation,
-                argTypes
-            )
-
-            returnType = OneOfWrapper.mergeTypes(possibleTypes)
-
-            if returnType is None:
-                return None
+            returnType = object
 
         return converter.defineNativeFunction(
             f'implement_function.{self}{argTypes}->{returnType}',
@@ -169,32 +159,6 @@ class PythonTypedFunctionWrapper(Wrapper):
             return allTrue
         else:
             return "Maybe"
-
-    @staticmethod
-    def determinePossibleReturnTypes(converter, func, argTypes):
-        returnTypes = []
-
-        for isExplicit in [False, True]:
-            for o in func.overloads:
-                # check each overload that we might match.
-                mightMatch = PythonTypedFunctionWrapper.overloadMatchesSignature(o, argTypes, isExplicit)
-
-                if mightMatch is False:
-                    pass
-                else:
-                    if o.returnType is not None:
-                        returnTypes.append(o.returnType)
-                    else:
-                        callTarget = converter.convert(o.functionObj, argTypes, None)
-
-                        if callTarget is not None:
-                            returnTypes.append(callTarget.output_type)
-
-                    if mightMatch is True:
-                        return returnTypes
-
-        return returnTypes
-
 
     @staticmethod
     def pickSingleOverloadForCall(func, argTypes):
@@ -313,7 +277,7 @@ class PythonTypedFunctionWrapper(Wrapper):
 
         argTypes = [a.typeFilter for a in signature.overloads[0].args]
 
-        retType = overload.returnType or typeWrapper(object).typeRepresentation
+        retType = overload.returnType or object
 
         convertedArgs = []
 

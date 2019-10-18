@@ -616,7 +616,7 @@ class ClassWrapper(RefcountedWrapper):
 
         funcPtr = classDispatchTable.ElementPtrIntegers(0, 2).load().elemPtr(dispatchSlot).load()
 
-        retType = overload.returnType or typeWrapper(object).typeRepresentation
+        retType = overload.returnType or object
 
         convertedArgs = []
 

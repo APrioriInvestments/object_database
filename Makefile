@@ -74,6 +74,7 @@ build-js:
 	cd object_database/web/content; \
 	npm run build
 
+
 .PHONY: install-local
 install_local: $(VIRTUAL_ENV)
 	. $(VIRTUAL_ENV)/bin/activate; \

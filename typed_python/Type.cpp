@@ -122,10 +122,6 @@ bool Type::isBinaryCompatibleWith(Type* other) {
         return true;
     }
 
-    if (isSubclassOf(other)) {
-        return true;
-    }
-
     while (other->getTypeCategory() == TypeCategory::catPythonSubclass) {
         other = other->getBaseType();
     }

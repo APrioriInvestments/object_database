@@ -19,8 +19,6 @@
 #include "Type.hpp"
 #include "ReprAccumulator.hpp"
 
-#include <unordered_set>
-
 class HeldClass;
 class Class;
 
@@ -280,15 +278,13 @@ public:
     }
 
     void initializeMRO() {
-        // this is not how the MRO actually works, but we have yet to actually
-        // code it correctly.
+        // this is not how this actually works
         std::set<HeldClass*> seen;
 
         std::function<void (HeldClass*)> visit = [&](HeldClass* cls) {
             if (seen.find(cls) == seen.end()) {
                 seen.insert(cls);
                 m_mro.push_back(cls);
-                m_bases_as_set.insert(cls);
 
                 for (auto b: cls->getBases()) {
                     visit(b);
@@ -341,15 +337,6 @@ public:
         }
     }
 
-
-    bool isSubclassOfConcrete(Type* otherType) {
-        return m_bases_as_set.find((HeldClass*)otherType) != m_bases_as_set.end();
-    }
-
-    VTable* getVTable() const {
-        return m_vtable;
-    }
-
 private:
     std::vector<size_t> m_byte_offsets;
 
@@ -358,8 +345,6 @@ private:
     // equivalent to python's method resolution order, so we can
     // search for methods at runtime.
     std::vector<HeldClass*> m_mro;
-
-    std::unordered_set<HeldClass*> m_bases_as_set;
 
     VTable* m_vtable;
 

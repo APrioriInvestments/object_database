@@ -317,7 +317,7 @@ PyObject* PyFunctionInstance::createOverloadPyRepresentation(Function* f) {
                 funcOverload,
                 typePtrToPyTypeRepresentation(f),
                 (PyObject*)pyIndex,
-                overload.isSignature() ? Py_None : (PyObject*)overload.getFunctionObj(),
+                (PyObject*)overload.getFunctionObj(),
                 overload.getReturnType() ? (PyObject*)typePtrToPyTypeRepresentation(overload.getReturnType()) : Py_None,
                 NULL
                 )
@@ -410,14 +410,8 @@ void PyFunctionInstance::mirrorTypeInformationIntoPyTypeConcrete(Function* inTyp
     PyObjectStealer overloads(createOverloadPyRepresentation(inType));
 
     PyDict_SetItemString(
-        pyType->tp_dict,
-        "overloads",
-        overloads
-    );
-
-    PyDict_SetItemString(
-        pyType->tp_dict,
-        "is_signature",
-        inType->isSignature() ? Py_True : Py_False
-    );
+            pyType->tp_dict,
+            "overloads",
+            overloads
+            );
 }

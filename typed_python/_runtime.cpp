@@ -483,10 +483,6 @@ extern "C" {
         throw std::runtime_error("Couldn't convert to float32.");
     }
 
-    void nativepython_print_int64(int64_t t) {
-        std::cout << "function pointer " << t << std::endl;
-    }
-
     void nativepython_print_string(StringType::layout* layout) {
         std::cout << StringType::Make()->toUtf8String((instance_ptr)&layout) << std::flush;
     }

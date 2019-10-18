@@ -20,18 +20,14 @@
 
 class Instance;
 
-void destroyClassInstance(instance_ptr self);
-
-#define BOTTOM_48_BITS 0xFFFFFFFFFFFF
-
 class Class : public Type {
-public:
     class layout {
     public:
         std::atomic<int64_t> refcount;
         unsigned char data[];
     };
 
+public:
     Class(HeldClass* inClass) :
             Type(catClass),
             m_heldClass(inClass)
@@ -44,35 +40,6 @@ public:
         endOfConstructorInitialization(); // finish initializing the type object.
 
         inClass->setClassType(this);
-    }
-
-    // convert an instance of the class to an actual layout pointer. Because
-    // we encode the offset of the dispatch table we're supposed to use for
-    // this subclass in the top 16 bits of the pointer, we have to be careful
-    // to always use this function to access the layout.
-    static layout* instanceToLayout(instance_ptr data) {
-        size_t layoutPtrAndDispatchTable = *(size_t*)data;
-        return (layout*)(layoutPtrAndDispatchTable & BOTTOM_48_BITS);
-    }
-
-    static uint16_t instanceToDispatchTableIndex(instance_ptr data) {
-        size_t layoutPtrAndDispatchTable = *(size_t*)data;
-        return layoutPtrAndDispatchTable >> 48;
-    }
-
-    static layout* initializeInstance(instance_ptr toInit, layout* layoutPtr, uint16_t dispatchIndex) {
-        if (((size_t)layoutPtr) >> 48) {
-            throw std::runtime_error("Invalid layout pointer encountered.");
-        }
-
-        *(size_t*)toInit = ((size_t)layoutPtr) + ((uint64_t)dispatchIndex << 48);
-
-        return layoutPtr;
-    }
-
-    // get the actual realized class contained in the instance of 'data'
-    static Class* actualTypeForLayout(instance_ptr data) {
-        return HeldClass::vtableFor(instanceToLayout(data)->data)->mType->getClassType();
     }
 
     bool isBinaryCompatibleWithConcrete(Type* other);
@@ -89,7 +56,9 @@ public:
     }
 
     Type* pickConcreteSubclassConcrete(instance_ptr self) {
-        return actualTypeForLayout(self);
+        layout& l = **(layout**)self;
+
+        return m_heldClass->vtableFor(l.data)->mType->getClassType();
     }
 
     bool _updateAfterForwardTypesChanged();
@@ -157,18 +126,13 @@ public:
                     throw std::runtime_error("Corrupt Class instance");
                 }
 
-                initializeInstance(
-                    self,
-                    (layout*)malloc(
-                        sizeof(layout) + m_heldClass->bytecount()
-                    ),
-                    0
-                );
-
-                layout& record = *instanceToLayout(self);
+                *(layout**)self = (layout*)malloc(
+                    sizeof(layout) + m_heldClass->bytecount()
+                    );
+                layout& record = **(layout**)self;
                 record.refcount = 2;
 
-                buffer.addCachedPointer(id, instanceToLayout(self), this);
+                buffer.addCachedPointer(id, *((layout**)self), this);
 
                 m_heldClass->deserialize(record.data, buffer, wireType);
             }
@@ -177,11 +141,7 @@ public:
 
     template<class buf_t>
     void serialize(instance_ptr self, buf_t& buffer, size_t fieldNumber) {
-        if (instanceToDispatchTableIndex(self) != 0) {
-            throw std::runtime_error("Serializing subclasses isn't implemented yet");
-        }
-
-        layout& l = *instanceToLayout(self);
+        layout& l = **(layout**)self;
 
         uint32_t id;
         bool isNew;
@@ -205,15 +165,14 @@ public:
 
     template<class sub_constructor>
     void constructor(instance_ptr self, const sub_constructor& initializer) const {
-        initializeInstance(self, (layout*)malloc(sizeof(layout) + m_heldClass->bytecount()), 0);
-
-        layout& l = *instanceToLayout(self);
+        *(layout**)self = (layout*)malloc(sizeof(layout) + m_heldClass->bytecount());
+        layout& l = **(layout**)self;
         l.refcount = 1;
 
         try {
             m_heldClass->constructor(l.data, initializer);
         } catch (...) {
-            free(instanceToLayout(self));
+            free(*(layout**)self);
         }
     }
 

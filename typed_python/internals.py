@@ -180,29 +180,13 @@ class FunctionOverloadArg:
     def __init__(self, name, defaultVal, typeFilter, isStarArg, isKwarg):
         self.name = name
         self.defaultValue = defaultVal
-        self._typeFilter = typeFilter
+        self.typeFilter = typeFilter
         self.isStarArg = isStarArg
         self.isKwarg = isKwarg
 
-    @property
-    def typeFilter(self):
-        if getattr(self._typeFilter, '__typed_python_category__', None) == "Forward":
-            return self._typeFilter.get()
-        return self._typeFilter
-
-    def __repr__(self):
-        res = f"{self.name}: {self.typeFilter}"
-        if self.defaultValue is not None:
-            res += " = " + str(self.defaultValue)
-        if self.isKwarg:
-            res = "**" + res
-        if self.isStarArg:
-            res = "*" + res
-
-        return res
 
 class FunctionOverload:
-    def __init__(self, functionTypeObject, index, f, returnType):
+    def __init__(self, functionTypeObject, index, f, returnType, *huh):
         self.functionTypeObject = functionTypeObject
         self.index = index
 
@@ -212,14 +196,6 @@ class FunctionOverload:
 
     def addArg(self, name, defaultVal, typeFilter, isStarArg, isKwarg):
         self.args = self.args + (FunctionOverloadArg(name, defaultVal, typeFilter, isStarArg, isKwarg),)
-
-    def signatureForSubtypes(self, name, argTypes):
-        return typed_python._types.Function(
-            name,
-            self.returnType,
-            None,
-            tuple((a.name, argTypes[i], a.defaultValue, a.isStarArg, a.isKwarg) for i, a in enumerate(self.args))
-        )
 
     def matchesTypes(self, argTypes):
         """Do the types in 'argTypes' match our argument typeFilters at a binary level"""
@@ -233,11 +209,7 @@ class FunctionOverload:
         return False
 
     def __str__(self):
-        return "FunctionOverload(returns %s, %s, %s)" % (
-            self.returnType,
-            self.args,
-            "<signature>" if self.functionObj is None else "<impl>"
-        )
+        return "FunctionOverload(%s->%s, %s)" % (self.functionTypeObject, self.returnType, self.args)
 
     def _installNativePointer(self, fp, returnType, argumentTypes):
         typed_python._types.installNativeFunctionPointer(self.functionTypeObject, self.index, fp, returnType, tuple(argumentTypes))

@@ -799,7 +799,7 @@ PyObject* PyDatabaseObjectType::pyAddField(PyObject *databaseType, PyObject* arg
     Type* t = PyInstance::unwrapTypeArgToTypePtr(type);
 
     if (!t) {
-        PyErr_Format(PyExc_TypeError, "Expected third argument to be convertible to a typed_python type.");
+        PyErr_Format(PyExc_TypeError, "Expected third argument to be convertible to a nativepython type.");
         return NULL;
     }
 

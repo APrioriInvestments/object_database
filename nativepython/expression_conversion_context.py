@@ -544,23 +544,10 @@ class ExpressionConversionContext(object):
 
         self.pushEffect(self.isInitializedVarExpr(varname).expr.store(native_ast.falseExpr))
 
-    def recastVariableAsRestrictedType(self, expr, varType):
-        if varType is not None and varType != expr.expr_type.typeRepresentation:
-            if getattr(expr.expr_type.typeRepresentation, "__typed_python_category__", None) == "OneOf":
-                return expr.convert_to_type(varType)
-
-            if getattr(expr.expr_type.typeRepresentation, "__typed_python_category__", None) == "Alternative" and \
-                    getattr(varType, "__typed_python_category__", None) == "ConcreteAlternative":
-                return expr.changeType(varType)
-        return expr
-
     def namedVariableLookup(self, name):
         if self.functionContext.isLocalVariable(name):
             if self.functionContext.externalScopeVarExpr(self, name) is not None:
-                res = self.functionContext.externalScopeVarExpr(self, name)
-
-                varType = self.variableStates.currentType(name)
-                return self.recastVariableAsRestrictedType(res, varType)
+                return self.functionContext.externalScopeVarExpr(self, name)
 
             if self.variableStates.couldBeUninitialized(name):
                 isInitExpr = self.isInitializedVarExpr(name)
@@ -574,7 +561,9 @@ class ExpressionConversionContext(object):
                 return None
 
             varType = self.variableStates.currentType(name)
-            return self.recastVariableAsRestrictedType(res, varType)
+            if varType is not None and varType != res.expr_type.typeRepresentation:
+                return res.convert_to_type(varType)
+            return res
 
         if name in self.functionContext._free_variable_lookup:
             return pythonObjectRepresentation(self, self.functionContext._free_variable_lookup[name])

@@ -30,8 +30,6 @@ class ClassWrapper(RefcountedWrapper):
     is_empty = False
     is_pass_by_ref = True
 
-    BYTES_BEFORE_INIT_BITS = 16 # the refcount and vtable are both 8 byte integers.
-
     def __init__(self, t):
         super().__init__(t)
 
@@ -43,9 +41,9 @@ class ClassWrapper(RefcountedWrapper):
 
         # this follows the general layout of 'held class' which is 1 bit per field for initialization and then
         # each field packed directly according to byte size
-        byteOffset = self.BYTES_BEFORE_INIT_BITS + (len(self.classType.MemberNames) // 8 + 1)
+        byteOffset = 8 + (len(self.classType.MemberNames) // 8 + 1)
 
-        self.bytesOfInitBits = byteOffset - self.BYTES_BEFORE_INIT_BITS
+        self.bytesOfInitBits = byteOffset - 8
 
         for i, name in enumerate(self.classType.MemberNames):
             self.nameToIndex[name] = i
@@ -100,7 +98,7 @@ class ClassWrapper(RefcountedWrapper):
         return (
             instance.nonref_expr
             .cast(native_ast.UInt8.pointer())
-            .ElementPtrIntegers(self.BYTES_BEFORE_INIT_BITS + byte)
+            .ElementPtrIntegers(8 + byte)
             .load()
             .rshift(native_ast.const_uint8_expr(bit))
             .bitand(native_ast.const_uint8_expr(1))
@@ -113,7 +111,7 @@ class ClassWrapper(RefcountedWrapper):
         bytePtr = (
             instance.nonref_expr
             .cast(native_ast.UInt8.pointer())
-            .ElementPtrIntegers(self.BYTES_BEFORE_INIT_BITS + byte)
+            .ElementPtrIntegers(8 + byte)
         )
 
         return bytePtr.store(bytePtr.load().bitor(native_ast.const_uint8_expr(1 << bit)))
@@ -202,7 +200,7 @@ class ClassWrapper(RefcountedWrapper):
             out.expr.store(
                 runtime_functions.malloc.call(
                     native_ast.const_int_expr(
-                        _types.bytecount(self.typeRepresentation.HeldClass) + self.BYTES_BEFORE_INIT_BITS
+                        _types.bytecount(self.typeRepresentation.HeldClass) + 8
                     )
                 ).cast(self.getNativeLayoutType())
             ) >>
@@ -215,7 +213,7 @@ class ClassWrapper(RefcountedWrapper):
             context.pushEffect(
                 out.nonref_expr
                 .cast(native_ast.UInt8.pointer())
-                .ElementPtrIntegers(self.BYTES_BEFORE_INIT_BITS + byteOffset).store(native_ast.const_uint8_expr(0))
+                .ElementPtrIntegers(8 + byteOffset).store(native_ast.const_uint8_expr(0))
             )
 
         for i in range(len(self.classType.MemberTypes)):

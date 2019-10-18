@@ -125,7 +125,7 @@
 }
 
 
-/* Sheet (table) and related
+/* Sheet (table) and related 
 * =============================================================*/
 .sheet-cell {
     border: solid 1px lightblue;
@@ -143,16 +143,6 @@
     max-height: 100%!important;
     display: flex;
     /* overflow: scroll; */
-}
-
-.sheet-wrapper > table {
-    opacity: 0.5;
-    border: 2px solid rgba(0, 0, 0, 0.3);
-}
-
-.sheet-wrapper > table:focus {
-    opacity: 1.0;
-    border: 2px solid rgba(50, 50, 255, 0.8);
 }
 
 th.header-item {

@@ -102,7 +102,6 @@ class ArithmeticTypeWrapper(Wrapper):
     def _can_convert_from_type(self, otherType, explicit):
         return False
 
-
 def toWrapper(T):
     if T is Bool:
         return BoolWrapper()
@@ -176,15 +175,12 @@ class IntWrapper(ArithmeticTypeWrapper):
             )
             return context.constant(True)
 
-        return super().convert_to_type_with_target(context, e, targetVal, explicit)
-
-    def convert_cast(self, context, instance, target_type):
         if target_type.typeRepresentation == String:
             if self.typeRepresentation == Int64:
-                return context.push(
+                strForm = context.push(
                     str,
                     lambda strRef: strRef.expr.store(
-                        runtime_functions.int64_to_string.call(instance.nonref_expr).cast(strRef.expr_type.layoutType)
+                        runtime_functions.int64_to_string.call(e.nonref_expr).cast(strRef.expr_type.layoutType)
                     )
                 )
             else:
@@ -198,9 +194,12 @@ class IntWrapper(ArithmeticTypeWrapper):
                     UInt8: 'u8'
                 }[self.typeRepresentation]
 
-                return instance.convert_to_type(int).convert_cast(str) + context.constant(suffix)
+                strForm = e.convert_to_type(int).convert_to_type(str) + context.constant(suffix)
 
-        return super().convert_cast(context, instance, target_type)
+            targetVal.convert_copy_initialize(strForm)
+            return context.constant(True)
+
+        return super().convert_to_type_with_target(context, e, targetVal, explicit)
 
     def convert_abs(self, context, expr):
         if self.typeRepresentation.IsSignedInt:
@@ -501,6 +500,17 @@ class FloatWrapper(ArithmeticTypeWrapper):
             )
             return context.constant(True)
 
+        if target_type.typeRepresentation == String:
+            if self.typeRepresentation == Float64:
+                func = runtime_functions.float64_to_string
+            else:
+                func = runtime_functions.float32_to_string
+
+            context.pushEffect(
+                targetVal.expr.store(func.call(e.nonref_expr).cast(target_type.layoutType))
+            )
+            return context.constant(True)
+
         if target_type.typeRepresentation == Int64:
             context.pushEffect(
                 targetVal.expr.store(
@@ -517,21 +527,6 @@ class FloatWrapper(ArithmeticTypeWrapper):
             return context.constant(True)
 
         return super().convert_to_type_with_target(context, e, targetVal, explicit)
-
-    def convert_cast(self, context, instance, target_type):
-        if target_type.typeRepresentation == String:
-            if self.typeRepresentation == Float64:
-                func = runtime_functions.float64_to_string
-            else:
-                func = runtime_functions.float32_to_string
-
-            return context.push(
-                str,
-                lambda targetVal:
-                    targetVal.expr.store(func.call(instance.nonref_expr).cast(target_type.layoutType))
-            )
-
-        return super().convert_cast(context, instance, target_type)
 
     def convert_abs(self, context, expr):
         return context.pushPod(

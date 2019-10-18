@@ -32,15 +32,6 @@ object = object
 type = type
 
 
-def Final(classType):
-    """Given a class type, make it 'Final'.
-
-    Final classes can't be subclassed, but generate faster code because
-    we don't have to look up method dispatch in the vtable.
-    """
-    return typed_python._types.makeClassFinal(classType)
-
-
 class Member:
     """A member of a Class object."""
 

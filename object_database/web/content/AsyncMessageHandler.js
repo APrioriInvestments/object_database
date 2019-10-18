@@ -53,35 +53,13 @@ class AsyncMessageHandler {
         if (!message.message_id) {
             throw "Message missing 'message_id'";
         }
-        if (!this.queue[message.id]){
-            throw `No messages in queue for component ${message.id}`
-        }
-        this.queue[message.id].map((item, index) => {
-            if (item === message.message_id){
-                this.queue[message.id].pop(index);
-            }
-        })
     }
 
     _addToCacheQueue(message){
-        if (!this.cache_queue[message.id]){
-            this.cache_queue[message.id] = [message]
-        } else {
-            this.cache_queue[message.id].push(message)
-        }
     }
 
+
     _removeFromCacheQueue(message){
-        let removed_message = null;
-        if (!this.cache_queue[message.id]){
-            throw `No messages in cache_queue for component ${message.id}`
-        }
-        this.cache_queue[message.id].map((item, index) => {
-            if (item.message_id === message.message_id){
-                removed_message = this.cache_queue[message.id].pop(index);
-            }
-        })
-        return removed_message;
     }
 
 }

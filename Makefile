@@ -90,6 +90,7 @@ generatetesttypes: $(DT_SRC_PATH)/generate_types.py
 .PHONY: clean
 clean:
 	rm -rf build/
+	rm -f nose.*.log
 	rm -f object_database/_types.cpython-*.so
 	rm -f testcert.cert testcert.key
 	rm -rf .venv

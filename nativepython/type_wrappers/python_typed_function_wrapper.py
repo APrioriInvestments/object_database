@@ -119,13 +119,9 @@ class PythonTypedFunctionWrapper(Wrapper):
                 callback=callback
             )
 
-        if returnType is None:
-            # we have to take the union of the return types we might be dispatching to
-            returnType = object
-
         return converter.defineNativeFunction(
-            f'implement_function.{self}{argTypes}->{returnType}',
-            ('implement_function.', self, returnType, tuple(argTypes)),
+            f'implement_method.{argTypes}->{returnType}',
+            ('implement_method', returnType, tuple(argTypes)),
             list(argTypes),
             returnType,
             lambda context, outputVar, *args: (
@@ -196,7 +192,7 @@ class PythonTypedFunctionWrapper(Wrapper):
 
         return possibleMaybe
 
-    def generateMethodImplementation(self, context, returnType, args):
+    def generateMethodImplementation(self, context, methodReturnType, args):
         """Generate native code that calls us with a given return type and set of arguments.
 
         We try each overload, first with 'isExplicit' as False, then with True. The first one that
@@ -204,7 +200,7 @@ class PythonTypedFunctionWrapper(Wrapper):
 
         Args:
             context - an ExpressionConversionContext
-            returnType - the output type we are expecting to return. This will be the union
+            methodReturnType - the output type we are expecting to return. This will be the union
                 of the return types of all the overloads that might participate in this dispatch.
             args - the typed_expression for all of our actual arguments, which in this case
                 are the instance, and then the actual arguments we want to convert.
@@ -226,8 +222,8 @@ class PythonTypedFunctionWrapper(Wrapper):
                     overloadRetType = overload.returnType or object
 
                     testSingleOverloadForm = context.converter.defineNativeFunction(
-                        f'implement_overload.{self}.{overloadIndex}.{isExplicit}.{argTypes}->{overloadRetType}',
-                        ('implement_overload', self, overloadIndex, isExplicit, overloadRetType, tuple(argTypes)),
+                        f'implement_overload.{self}.{overloadIndex}.{isExplicit}.{argTypes[1:]}->{overloadRetType}',
+                        ('implement_overload', self, overloadIndex, isExplicit, overloadRetType, tuple(argTypes[1:])),
                         [PointerTo(overloadRetType)] + list(argTypes),
                         typeWrapper(bool),
                         makeOverloadImplementor(overload, isExplicit)
@@ -246,7 +242,7 @@ class PythonTypedFunctionWrapper(Wrapper):
                             context.markUninitializedSlotInitialized(outputSlot)
 
                             # upcast the result
-                            actualResult = outputSlot.convert_to_type(returnType)
+                            actualResult = outputSlot.convert_to_type(methodReturnType)
 
                             if actualResult is not None:
                                 context.pushReturnValue(actualResult)
@@ -263,8 +259,8 @@ class PythonTypedFunctionWrapper(Wrapper):
     def generateOverloadImplement(self, context, overload, isExplicit, outputVar, args):
         """Produce the code that implements this specific overload.
 
-        The generated code returns control flow with a True if it fills out the 'outputVar'
-        with data, and False otherwise.
+        We return True if successful, False otherwise, and the output is a pointer to the result
+        of the function call if we're successful.
 
         Args:
             context - an ExpressionConversionContext

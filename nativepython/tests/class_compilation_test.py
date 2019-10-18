@@ -568,7 +568,8 @@ class TestClassCompilationCompilation(unittest.TestCase):
             def f(self) -> float:
                 return 1.0
 
-        class ChildClass(BaseClass, Final):
+        @Final
+        class ChildClass(BaseClass):
             pass
 
         @SpecializedEntrypoint
@@ -593,18 +594,3 @@ class TestClassCompilationCompilation(unittest.TestCase):
         speedup = elapsedDispatch / elapsedNoDispatch
 
         print(f"speedup is {speedup}. {elapsedNoDispatch} to do {passes} without dispatch.")
-
-    def test_dispatch_with_different_types(self):
-        class BaseClass(Class, Final):
-            def f(self, x: int) -> str:
-                return "int"
-
-            def f(self, y: float) -> str:
-                return "float"
-
-        @Compiled
-        def f(c: BaseClass, x: OneOf(int, float)):
-            return c.f(x)
-
-        self.assertEqual(f(BaseClass(), 0), "int")
-        self.assertEqual(f(BaseClass(), 1.0), "float")

@@ -898,7 +898,8 @@ class NativeClassTypesTests(unittest.TestCase):
         class BaseClass(Class):
             pass
 
-        class ChildClass(Class, Final):
+        @Final
+        class ChildClass(Class):
             pass
 
         self.assertFalse(BaseClass.IsFinal)

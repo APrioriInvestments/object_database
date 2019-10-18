@@ -129,6 +129,14 @@ public:
         return m_heldClass->isFinal();
     }
 
+    Class* asFinal() {
+        if (isFinal()) {
+            return this;
+        }
+
+        return new Class(m_heldClass->asFinal());
+    }
+
     Class* renamed(std::string newName) {
         return new Class(m_heldClass->renamed(newName));
     }

@@ -323,6 +323,27 @@ PyObject *allocateClassMethodDispatch(PyObject* nullValue, PyObject* args, PyObj
     });
 }
 
+PyObject *makeClassFinal(PyObject* nullValue, PyObject* args, PyObject* kwargs)
+{
+    static const char *kwlist[] = {"classType", NULL};
+
+    PyObject* pyClassType;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist, &pyClassType)) {
+        return NULL;
+    }
+
+    return translateExceptionToPyObject([&]() {
+        Type* classType = PyInstance::unwrapTypeArgToTypePtr(pyClassType);
+
+        if (!classType || classType->getTypeCategory() != Type::TypeCategory::catClass) {
+            throw std::runtime_error("Expected 'classType' to be a Class");
+        }
+
+        return incref((PyObject*)PyInstance::typeObj(((Class*)classType)->asFinal()));
+    });
+}
+
 PyObject *getNextUnlinkedClassMethodDispatch(PyObject* nullValue, PyObject* args, PyObject* kwargs)
 {
     static const char *kwlist[] = {NULL};
@@ -742,7 +763,7 @@ Function* convertPythonObjectToFunction(PyObject* name, PyObject *funcObj) {
 }
 
 PyObject *MakeClassType(PyObject* nullValue, PyObject* args) {
-    int expected_args = 8;
+    int expected_args = 7;
     if (PyTuple_Size(args) != expected_args) {
         PyErr_Format(PyExc_TypeError, "Class takes %S arguments", expected_args);
         return NULL;
@@ -758,25 +779,24 @@ PyObject *MakeClassType(PyObject* nullValue, PyObject* args) {
     std::string name = PyUnicode_AsUTF8(nameArg);
 
     PyObjectHolder basesTuple(PyTuple_GetItem(args, 1));
-    PyObjectHolder final(PyTuple_GetItem(args, 2));
-    PyObjectHolder memberTuple(PyTuple_GetItem(args, 3));
-    PyObjectHolder memberFunctionTuple(PyTuple_GetItem(args, 4));
-    PyObjectHolder staticFunctionTuple(PyTuple_GetItem(args, 5));
-    PyObjectHolder propertyFunctionTuple(PyTuple_GetItem(args, 6));
-    PyObjectHolder classMemberTuple(PyTuple_GetItem(args, 7));
+    PyObjectHolder memberTuple(PyTuple_GetItem(args, 2));
+    PyObjectHolder memberFunctionTuple(PyTuple_GetItem(args, 3));
+    PyObjectHolder staticFunctionTuple(PyTuple_GetItem(args, 4));
+    PyObjectHolder propertyFunctionTuple(PyTuple_GetItem(args, 5));
+    PyObjectHolder classMemberTuple(PyTuple_GetItem(args, 6));
 
     if (!PyTuple_Check(basesTuple)) {
         PyErr_SetString(PyExc_TypeError, "Class needs a tuple of Class type objects in the second argument");
         return NULL;
     }
 
-    if (!PyBool_Check(final)) {
-        PyErr_SetString(PyExc_TypeError, "Class needs a bool in the third argument");
+    if (!PyTuple_Check(memberTuple)) {
+        PyErr_SetString(PyExc_TypeError, "Class needs a tuple of (str, member_type) in the third argument");
         return NULL;
     }
 
-    if (!PyTuple_Check(memberTuple)) {
-        PyErr_SetString(PyExc_TypeError, "Class needs a tuple of (str, member_type) in the fourth argument");
+    if (!PyTuple_Check(memberFunctionTuple)) {
+        PyErr_SetString(PyExc_TypeError, "Class needs a tuple of (str, Function) in the fourth argument");
         return NULL;
     }
 
@@ -785,18 +805,13 @@ PyObject *MakeClassType(PyObject* nullValue, PyObject* args) {
         return NULL;
     }
 
-    if (!PyTuple_Check(memberFunctionTuple)) {
-        PyErr_SetString(PyExc_TypeError, "Class needs a tuple of (str, Function) in the sixth argument");
-        return NULL;
-    }
-
     if (!PyTuple_Check(propertyFunctionTuple)) {
-        PyErr_SetString(PyExc_TypeError, "Class needs a tuple of (str, object) in the seventh argument");
+        PyErr_SetString(PyExc_TypeError, "Class needs a tuple of (str, object) in the sixth argument");
         return NULL;
     }
 
     if (!PyTuple_Check(classMemberTuple)) {
-        PyErr_SetString(PyExc_TypeError, "Class needs a tuple of (str, object) in the eighth argument");
+        PyErr_SetString(PyExc_TypeError, "Class needs a tuple of (str, object) in the seventh argument");
         return NULL;
     }
 
@@ -890,7 +905,7 @@ PyObject *MakeClassType(PyObject* nullValue, PyObject* args) {
                 Class::Make(
                     name,
                     baseClasses,
-                    final == Py_True,
+                    false,
                     members,
                     memberFuncs,
                     staticFuncs,
@@ -1776,6 +1791,7 @@ static PyMethodDef module_methods[] = {
     {"getOrSetTypeResolver", (PyCFunction)getOrSetTypeResolver, METH_VARARGS, NULL},
     {"getTypePointer", (PyCFunction)getTypePointer, METH_VARARGS, NULL},
     {"_vtablePointer", (PyCFunction)getVTablePointer, METH_VARARGS, NULL},
+    {"makeClassFinal", (PyCFunction)makeClassFinal, METH_VARARGS | METH_KEYWORDS, NULL},
     {"allocateClassMethodDispatch", (PyCFunction)allocateClassMethodDispatch, METH_VARARGS | METH_KEYWORDS, NULL},
     {"getNextUnlinkedClassMethodDispatch", (PyCFunction)getNextUnlinkedClassMethodDispatch, METH_VARARGS | METH_KEYWORDS, NULL},
     {"getClassMethodDispatchSignature", (PyCFunction)getClassMethodDispatchSignature, METH_VARARGS | METH_KEYWORDS, NULL},

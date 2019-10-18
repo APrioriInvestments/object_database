@@ -10,7 +10,6 @@ flake8 = "*"
 coverage = "*"
 pytest = "*"
 flaky = "*"
-nodeenv = "*"
 
 [packages]
 boto3 = "*"
@@ -32,8 +31,6 @@ requests = "*"
 websockets = "*"
 nodeenv = "*"
 nativepython = {editable = true,path = "."}
-typed_python = {git = "https://github.com/APrioriInvestments/typed_python.git",ref = "b118d0de45dfe89836afb0af45a1b23d081261fa"}
-gevent-websocket = "*"
 
 [requires]
 python_version = "3.6"

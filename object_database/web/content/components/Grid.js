@@ -34,7 +34,7 @@ class Grid extends Component {
                 id: this.props.id,
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Grid",
-                class: "cell table-hscroll table-sm table-striped cell-grid"
+                class: "cell table-hscroll table-sm table-striped"
             }, [
                 h('thead', {}, [
                     h('tr', {}, [topTableHeader, ...this.makeHeaders()])

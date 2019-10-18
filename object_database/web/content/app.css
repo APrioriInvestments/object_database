@@ -169,20 +169,6 @@ td.row-index-item {
     padding-top: 1px;
     padding-bottom: 1px;
 }
-
-/* Grid and Related Table
- * ============================================================*/
-.cell-grid {
-    position: relative;
-    width: 100%;
-    table-layout: fixed;
- }
-
-.cell-grid td {
-    width: auto;
-    overflow-wrap: break-word;
-    white-space: pre-wrap;
- }
 /* Modals (bypasses Bootstrap implementation)
 * =============================================================*/
 

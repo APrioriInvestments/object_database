@@ -37,23 +37,12 @@ class AsyncMessageHandler {
         } else if(message_index === 1){
             // if the message_id is first in the queue return and all subsequent
             // cached messages; remove the relevant message_ids from the queue and messages
-            // from the cache_queue
             this.removeFromQueue(message);
-            let messages = [message];
-            for (let i = 0; i < this.queue[message.id].length; i++){
-                // if the next message_id in the queue corresponds to the next
-                // message in the cache queue then we add it to the list of messages
-                // to return and remove from the queues
-                let message_id = this.queue[message.id][i];
-                let cache_message_id = this.cache_queue[message.id][i];
-                if (message_id === cache_message_id){
-                    messages.push(this._removeFromCacheQueue(message.id, message_id));
-                }
-            }
-            return messages;
+            return [message]; // TODO add the other cached messages and remove them from the list
         } else {
             this._addToCacheQueue(message);
         }
+        // from the cachec_queue
         // if the message_id is not first in the queue cache the message for later
     }
 
@@ -101,18 +90,19 @@ class AsyncMessageHandler {
         }
     }
 
-    _removeFromCacheQueue(component_id, message_id){
+    _removeFromCacheQueue(message){
         let removed_message = null;
-        if (!this.cache_queue[component_id]){
-            throw `No messages in cache_queue for component ${component_id}`
+        if (!this.cache_queue[message.id]){
+            throw `No messages in cache_queue for component ${message.id}`
         }
-        this.cache_queue[component_id].map((item, index) => {
-            if (item.message_id === message_id){
-                removed_message = this.cache_queue[component_id].pop(index);
+        this.cache_queue[message.id].map((item, index) => {
+            if (item.message_id === message.message_id){
+                removed_message = this.cache_queue[message.id].pop(index);
             }
         })
         return removed_message;
     }
+
 }
 
 export {AsyncMessageHandler, AsyncMessageHandler as default};

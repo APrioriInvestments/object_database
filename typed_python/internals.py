@@ -227,10 +227,6 @@ class FunctionOverload:
         self.returnType = returnType
         self.args = ()
 
-    @property
-    def name(self):
-        return self.functionObj.__name__
-
     def addArg(self, name, defaultVal, typeFilter, isStarArg, isKwarg):
         self.args = self.args + (FunctionOverloadArg(name, defaultVal, typeFilter, isStarArg, isKwarg),)
 

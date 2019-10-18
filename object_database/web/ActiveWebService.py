@@ -25,7 +25,6 @@ import psutil
 import resource
 import threading
 
-import object_database
 from object_database.util import genToken, validateLogLevel
 from object_database import ServiceBase, service_schema
 from object_database.web.AuthPlugin import AuthPluginBase, LdapAuthPlugin

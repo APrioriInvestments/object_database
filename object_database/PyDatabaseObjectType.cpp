@@ -1,5 +1,5 @@
 #include "PyDatabaseObjectType.hpp"
-#include <typed_python/PyInstance.hpp>
+#include "../typed_python/PyInstance.hpp"
 
 std::unordered_set<PyDatabaseObjectType*> PyDatabaseObjectType::s_database_object_types;
 

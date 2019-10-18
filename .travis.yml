@@ -40,7 +40,6 @@ jobs:
       script:
         - pipenv lock --requirements > reqs.txt
         - pip install -r reqs.txt
-        - pip install -e . # install object_database in 'editable' form.
         - sudo apt-get install -y gdb  # install gdb
         - make testcert.cert
         - coverage erase

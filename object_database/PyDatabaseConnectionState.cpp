@@ -17,9 +17,9 @@
 #include "PyDatabaseConnectionState.hpp"
 #include "ObjectFieldId.hpp"
 #include "IndexId.hpp"
-#include "direct_types/all.hpp"
-#include <typed_python/SerializationContext.hpp>
-#include <typed_python/PythonSerializationContext.hpp>
+#include "../typed_python/direct_types/all.hpp"
+#include "../typed_python/SerializationContext.hpp"
+#include "../typed_python/PythonSerializationContext.hpp"
 
 PyMethodDef PyDatabaseConnectionState_methods[] = {
     {"objectCount", (PyCFunction)PyDatabaseConnectionState::objectCount, METH_VARARGS | METH_KEYWORDS, NULL},

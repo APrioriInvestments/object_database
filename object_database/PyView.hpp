@@ -27,9 +27,9 @@
 #include "PyDatabaseConnectionState.hpp"
 #include "ObjectFieldId.hpp"
 #include "IndexId.hpp"
-#include <typed_python/SerializationBuffer.hpp>
-#include <typed_python/SerializationContext.hpp>
-#include <typed_python/PythonSerializationContext.hpp>
+#include "../typed_python/SerializationBuffer.hpp"
+#include "../typed_python/SerializationContext.hpp"
+#include "../typed_python/PythonSerializationContext.hpp"
 
 
 class PyView {

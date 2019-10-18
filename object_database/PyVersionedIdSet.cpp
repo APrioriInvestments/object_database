@@ -20,7 +20,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include <typed_python/util.hpp>
+#include "../typed_python/util.hpp"
 
 #include "PyVersionedIdSet.hpp"
 #include "VersionedIdSet.hpp"

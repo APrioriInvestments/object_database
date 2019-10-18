@@ -16,5 +16,5 @@
 
 #pragma once
 
-#include "direct_types/all.hpp"
-#include "direct_types/ClientToServer.hpp"
+#include "../typed_python/direct_types/all.hpp"
+#include "../typed_python/direct_types/ClientToServer.hpp"

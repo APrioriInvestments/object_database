@@ -18,7 +18,7 @@
 #include <memory>
 #include <map>
 
-#include <typed_python/Type.hpp>
+#include "../typed_python/Type.hpp"
 #include "Common.hpp"
 #include "HashFunctions.hpp"
 #include "VersionedObjectsOfType.hpp"

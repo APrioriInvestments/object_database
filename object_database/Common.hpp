@@ -17,8 +17,8 @@
 #pragma once
 
 #include <stdint.h>
-#include "direct_types/all.hpp"
-#include <typed_python/Format.hpp>
+#include "../typed_python/direct_types/all.hpp"
+#include "../typed_python/Format.hpp"
 #include "SchemaAndTypeName.hpp"
 
 enum { NO_TRANSACTION = -1 };

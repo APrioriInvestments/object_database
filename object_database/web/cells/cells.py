@@ -29,7 +29,6 @@ from object_database.web.cells.children import Children
 
 from inspect import signature
 
-import object_database
 from object_database.view import RevisionConflictException
 from object_database.view import current_transaction
 from object_database.util import Timer

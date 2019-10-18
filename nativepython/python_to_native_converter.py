@@ -57,7 +57,7 @@ class NativeFunctionConversionContext:
 
     def getFunction(self):
         try:
-            subcontext = ExpressionConversionContext(self, None)
+            subcontext = ExpressionConversionContext(self)
             output_type = self._output_type
             input_types = self._input_types
             generatingFunction = self._generatingFunction

@@ -22,7 +22,6 @@ import tempfile
 import textwrap
 import time
 import unittest
-from flaky import flaky
 
 from object_database.service_manager.ServiceManagerTestCommon import ServiceManagerTestCommon
 from object_database.service_manager.ServiceManager import ServiceManager
@@ -730,7 +729,6 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             self.assertIs(i1, i12)
             self.assertIs(i2, i22)
 
-    @flaky(max_runs=3, min_passes=1)
     def test_redeploy_hanging_services(self):
         with self.database.transaction():
             ServiceManager.createOrUpdateService(HangingService, "HangingService", target_count=10)

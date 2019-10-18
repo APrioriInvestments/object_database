@@ -620,7 +620,7 @@ describe("Properties Update Tests", () => {
     });
 });
 
-describe.skip("Sheet and Update Data Tests", () => {
+describe("Sheet and Update Data Tests", () => {
     var handler;
     before(() => {
         handler = new NewCellHandler(h, projector, registry);

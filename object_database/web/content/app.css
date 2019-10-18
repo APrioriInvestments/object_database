@@ -390,9 +390,6 @@ td.row-index-item {
 
 .page-view > header {
     height: var(--page-view-header-height);
-    display: block;
-    width: 100%;
-    position: relative;
 }
 
 .page-view > main {
@@ -406,15 +403,6 @@ td.row-index-item {
 .page-view-footer {
 
 }
-
-/* HeaderBar
- * =====================================================*/
- .header-bar {
-    display: flex;
-    align-items: baseline;
-    height: 100%;
-    align-items: center;
- }
 
 /* CollapsiblePanel
  *======================================================*/

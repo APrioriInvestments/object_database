@@ -352,24 +352,9 @@ extern "C" {
         return floorresult;
     }
 
-    // attempt to initialize 'tgt' of type 'tp' with data from 'obj'. Returns true if we
-    // are able to do so.
-    bool np_runtime_pyobj_to_typed(PyObject *obj, instance_ptr tgt, Type* tp, bool isExplicit) {
+    void np_runtime_pyobj_to_typed(PyObject *obj, instance_ptr tgt, Type* tp) {
         PyEnsureGilAcquired acquireTheGil;
-        try {
-            if (!PyInstance::pyValCouldBeOfType(tp, obj,  isExplicit)) {
-                return false;
-            }
-
-            PyInstance::copyConstructFromPythonInstance(tp, tgt, obj, isExplicit);
-
-            return true;
-        } catch(PythonExceptionSet&) {
-            PyErr_Clear();
-            return false;
-        } catch(...) {
-            return false;
-        }
+        PyInstance::copyConstructFromPythonInstance(tp, tgt, obj, true);
     }
 
     PyObject* np_runtime_to_pyobj(instance_ptr obj, Type* tp) {

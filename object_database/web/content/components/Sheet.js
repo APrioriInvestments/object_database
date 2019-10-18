@@ -285,9 +285,10 @@ class Sheet extends Component {
                     head.firstChild.remove()
                 }
                 // NOTE: we add one more column to account for the row index
-                /*projector.append(head, () => {
-                    return this.make_header_item_zero();
-                })*/
+                projector.append(head, () => {
+                    // return this.make_header_item_zero();
+                    return h("th", {class: "header-item"}, ["??"])
+                })
                 this.generate_rows(dataInfo.data).map((row) => {
                     projector.append(body, () => {return row})
                 })

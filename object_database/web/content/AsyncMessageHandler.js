@@ -25,25 +25,6 @@ class AsyncMessageHandler {
      * of messages (potenitally empty) to the CellHandler.
      */
     processMessage(message){
-        // check if component/element id is in the queue
-        if (!this.queue[message.id]){
-            throw `Component id ${message.id} }has no messages in the queue.`
-        }
-        // check which order the current message_id takes in the queue for
-        // that component
-        let message_index = this.queue[message.id][message.message_id];
-        if (message_index === -1){
-            throw `Message ${message.message_id} not found in queue for component ${message.id}.`
-        } else if(message_index === 1){
-            // if the message_id is first in the queue return and all subsequent
-            // cached messages; remove the relevant message_ids from the queue and messages
-            this.removeFromQueue(message);
-            return [message]; // TODO add the other cached messages and remove them from the list
-        } else {
-            this._addToCacheQueue(message);
-        }
-        // from the cachec_queue
-        // if the message_id is not first in the queue cache the message for later
     }
 
     addToQueue(message){

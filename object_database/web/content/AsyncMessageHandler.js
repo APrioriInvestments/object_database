@@ -47,12 +47,12 @@ class AsyncMessageHandler {
                 // message in the cache queue then we add it to the list of messages
                 // to return and remove from the queues
                 let message_id = this.queue[message.id][i];
-                let cache_message_id = this.cache_queue[message.id][i].message_id;
+                console.log(message_id);
+                console.log(this.cache_queue);
+                let cache_message_id = this.cache_queue[message.id][i];
+                console.log(cache_message_id);
                 if (message_id === cache_message_id){
-                    this.queue[message.id].splice(i, 1); //TODO standardize these removals;
-                    let next_message = this._removeFromCacheQueue(message.id, message_id);
-                    console.log(next_message);
-                    messages.push(next_message);
+                    messages.push(this._removeFromCacheQueue(message.id, message_id));
                 }
             }
         } else {
@@ -93,7 +93,7 @@ class AsyncMessageHandler {
         }
         this.queue[message.id].map((item, index) => {
             if (item === message.message_id){
-                this.queue[message.id].splice(index, 1);
+                this.queue[message.id].pop(index);
             }
         })
     }
@@ -113,8 +113,7 @@ class AsyncMessageHandler {
         }
         this.cache_queue[component_id].map((item, index) => {
             if (item.message_id === message_id){
-                removed_message = this.cache_queue[component_id][index];
-                this.cache_queue[component_id].splice(index, 1);
+                removed_message = this.cache_queue[component_id].pop(index);
             }
         })
         return removed_message;

@@ -1459,14 +1459,8 @@ PyObject *all_alternatives_empty(PyObject* nullValue, PyObject* args) {
         return NULL;
     }
 
-    if (t->getTypeCategory() == Type::TypeCategory::catAlternative) {
-        return incref(((Alternative*)t)->all_alternatives_empty() ? Py_True : Py_False);
-    }
-    else if (t->getTypeCategory() == Type::TypeCategory::catConcreteAlternative) {
-        return incref(((ConcreteAlternative*)t)->getAlternative()->all_alternatives_empty() ? Py_True : Py_False);
-    }
-    else {
-        PyErr_SetString(PyExc_TypeError, "first argument to 'all_alternatives_empty' must be an Alternative or ConcreteAlternative");
+    if (t->getTypeCategory() != Type::TypeCategory::catAlternative) {
+        PyErr_SetString(PyExc_TypeError, "first argument to 'all_alternatives_empty' must be an Alternative");
         return NULL;
     }
 

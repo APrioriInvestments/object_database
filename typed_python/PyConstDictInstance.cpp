@@ -418,7 +418,4 @@ void PyConstDictInstance::copyConstructFromPythonInstanceConcrete(ConstDictType*
     PyInstance::copyConstructFromPythonInstanceConcrete(dictType, tgt, pyRepresentation, isExplicit);
 }
 
-int PyConstDictInstance::pyInquiryConcrete(const char* op, const char* opErrRep) {
-    // op == '__bool__'
-    return type()->size(dataPtr()) != 0;
-}
+

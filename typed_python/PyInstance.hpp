@@ -370,8 +370,6 @@ public:
 
     static PyObject* pyTernaryOperator(PyObject* lhs, PyObject* rhs, PyObject* ternary, const char* op, const char* opErrRep);
 
-    static int pyInquiry(PyObject* lhs, const char* op, const char* opErrRep);
-
     PyObject* pyUnaryOperatorConcrete(const char* op, const char* opErrRep);
 
     PyObject* pyOperatorConcrete(PyObject* rhs, const char* op, const char* opErrRep);
@@ -379,8 +377,6 @@ public:
     PyObject* pyOperatorConcreteReverse(PyObject* lhs, const char* op, const char* opErrRep);
 
     PyObject* pyTernaryOperatorConcrete(PyObject* rhs, PyObject* third, const char* op, const char* opErrRep);
-
-    int pyInquiryConcrete(const char* op, const char* opErrRep);
 
     static PyObject* nb_inplace_add(PyObject* lhs, PyObject* rhs);
 
@@ -426,8 +422,6 @@ public:
 
     static PyObject* nb_float(PyObject* lhs);
 
-    static int nb_bool(PyObject* lhs);
-
     static PyObject* nb_index(PyObject* lhs);
 
     static PyObject* nb_add(PyObject* lhs, PyObject* rhs);
@@ -453,10 +447,6 @@ public:
     static PyObject* sq_item(PyObject* o, Py_ssize_t ix);
 
     PyObject* sq_item_concrete(Py_ssize_t ix);
-
-    static int sq_ass_item(PyObject* o, Py_ssize_t ix, PyObject* v);
-
-    int sq_ass_item_concrete(Py_ssize_t ix, PyObject* v);
 
     static PyTypeObject* typeObj(Type* inType);
 

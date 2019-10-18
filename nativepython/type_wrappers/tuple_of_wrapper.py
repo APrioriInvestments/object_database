@@ -1,4 +1,4 @@
-#   Copyright 2017-2019 Nativepython Authors
+#   Coyright 2017-2019 Nativepython Authors
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -16,9 +16,8 @@ from nativepython.type_wrappers.refcounted_wrapper import RefcountedWrapper
 from nativepython.type_wrappers.wrapper import Wrapper
 from nativepython.type_wrappers.exceptions import generateThrowException
 import nativepython.type_wrappers.runtime_functions as runtime_functions
-from nativepython.typed_expression import TypedExpression
 
-from typed_python import NoneType, Int32, Bool
+from typed_python import NoneType, Int32
 from nativepython.type_wrappers.util import min
 
 import nativepython.native_ast as native_ast
@@ -138,7 +137,7 @@ class TupleOrListOfWrapper(RefcountedWrapper):
             runtime_functions.free.call(inst.nonref_expr.cast(native_ast.UInt8Ptr))
         )
 
-    def convert_bin_op(self, context, left, op, right, inplace):
+    def convert_bin_op(self, context, left, op, right):
         if right.expr_type == left.expr_type:
             if op.matches.Add:
                 return context.push(
@@ -167,7 +166,7 @@ class TupleOrListOfWrapper(RefcountedWrapper):
             if op.matches.GtE:
                 return context.call_py_function(tuple_compare_gte, (left, right), {})
 
-        return super().convert_bin_op(context, left, op, right, inplace)
+        return super().convert_bin_op(context, left, op, right)
 
     def convert_attribute(self, context, expr, attr):
         if attr == '_hash_cache':
@@ -270,8 +269,6 @@ class TupleOrListOfWrapper(RefcountedWrapper):
         )
 
     def convert_len_native(self, expr):
-        if isinstance(expr, TypedExpression):
-            expr = expr.nonref_expr
         return native_ast.Expression.Branch(
             cond=expr,
             false=native_ast.const_int_expr(0),
@@ -297,22 +294,6 @@ class TupleOrListOfWrapper(RefcountedWrapper):
             return res
 
         return super().convert_method_call(context, instance, methodname, args, kwargs)
-
-    def convert_to_type_with_target(self, context, e, targetVal, explicit):
-        if not explicit:
-            return super().convert_to_type_with_target(context, e, targetVal, explicit)
-
-        target_type = targetVal.expr_type
-
-        if target_type.typeRepresentation == Bool:
-            context.pushEffect(
-                targetVal.expr.store(
-                    self.convert_len_native(e).neq(0)
-                )
-            )
-            return context.constant(True)
-
-        return super().convert_to_type_with_target(context, e, targetVal, explicit)
 
 
 class TupleOrListOfIteratorWrapper(Wrapper):

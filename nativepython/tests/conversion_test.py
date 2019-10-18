@@ -110,7 +110,8 @@ class TestCompilationStructures(unittest.TestCase):
             return x and y and z
 
         self.assertEqual(f(0, 1, "s"), False)
-        self.assertEqual(f(1, 1, "s"), True)
+        with self.assertRaises(TypeError):
+            f(1, 1, "s")
 
     def test_object_to_int_conversion(self):
         @Compiled

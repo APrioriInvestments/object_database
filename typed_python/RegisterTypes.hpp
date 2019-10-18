@@ -15,7 +15,6 @@
 ******************************************************************************/
 
 #pragma once
-#include <iomanip>
 
 #include "Type.hpp"
 
@@ -245,7 +244,6 @@ public:
     }
 
     void repr(instance_ptr self, ReprAccumulator& stream) {
-        // this is never actually called
         stream << *(double*)self;
     }
 

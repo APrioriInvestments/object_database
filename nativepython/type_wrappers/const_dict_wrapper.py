@@ -1,4 +1,4 @@
-#   Copyright 2017-2019 Nativepython Authors
+#   Coyright 2017-2019 Nativepython Authors
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -17,9 +17,8 @@ from nativepython.type_wrappers.refcounted_wrapper import RefcountedWrapper
 import nativepython.type_wrappers.runtime_functions as runtime_functions
 from nativepython.type_wrappers.bound_compiled_method_wrapper import BoundCompiledMethodWrapper
 from nativepython.type_wrappers.util import min
-from nativepython.typed_expression import TypedExpression
 
-from typed_python import NoneType, Tuple, Bool
+from typed_python import NoneType, Tuple
 
 import nativepython.native_ast as native_ast
 import nativepython
@@ -275,7 +274,7 @@ class ConstDictWrapper(ConstDictWrapperBase):
             ).cast(self.valueType.getNativeLayoutType().pointer())
         )
 
-    def convert_bin_op(self, context, left, op, right, inplace):
+    def convert_bin_op(self, context, left, op, right):
         if right.expr_type == left.expr_type:
             if op.matches.Eq:
                 return context.call_py_function(const_dict_eq, (left, right), {})
@@ -290,9 +289,9 @@ class ConstDictWrapper(ConstDictWrapperBase):
             if op.matches.GtE:
                 return context.call_py_function(const_dict_gte, (left, right), {})
 
-        return super().convert_bin_op(context, left, op, right, inplace)
+        return super().convert_bin_op(context, left, op, right)
 
-    def convert_bin_op_reverse(self, context, left, op, right, inplace):
+    def convert_bin_op_reverse(self, context, left, op, right):
         if op.matches.In or op.matches.NotIn:
             right = right.convert_to_type(self.keyType)
             if right is None:
@@ -304,7 +303,7 @@ class ConstDictWrapper(ConstDictWrapperBase):
                 {}
             )
 
-        return super().convert_bin_op(context, left, op, right, inplace)
+        return super().convert_bin_op(context, left, op, right)
 
     def convert_getitem(self, context, instance, item):
         item = item.convert_to_type(self.keyType)
@@ -314,8 +313,6 @@ class ConstDictWrapper(ConstDictWrapperBase):
         return context.call_py_function(const_dict_getitem, (instance, item), {})
 
     def convert_len_native(self, expr):
-        if isinstance(expr, TypedExpression):
-            expr = expr.nonref_expr
         return native_ast.Expression.Branch(
             cond=expr,
             false=native_ast.const_int_expr(0),
@@ -324,22 +321,6 @@ class ConstDictWrapper(ConstDictWrapperBase):
 
     def convert_len(self, context, expr):
         return context.pushPod(int, self.convert_len_native(expr.nonref_expr))
-
-    def convert_to_type_with_target(self, context, e, targetVal, explicit):
-        if not explicit:
-            return super().convert_to_type_with_target(context, e, targetVal, explicit)
-
-        target_type = targetVal.expr_type
-
-        if target_type.typeRepresentation == Bool:
-            context.pushEffect(
-                targetVal.expr.store(
-                    self.convert_len_native(e).neq(0)
-                )
-            )
-            return context.constant(True)
-
-        return super().convert_to_type_with_target(context, e, targetVal, explicit)
 
 
 class ConstDictMakeIteratorWrapper(ConstDictWrapperBase):

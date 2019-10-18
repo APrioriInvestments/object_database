@@ -59,7 +59,3 @@ void PyBoundMethodInstance::mirrorTypeInformationIntoPyTypeConcrete(BoundMethod*
 }
 
 
-int PyBoundMethodInstance::pyInquiryConcrete(const char* op, const char* opErrRep) {
-    // op == '__bool__'
-    return 1;
-}

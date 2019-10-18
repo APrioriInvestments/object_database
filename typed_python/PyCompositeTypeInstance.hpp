@@ -92,8 +92,6 @@ public:
     static bool pyValCouldBeOfTypeConcrete(modeled_type* type, PyObject* pyRepresentation, bool isExplicit) {
         return PyTuple_Check(pyRepresentation) || PyList_Check(pyRepresentation) || PyDict_Check(pyRepresentation);
     }
-
-    int pyInquiryConcrete(const char* op, const char* opErrRep);
 };
 
 class PyTupleInstance : public PyCompositeTypeInstance {

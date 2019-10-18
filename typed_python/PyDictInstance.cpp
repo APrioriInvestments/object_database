@@ -457,8 +457,3 @@ PyObject* PyDictInstance::setDefault(PyObject* o, PyObject* args) {
 
     });
 }
-
-int PyDictInstance::pyInquiryConcrete(const char* op, const char* opErrRep) {
-    // op == '__bool__'
-    return type()->size(dataPtr()) != 0;
-}

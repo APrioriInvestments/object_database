@@ -22,7 +22,7 @@ class AbsWrapper(Wrapper):
     is_pass_by_ref = False
 
     def __init__(self):
-        super().__init__(abs)
+        super().__init__(len)
 
     def getNativeLayoutType(self):
         return native_ast.Type.Void()

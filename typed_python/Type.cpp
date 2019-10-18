@@ -151,35 +151,6 @@ bool Type::isBinaryCompatibleWith(Type* other) {
     return isCompatible;
 }
 
-Maybe Type::canConstructFrom(Type* otherType, bool isExplicit) {
-    if (otherType == this) {
-        return Maybe::True;
-    }
-
-    if (mCanConvertOnStack.find(otherType) != mCanConvertOnStack.end()) {
-        return Maybe::Maybe;
-    }
-
-    auto it = mCanConvert.find(otherType);
-    if (it != mCanConvert.end()) {
-        return it->second;
-    }
-
-    mCanConvertOnStack.insert(otherType);
-
-    try {
-        mCanConvert[otherType] = this->check([&](auto& subtype) {
-            return subtype.canConstructFromConcrete(otherType, isExplicit);
-        });
-        mCanConvertOnStack.erase(otherType);
-    } catch (...) {
-        mCanConvertOnStack.erase(otherType);
-        throw;
-    }
-
-    return mCanConvert[otherType];
-}
-
 void Type::endOfConstructorInitialization() {
     visitReferencedTypes([&](Type* &t) {
         while (t->getTypeCategory() == TypeCategory::catForward && ((Forward*)t)->getTarget()) {

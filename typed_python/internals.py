@@ -31,7 +31,6 @@ class UndefinedBehaviorException(BaseException):
 
 # needed by the C api
 object = object
-type = type
 
 
 class Member:

@@ -524,12 +524,9 @@ public:
 
     static PyObject* categoryToPyString(Type::TypeCategory cat);
 
-    static Instance unwrapPyObjectToInstance(PyObject* inst, bool allowArbitraryPyObjects);
+    static Instance unwrapPyObjectToInstance(PyObject* inst);
 
-    // attempt to unwrap a python object as a Value(T). If allowArbitraryPyObjects, then anything
-    // can be a Value. This should only be the case if we _explicitly_ convert the object to a Value
-    // by calling 'Value'. Returns 'nullptr' if it's not possible.
-    static Type* tryUnwrapPyInstanceToValueType(PyObject* typearg, bool allowArbitraryPyObjects);
+    static Type* tryUnwrapPyInstanceToValueType(PyObject* typearg);
 
     static PyObject* typePtrToPyTypeRepresentation(Type* t);
 

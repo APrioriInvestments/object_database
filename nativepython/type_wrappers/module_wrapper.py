@@ -13,7 +13,6 @@
 #   limitations under the License.
 
 from nativepython.type_wrappers.wrapper import Wrapper
-from typed_python import Value
 import nativepython.native_ast as native_ast
 import nativepython
 
@@ -26,22 +25,22 @@ class ModuleWrapper(Wrapper):
     is_pass_by_ref = False
 
     def __init__(self, f):
-        super().__init__(Value(f))
+        super().__init__(f)
 
     def getNativeLayoutType(self):
         return native_ast.Type.Void()
 
     def convert_attribute(self, context, instance, attribute):
-        if not hasattr(self.typeRepresentation.Value, attribute):
+        if not hasattr(self.typeRepresentation, attribute):
             return context.pushException(
                 AttributeError,
                 "module '%s' has no attribute '%s'" % (
-                    self.typeRepresentation.Value.__name__,
+                    self.typeRepresentation.__name__,
                     attribute
                 )
             )
 
         return nativepython.python_object_representation.pythonObjectRepresentation(
             context,
-            getattr(self.typeRepresentation.Value, attribute)
+            getattr(self.typeRepresentation, attribute)
         )

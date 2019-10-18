@@ -25,23 +25,16 @@ public:
     static void copyConstructFromPythonInstanceConcrete(Value* v, instance_ptr tgt, PyObject* pyRepresentation, bool isExplicit) {
         const Instance& elt = v->value();
 
-        if (elt.type()->getTypeCategory() == Type::TypeCategory::catPythonObjectOfType && *(PyObject**)elt.data() == pyRepresentation) {
-            return;
-        }
-        else if (compare_to_python(elt.type(), elt.data(), pyRepresentation, isExplicit ? false : true, Py_EQ)) {
+        if (compare_to_python(elt.type(), elt.data(), pyRepresentation, isExplicit ? false : true, Py_NE)) {
+            throw std::logic_error("Can't initialize a " + v->name() + " from an instance of " +
+                std::string(pyRepresentation->ob_type->tp_name));
+        } else {
             //it's the value we want
             return;
         }
-
-        throw std::logic_error("Can't initialize a " + v->name() + " from an instance of " +
-                std::string(pyRepresentation->ob_type->tp_name));
     }
 
     static bool pyValCouldBeOfTypeConcrete(modeled_type* valType, PyObject* pyRepresentation, bool isExplicit) {
-        if (valType->value().type()->getTypeCategory() == Type::TypeCategory::catPythonObjectOfType) {
-            return *(PyObject**)valType->value().data() == pyRepresentation;
-        }
-
         return compare_to_python(valType->value().type(), valType->value().data(), pyRepresentation, true, Py_EQ);
     }
 

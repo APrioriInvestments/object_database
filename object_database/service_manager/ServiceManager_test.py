@@ -739,9 +739,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
 
         with self.database.view():
             instances = service_schema.ServiceInstance.lookupAll()
-
-            # this is a builtin service
-            self.assertTrue(instances[0].codebase is None)
+            orig_codebase = instances[0].codebase
 
         with self.database.transaction():
             ServiceManager.createOrUpdateServiceWithCodebase(
@@ -752,20 +750,14 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             )
 
         # this should force a redeploy.
-        maxProcessesEver = [0]
+        maxProcessesEver = 0
+        for i in range(40):
+            maxProcessesEver = max(maxProcessesEver, len(psutil.Process().children()[0].children()))
+            time.sleep(.1)
 
-        def checkIfRedeployedSuccessfully():
-            maxProcessesEver[0] = max(maxProcessesEver[0], len(psutil.Process().children()[0].children()))
+        self.database.flush()
 
-            if not all(x.codebase is not None for x in service_schema.ServiceInstance.lookupAll()):
-                return False
-
-            if len(service_schema.ServiceInstance.lookupAll()) != 10:
-                return False
-
-            return True
-
-        self.database.waitForCondition(checkIfRedeployedSuccessfully, 20)
+        time.sleep(2.0 * self.ENVIRONMENT_WAIT_MULTIPLIER)
 
         with self.database.view():
             instances_redeployed = service_schema.ServiceInstance.lookupAll()
@@ -774,8 +766,10 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             self.assertEqual(len(instances_redeployed), 10)
             self.assertEqual(len(set(instances).intersection(set(instances_redeployed))), 0)
 
+            self.assertNotEqual(orig_codebase, instances_redeployed[0].codebase)
+
         # and we never became too big!
-        self.assertLess(maxProcessesEver[0], 11)
+        self.assertLess(maxProcessesEver, 11)
 
     def measureThroughput(self, seconds):
         t0 = time.time()

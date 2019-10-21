@@ -99,8 +99,5 @@ setuptools.setup(
     },
 
     include_package_data=True,
-    data_files=[
-        ("", ["requirements.txt"]),
-    ],
     zip_safe=False
 )

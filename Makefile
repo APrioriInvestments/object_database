@@ -12,7 +12,7 @@ PWD = $(shell pwd)
 VIRTUAL_ENV ?= .venv
 NODE_ENV ?= .nodeenv
 
-TP_SRC_PATH ?= typed_python
+TP_SRC_PATH ?= ../typed_python/typed_python
 ODB_SRC_PATH ?= object_database
 
 TP_BUILD_PATH ?= build/temp.linux-x86_64-3.6/typed_python
@@ -23,10 +23,13 @@ ODB_LIB_PATH ?= build/lib.linux-x86_64-3.6/object_database
 
 CPP_FLAGS = -std=c++14  -O2  -Wall  -pthread  -DNDEBUG  -g  -fwrapv         \
             -fstack-protector-strong  -D_FORTIFY_SOURCE=2  -fPIC            \
-            -Wformat  -Werror=format-security  -Wdate-time                  \
+            -Wno-terminate -Wno-bool-compare \
+            -Wno-cpp \
+            -Wformat  -Werror=format-security  -Wdate-time -Wno-reorder     \
             -Wno-sign-compare  -Wno-narrowing  -Wno-int-in-bool-context     \
             -I$(VIRTUAL_ENV)/include/python3.6m                             \
             -I$(VIRTUAL_ENV)/lib/python3.6/site-packages/numpy/core/include \
+            -I../typed_python                                                \
             -I/usr/include/python3.6m                                       \
             -I/usr/local/lib/python3.6/dist-packages/numpy/core/include
 
@@ -53,7 +56,8 @@ install: $(VIRTUAL_ENV) testcert.cert testcert.key
 	. $(VIRTUAL_ENV)/bin/activate; \
 		pip3 install pipenv==2018.11.26; \
 		pipenv install --dev --deploy; \
-		nodeenv -p --prebuilt --node=10.15.3 .nodeenv; \
+		pip3 install -e .; \
+		nodeenv -p --prebuilt --node=10.15.3 $(NODE_ENV); \
 		npm install -g webpack webpack-cli; \
 		cd object_database/web/content; \
 		npm install; \
@@ -62,7 +66,7 @@ install: $(VIRTUAL_ENV) testcert.cert testcert.key
 .PHONY: node-install
 node-install:
 	pip3 install nodeenv; \
-	nodeenv --prebuilt --node=10.15.3 .nodeenv; \
+	nodeenv --prebuilt --node=10.15.3 $(NODE_ENV); \
 	. $(NODE_ENV)/bin/activate; \
 	npm install -g webpack webpack-cli; \
 	cd object_database/web/content; \
@@ -74,8 +78,7 @@ build-js:
 	cd object_database/web/content; \
 	npm run build
 
-
-.PHONY: install-local
+.PHONY: install_local
 install_local: $(VIRTUAL_ENV)
 	. $(VIRTUAL_ENV)/bin/activate; \
 		pip install pipenv==2018.11.26; \
@@ -100,7 +103,7 @@ vlint: $(VIRTUAL_ENV)
 		make lint
 
 .PHONY: lib
-lib: typed_python/_types.cpython-36m-x86_64-linux-gnu.so  object_database/_types.cpython-36m-x86_64-linux-gnu.so
+lib: object_database/_types.cpython-36m-x86_64-linux-gnu.so
 
 .PHONY: docker-build
 docker-build:
@@ -163,22 +166,11 @@ clean:
 $(VIRTUAL_ENV): $(PYTHON) .env
 	virtualenv $(VIRTUAL_ENV) --python=$(PYTHON)
 
-$(TP_BUILD_PATH)/all.o: $(TP_SRC_PATH)/*.hpp $(TP_SRC_PATH)/*.cpp
-	$(CC) $(CPP_FLAGS) -c $(TP_SRC_PATH)/all.cpp $ -o $@
-
 $(ODB_BUILD_PATH)/all.o: $(ODB_SRC_PATH)/*.hpp $(ODB_SRC_PATH)/*.cpp $(TP_SRC_PATH)/*.hpp
 	$(CC) $(CPP_FLAGS) -c $(ODB_SRC_PATH)/all.cpp $ -o $@
 
-typed_python/_types.cpython-36m-x86_64-linux-gnu.so: $(TP_LIB_PATH)/_types.cpython-36m-x86_64-linux-gnu.so
-	cp $(TP_LIB_PATH)/_types.cpython-36m-x86_64-linux-gnu.so  typed_python
-
 object_database/_types.cpython-36m-x86_64-linux-gnu.so: $(ODB_LIB_PATH)/_types.cpython-36m-x86_64-linux-gnu.so
 	cp $(ODB_LIB_PATH)/_types.cpython-36m-x86_64-linux-gnu.so  object_database
-
-$(TP_LIB_PATH)/_types.cpython-36m-x86_64-linux-gnu.so: $(TP_LIB_PATH) $(TP_BUILD_PATH) $(TP_O_FILES)
-	$(CXX) $(SHAREDLIB_FLAGS) $(LINKER_FLAGS) \
-		$(TP_O_FILES) \
-		-o $(TP_LIB_PATH)/_types.cpython-36m-x86_64-linux-gnu.so
 
 $(ODB_LIB_PATH)/_types.cpython-36m-x86_64-linux-gnu.so: $(ODB_LIB_PATH) $(ODB_BUILD_PATH) $(ODB_O_FILES)
 	$(CXX) $(SHAREDLIB_FLAGS) $(LINKER_FLAGS) \

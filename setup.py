@@ -81,6 +81,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     cmdclass={'build_ext': BuildExtension},
     ext_modules=ext_modules,
+    setup_requires=['numpy', 'typed_python'],
     install_requires=INSTALL_REQUIRES,
 
     # https://pypi.org/classifiers/

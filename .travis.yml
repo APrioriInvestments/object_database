@@ -1,11 +1,15 @@
 dist: xenial
 
+
 language: python
+
 
 compiler: g++
 
+
 python:
   - 3.6
+
 
 env:
   global:
@@ -13,24 +17,24 @@ env:
     - PYTHONPATH=$(pwd)
     - COVERAGE_PROCESS_START="$(pwd)/tox.ini"
 
+
 cache:
   directories:
     - $HOME/.cache/pip
-
-install:
-  - pip install pipenv
 
 
 jobs:
   include:
     - stage: "Tests"
       name: "Lint"
+      install:
+        - pip install flake8
       script:
-        - pipenv lock --dev --requirements > dev-reqs.txt
-        - pip install -r dev-reqs.txt
         - make lint
 
     - name: "pipenv check"
+      install:
+        - pip install pipenv
       script:
         # `pipenv check` is occasionally flaky and depends on network connectivity,
         # so try up to 3 times, waiting 60 seconds between tries
@@ -39,12 +43,14 @@ jobs:
     - name: "Unit Tests"
       before_script:
         - ulimit -c unlimited -S       # enable core dumps
-      script:
-        - pipenv lock --dev --requirements > reqs.txt
-        - pip install -r reqs.txt
-        - pip install -e . # install object_database in 'editable' form.
-        - sudo apt-get install -y gdb  # install gdb
+      install:
+        - pip install pipenv codecov
+        - pipenv lock --dev --requirements > dev-reqs.txt
+        - pip install --requirement dev-reqs.txt
+        - pip install --editable .  # install object_database in 'editable' form.
+        - sudo apt-get install --assume-yes gdb  # install gdb
         - make testcert.cert
+      script:
         - coverage erase
         - pytest
         - ls -la

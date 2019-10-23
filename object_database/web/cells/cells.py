@@ -2517,9 +2517,12 @@ class Clickable(Cell):
             )
         else:
             return (
-                "cellSocket.sendString(JSON.stringify("
-                f"{{'event':'click', 'target_cell': '{self.identity}'}}"
-                "))"
+                """
+                cellSocket.sendString(
+                    JSON.stringify({'event':'click', 'target_cell': '%s'})
+                )
+                """
+                % self.identity
             )
 
     def recalculate(self):

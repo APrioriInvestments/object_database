@@ -42,7 +42,7 @@ from object_database.web.cells import (
     Tabs,
     Grid,
     Flex,
-    Sheet,
+    OldSheet,
     ensureSubscribedType,
     SubscribeAndRetry,
     Expands,
@@ -269,7 +269,7 @@ class GraphDisplayService(ServiceBase):
                 rowLabelFun=None,
                 rendererFun=lambda row, col: row + col,
             ),
-            ASheet=Sheet(
+            ASheet=OldSheet(
                 ["A", "B", "C"],
                 1000000,
                 lambda rowIx: ["(%s) ts" % rowIx, rowIx, rowIx + 1, rowIx + 2],

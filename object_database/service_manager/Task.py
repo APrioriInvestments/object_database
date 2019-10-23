@@ -36,7 +36,9 @@ class ResourceScope:
 
 
 class TaskContext(object):
-    """Placeholder for information about the current running task environment passed into tasks."""
+    """ Placeholder for information about the current running task environment
+    passed into tasks.
+    """
 
     def __init__(self, db, storageRoot, codebase):
         self.db = db
@@ -51,7 +53,11 @@ class RunningTask(object):
         pass
 
     def execute(self, taskContext, subtaskResults):
-        """Step the task forward. Should return a TaskStatusResult. If we asked for results, they are passed back in subtaskResults"""
+        """Step the task forward.
+
+        Should return a TaskStatusResult.
+        If we asked for results, they are passed back in subtaskResults.
+        """
         raise NotImplementedError()
 
 

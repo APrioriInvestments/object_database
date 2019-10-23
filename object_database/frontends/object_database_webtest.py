@@ -46,6 +46,25 @@ from object_database.web.LoginPlugin import LoginIpPlugin
 ownDir = os.path.dirname(os.path.abspath(__file__))
 
 
+TEST_SERVICE = """
+    from object_database.service_manager.ServiceBase import ServiceBase
+
+    class TestService(ServiceBase):
+        gbRamUsed = 0
+        coresUsed = 0
+
+        def initialize(self):
+            with self.db.transaction():
+                self.runtimeConfig.serviceInstance.statusMessage = "Loaded"
+
+        def doWork(self, shouldStop):
+            shouldStop.wait()
+
+        def display(self, queryParams=None):
+            return "test service display message"
+    """
+
+
 def main(argv=None):
     if argv is not None:
         argv = sys.argv
@@ -123,25 +142,7 @@ def main(argv=None):
                     service_schema.Codebase.createFromFiles(
                         {
                             "test_service/__init__.py": "",
-                            "test_service/service.py": textwrap.dedent(
-                                """
-                            from object_database.service_manager.ServiceBase import ServiceBase
-
-                            class TestService(ServiceBase):
-                                gbRamUsed = 0
-                                coresUsed = 0
-
-                                def initialize(self):
-                                    with self.db.transaction():
-                                        self.runtimeConfig.serviceInstance.statusMessage = "Loaded"
-
-                                def doWork(self, shouldStop):
-                                    shouldStop.wait()
-
-                                def display(self, queryParams=None):
-                                    return "test service display message"
-                        """
-                            ),
+                            "test_service/service.py": textwrap.dedent(TEST_SERVICE),
                         }
                     ),
                     "test_service.service.TestService",

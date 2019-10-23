@@ -27,4 +27,7 @@ class MultiPageTable(CellsTestPage):
         )
 
     def text(self):
-        return "You should see a table with two columns, two pages of 50 rows and all fields saying 'hi'"
+        return (
+            "You should see a table with two columns, "
+            "two pages of 50 rows and all fields saying 'hi'"
+        )

@@ -217,7 +217,8 @@ class Reactor:
                         or exceptionsInARow % 100 == 0
                     ):
                         logging.error(
-                            "Unexpected exception in Reactor user code (%s occurrences in a row):\n%s",
+                            "Unexpected exception in Reactor user code "
+                            "(%s occurrences in a row):\n%s",
                             exceptionsInARow,
                             traceback.format_exc(),
                         )

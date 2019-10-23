@@ -210,7 +210,8 @@ class TextEditorService(ServiceBase):
                 if ed.getContents() != TextEditor.lookupAny().code:
                     ed.setContents(TextEditor.lookupAny().code)
 
-        # return Columns(ed, Card(Plot(makePlotData).height("100%").width("100%"))) + Subscribed(onCodeChange)
+        # return Columns(ed, Card(Plot(makePlotData).height("100%").width("100%")))
+        #        + Subscribed(onCodeChange)
         return SplitView([(ed, 1), (Card(Plot(makePlotData)), 1)]) + Subscribed(onCodeChange)
 
 
@@ -557,7 +558,13 @@ def getTestServiceModule(version):
         "test_service/__init__.py": "",
         "test_service/service.py": textwrap.dedent(
             """
-            from object_database import Schema, ServiceBase, Indexed, core_schema, service_schema
+            from object_database import (
+                Schema,
+                ServiceBase,
+                Indexed,
+                core_schema,
+                service_schema,
+            )
             import os
             import time
             import logging
@@ -577,7 +584,9 @@ def getTestServiceModule(version):
                     self.db.subscribeToSchema(core_schema, service_schema, schema)
 
                     with self.db.transaction():
-                        self.conn = MockServiceLastTimestamp(connection=self.db.connectionObject)
+                        self.conn = MockServiceLastTimestamp(
+                            connection=self.db.connectionObject
+                        )
                         self.conn.version = {version}
 
                 def doWork(self, shouldStop):
@@ -727,7 +736,8 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
 
         self.waitForCount(0)
 
-        # make sure we don't have a bunch of zombie processes hanging underneath the service manager
+        # make sure we don't have a bunch of zombie processes
+        # hanging underneath the service manager
         time.sleep(1.0)
         self.assertEqual(len(psutil.Process().children()[0].children()), 0)
 
@@ -748,7 +758,8 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
 
         self.assertLess(time.time() - t0, 2.0 * self.ENVIRONMENT_WAIT_MULTIPLIER)
 
-        # make sure we don't have a bunch of zombie processes hanging underneath the service manager
+        # make sure we don't have a bunch of zombie processes
+        # hanging underneath the service manager
         time.sleep(1.0)
         self.assertEqual(len(psutil.Process().children()[0].children()), 0)
 
@@ -1057,7 +1068,8 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
         prepare_helper()
         s = deploy_helper(3, 3, s)
 
-        # Trying to update the codebase a second time after preparing for deployment should fail
+        # Trying to update the codebase a second time
+        # after preparing for deployment should fail
         s = deploy_helper(4, 3)
 
         # Trying to update the codebase after unlocking should succeed

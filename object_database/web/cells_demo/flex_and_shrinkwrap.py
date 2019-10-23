@@ -91,7 +91,10 @@ class VertSequenceWithoutFlexNestedSeq(CellsTestPage):
         return firstButton + cells.Sequence(numberedTextItems) + lastButton
 
     def text(self):
-        return "Non Flex-Parent Sequences should flatten any nested Sequences and overflow normally"
+        return (
+            "Non Flex-Parent Sequences should flatten any nested Sequences "
+            "and overflow normally"
+        )
 
 
 class HorizSequenceWithFlex(CellsTestPage):

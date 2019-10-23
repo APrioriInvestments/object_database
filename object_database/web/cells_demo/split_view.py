@@ -40,7 +40,10 @@ class BasicRow(CellsTestPage):
         )
 
     def text(self):
-        return "You should see two Cards on top of each other, the first twice as long as the second"
+        return (
+            "You should see two Cards on top of each other, "
+            "the first twice as long as the second"
+        )
 
 
 class NestedRowToColumn(CellsTestPage):

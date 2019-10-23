@@ -126,7 +126,8 @@ class CellsTestMixin:
                 self.assertEqual(
                     len(selected_cells),
                     expected_count,
-                    f"{len(selected_cells)} != {expected_count} for cells with tag '{step['tag']}'",
+                    f"{len(selected_cells)} != {expected_count} "
+                    + f"for cells with tag '{step['tag']}'",
                 )
 
             for cell in selected_cells:

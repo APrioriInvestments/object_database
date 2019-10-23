@@ -101,7 +101,7 @@ js-test:
 
 .PHONY: lint-local
 lint-local:
-	flake8 --show-source
+	flake8
 
 .PHONY: lint
 lint: $(VIRTUAL_ENV)

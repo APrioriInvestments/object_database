@@ -52,4 +52,7 @@ class Milliseconds(CellsTestPage):
         )
 
     def text(self):
-        return "You should see '2019-07-16 08:00:00' followed by 1, 2, 10, 20, 100, 200 milliseconds."
+        return (
+            "You should see '2019-07-16 08:00:00' followed by "
+            "1, 2, 10, 20, 100, 200 milliseconds."
+        )

@@ -308,7 +308,8 @@ class ServiceManager(object):
 
             if needRedeploy:
                 self._logger.info(
-                    "The following services need to be stopped because their codebases are out of date: %s",
+                    "The following services need to be stopped "
+                    "because their codebases are out of date: %s",
                     "\n".join(
                         [
                             "  "

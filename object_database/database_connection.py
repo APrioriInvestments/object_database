@@ -92,7 +92,7 @@ class DatabaseConnection:
 
         self._pendingSubscriptions = {}
 
-        # from (schema, typename, fieldname_and_val) -> {'values', 'index_values', 'identities'}
+        # (schema, typename, fieldname_and_val) -> {'values', 'index_values', 'identities'}
         # where (fieldname_and_val) is OneOf(None, (str, IndexValue))
         self._subscription_buildup = {}
 
@@ -673,9 +673,9 @@ class DatabaseConnection:
                     self._max_tid_by_schema_and_type[fieldDef.schema, fieldDef.typename] = tid
 
     def _indexValuesToSetAdds(self, indexValues):
-        # indexValues contains (schema:typename:identity:fieldname -> indexHashVal) which builds
-        # up the indices we need. We need to transpose to a dictionary ordered by the hash values,
-        # not the identities
+        # indexValues contains (schema:typename:identity:fieldname -> indexHashVal)
+        # which builds up the indices we need. We need to transpose to a
+        # dictionary ordered by the hash values, not the identities.
 
         t0 = time.time()
         heartbeatInterval = getHeartbeatInterval()

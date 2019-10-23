@@ -1137,7 +1137,8 @@ class ObjectDatabaseTests:
                 views_by_tn = {}
                 counter_vals_by_tn = {}
 
-        # we may have one or two for connection objects, and we have two values for every indexed thing
+        # we may have one or two for connection objects,
+        # and we have two values for every indexed thing
         self.assertLess(self.mem_store.storedStringCount(), 203)
         self.assertTrue(total_writes > 500, total_writes)
 
@@ -2100,7 +2101,8 @@ class ObjectDatabaseTests:
             for thing in things:
                 db.waitForCondition(lambda: thing.exists(), 10 * self.PERFORMANCE_FACTOR)
 
-            # verify the main db sees something quadratic in the number of transactions plus a constant
+            # verify the main db sees something quadratic in the number of
+            # transactions plus a constant
             self.assertLess(db._messages_received, (len(schemas) + 1) * (len(schemas) + 2) + 8)
 
             # each database sees two transactions each pass

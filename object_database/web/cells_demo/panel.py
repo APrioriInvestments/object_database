@@ -56,7 +56,8 @@ class NestedVertFlexPanel(CellsTestPage):
     def text(self):
         return (
             "Should see vertical sequence of two panels, the second is ",
-            "flexed, first is shrinkwrapped vertically, and both expand fully on horizontal axis",
+            "flexed, first is shrinkwrapped vertically, and both expand "
+            "fully on horizontal axis",
         )
 
 

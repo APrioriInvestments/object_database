@@ -30,7 +30,10 @@ class BasicModal(CellsTestPage):
         return cells.Card(button + modal)
 
     def text(self):
-        return "When you click Toggle, you should see a basic modal appear and it should be closable"
+        return (
+            "When you click Toggle, you should see a basic modal appear "
+            "and it should be closable"
+        )
 
 
 class ModalWithUpdateField(CellsTestPage):
@@ -53,5 +56,6 @@ class ModalWithUpdateField(CellsTestPage):
 
     def text(self):
         return (
-            "You should see a button that lets you edit the 'Some Text' text in a modal popup."
+            "You should see a button that lets you edit the "
+            "'Some Text' text in a modal popup."
         )

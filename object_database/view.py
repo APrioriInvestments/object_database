@@ -42,7 +42,7 @@ class ObjectDoesntExistException(Exception):
 
 class MaskView:
     def __enter__(self):
-        if hasattr(_cur_view, 'view'):
+        if hasattr(_cur_view, "view"):
             self.view = _cur_view.view
             del _cur_view.view
         else:
@@ -137,7 +137,7 @@ class View(object):
                 reads,
                 indexReads,
                 tid,
-                confirmCallback
+                confirmCallback,
             )
 
             if not self._confirmCommitCallback:
@@ -149,7 +149,9 @@ class View(object):
                 if time.time() - t0 > LOG_SLOW_COMMIT_THRESHOLD:
                     self._logger.info(
                         "Committing %s writes and %s set changes took %.1f seconds",
-                        len(writes), len(setAdds) + len(setRemoves), time.time() - t0
+                        len(writes),
+                        len(setAdds) + len(setRemoves),
+                        time.time() - t0,
                     )
 
                 if res.matches.Success:
@@ -157,7 +159,7 @@ class View(object):
                 if res.matches.Disconnected:
                     raise DisconnectedException()
                 if res.matches.RevisionConflict:
-                    if hasattr(res.key, 'fieldId'):
+                    if hasattr(res.key, "fieldId"):
                         fieldId = res.key.fieldId
                         fieldDef = self._db._field_id_to_field_def.get(fieldId)
                     else:
@@ -169,7 +171,7 @@ class View(object):
     def nocommit(self):
         class Scope:
             def __enter__(scope):
-                assert not hasattr(_cur_view, 'view')
+                assert not hasattr(_cur_view, "view")
                 _cur_view.view = self
                 self._view.enter()
 
@@ -180,7 +182,7 @@ class View(object):
         return Scope()
 
     def __enter__(self):
-        assert not hasattr(_cur_view, 'view')
+        assert not hasattr(_cur_view, "view")
         _cur_view.view = self
         self._view.enter()
         return self
@@ -204,11 +206,12 @@ class ViewWatcher:
     call 'callback' with the view and a boolean indicating whether they are
     exiting with an exception.
     """
+
     def __init__(self, callback):
         self.callback = callback
 
     def __enter__(self):
-        if not hasattr(_cur_view, 'watchers'):
+        if not hasattr(_cur_view, "watchers"):
             _cur_view.watchers = set()
         _cur_view.watchers.add(self)
 
@@ -229,8 +232,10 @@ class Transaction(View):
     def noconfirm(self):
         """Indicate that the transaction should return immediately without a round-trip to
         confirm that it was successful."""
+
         def ignoreConfirmResult(result):
             pass
+
         self._confirmCommitCallback = ignoreConfirmResult
 
         return self

@@ -20,9 +20,9 @@ class CodeEditorDemo(CellsTestPage):
     def cell(self):
         isShown = cells.Slot(False)
 
-        return cells.Button("Toggle the editor", lambda: isShown.set(not isShown.get())) + cells.Flex(cells.Subscribed(
-            lambda: cells.CodeEditor() if isShown.get() else None
-        ))
+        return cells.Button(
+            "Toggle the editor", lambda: isShown.set(not isShown.get())
+        ) + cells.Flex(cells.Subscribed(lambda: cells.CodeEditor() if isShown.get() else None))
 
     def text(self):
         return "You should see a button that lets you see a text editor."
@@ -42,34 +42,38 @@ class CodeEditorInHorizSequence(CellsTestPage):
             aSlot.toggle()
 
         return (
-            cells.Button("Show the editor", lambda: toggle(editorShown)) +
-            cells.Button("Show the editor's contents", lambda: toggle(contentsShown)) +
-            cells.Flex(cells.HorizontalSubscribedSequence(lambda:
-                                                          (["Ed"] if editorShown.get() else []) +
-                                                          (["Contents"] if contentsShown.get() else []),
-                                                          lambda which:
-                                                          cells.CodeEditor(onTextChange=onTextChange) if which == "Ed" else
-                                                          cells.Subscribed(lambda: contents.get()) if which == "Contents" else
-                                                          None)))
+            cells.Button("Show the editor", lambda: toggle(editorShown))
+            + cells.Button("Show the editor's contents", lambda: toggle(contentsShown))
+            + cells.Flex(
+                cells.HorizontalSubscribedSequence(
+                    lambda: (["Ed"] if editorShown.get() else [])
+                    + (["Contents"] if contentsShown.get() else []),
+                    lambda which: cells.CodeEditor(onTextChange=onTextChange)
+                    if which == "Ed"
+                    else cells.Subscribed(lambda: contents.get())
+                    if which == "Contents"
+                    else None,
+                )
+            )
+        )
 
     def text(self):
         return "You should see two buttons that let you turn the editor on and off, and also see its contents."
 
 
 class CodeEditorBasicHorizSequence(CellsTestPage):
-
     def cell(self):
         contents = cells.Slot("No Text Entered Yet!")
 
         def onTextChange(content, selection):
             contents.set(content)
 
-        return cells.HorizontalSequence([
-            cells.CodeEditor(onTextChange=onTextChange),
-            cells.Panel(
-                cells.Subscribed(contents.get)
-            )
-        ])
+        return cells.HorizontalSequence(
+            [
+                cells.CodeEditor(onTextChange=onTextChange),
+                cells.Panel(cells.Subscribed(contents.get)),
+            ]
+        )
 
     def text(self):
         return "Should see a CodeEditor and its content (in panel) in a HorizontalSequence that is not a flex parent"
@@ -82,11 +86,9 @@ class CodeEditorInSplitView(CellsTestPage):
         def onTextChange(buffer, selection):
             contents.set(buffer)
 
-        return (
-            cells.ResizablePanel(
-                cells.CodeEditor(onTextChange=onTextChange),
-                cells.Subscribed(lambda: cells.Code(contents.get())),
-            )
+        return cells.ResizablePanel(
+            cells.CodeEditor(onTextChange=onTextChange),
+            cells.Subscribed(lambda: cells.Code(contents.get())),
         )
 
     def text(self):
@@ -100,12 +102,10 @@ class CodeEditorInSplitViewWithHeader(CellsTestPage):
         def onTextChange(buffer, selection):
             contents.set(buffer)
 
-        return (
-            cells.ResizablePanel(
-                cells.Text("This is an editor:") + cells.CodeEditor(onTextChange=onTextChange),
-                cells.Text("This should show what's in the editor") +
-                cells.Subscribed(lambda: cells.Code(contents.get())),
-            )
+        return cells.ResizablePanel(
+            cells.Text("This is an editor:") + cells.CodeEditor(onTextChange=onTextChange),
+            cells.Text("This should show what's in the editor")
+            + cells.Subscribed(lambda: cells.Code(contents.get())),
         )
 
     def text(self):

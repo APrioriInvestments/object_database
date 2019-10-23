@@ -28,8 +28,17 @@ class RedisTestHelper:
                 redis_path = "/usr/local/bin/redis-server"
 
             self.redisProcess = subprocess.Popen(
-                [redis_path, '--port', str(self.port), '--logfile', os.path.join(self.tempDirName, "log.txt"),
-                    "--dbfilename", "db.rdb", "--dir", os.path.join(self.tempDirName)]
+                [
+                    redis_path,
+                    "--port",
+                    str(self.port),
+                    "--logfile",
+                    os.path.join(self.tempDirName, "log.txt"),
+                    "--dbfilename",
+                    "db.rdb",
+                    "--dir",
+                    os.path.join(self.tempDirName),
+                ]
             )
 
             t0 = time.time()

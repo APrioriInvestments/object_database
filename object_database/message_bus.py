@@ -33,7 +33,7 @@ from object_database.util import sslContextFromCertPathOrNone
 from object_database.bytecount_limited_queue import BytecountLimitedQueue
 
 MESSAGE_LEN_BYTES = 4  # sizeof an int32 used to pack messages
-SELECT_TIMEOUT = .5
+SELECT_TIMEOUT = 0.5
 MSG_BUF_SIZE = 128 * 1024
 
 
@@ -81,12 +81,17 @@ class MessageBuffer:
                 return messages
 
             if len(self.buffer) >= self.curMessageLen + MESSAGE_LEN_BYTES:
-                messages.append(bytes(self.buffer[:self.curMessageLen]))
+                messages.append(bytes(self.buffer[: self.curMessageLen]))
                 self.messagesEver += 1
-                checkSize = struct.unpack("i", self.buffer[self.curMessageLen:self.curMessageLen + MESSAGE_LEN_BYTES])[0]
-                assert checkSize == self.curMessageLen, f"Corrupt message stream: {checkSize} != {self.curMessageLen}"
+                checkSize = struct.unpack(
+                    "i",
+                    self.buffer[self.curMessageLen : self.curMessageLen + MESSAGE_LEN_BYTES],
+                )[0]
+                assert (
+                    checkSize == self.curMessageLen
+                ), f"Corrupt message stream: {checkSize} != {self.curMessageLen}"
 
-                self.buffer[:self.curMessageLen + MESSAGE_LEN_BYTES] = b""
+                self.buffer[: self.curMessageLen + MESSAGE_LEN_BYTES] = b""
                 self.curMessageLen = None
             else:
                 return messages
@@ -126,23 +131,29 @@ def MessageBusEvent(MessageType):
         # an incoming connection closed
         IncomingConnectionClosed=dict(connectionId=ConnectionId),
         # someone sent us a message one one of our channels
-        IncomingMessage=dict(
-            connectionId=ConnectionId,
-            message=MessageType
-        ),
+        IncomingMessage=dict(connectionId=ConnectionId, message=MessageType),
         # we made a new outgoing connection. this connection is also
         # valid as an input connection (we may receive messages on it)
         OutgoingConnectionEstablished=dict(connectionId=ConnectionId),
         # an outgoing connection failed
         OutgoingConnectionFailed=dict(connectionId=ConnectionId),
         # an outgoing connection closed
-        OutgoingConnectionClosed=dict(connectionId=ConnectionId)
+        OutgoingConnectionClosed=dict(connectionId=ConnectionId),
     )
 
 
 class MessageBus(object):
-    def __init__(self, busIdentity, endpoint, messageType, onEvent,
-                 authToken=None, serializationContext=None, certPath=None, wantsSSL=True):
+    def __init__(
+        self,
+        busIdentity,
+        endpoint,
+        messageType,
+        onEvent,
+        authToken=None,
+        serializationContext=None,
+        certPath=None,
+        wantsSSL=True,
+    ):
         """Initialize a MessageBus
 
         Args:
@@ -208,7 +219,9 @@ class MessageBus(object):
         self._outThreadWakePipe = None
         self._inThreadWakePipe = None
 
-        self._currentlyClosingConnections = set()  # set of ConnectionId, while we are closing them
+        self._currentlyClosingConnections = (
+            set()
+        )  # set of ConnectionId, while we are closing them
 
         # how many bytes do we actually have in our deserialized pump loop
         # waiting to be sent down the wire.
@@ -275,7 +288,7 @@ class MessageBus(object):
             "Stopping MessageBus (%s) on endpoint %s%s",
             self.busIdentity,
             self._listeningEndpoint[0],
-            self._listeningEndpoint[1]
+            self._listeningEndpoint[1],
         )
 
         self._messagesToSendQueue.put(Disconnected)
@@ -324,7 +337,9 @@ class MessageBus(object):
 
         with self._lock:
             self._connIdToOutgoingEndpoint[connId] = endpoint
-            self._messagesToSendQueue.put((connId, TriggerConnect))  # just trying to trigger the endpoint
+            self._messagesToSendQueue.put(
+                (connId, TriggerConnect)
+            )  # just trying to trigger the endpoint
 
         self._wakeOutputThreadIfAsleep()
 
@@ -351,10 +366,15 @@ class MessageBus(object):
         if self.serializationContext is None:
             serializedMessage = serialize(self.messageType, message)
         else:
-            serializedMessage = self.serializationContext.serialize(message, serializeType=self.messageType)
+            serializedMessage = self.serializationContext.serialize(
+                message, serializeType=self.messageType
+            )
 
         with self._lock:
-            isDefinitelyDead = connectionId not in self._connIdToOutgoingEndpoint and connectionId not in self._connIdToIncomingEndpoint
+            isDefinitelyDead = (
+                connectionId not in self._connIdToOutgoingEndpoint
+                and connectionId not in self._connIdToIncomingEndpoint
+            )
 
         if isDefinitelyDead:
             return False
@@ -369,7 +389,10 @@ class MessageBus(object):
     def closeConnection(self, connectionId):
         """Trigger a connection close."""
         with self._lock:
-            isDefinitelyDead = connectionId not in self._connIdToOutgoingEndpoint and connectionId not in self._connIdToIncomingEndpoint
+            isDefinitelyDead = (
+                connectionId not in self._connIdToOutgoingEndpoint
+                and connectionId not in self._connIdToIncomingEndpoint
+            )
 
         if isDefinitelyDead:
             return
@@ -423,13 +446,15 @@ class MessageBus(object):
                 self._acceptSocket = sock
 
                 if self._wantsSSL:
-                    self._acceptSocket = context.wrap_socket(self._acceptSocket, server_side=True)
+                    self._acceptSocket = context.wrap_socket(
+                        self._acceptSocket, server_side=True
+                    )
 
                 self._logger.debug(
                     "%s listening on %s:%s",
                     self.busIdentity,
                     self._listeningEndpoint[0],
-                    self._listeningEndpoint[1]
+                    self._listeningEndpoint[1],
                 )
 
                 return True
@@ -459,7 +484,10 @@ class MessageBus(object):
                             # wake thread pipe
                             readMessage = self._eventsToFireQueue.get_nowait()
 
-                            if isinstance(readMessage, tuple) and readMessage[1] is TriggerDisconnect:
+                            if (
+                                isinstance(readMessage, tuple)
+                                and readMessage[1] is TriggerDisconnect
+                            ):
                                 connIdToClose = readMessage[0]
 
                                 if connIdToClose in self._connIdToIncomingSocket:
@@ -484,7 +512,9 @@ class MessageBus(object):
                                     return
 
                                 elif readMessage.matches.OutgoingConnectionEstablished:
-                                    sock = self._connIdToOutgoingSocket.get(readMessage.connectionId)
+                                    sock = self._connIdToOutgoingSocket.get(
+                                        readMessage.connectionId
+                                    )
                                     if sock is not None:
                                         allSockets.add(sock)
                                         incomingSocketBuffers[sock] = MessageBuffer()
@@ -508,8 +538,7 @@ class MessageBus(object):
 
                             self._fireEvent(
                                 self.eventType.NewIncomingConnection(
-                                    source=Endpoint(newSocketSource),
-                                    connectionId=connId
+                                    source=Endpoint(newSocketSource), connectionId=connId
                                 )
                             )
                     else:
@@ -522,7 +551,10 @@ class MessageBus(object):
                         except ConnectionResetError:
                             bytesReceived = b""
                         except Exception as e:
-                            logging.info("MessageBus read socket shutting down because of exception: %s", e)
+                            logging.info(
+                                "MessageBus read socket shutting down because of exception: %s",
+                                e,
+                            )
                             bytesReceived = b""
 
                         if bytesReceived is None:
@@ -535,16 +567,21 @@ class MessageBus(object):
                         else:
                             self.totalBytesRead += len(bytesReceived)
 
-                            oldBytecount = incomingSocketBuffers[socketWithData].pendingBytecount()
-                            newMessages = incomingSocketBuffers[socketWithData].write(bytesReceived)
+                            oldBytecount = incomingSocketBuffers[
+                                socketWithData
+                            ].pendingBytecount()
+                            newMessages = incomingSocketBuffers[socketWithData].write(
+                                bytesReceived
+                            )
 
                             self.totalBytesPendingInInputLoop += (
-                                incomingSocketBuffers[socketWithData].pendingBytecount() - oldBytecount
+                                incomingSocketBuffers[socketWithData].pendingBytecount()
+                                - oldBytecount
                             )
 
                             self.totalBytesPendingInInputLoopHighWatermark = max(
                                 self.totalBytesPendingInInputLoop,
-                                self.totalBytesPendingInInputLoopHighWatermark
+                                self.totalBytesPendingInInputLoopHighWatermark,
                             )
 
                             for m in newMessages:
@@ -595,7 +632,7 @@ class MessageBus(object):
 
         if connId in self._unauthenticatedConnections:
             try:
-                if serializedMessage.decode('utf8') != self._authToken:
+                if serializedMessage.decode("utf8") != self._authToken:
                     self._logger.error("Unauthorized socket connected to us.")
                     return False
 
@@ -610,16 +647,15 @@ class MessageBus(object):
                 if self.serializationContext is None:
                     message = deserialize(self.messageType, serializedMessage)
                 else:
-                    message = self.serializationContext.deserialize(serializedMessage, self.messageType)
+                    message = self.serializationContext.deserialize(
+                        serializedMessage, self.messageType
+                    )
             except Exception:
                 self._logger.exception("Failed to deserialize a message")
                 return False
 
             self._fireEvent(
-                self.eventType.IncomingMessage(
-                    connectionId=connId,
-                    message=message
-                )
+                self.eventType.IncomingMessage(connectionId=connId, message=message)
             )
 
             return True
@@ -697,11 +733,13 @@ class MessageBus(object):
                 # don't read from the serialization queue unless we can handle the
                 # bytes in our 'self.totalBytesPendingInOutputLoop' flow
                 canRead = (
-                    self._messagesToSendQueue.maxBytes is None or
-                    self.totalBytesPendingInOutputLoop < self._messagesToSendQueue.maxBytes
+                    self._messagesToSendQueue.maxBytes is None
+                    or self.totalBytesPendingInOutputLoop < self._messagesToSendQueue.maxBytes
                 )
 
-                readReady, writeReady = select.select([self._outThreadWakePipe[0]] if canRead else [], socketToBytes, [])[:2]
+                readReady, writeReady = select.select(
+                    [self._outThreadWakePipe[0]] if canRead else [], socketToBytes, []
+                )[:2]
 
                 if readReady:
                     connectionAndMsg = self._messagesToSendQueue.get()
@@ -731,7 +769,7 @@ class MessageBus(object):
 
                         # and immediately write the auth token
                         if connected and self._authToken is not None:
-                            writeBytes(connId, self._authToken.encode('utf8'))
+                            writeBytes(connId, self._authToken.encode("utf8"))
                     else:
                         writeBytes(connId, msg)
 
@@ -745,7 +783,9 @@ class MessageBus(object):
                     except BrokenPipeError:
                         bytesWritten = 0
                     except Exception as e:
-                        logging.info("MessageBus write socket shutting down because of exception: %s", e)
+                        logging.info(
+                            "MessageBus write socket shutting down because of exception: %s", e
+                        )
                         bytesWritten = 0
 
                     if bytesWritten > 0:

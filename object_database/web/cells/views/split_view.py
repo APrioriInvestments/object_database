@@ -40,6 +40,7 @@ class SplitView(Cell):
             (Card(text("Third Item")), 1)
         ])
     """
+
     def __init__(self, childrenTuples=[], split="vertical"):
         """
         Parameters:
@@ -77,12 +78,12 @@ class SplitView(Cell):
         proportions = []
         for childTuple in self.childrenTuples:
             proportions.append(childTuple[1])
-        self.exportData['proportions'] = proportions
-        self.exportData['split'] = self.split
+        self.exportData["proportions"] = proportions
+        self.exportData["split"] = self.split
 
     def updateNamedChildren(self):
         newChildren = []
         for i in range(len(self.childrenTuples)):
             childTuple = self.childrenTuples[i]
             newChildren.append(Cell.makeCell(childTuple[0]))
-        self.children['elements'] = newChildren
+        self.children["elements"] = newChildren

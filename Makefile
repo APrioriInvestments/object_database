@@ -84,8 +84,8 @@ build-js:
 	cd object_database/web/content; \
 	npm run build
 
-.PHONY: install_local
-install_local: $(VIRTUAL_ENV)
+.PHONY: install-local
+install-local: $(VIRTUAL_ENV)
 	. $(VIRTUAL_ENV)/bin/activate; \
 		pip install pipenv==2018.11.26; \
 		pip install --editable ../typed_python; \
@@ -99,14 +99,14 @@ test: $(VIRTUAL_ENV) testcert.cert testcert.key js-test
 js-test:
 	cd object_database/web/content/; npm test
 
-.PHONY: lint
-lint:
+.PHONY: lint-local
+lint-local:
 	flake8 --show-source
 
-.PHONY: vlint
-vlint: $(VIRTUAL_ENV)
+.PHONY: lint
+lint: $(VIRTUAL_ENV)
 	. $(VIRTUAL_ENV)/bin/activate; \
-		make lint
+		make lint-local
 
 .PHONY: black
 black: $(VIRTUAL_ENV)

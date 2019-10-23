@@ -29,8 +29,17 @@ import sys
 class ServiceManager(object):
     DEFAULT_SHUTDOWN_TIMEOUT = 10.0
 
-    def __init__(self, dbConnectionFactory, sourceDir, isMaster, ownHostname,
-                 maxGbRam=4, maxCores=4, shutdownTimeout=None, metricUpdateInterval=2.0):
+    def __init__(
+        self,
+        dbConnectionFactory,
+        sourceDir,
+        isMaster,
+        ownHostname,
+        maxGbRam=4,
+        maxCores=4,
+        shutdownTimeout=None,
+        metricUpdateInterval=2.0,
+    ):
         object.__init__(self)
         self.shutdownTimeout = shutdownTimeout or ServiceManager.DEFAULT_SHUTDOWN_TIMEOUT
         self.ownHostname = ownHostname
@@ -54,7 +63,7 @@ class ServiceManager(object):
                 connection=self.db.connectionObject,
                 isMaster=self.isMaster,
                 maxGbRam=self.maxGbRam,
-                maxCores=self.maxCores
+                maxCores=self.maxCores,
             )
             self.serviceHostObject.hostname = self.ownHostname
 
@@ -64,8 +73,15 @@ class ServiceManager(object):
         self.reactor.stop()
 
     @staticmethod
-    def createOrUpdateService(serviceClass, serviceName, target_count=None, placement=None, isSingleton=None,
-                              coresUsed=None, gbRamUsed=None):
+    def createOrUpdateService(
+        serviceClass,
+        serviceName,
+        target_count=None,
+        placement=None,
+        isSingleton=None,
+        coresUsed=None,
+        gbRamUsed=None,
+    ):
         service = service_schema.Service.lookupAny(name=serviceName)
 
         if not service:
@@ -103,18 +119,29 @@ class ServiceManager(object):
         return service
 
     @staticmethod
-    def createOrUpdateServiceWithCodebase(codebase, className, serviceName,
-                                          targetCount=None, placement=None,
-                                          coresUsed=None, gbRamUsed=None, isSingleton=None):
+    def createOrUpdateServiceWithCodebase(
+        codebase,
+        className,
+        serviceName,
+        targetCount=None,
+        placement=None,
+        coresUsed=None,
+        gbRamUsed=None,
+        isSingleton=None,
+    ):
 
-        assert len(className.split(".")) > 1, "className should be a fully-qualified module.classname"
+        assert (
+            len(className.split(".")) > 1
+        ), "className should be a fully-qualified module.classname"
 
         service = service_schema.Service.lookupAny(name=serviceName)
 
         if not service:
             service = service_schema.Service(name=serviceName, placement="Any")
 
-        service.setCodebase(codebase, ".".join(className.split(".")[:-1]), className.split(".")[-1])
+        service.setCodebase(
+            codebase, ".".join(className.split(".")[:-1]), className.split(".")[-1]
+        )
 
         if isSingleton is not None:
             service.isSingleton = isSingleton
@@ -207,8 +234,7 @@ class ServiceManager(object):
 
             except Exception:
                 self._logger.error(
-                    "Failed to start a worker for instance %s:\n%s",
-                    i, traceback.format_exc()
+                    "Failed to start a worker for instance %s:\n%s", i, traceback.format_exc()
                 )
                 bad_instances[i] = traceback.format_exc()
 
@@ -224,7 +250,9 @@ class ServiceManager(object):
             self._lastMetricUpdateTimestamp = time.time()
             with self.db.transaction():
                 self.serviceHostObject.cpuUse = psutil.cpu_percent() / 100.0
-                self.serviceHostObject.actualMemoryUseGB = psutil.virtual_memory().used / 1024**3
+                self.serviceHostObject.actualMemoryUseGB = (
+                    psutil.virtual_memory().used / 1024 ** 3
+                )
                 self.serviceHostObject.statsLastUpdateTime = time.time()
 
     @revisionConflictRetry
@@ -250,27 +278,50 @@ class ServiceManager(object):
 
         with self.db.transaction():
             for serviceInstance in service_schema.ServiceInstance.lookupAll():
-                if not serviceInstance.host.exists() or serviceInstance.connection and not serviceInstance.connection.exists():
+                if (
+                    not serviceInstance.host.exists()
+                    or serviceInstance.connection
+                    and not serviceInstance.connection.exists()
+                ):
                     if serviceInstance.state == "FailedToStart":
                         serviceInstance.service.timesBootedUnsuccessfully += 1
-                        serviceInstance.service.lastFailureReason = serviceInstance.failureReason
+                        serviceInstance.service.lastFailureReason = (
+                            serviceInstance.failureReason
+                        )
                     elif serviceInstance.state == "Crashed":
                         serviceInstance.service.timesCrashed += 1
-                        serviceInstance.service.lastFailureReason = serviceInstance.failureReason
+                        serviceInstance.service.lastFailureReason = (
+                            serviceInstance.failureReason
+                        )
                     serviceInstance.delete()
 
     def redeployServicesIfNecessary(self):
         needRedeploy = []
         with self.db.view():
             for i in service_schema.ServiceInstance.lookupAll(host=self.serviceHostObject):
-                if i.service.codebase != i.codebase and i.connection is not None and not i.shouldShutdown:
+                if (
+                    i.service.codebase != i.codebase
+                    and i.connection is not None
+                    and not i.shouldShutdown
+                ):
                     needRedeploy.append(i)
 
             if needRedeploy:
                 self._logger.info(
                     "The following services need to be stopped because their codebases are out of date: %s",
-                    "\n".join(["  " + i.service.name + "." + str(i._identity) + ". "
-                                    + str(i.service.codebase) + " != " + str(i.codebase) for i in needRedeploy])
+                    "\n".join(
+                        [
+                            "  "
+                            + i.service.name
+                            + "."
+                            + str(i._identity)
+                            + ". "
+                            + str(i.service.codebase)
+                            + " != "
+                            + str(i.codebase)
+                            for i in needRedeploy
+                        ]
+                    ),
                 )
 
         if needRedeploy:
@@ -285,8 +336,7 @@ class ServiceManager(object):
 
         # wait for them to be down before proceeding
         self.db.waitForCondition(
-            lambda: not [x for x in needRedeploy if x.exists()],
-            self.shutdownTimeout * 2.0
+            lambda: not [x for x in needRedeploy if x.exists()], self.shutdownTimeout * 2.0
         )
 
     @revisionConflictRetry
@@ -296,7 +346,8 @@ class ServiceManager(object):
         with self.db.view():
             for service in service_schema.Service.lookupAll():
                 actual_by_service[service] = [
-                    x for x in service_schema.ServiceInstance.lookupAll(service=service)
+                    x
+                    for x in service_schema.ServiceInstance.lookupAll(service=service)
                     if x.isActive()
                 ]
 
@@ -313,25 +364,30 @@ class ServiceManager(object):
                 else:
                     canPlace = service.placement in ("Worker", "Any")
 
-                if canPlace and h.gbRamUsed + service.gbRamUsed <= h.maxGbRam and h.coresUsed + service.coresUsed <= h.maxCores:
+                if (
+                    canPlace
+                    and h.gbRamUsed + service.gbRamUsed <= h.maxGbRam
+                    and h.coresUsed + service.coresUsed <= h.maxCores
+                ):
                     return h
 
     def _updateService(self, service, actual_records):
         while service.effectiveTargetCount() > len(actual_records):
             host = self._pickHost(service)
             if not host:
-                if service.unbootable_count != service.effectiveTargetCount() - len(actual_records):
-                    service.unbootable_count = service.effectiveTargetCount() - len(actual_records)
+                if service.unbootable_count != service.effectiveTargetCount() - len(
+                    actual_records
+                ):
+                    service.unbootable_count = service.effectiveTargetCount() - len(
+                        actual_records
+                    )
                 return
             else:
                 host.gbRamUsed = host.gbRamUsed + service.gbRamUsed
                 host.coresUsed = host.coresUsed + service.coresUsed
 
             instance = service_schema.ServiceInstance(
-                service=service,
-                host=host,
-                state="Booting",
-                start_timestamp=time.time()
+                service=service, host=host, state="Booting", start_timestamp=time.time()
             )
 
             actual_records.append(instance)

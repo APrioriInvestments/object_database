@@ -21,11 +21,7 @@ import ssl
 import unittest
 
 
-Message = Alternative(
-    "Message",
-    Ping={},
-    Pong={}
-)
+Message = Alternative("Message", Ping={}, Pong={})
 
 
 class PingPongProtocol(AlgebraicProtocol):
@@ -65,16 +61,14 @@ class AlgebraicProtocolTests(unittest.TestCase):
         loop = self.loop
 
         # Each client connection will create a new protocol instance
-        serverCoro = loop.create_server(PingPongProtocol, '127.0.0.1', 8888)
+        serverCoro = loop.create_server(PingPongProtocol, "127.0.0.1", 8888)
 
         server = loop.run_until_complete(serverCoro)
 
         q = queue.Queue()
 
         clientCoro = loop.create_connection(
-            lambda: SendAndReturn(Message.Ping(), q),
-            '127.0.0.1',
-            8888
+            lambda: SendAndReturn(Message.Ping(), q), "127.0.0.1", 8888
         )
         loop.run_until_complete(clientCoro)
 
@@ -93,16 +87,13 @@ class AlgebraicProtocolTests(unittest.TestCase):
         #
         # use 'localhost' as Common Name (CN)
         loop = self.loop
-        host = 'localhost'
+        host = "localhost"
         port = 8888
 
         srv_ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        srv_ssl_ctx.load_cert_chain('testcert.cert', 'testcert.key')
+        srv_ssl_ctx.load_cert_chain("testcert.cert", "testcert.key")
         # Each client connection will create a new protocol instance
-        serverCoro = loop.create_server(
-            PingPongProtocol, host, port,
-            ssl=srv_ssl_ctx,
-        )
+        serverCoro = loop.create_server(PingPongProtocol, host, port, ssl=srv_ssl_ctx)
 
         server = loop.run_until_complete(serverCoro)
 
@@ -110,10 +101,7 @@ class AlgebraicProtocolTests(unittest.TestCase):
 
         def pingServer(ssl_ctx):
             clientCoro = loop.create_connection(
-                lambda: SendAndReturn(Message.Ping(), q),
-                host,
-                port,
-                ssl=ssl_ctx
+                lambda: SendAndReturn(Message.Ping(), q), host, port, ssl=ssl_ctx
             )
             try:
                 loop.run_until_complete(clientCoro)
@@ -123,8 +111,7 @@ class AlgebraicProtocolTests(unittest.TestCase):
         # This is how to use SSL for encryption AND auth
         # In this scenario, the client NEEDS to have the self-signed cert
         cli_ssl_ctx = ssl.create_default_context(
-            ssl.Purpose.SERVER_AUTH,
-            cafile='testcert.cert'
+            ssl.Purpose.SERVER_AUTH, cafile="testcert.cert"
         )
         pingServer(cli_ssl_ctx)
 

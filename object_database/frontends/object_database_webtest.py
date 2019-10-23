@@ -28,24 +28,16 @@ from object_database.service_manager.ServiceManager_test import (
     HappyService,
     # UninitializableService,
     DropdownTestService,
-    BigGridTestService
+    BigGridTestService,
 )
 
 from object_database.web.CellsTestService import CellsTestService
 
 from object_database.web.EditorDisplayService import EditorDisplayService
 
-from object_database.web.ActiveWebServiceSchema import (
-    active_webservice_schema,
-)
-from object_database.web.ActiveWebService import (
-    ActiveWebService
-)
-from object_database import (
-    connect,
-    core_schema,
-    service_schema,
-)
+from object_database.web.ActiveWebServiceSchema import active_webservice_schema
+from object_database.web.ActiveWebService import ActiveWebService
+from object_database import connect, core_schema, service_schema
 from object_database.frontends.service_manager import startServiceManagerProcess
 from object_database.util import genToken
 from object_database.web.LoginPlugin import LoginIpPlugin
@@ -60,29 +52,26 @@ def main(argv=None):
 
     token = genToken()
     port = 8020
-    loglevel_name = 'INFO'
+    loglevel_name = "INFO"
 
     with tempfile.TemporaryDirectory() as tmpDirName:
         try:
             server = startServiceManagerProcess(
-                tmpDirName, port, token,
-                loglevelName=loglevel_name,
-                logDir=False
+                tmpDirName, port, token, loglevelName=loglevel_name, logDir=False
             )
 
             database = connect("localhost", port, token, retry=True)
-            database.subscribeToSchema(core_schema, service_schema,
-                                       active_webservice_schema)
+            database.subscribeToSchema(core_schema, service_schema, active_webservice_schema)
 
             with database.transaction():
                 service = ServiceManager.createOrUpdateService(
-                    ActiveWebService, "ActiveWebService", target_count=0)
+                    ActiveWebService, "ActiveWebService", target_count=0
+                )
 
             ActiveWebService.configureFromCommandline(
-                database, service,
-                ['--port', '8000',
-                 '--host', '0.0.0.0',
-                 '--log-level', loglevel_name]
+                database,
+                service,
+                ["--port", "8000", "--host", "0.0.0.0", "--log-level", loglevel_name],
             )
 
             ActiveWebService.setLoginPlugin(
@@ -90,7 +79,7 @@ def main(argv=None):
                 service,
                 LoginIpPlugin,
                 [None],
-                config={'company_name': 'A Testing Company'}
+                config={"company_name": "A Testing Company"},
             )
 
             with database.transaction():
@@ -98,14 +87,12 @@ def main(argv=None):
 
             with database.transaction():
                 service = ServiceManager.createOrUpdateService(
-                    CellsTestService, "CellsTestService",
-                    target_count=1
+                    CellsTestService, "CellsTestService", target_count=1
                 )
 
             with database.transaction():
                 service = ServiceManager.createOrUpdateService(
-                    EditorDisplayService, "EditorDisplayService",
-                    target_count=1
+                    EditorDisplayService, "EditorDisplayService", target_count=1
                 )
 
             with database.transaction():
@@ -133,9 +120,11 @@ def main(argv=None):
 
             with database.transaction():
                 ServiceManager.createOrUpdateServiceWithCodebase(
-                    service_schema.Codebase.createFromFiles({
-                        'test_service/__init__.py': '',
-                        'test_service/service.py': textwrap.dedent("""
+                    service_schema.Codebase.createFromFiles(
+                        {
+                            "test_service/__init__.py": "",
+                            "test_service/service.py": textwrap.dedent(
+                                """
                             from object_database.service_manager.ServiceBase import ServiceBase
 
                             class TestService(ServiceBase):
@@ -151,17 +140,19 @@ def main(argv=None):
 
                                 def display(self, queryParams=None):
                                     return "test service display message"
-                        """)
-                    }),
+                        """
+                            ),
+                        }
+                    ),
                     "test_service.service.TestService",
                     "TestService",
-                    10
+                    10,
                 )
 
             print("SERVER IS BOOTED")
 
             while True:
-                time.sleep(.1)
+                time.sleep(0.1)
         finally:
             server.terminate()
             server.wait()
@@ -169,5 +160,5 @@ def main(argv=None):
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

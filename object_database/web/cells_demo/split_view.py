@@ -18,10 +18,12 @@ from object_database.web.CellsTestPage import CellsTestPage
 
 class BasicColumn(CellsTestPage):
     def cell(self):
-        return cells.SplitView([
-            (cells.Card(cells.Text('First Element')), 1),
-            (cells.Card(cells.Text('Second Element')), 2)
-        ])
+        return cells.SplitView(
+            [
+                (cells.Card(cells.Text("First Element")), 1),
+                (cells.Card(cells.Text("Second Element")), 2),
+            ]
+        )
 
     def text(self):
         return "You should see two cards, the second twice as wide as the first"
@@ -29,10 +31,13 @@ class BasicColumn(CellsTestPage):
 
 class BasicRow(CellsTestPage):
     def cell(self):
-        return cells.SplitView([
-            (cells.Card(cells.Text('First Element')), 2),
-            (cells.Card(cells.Text('Second Element')), 1)
-        ], split="horizontal")
+        return cells.SplitView(
+            [
+                (cells.Card(cells.Text("First Element")), 2),
+                (cells.Card(cells.Text("Second Element")), 1),
+            ],
+            split="horizontal",
+        )
 
     def text(self):
         return "You should see two Cards on top of each other, the first twice as long as the second"
@@ -40,20 +45,36 @@ class BasicRow(CellsTestPage):
 
 class NestedRowToColumn(CellsTestPage):
     def cell(self):
-        return cells.SplitView([
-            (cells.Card(
-                cells.SplitView([
-                    (cells.Card("Row 1 Column 1"), 1),
-                    (cells.Card("Row 2 Column 1"), 1)
-                ], split="horizontal"),
-                padding=10), 2),
-            (cells.Card(
-                cells.SplitView([
-                    (cells.Card("Row 1 Column 2"), 4),
-                    (cells.Card("Row 2 Column 2"), 1)
-                ], split="horizontal"),
-                padding=10), 1)
-        ])
+        return cells.SplitView(
+            [
+                (
+                    cells.Card(
+                        cells.SplitView(
+                            [
+                                (cells.Card("Row 1 Column 1"), 1),
+                                (cells.Card("Row 2 Column 1"), 1),
+                            ],
+                            split="horizontal",
+                        ),
+                        padding=10,
+                    ),
+                    2,
+                ),
+                (
+                    cells.Card(
+                        cells.SplitView(
+                            [
+                                (cells.Card("Row 1 Column 2"), 4),
+                                (cells.Card("Row 2 Column 2"), 1),
+                            ],
+                            split="horizontal",
+                        ),
+                        padding=10,
+                    ),
+                    1,
+                ),
+            ]
+        )
 
     def text(self):
         return "You should see a SplitView row of two SplitView columns"

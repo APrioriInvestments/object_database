@@ -20,7 +20,7 @@ import traceback
 
 from typed_python import serialize, deserialize
 
-sizeType = '<L'
+sizeType = "<L"
 longLength = struct.calcsize(sizeType)
 
 
@@ -43,7 +43,11 @@ class AlgebraicProtocol(asyncio.Protocol):
 
     def sendMessage(self, msg):
         try:
-            assert isinstance(msg, self.sendType), "message %s is of type %s != %s" % (msg, type(msg), self.sendType)
+            assert isinstance(msg, self.sendType), "message %s is of type %s != %s" % (
+                msg,
+                type(msg),
+                self.sendType,
+            )
 
             dataToSend = serialize(self.sendType, msg)
             dataToSend = longToString(len(dataToSend)) + dataToSend
@@ -72,15 +76,17 @@ class AlgebraicProtocol(asyncio.Protocol):
         while len(self.buffer) >= longLength:
             bytesToRead = stringToLong(self.buffer[:longLength])
             if bytesToRead + longLength <= len(self.buffer):
-                toConsume = self.buffer[longLength:bytesToRead + longLength]
+                toConsume = self.buffer[longLength : bytesToRead + longLength]
 
-                self.buffer = self.buffer[bytesToRead + longLength:]
+                self.buffer = self.buffer[bytesToRead + longLength :]
 
                 if toConsume:
                     try:
                         self.messageReceived(deserialize(self.receiveType, bytes(toConsume)))
                     except Exception:
-                        self._logger.error("Error in AlgebraicProtocol: %s", traceback.format_exc())
+                        self._logger.error(
+                            "Error in AlgebraicProtocol: %s", traceback.format_exc()
+                        )
                         self.transport.close()
             else:
                 return

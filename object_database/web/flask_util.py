@@ -12,12 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.from collections import defaultdict
 
-from flask import (
-    abort,
-    has_request_context,
-    request,
-    url_for,
-)
+from flask import abort, has_request_context, request, url_for
 
 from urllib.parse import urlparse, urljoin, urlencode, parse_qs, urlsplit, urlunsplit
 
@@ -32,7 +27,7 @@ def is_safe_url(target, require_https=None, forbid_cross_site=None):
     require_https = False if require_https is None else require_https
     forbid_cross_site = True if forbid_cross_site is None else forbid_cross_site
 
-    allowed_schemes = ('https', ) if require_https else ('https', 'http')
+    allowed_schemes = ("https",) if require_https else ("https", "http")
 
     ref_url = urlparse(request.host_url)
     test_url = urlparse(urljoin(request.host_url, target))
@@ -42,8 +37,14 @@ def is_safe_url(target, require_https=None, forbid_cross_site=None):
     return test_url.scheme in allowed_schemes and cross_site_check
 
 
-def next_url(fallback_url=None, fallback_endpoint='index', next_key='next',
-             logger=None, require_https=None, forbid_cross_site=None):
+def next_url(
+    fallback_url=None,
+    fallback_endpoint="index",
+    next_key="next",
+    logger=None,
+    require_https=None,
+    forbid_cross_site=None,
+):
     target_url = request.args.get(next_key)
 
     if not target_url:
@@ -55,7 +56,9 @@ def next_url(fallback_url=None, fallback_endpoint='index', next_key='next',
         return abort(400)
 
     # is_safe_url should check if the url is safe for redirects.
-    if not is_safe_url(target_url, require_https=require_https, forbid_cross_site=forbid_cross_site):
+    if not is_safe_url(
+        target_url, require_https=require_https, forbid_cross_site=forbid_cross_site
+    ):
         if logger:
             logger.error("ERROR: not safe for redirect: {}".format(target_url))
         return abort(400)

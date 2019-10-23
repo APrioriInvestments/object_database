@@ -36,9 +36,13 @@ class RunningTaskWithSubtasks(RunningTask):
             if self.x <= 0:
                 return TaskStatusResult.Finished(result=1)
 
-            return TaskStatusResult.Subtasks({'A': TaskWithSubtasks(self.x-1), 'B': TaskWithSubtasks(self.x-2)})
+            return TaskStatusResult.Subtasks(
+                {"A": TaskWithSubtasks(self.x - 1), "B": TaskWithSubtasks(self.x - 2)}
+            )
         else:
-            return TaskStatusResult.Finished(subtaskResults['A'].result + subtaskResults['B'].result)
+            return TaskStatusResult.Finished(
+                subtaskResults["A"].result + subtaskResults["B"].result
+            )
 
 
 class TaskWithSubtasks(TaskExecutor):

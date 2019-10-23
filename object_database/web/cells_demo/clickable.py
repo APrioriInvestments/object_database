@@ -22,7 +22,7 @@ class ClickableText(CellsTestPage):
 
         return cells.Clickable(
             cells.Subscribed(lambda: f"You've clicked on this text {slot.get()} times"),
-            lambda: slot.set(slot.get()+1)
+            lambda: slot.set(slot.get() + 1),
         )
 
     def text(self):

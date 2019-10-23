@@ -10,20 +10,16 @@ def cellUpdated(cell):
     if cell.parent is not None:
         parent_id = cell.parent.identity
 
-    structure = getStructure(
-        parent_id,
-        cell,
-        None,
-        expand=True)
+    structure = getStructure(parent_id, cell, None, expand=True)
     envelope = {
         "channel": "#main",
         "type": "#cellUpdated",
         "shouldDisplay": cell.shouldDisplay,
-        "extraData": cell.exportData
+        "extraData": cell.exportData,
     }
     structure.update(envelope)
     if cell.postscript:
-        structure['postscript'] = cell.postscript
+        structure["postscript"] = cell.postscript
 
     return structure
 
@@ -38,7 +34,7 @@ def cellDataUpdated(cell):
         "type": "#cellDataUpdated",
         "shouldDisplay": cell.shouldDisplay,
         "id": cell.identity,
-        "dataInfo": cell.exportData["dataInfo"]
+        "dataInfo": cell.exportData["dataInfo"],
     }
     return data
 
@@ -59,10 +55,10 @@ def cellDiscarded(cell):
     be sent over a websocket
     """
     return {
-        'channel': '#main',
-        'type': '#cellDiscarded',
-        'cellType': cell.__class__.__name__,
-        'id': cell.identity
+        "channel": "#main",
+        "type": "#cellDiscarded",
+        "cellType": cell.__class__.__name__,
+        "id": cell.identity,
     }
 
 
@@ -83,11 +79,7 @@ def appendPostscript(jsString):
     A JSON parsable dictionary that can
     be sent over a websocket
     """
-    return {
-        'channel': '#main',
-        'type': '#appendPostscript',
-        'script': jsString
-    }
+    return {"channel": "#main", "type": "#appendPostscript", "script": jsString}
 
 
 def getStructure(parent_id, cell, name_in_parent, expand=False):
@@ -144,7 +136,7 @@ def _getFlatStructure(parent_id, cell, name_in_parent):
         "nameInParent": name_in_parent,
         "parentId": parent_id,
         "namedChildren": own_children,
-        "extraData": cell.exportData
+        "extraData": cell.exportData,
     }
 
 
@@ -172,20 +164,20 @@ def _getExpandedStructure(parent_id, cell, name_in_parent):
         "extraData": cell.exportData,
         "nameInParent": name_in_parent,
         "parentId": parent_id,
-        "namedChildren": own_children
+        "namedChildren": own_children,
     }
 
 
 def _getExpandedChildren(cell):
     own_children = {}
     for child_name, child in cell.children.items():
-        own_children[child_name] = _resolveExpandedChild(cell.identity, child,
-                                                         child_name)
+        own_children[child_name] = _resolveExpandedChild(cell.identity, child, child_name)
     return own_children
 
 
 def _resolveExpandedChild(parent_id, cell_or_list, name_in_parent):
     if isinstance(cell_or_list, list):
-        return [_resolveExpandedChild(parent_id, cell, name_in_parent) for
-                cell in cell_or_list]
+        return [
+            _resolveExpandedChild(parent_id, cell, name_in_parent) for cell in cell_or_list
+        ]
     return _getExpandedStructure(parent_id, cell_or_list, name_in_parent)

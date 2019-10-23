@@ -82,24 +82,21 @@ class FunctionTask(TaskExecutor):
 
 
 TaskStatusResult = Alternative(
-    'TaskStatusResult',
-    Finished={'result': object},
-    Subtasks={'subtasks': ConstDict(str, TaskExecutor)},
-    SleepUntil={'wakeup_timestamp': float}
+    "TaskStatusResult",
+    Finished={"result": object},
+    Subtasks={"subtasks": ConstDict(str, TaskExecutor)},
+    SleepUntil={"wakeup_timestamp": float},
 )
 
 TaskResult = Alternative(
-    "TaskResult",
-    Result={'result': object},
-    Error={'error': str},
-    Failure={}
+    "TaskResult", Result={"result": object}, Error={"error": str}, Failure={}
 )
 
 
 @task_schema.define
 class Task:
     service = Indexed(service_schema.Service)
-    service_and_finished = Index('service', 'finished')
+    service_and_finished = Index("service", "finished")
 
     resourceScope = Indexed(OneOf(None, ResourceScope))
     executor = TaskExecutor
@@ -116,11 +113,7 @@ class Task:
     @staticmethod
     def Create(service, executor):
         return TaskStatus(
-            task=Task(
-                service=service,
-                executor=executor
-            ),
-            state="Unassigned"
+            task=Task(service=service, executor=executor), state="Unassigned"
         ).task
 
 
@@ -129,7 +122,17 @@ class TaskStatus:
     task = Indexed(Task)
     parentStatus = OneOf(None, task_schema.TaskStatus)
     resourceScope = Indexed(OneOf(None, ResourceScope))
-    state = Indexed(OneOf("Unassigned", "Assigned", "Working", "Sleeping", "WaitForSubtasks", "DoneCalculating", "Collected"))
+    state = Indexed(
+        OneOf(
+            "Unassigned",
+            "Assigned",
+            "Working",
+            "Sleeping",
+            "WaitForSubtasks",
+            "DoneCalculating",
+            "Collected",
+        )
+    )
     wakeup_timestamp = OneOf(None, float)
     subtasks = OneOf(None, ConstDict(str, task_schema.TaskStatus))
     subtasks_completed = int
@@ -173,7 +176,7 @@ class TaskService(ServiceBase):
                 tasks = TaskStatus.lookupAll(worker=self.workerObject)
 
             if not tasks:
-                time.sleep(.01)
+                time.sleep(0.01)
             else:
                 if len(tasks) > 1:
                     raise Exception("Expected only one task to be allocated to us.")
@@ -188,10 +191,25 @@ class TaskService(ServiceBase):
         cells.ensureSubscribedType(TaskStatus, lazy=True)
 
         return cells.Card(
-            cells.Subscribed(lambda: cells.Text("Total Tasks: %s" % len(TaskStatus.lookupAll()))) +
-            cells.Subscribed(lambda: cells.Text("Working Tasks: %s" % len(TaskStatus.lookupAll(state='Working')))) +
-            cells.Subscribed(lambda: cells.Text("WaitingForSubtasks Tasks: %s" % len(TaskStatus.lookupAll(state='WaitForSubtasks')))) +
-            cells.Subscribed(lambda: cells.Text("Unassigned Tasks: %s" % len(TaskStatus.lookupAll(state='Unassigned'))))
+            cells.Subscribed(
+                lambda: cells.Text("Total Tasks: %s" % len(TaskStatus.lookupAll()))
+            )
+            + cells.Subscribed(
+                lambda: cells.Text(
+                    "Working Tasks: %s" % len(TaskStatus.lookupAll(state="Working"))
+                )
+            )
+            + cells.Subscribed(
+                lambda: cells.Text(
+                    "WaitingForSubtasks Tasks: %s"
+                    % len(TaskStatus.lookupAll(state="WaitForSubtasks"))
+                )
+            )
+            + cells.Subscribed(
+                lambda: cells.Text(
+                    "Unassigned Tasks: %s" % len(TaskStatus.lookupAll(state="Unassigned"))
+                )
+            )
         )
 
     def doTask(self, taskStatus):
@@ -245,14 +263,23 @@ class TaskService(ServiceBase):
                 instanceState = executor.instantiate()
 
             t0 = time.time()
-            context = TaskContext(self.db, self.runtimeConfig.serviceTemporaryStorageRoot, codebase)
+            context = TaskContext(
+                self.db, self.runtimeConfig.serviceTemporaryStorageRoot, codebase
+            )
             execResult = instanceState.execute(context, subtask_results)
-            logging.info("Executed task %s with state %s producing result %s", task, instanceState, execResult)
+            logging.info(
+                "Executed task %s with state %s producing result %s",
+                task,
+                instanceState,
+                execResult,
+            )
 
             assert isinstance(execResult, TaskStatusResult), execResult
 
             if execResult.matches.Finished:
-                taskStatus.finish(self.db, TaskResult.Result(result=execResult.result), time.time() - t0)
+                taskStatus.finish(
+                    self.db, TaskResult.Result(result=execResult.result), time.time() - t0
+                )
 
             if execResult.matches.Subtasks:
                 with self.db.transaction():
@@ -268,16 +295,20 @@ class TaskService(ServiceBase):
                                 service=task.service,
                                 resourceScope=task.resourceScope,
                                 executor=subtaskExecutor,
-                                parent=task
+                                parent=task,
                             ),
                             parentStatus=taskStatus,
                             resourceScope=task.resourceScope,
                             state="Unassigned",
-                            worker=None
+                            worker=None,
                         )
                         assert newTaskStatuses[taskName].exists()
 
-                    logging.info("Subtask %s depends on %s", task, [str(ts.task) + "/" + str(ts) for ts in newTaskStatuses.values()])
+                    logging.info(
+                        "Subtask %s depends on %s",
+                        task,
+                        [str(ts.task) + "/" + str(ts) for ts in newTaskStatuses.values()],
+                    )
 
                     taskStatus.subtasks = newTaskStatuses
 
@@ -288,8 +319,14 @@ class TaskService(ServiceBase):
                     taskStatus.wakeup_timestamp = execResult.wakeup_timestamp
 
         except Exception:
-            self.logger.error("Task %s failed with exception:\n%s", task, traceback.format_exc())
-            taskStatus.finish(self.db, TaskResult.Error(error=traceback.format_exc()), time.time() - t0 if t0 is not None else 0.0)
+            self.logger.error(
+                "Task %s failed with exception:\n%s", task, traceback.format_exc()
+            )
+            taskStatus.finish(
+                self.db,
+                TaskResult.Error(error=traceback.format_exc()),
+                time.time() - t0 if t0 is not None else 0.0,
+            )
 
 
 class TaskDispatchService(ServiceBase):
@@ -341,29 +378,41 @@ class TaskDispatchService(ServiceBase):
                 except DisconnectedException:
                     return
                 except Exception:
-                    self.logger.error("Unexpected exception in TaskDispatchService: %s", traceback.format_exc())
+                    self.logger.error(
+                        "Unexpected exception in TaskDispatchService: %s",
+                        traceback.format_exc(),
+                    )
 
         def assignLoop():
             while not shouldStop.is_set():
                 try:
                     if not self.assignWork():
-                        shouldStop.wait(timeout=.01)
+                        shouldStop.wait(timeout=0.01)
                 except DisconnectedException:
                     return
                 except Exception:
-                    self.logger.error("Unexpected exception in TaskDispatchService: %s", traceback.format_exc())
+                    self.logger.error(
+                        "Unexpected exception in TaskDispatchService: %s",
+                        traceback.format_exc(),
+                    )
 
         def collectLoop():
             while not shouldStop.is_set():
                 try:
                     if not self.collectResults():
-                        shouldStop.wait(timeout=.01)
+                        shouldStop.wait(timeout=0.01)
                 except DisconnectedException:
                     return
                 except Exception:
-                    self.logger.error("Unexpected exception in TaskDispatchService: %s", traceback.format_exc())
+                    self.logger.error(
+                        "Unexpected exception in TaskDispatchService: %s",
+                        traceback.format_exc(),
+                    )
 
-        threads = [threading.Thread(target=t) for t in [checkForDeadWorkersLoop, assignLoop, collectLoop]]
+        threads = [
+            threading.Thread(target=t)
+            for t in [checkForDeadWorkersLoop, assignLoop, collectLoop]
+        ]
         for t in threads:
             t.start()
         for t in threads:
@@ -374,7 +423,7 @@ class TaskDispatchService(ServiceBase):
         count = 0
         with self.db.view():
             workers = list(TaskWorker.lookupAll(hasTask=False))
-            tasks = list(TaskStatus.lookupAll(state='Unassigned'))
+            tasks = list(TaskStatus.lookupAll(state="Unassigned"))
 
         with self.db.transaction():
             while workers and tasks:

@@ -30,7 +30,7 @@ class DatabaseConnectionStateTests(unittest.TestCase):
                 i,
                 {ObjectFieldId(objId=0, fieldId=0, isIndexValue=False): b" " * 10000},
                 {IndexId(fieldId=0, indexValue=b" " * 10000): (i,)},
-                {IndexId(fieldId=0, indexValue=b" " * 10000): (i-1,)} if i > 0 else {},
+                {IndexId(fieldId=0, indexValue=b" " * 10000): (i - 1,)} if i > 0 else {},
             )
 
         self.assertLess(currentMemUsageMb() - m0, 1)
@@ -45,7 +45,7 @@ class DatabaseConnectionStateTests(unittest.TestCase):
                 i,
                 {ObjectFieldId(objId=0, fieldId=0, isIndexValue=False): b" " * i},
                 {IndexId(fieldId=0, indexValue=b" " * i): (0,)},
-                {IndexId(fieldId=0, indexValue=b" " * (i-1)): (0,)} if i > 0 else {},
+                {IndexId(fieldId=0, indexValue=b" " * (i - 1)): (0,)} if i > 0 else {},
             )
 
         self.assertLess(currentMemUsageMb() - m0, 1)

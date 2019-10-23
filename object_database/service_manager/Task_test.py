@@ -30,12 +30,26 @@ ownDir = os.path.dirname(os.path.abspath(__file__))
 class TaskTest(ServiceManagerTestCommon, unittest.TestCase):
     def dialWorkers(self, workerCount):
         with self.database.transaction():
-            ServiceManager.createOrUpdateService(Task.TaskService, "TaskService", target_count=workerCount, gbRamUsed=0, coresUsed=0)
+            ServiceManager.createOrUpdateService(
+                Task.TaskService,
+                "TaskService",
+                target_count=workerCount,
+                gbRamUsed=0,
+                coresUsed=0,
+            )
 
     def installServices(self):
         with self.database.transaction():
-            ServiceManager.createOrUpdateService(Task.TaskService, "TaskService", target_count=1, gbRamUsed=0, coresUsed=0)
-            ServiceManager.createOrUpdateService(Task.TaskDispatchService, "TaskDispatchService", target_count=1, gbRamUsed=0, coresUsed=0)
+            ServiceManager.createOrUpdateService(
+                Task.TaskService, "TaskService", target_count=1, gbRamUsed=0, coresUsed=0
+            )
+            ServiceManager.createOrUpdateService(
+                Task.TaskDispatchService,
+                "TaskDispatchService",
+                target_count=1,
+                gbRamUsed=0,
+                coresUsed=0,
+            )
 
         self.waitRunning("TaskService")
         self.waitRunning("TaskDispatchService")
@@ -48,15 +62,19 @@ class TaskTest(ServiceManagerTestCommon, unittest.TestCase):
                 service_schema.Codebase.createFromFiles(files),
                 "TestModule1.TestService1",
                 "TestService1",
-                0
+                0,
             )
             self.testService1Codebase = self.testService1Object.codebase.instantiate()
 
         self.service1Conn = self.newDbConnection()
-        self.service1Conn.setSerializationContext(self.testService1Codebase.serializationContext)
+        self.service1Conn.setSerializationContext(
+            self.testService1Codebase.serializationContext
+        )
         self.service1Conn.subscribeToType(Task.Task)
         self.service1Conn.subscribeToType(Task.TaskStatus)
-        self.service1Conn.subscribeToType(self.testService1Codebase.getClassByName("TestModule1.Record"))
+        self.service1Conn.subscribeToType(
+            self.testService1Codebase.getClassByName("TestModule1.Record")
+        )
 
     def test_task_running(self):
         self.installServices()
@@ -64,13 +82,14 @@ class TaskTest(ServiceManagerTestCommon, unittest.TestCase):
         with self.service1Conn.transaction():
             task = Task.Task.Create(
                 service=self.testService1Object,
-                executor=Task.FunctionTask(self.testService1Codebase.getClassByName("TestModule1.createNewRecord"))
+                executor=Task.FunctionTask(
+                    self.testService1Codebase.getClassByName("TestModule1.createNewRecord")
+                ),
             )
 
         self.assertTrue(
             self.service1Conn.waitForCondition(
-                lambda: task.finished,
-                timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
+                lambda: task.finished, timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
             )
         )
 
@@ -88,20 +107,21 @@ class TaskTest(ServiceManagerTestCommon, unittest.TestCase):
         with self.service1Conn.transaction():
             task = Task.Task.Create(
                 service=self.testService1Object,
-                executor=self.testService1Codebase.getClassByName("TestModule1.TaskWithSubtasks")(5)
+                executor=self.testService1Codebase.getClassByName(
+                    "TestModule1.TaskWithSubtasks"
+                )(5),
             )
 
         self.assertTrue(
             self.service1Conn.waitForCondition(
-                lambda: task.finished,
-                timeout=10.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
+                lambda: task.finished, timeout=10.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
             )
         )
 
         def localVersion(x):
             if x <= 0:
                 return 1
-            return localVersion(x-1) + localVersion(x-2)
+            return localVersion(x - 1) + localVersion(x - 2)
 
         with self.service1Conn.transaction():
             self.assertEqual(task.result.result, localVersion(5))
@@ -117,13 +137,16 @@ class TaskTest(ServiceManagerTestCommon, unittest.TestCase):
         with self.service1Conn.transaction():
             task = Task.Task.Create(
                 service=self.testService1Object,
-                executor=self.testService1Codebase.getClassByName("TestModule1.TaskWithSubtasks")(7)
+                executor=self.testService1Codebase.getClassByName(
+                    "TestModule1.TaskWithSubtasks"
+                )(7),
             )
 
         self.assertTrue(
             self.service1Conn.waitForCondition(
-                lambda: len([t for t in Task.TaskStatus.lookupAll() if t.worker is not None]) == 4,
-                timeout=20.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
+                lambda: len([t for t in Task.TaskStatus.lookupAll() if t.worker is not None])
+                == 4,
+                timeout=20.0 * self.ENVIRONMENT_WAIT_MULTIPLIER,
             )
         )
 
@@ -135,7 +158,7 @@ class TaskTest(ServiceManagerTestCommon, unittest.TestCase):
         self.assertTrue(
             self.service1Conn.waitForCondition(
                 lambda: sum([t.times_failed for t in Task.TaskStatus.lookupAll()]) > 0,
-                timeout=20.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
+                timeout=20.0 * self.ENVIRONMENT_WAIT_MULTIPLIER,
             )
         )
 
@@ -143,15 +166,14 @@ class TaskTest(ServiceManagerTestCommon, unittest.TestCase):
 
         self.assertTrue(
             self.service1Conn.waitForCondition(
-                lambda: task.finished,
-                timeout=20.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
+                lambda: task.finished, timeout=20.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
             )
         )
 
         def localVersion(x):
             if x <= 0:
                 return 1
-            return localVersion(x-1) + localVersion(x-2)
+            return localVersion(x - 1) + localVersion(x - 2)
 
         with self.service1Conn.transaction():
             self.assertEqual(task.result.result, localVersion(7))

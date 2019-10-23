@@ -18,54 +18,69 @@ from object_database.web.CellsTestPage import CellsTestPage
 
 class BasicPanel(CellsTestPage):
     def cell(self):
-        return cells.Panel(cells.Text("Button in a Panel") + cells.Button("A Button", lambda: None))
+        return cells.Panel(
+            cells.Text("Button in a Panel") + cells.Button("A Button", lambda: None)
+        )
 
     def text(self):
-        return ("Should see Text and Button Vert Sequence inside of a bordered panel,",
-                " taking up greedy space in both dimensions")
+        return (
+            "Should see Text and Button Vert Sequence inside of a bordered panel,",
+            " taking up greedy space in both dimensions",
+        )
 
 
 class BasicPanelInFlexSequence(CellsTestPage):
     def cell(self):
-        outer = cells.Sequence([
-            cells.Button("Top Button", lambda: None),
-            cells.Flex(cells.Panel(
-                cells.Text("A Flexing Panel"))),
-            cells.Button("Bottom Button", lambda: None)
-        ])
+        outer = cells.Sequence(
+            [
+                cells.Button("Top Button", lambda: None),
+                cells.Flex(cells.Panel(cells.Text("A Flexing Panel"))),
+                cells.Button("Bottom Button", lambda: None),
+            ]
+        )
         return outer
 
     def text(self):
-        return ("Should see a flex parent vert sequence where the Panel is flexing as",
-                " the child, no longer taking up 100% in both dimensions (since we are flexing)")
+        return (
+            "Should see a flex parent vert sequence where the Panel is flexing as",
+            " the child, no longer taking up 100% in both dimensions (since we are flexing)",
+        )
 
 
 class NestedVertFlexPanel(CellsTestPage):
     def cell(self):
-        return cells.Panel(cells.Text("Button in a Panel") +
-                           cells.Button("A Button", lambda: None)) + cells.Flex(cells.Panel(cells.Text("something else")))
+        return cells.Panel(
+            cells.Text("Button in a Panel") + cells.Button("A Button", lambda: None)
+        ) + cells.Flex(cells.Panel(cells.Text("something else")))
 
     def text(self):
-        return ("Should see vertical sequence of two panels, the second is ",
-                "flexed, first is shrinkwrapped vertically, and both expand fully on horizontal axis")
+        return (
+            "Should see vertical sequence of two panels, the second is ",
+            "flexed, first is shrinkwrapped vertically, and both expand fully on horizontal axis",
+        )
 
 
 class NestedVertHorizPanel(CellsTestPage):
     def cell(self):
-        return cells.Panel(cells.Text("Button in a Panel") +
-                           cells.Button("A Button", lambda: None)) >> cells.Flex(
-                               cells.Panel(cells.Text("something else")))
+        return cells.Panel(
+            cells.Text("Button in a Panel") + cells.Button("A Button", lambda: None)
+        ) >> cells.Flex(cells.Panel(cells.Text("something else")))
 
     def text(self):
-        return ("Should see horizontal sequence of two panels, the second is flexed,",
-                " first is shrinkwrapped horizontally, and both expand fully on horizontal axis")
+        return (
+            "Should see horizontal sequence of two panels, the second is flexed,",
+            " first is shrinkwrapped horizontally, and both expand fully on horizontal axis",
+        )
 
 
 class HorizPanelNonWrapSequence(CellsTestPage):
     def cell(self):
         def make_panel(num):
             return cells.Panel(
-                cells.Text("Panel {}".format(num)) + cells.Button("Button {}".format(num), lambda: None))
+                cells.Text("Panel {}".format(num))
+                + cells.Button("Button {}".format(num), lambda: None)
+            )
+
         panels = [make_panel(i) for i in range(50)]
         return cells.HorizontalSequence(panels, wrap=False)
 
@@ -77,7 +92,10 @@ class HorizPanelDoesWrapSequence(CellsTestPage):
     def cell(self):
         def make_panel(num):
             return cells.Panel(
-                cells.Text("Panel {}".format(num)) + cells.Button("Button {}".format(num), lambda: None))
+                cells.Text("Panel {}".format(num))
+                + cells.Button("Button {}".format(num), lambda: None)
+            )
+
         panels = [make_panel(i) for i in range(50)]
         return cells.HorizontalSequence(panels)
 

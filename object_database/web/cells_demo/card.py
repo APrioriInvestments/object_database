@@ -26,9 +26,9 @@ class SingleCard(CellsTestPage):
 
 class CardWithTitle(CellsTestPage):
     def cell(self):
-        return cells.Card("This is the card text",
-                          header="This is the header text 2",
-                          padding=0)
+        return cells.Card(
+            "This is the card text", header="This is the header text 2", padding=0
+        )
 
     def text(self):
         return "You should see a single 'card' with header text."

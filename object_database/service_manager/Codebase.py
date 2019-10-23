@@ -42,9 +42,9 @@ def setCodebaseInstantiationDirectory(directory, forceReset=False):
         if _codebase_instantiation_dir == directory:
             return
 
-        assert _codebase_instantiation_dir is None, "Can't modify the codebase instantiation location. (%s != %s)" % (
-            _codebase_instantiation_dir,
-            directory
+        assert _codebase_instantiation_dir is None, (
+            "Can't modify the codebase instantiation location. (%s != %s)"
+            % (_codebase_instantiation_dir, directory)
         )
 
         _codebase_instantiation_dir = os.path.abspath(directory)
@@ -76,9 +76,7 @@ class Codebase:
 
     @staticmethod
     def createFromRootlevelPath(rootPath):
-        return Codebase.createFromCodebase(
-            TypedPythonCodebase.FromRootlevelPath(rootPath)
-        )
+        return Codebase.createFromCodebase(TypedPythonCodebase.FromRootlevelPath(rootPath))
 
     @staticmethod
     def createFromCodebase(codebase: TypedPythonCodebase):
@@ -111,18 +109,22 @@ class Codebase:
                         os.makedirs(codebase_dir_override)
                 except Exception as e:
                     logging.getLogger(__name__).warn(
-                        "Exception trying to make directory '%s'", codebase_dir_override)
-                    logging.getLogger(__name__).warn(
-                        "Exception: %s", e)
+                        "Exception trying to make directory '%s'", codebase_dir_override
+                    )
+                    logging.getLogger(__name__).warn("Exception: %s", e)
 
                 disk_path = os.path.join(codebase_dir_override, self.hash)
 
                 # preload the files, since they're lazy.
-                object_database.current_transaction().db().requestLazyObjects(set(self.files.values()))
+                object_database.current_transaction().db().requestLazyObjects(
+                    set(self.files.values())
+                )
 
                 fileContents = {fpath: file.contents for fpath, file in self.files.items()}
 
-                _codebase_cache[self.hash] = TypedPythonCodebase.Instantiate(fileContents, disk_path)
+                _codebase_cache[self.hash] = TypedPythonCodebase.Instantiate(
+                    fileContents, disk_path
+                )
 
             if module_name is None:
                 return _codebase_cache[self.hash]

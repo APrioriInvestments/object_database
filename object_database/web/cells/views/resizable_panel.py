@@ -23,15 +23,14 @@ class ResizablePanel(Cell):
         self.first = first
         self.second = second
         self.split = split
-        self.exportData['split'] = split
+        self.exportData["split"] = split
         self.updateNamedChildren()
 
     def recalculate(self):
         self.updateNamedChildren()
-        self.exportData['split'] = self.split
+        self.exportData["split"] = self.split
 
     def updateNamedChildren(self):
-        self.children.addFromDict({
-            'first': Cell.makeCell(self.first),
-            'second': Cell.makeCell(self.second)
-        })
+        self.children.addFromDict(
+            {"first": Cell.makeCell(self.first), "second": Cell.makeCell(self.second)}
+        )

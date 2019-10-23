@@ -33,41 +33,41 @@ class VersionedIdSetTest(unittest.TestCase):
 
         s.add(tid, oid)
 
-        self.assertFalse(s.isActive(tid-1, oid))
+        self.assertFalse(s.isActive(tid - 1, oid))
         self.assertTrue(s.isActive(tid, oid))
-        self.assertTrue(s.isActive(tid+1, oid))
+        self.assertTrue(s.isActive(tid + 1, oid))
 
         self.assertEqual(s.transactionCount(), 1)
         self.assertEqual(s.transactionCount(), 1)
 
-        self.assertEqual(s.lookupOne(tid-1), -1)
+        self.assertEqual(s.lookupOne(tid - 1), -1)
         self.assertEqual(s.lookupOne(tid), oid)
-        self.assertEqual(s.lookupOne(tid+1), oid)
+        self.assertEqual(s.lookupOne(tid + 1), oid)
 
-        self.assertEqual(s.lookupFirst(tid-1), -1)
+        self.assertEqual(s.lookupFirst(tid - 1), -1)
         self.assertEqual(s.lookupFirst(tid), oid)
-        self.assertEqual(s.lookupFirst(tid+1), oid)
+        self.assertEqual(s.lookupFirst(tid + 1), oid)
 
-        self.assertEqual(s.lookupNext(tid-1, oid), -1)
+        self.assertEqual(s.lookupNext(tid - 1, oid), -1)
         self.assertEqual(s.lookupNext(tid, oid), -1)
-        self.assertEqual(s.lookupNext(tid+1, oid), -1)
+        self.assertEqual(s.lookupNext(tid + 1, oid), -1)
 
         s.add(tid, oid2)
-        self.assertEqual(s.lookupOne(tid-1), -1)
+        self.assertEqual(s.lookupOne(tid - 1), -1)
         self.assertEqual(s.lookupOne(tid), -1)
-        self.assertEqual(s.lookupOne(tid+1), -1)
+        self.assertEqual(s.lookupOne(tid + 1), -1)
 
-        self.assertEqual(s.lookupFirst(tid-1), -1)
+        self.assertEqual(s.lookupFirst(tid - 1), -1)
         self.assertEqual(s.lookupFirst(tid), oid)
-        self.assertEqual(s.lookupFirst(tid+1), oid)
+        self.assertEqual(s.lookupFirst(tid + 1), oid)
 
-        self.assertEqual(s.lookupNext(tid-1, oid), -1)
+        self.assertEqual(s.lookupNext(tid - 1, oid), -1)
         self.assertEqual(s.lookupNext(tid, oid), oid2)
-        self.assertEqual(s.lookupNext(tid+1, oid), oid2)
+        self.assertEqual(s.lookupNext(tid + 1, oid), oid2)
 
-        self.assertEqual(s.lookupNext(tid-1, oid2), -1)
+        self.assertEqual(s.lookupNext(tid - 1, oid2), -1)
         self.assertEqual(s.lookupNext(tid, oid2), -1)
-        self.assertEqual(s.lookupNext(tid+1, oid2), -1)
+        self.assertEqual(s.lookupNext(tid + 1, oid2), -1)
 
     def test_add_and_remove(self):
         s = VersionedIdSet()
@@ -109,7 +109,7 @@ class VersionedIdSetTest(unittest.TestCase):
 
             s2.moveGuaranteedLowestIdForward(tid - 10)
 
-            for tid in range(tid-10, tid+10):
+            for tid in range(tid - 10, tid + 10):
                 activeCount = 0
 
                 for oid in oids:

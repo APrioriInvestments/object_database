@@ -34,13 +34,12 @@ class DefinedTimestamp(CellsTestPage):
         nyc = pytz.timezone("America/New_York")
         timestamp = nyc.localize(datetime(2019, 7, 16, 0, 0, 0)).timestamp()
 
-        return cells.Sequence([
-            cells.Timestamp(timestamp + 3600 * i)
-            for i in range(24)]
-        )
+        return cells.Sequence([cells.Timestamp(timestamp + 3600 * i) for i in range(24)])
 
     def text(self):
-        return "You should see 24 hours of timestamps all correctly displayed with their hours."
+        return (
+            "You should see 24 hours of timestamps all correctly displayed with their hours."
+        )
 
 
 class Milliseconds(CellsTestPage):
@@ -48,9 +47,8 @@ class Milliseconds(CellsTestPage):
         nyc = pytz.timezone("America/New_York")
         timestamp = nyc.localize(datetime(2019, 7, 16, 8, 0, 0)).timestamp()
 
-        return cells.Sequence([
-            cells.Timestamp(timestamp + i / 1000)
-            for i in [1, 2, 10, 20, 100, 200]]
+        return cells.Sequence(
+            [cells.Timestamp(timestamp + i / 1000) for i in [1, 2, 10, 20, 100, 200]]
         )
 
     def text(self):

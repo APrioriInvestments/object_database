@@ -27,23 +27,31 @@ class ObjectDatabaseFrontEnd(unittest.TestCase):
     def test_can_run_throughput_test(self):
         try:
             token = genToken()
-            server = subprocess.Popen([
-                sys.executable,
-                os.path.join(own_dir, "frontends", "database_server.py"),
-                "localhost", "8889",
-                "--service-token", token,
-                "--inmem"]
+            server = subprocess.Popen(
+                [
+                    sys.executable,
+                    os.path.join(own_dir, "frontends", "database_server.py"),
+                    "localhost",
+                    "8889",
+                    "--service-token",
+                    token,
+                    "--inmem",
+                ]
             )
 
             time.sleep(2.5)
 
-            client = subprocess.run([
-                sys.executable,
-                os.path.join(own_dir, "frontends", "database_throughput_test.py"),
-                "localhost", "8889",
-                "--service-token", token,
-                "1"
-            ])
+            client = subprocess.run(
+                [
+                    sys.executable,
+                    os.path.join(own_dir, "frontends", "database_throughput_test.py"),
+                    "localhost",
+                    "8889",
+                    "--service-token",
+                    token,
+                    "1",
+                ]
+            )
 
             self.assertEqual(client.returncode, 0)
         finally:

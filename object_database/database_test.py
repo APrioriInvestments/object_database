@@ -18,7 +18,11 @@ from typed_python.SerializationContext import SerializationContext
 
 from object_database.schema import Indexed, Index, Schema, SubscribeLazilyByDefault
 from object_database.core_schema import core_schema
-from object_database.view import RevisionConflictException, DisconnectedException, ObjectDoesntExistException
+from object_database.view import (
+    RevisionConflictException,
+    DisconnectedException,
+    ObjectDoesntExistException,
+)
 from object_database.database_connection import DatabaseConnection
 from object_database.tcp_server import TcpServer
 from object_database.inmem_server import InMemServer
@@ -60,7 +64,7 @@ class BlockingCallback:
 
 expr = Alternative(
     "Expr",
-    Constant={'value': int},
+    Constant={"value": int},
     # Add = {'l': expr, 'r': expr},
     # Sub = {'l': expr, 'r': expr},
     # Mul = {'l': expr, 'r': expr}
@@ -172,14 +176,14 @@ class ThingWithObjectIndex:
     value = Indexed(object)
     name = str
 
-    name_and_value = Index('name', 'value')
+    name_and_value = Index("name", "value")
 
 
 class ObjectDatabaseTests:
     @classmethod
     def setUpClass(cls):
         configureLogging("database_test")
-        cls.PERFORMANCE_FACTOR = 1.0 if os.environ.get('TRAVIS_CI', None) is None else 2.0
+        cls.PERFORMANCE_FACTOR = 1.0 if os.environ.get("TRAVIS_CI", None) is None else 2.0
 
     def test_object_indices(self):
         db = self.createNewDb()
@@ -195,7 +199,9 @@ class ObjectDatabaseTests:
             z.name = "name"
             self.assertEqual(ThingWithObjectIndex.lookupAny(value=z), None)
             self.assertEqual(ThingWithObjectIndex.lookupAny(value="hello"), z)
-            self.assertEqual(ThingWithObjectIndex.lookupAny(name_and_value=("name", "hello")), z)
+            self.assertEqual(
+                ThingWithObjectIndex.lookupAny(name_and_value=("name", "hello")), z
+            )
 
     def test_assigning_dicts(self):
         db = self.createNewDb()
@@ -203,7 +209,7 @@ class ObjectDatabaseTests:
 
         with db.transaction():
             z = ThingWithDicts()
-            z.x = {'a': b'b'}
+            z.x = {"a": b"b"}
 
         with db.transaction():
             z2 = ThingWithDicts()
@@ -216,7 +222,7 @@ class ObjectDatabaseTests:
         with db.transaction():
             x = ThingWithInit()
             y = ThingWithInit(1, y=1000)
-            z = ThingWithInitAndInitializableRef() # noqa
+            z = ThingWithInitAndInitializableRef()  # noqa
 
         with db.view():
             self.assertEqual(x.x, 0)
@@ -350,7 +356,9 @@ class ObjectDatabaseTests:
                 super().__init__(x)
                 self.y = y
 
-        db.setSerializationContext(SerializationContext({'ABC': ArbitraryBaseClass, 'SUB': ArbitrarySubclass}))
+        db.setSerializationContext(
+            SerializationContext({"ABC": ArbitraryBaseClass, "SUB": ArbitrarySubclass})
+        )
 
         schema = Schema("test_schema")
 
@@ -476,8 +484,8 @@ class ObjectDatabaseTests:
 
         self.assertTrue(
             db1.waitForCondition(
-                lambda: not db2Connection.exists(),
-                timeout=2.0*self.PERFORMANCE_FACTOR)
+                lambda: not db2Connection.exists(), timeout=2.0 * self.PERFORMANCE_FACTOR
+            )
         )
 
     def checkCallbackTriggersLazyLoad(self, callback, shouldExist=True):
@@ -517,7 +525,7 @@ class ObjectDatabaseTests:
         self.checkCallbackTriggersLazyLoad(lambda c: self.assertEqual(c.k, 2))
 
     def test_lazy_subscriptions_write(self):
-        self.checkCallbackTriggersLazyLoad(lambda c: setattr(c, 'k', 20))
+        self.checkCallbackTriggersLazyLoad(lambda c: setattr(c, "k", 20))
 
     def test_lazy_subscriptions_exists(self):
         self.checkCallbackTriggersLazyLoad(lambda c: c.exists())
@@ -651,6 +659,7 @@ class ObjectDatabaseTests:
             t = Test(i=1)
 
         schema2 = Schema("schema")
+
         @schema2.define
         class Test:
             i = int
@@ -724,8 +733,7 @@ class ObjectDatabaseTests:
             FINISHED.append(True)
 
             db.waitForCondition(
-                lambda: len(FINISHED) == threadCount,
-                10.0*self.PERFORMANCE_FACTOR
+                lambda: len(FINISHED) == threadCount, 10.0 * self.PERFORMANCE_FACTOR
             )
             db.flush()
 
@@ -733,7 +741,7 @@ class ObjectDatabaseTests:
                 actuallyVisible = len(Counter.lookupAll())
 
             if actuallyVisible != count * threadCount:
-                print("TOTAL is ", actuallyVisible, " != ", count*threadCount)
+                print("TOTAL is ", actuallyVisible, " != ", count * threadCount)
             else:
                 OK.append(True)
 
@@ -747,7 +755,7 @@ class ObjectDatabaseTests:
         db1 = self.createNewDb()
         db1.subscribeToSchema(schema)
         with db1.view():
-            self.assertEqual(len(Counter.lookupAll()), count*threadCount)
+            self.assertEqual(len(Counter.lookupAll()), count * threadCount)
 
         db2 = self.createNewDb()
 
@@ -755,7 +763,7 @@ class ObjectDatabaseTests:
             db2.subscribeToIndex(Counter, k=i)
         db2.flush()
         with db2.view():
-            self.assertEqual(len(Counter.lookupAll()), count*threadCount)
+            self.assertEqual(len(Counter.lookupAll()), count * threadCount)
 
         self.assertEqual(len(OK), 10)
 
@@ -1084,7 +1092,7 @@ class ObjectDatabaseTests:
                     counter = counters[int(random.random() * len(counters))]
 
                     if counter.exists():
-                        if random.random() < .001:
+                        if random.random() < 0.001:
                             counter.delete()
                         else:
                             counter.k = int(random.random() * 100)
@@ -1092,12 +1100,14 @@ class ObjectDatabaseTests:
                         didOne = True
 
                 if didOne:
-                    counter_vals_by_tn[db._cur_transaction_num + 1] = {c: c.k for c in counters if c.exists()}
+                    counter_vals_by_tn[db._cur_transaction_num + 1] = {
+                        c: c.k for c in counters if c.exists()
+                    }
 
             if didOne:
                 views_by_tn[db._cur_transaction_num] = db.view()
 
-            while views_by_tn and random.random() < .5 or len(views_by_tn) > 10:
+            while views_by_tn and random.random() < 0.5 or len(views_by_tn) > 10:
                 # pick a random view and check that it's consistent
                 all_tids = list(views_by_tn)
                 tid = all_tids[int(random.random() * len(all_tids))]
@@ -1111,7 +1121,7 @@ class ObjectDatabaseTests:
 
                 del views_by_tn[tid]
 
-            if random.random() < .05 and views_by_tn:
+            if random.random() < 0.05 and views_by_tn:
                 with db.view():
                     curCounterVals = {c: c.k for c in counters if c.exists()}
 
@@ -1151,7 +1161,7 @@ class ObjectDatabaseTests:
         # database doesn't have this
         t0 = time.time()
         while time.time() - t0 < 1.0 and self.mem_store.storedStringCount() >= 2:
-            time.sleep(.01)
+            time.sleep(0.01)
 
         self.assertLess(self.mem_store.storedStringCount(), 4)
 
@@ -1296,14 +1306,13 @@ class ObjectDatabaseTests:
         with db.transaction():
             while obs:
                 # delete a middle object in the list
-                obs.pop(len(obs)//2).delete()
+                obs.pop(len(obs) // 2).delete()
 
                 getId = lambda o: o._identity
 
                 # in-view version of this should be correct
                 self.assertEqual(
-                    sorted(Counter.lookupAll(), key=getId),
-                    sorted(obs, key=getId)
+                    sorted(Counter.lookupAll(), key=getId), sorted(obs, key=getId)
                 )
 
     def test_index_consistency(self):
@@ -1316,8 +1325,8 @@ class ObjectDatabaseTests:
             x = int
             y = int
 
-            pair = Index('x', 'y')
-            single = Index('x')
+            pair = Index("x", "y")
+            single = Index("x")
 
         db.subscribeToSchema(schema)
 
@@ -1391,7 +1400,7 @@ class ObjectDatabaseTests:
         class Object:
             k = Indexed(int)
 
-            pair_index = Index('k', 'k')
+            pair_index = Index("k", "k")
 
         db.subscribeToSchema(schema)
 
@@ -1574,8 +1583,8 @@ class ObjectDatabaseTests:
             c2_0 = Counter(k=0)
             c2_1 = Counter(k=1)
 
-        db1.waitForCondition(lambda: c2_0.exists(), 2*self.PERFORMANCE_FACTOR)
-        db2.waitForCondition(lambda: c2_1.exists(), 2*self.PERFORMANCE_FACTOR)
+        db1.waitForCondition(lambda: c2_0.exists(), 2 * self.PERFORMANCE_FACTOR)
+        db2.waitForCondition(lambda: c2_1.exists(), 2 * self.PERFORMANCE_FACTOR)
 
         with db2.view():
             self.assertFalse(c2_0.exists())
@@ -1586,15 +1595,15 @@ class ObjectDatabaseTests:
         with db_all.transaction():
             c2_0.k = 1
 
-        db1.waitForCondition(lambda: c2_0.exists(), 2*self.PERFORMANCE_FACTOR)
-        db2.waitForCondition(lambda: c2_0.exists(), 2*self.PERFORMANCE_FACTOR)
+        db1.waitForCondition(lambda: c2_0.exists(), 2 * self.PERFORMANCE_FACTOR)
+        db2.waitForCondition(lambda: c2_0.exists(), 2 * self.PERFORMANCE_FACTOR)
 
         # now, we should see it get subscribed to in both
         with db_all.transaction():
             c2_0.x = 40
 
-        db1.waitForCondition(lambda: c2_0.x == 40, 2*self.PERFORMANCE_FACTOR)
-        db2.waitForCondition(lambda: c2_0.x == 40, 2*self.PERFORMANCE_FACTOR)
+        db1.waitForCondition(lambda: c2_0.x == 40, 2 * self.PERFORMANCE_FACTOR)
+        db2.waitForCondition(lambda: c2_0.x == 40, 2 * self.PERFORMANCE_FACTOR)
 
         # but if we make a new database connection and subscribe, we won't see it
         db3 = self.createNewDb()
@@ -1667,7 +1676,7 @@ class ObjectDatabaseTests:
         r1.start()
 
         try:
-            time.sleep(.10)
+            time.sleep(0.10)
             self.assertEqual(executed[0], 0)
 
             with db.transaction():
@@ -1746,7 +1755,7 @@ class ObjectDatabaseTests:
         db.subscribeToSchema(s)
 
         with db.transaction():
-            someThings = [Thing(nextUpdate=t0+0.001, timesUpdated=0) for _ in range(10)]
+            someThings = [Thing(nextUpdate=t0 + 0.001, timesUpdated=0) for _ in range(10)]
 
         def incrementor():
             with db.transaction():
@@ -1767,7 +1776,11 @@ class ObjectDatabaseTests:
         self.assertTrue(time.time() - t0 < 1.2)
 
         r1.start()
-        self.assertTrue(db.waitForCondition(lambda: sum(x.timesUpdated for x in Thing.lookupAll()) >= 2000, timeout=2.0))
+        self.assertTrue(
+            db.waitForCondition(
+                lambda: sum(x.timesUpdated for x in Thing.lookupAll()) >= 2000, timeout=2.0
+            )
+        )
         self.assertTrue(time.time() - t0 < 2.2)
         r1.stop()
 
@@ -1788,15 +1801,15 @@ class ObjectDatabaseTests:
 
         r1 = Reactor(db, incrementor)
 
-        self.assertEqual(r1.next(timeout=.01), 0)
-        self.assertIs(r1.next(timeout=.01), object_database.reactor.Timeout)
+        self.assertEqual(r1.next(timeout=0.01), 0)
+        self.assertIs(r1.next(timeout=0.01), object_database.reactor.Timeout)
 
         with db.transaction():
             c = Counter(k=0, x=100)
 
-        self.assertEqual(r1.next(timeout=.01), 1)
-        self.assertEqual(r1.next(timeout=.01), 0)
-        self.assertIs(r1.next(timeout=.01), object_database.reactor.Timeout)
+        self.assertEqual(r1.next(timeout=0.01), 1)
+        self.assertEqual(r1.next(timeout=0.01), 0)
+        self.assertIs(r1.next(timeout=0.01), object_database.reactor.Timeout)
 
         with db.view():
             self.assertEqual(c.k, 100)
@@ -1805,9 +1818,9 @@ class ObjectDatabaseTests:
         with db.transaction():
             c.x += 2
 
-        self.assertEqual(r1.next(timeout=.01), 1)
-        self.assertEqual(r1.next(timeout=.01), 0)
-        self.assertIs(r1.next(timeout=.01), object_database.reactor.Timeout)
+        self.assertEqual(r1.next(timeout=0.01), 1)
+        self.assertEqual(r1.next(timeout=0.01), 0)
+        self.assertIs(r1.next(timeout=0.01), object_database.reactor.Timeout)
 
         with db.view():
             self.assertEqual(c.k, 102)
@@ -1849,7 +1862,7 @@ class ObjectDatabaseTests:
         with db.transaction():
             c = Counter(k=0, x=10)
 
-        self.assertFalse(checker.blockUntilTrue(timeout=.00001))
+        self.assertFalse(checker.blockUntilTrue(timeout=0.00001))
         self.assertTrue(checker.blockUntilTrue(timeout=1.0))
 
         self.assertTrue(incrementCount[0] >= 10)
@@ -1858,7 +1871,7 @@ class ObjectDatabaseTests:
         with db.transaction():
             c.x += 5
 
-        self.assertFalse(checker.blockUntilTrue(timeout=.00001))
+        self.assertFalse(checker.blockUntilTrue(timeout=0.00001))
         self.assertTrue(checker.blockUntilTrue(timeout=1.0))
 
         self.assertTrue(incrementCount[0] >= 15)
@@ -1904,7 +1917,7 @@ class ObjectDatabaseTests:
         blocker.releaseCallback()
 
         for e in subscriptionEvents:
-            assert e.wait(timeout=2.0*pfactor)
+            assert e.wait(timeout=2.0 * pfactor)
 
         with db2.transaction():
             # verify we see the write on c1
@@ -1954,7 +1967,7 @@ class ObjectDatabaseTests:
         blocker.releaseCallback()
 
         for e in subscriptionEvents:
-            assert e.wait(timeout=2.0*self.PERFORMANCE_FACTOR)
+            assert e.wait(timeout=2.0 * self.PERFORMANCE_FACTOR)
 
         with db2.transaction():
             # verify we see the write on c1
@@ -2085,7 +2098,7 @@ class ObjectDatabaseTests:
 
             # make sure that the main db sees it
             for thing in things:
-                db.waitForCondition(lambda: thing.exists(), 10*self.PERFORMANCE_FACTOR)
+                db.waitForCondition(lambda: thing.exists(), 10 * self.PERFORMANCE_FACTOR)
 
             # verify the main db sees something quadratic in the number of transactions plus a constant
             self.assertLess(db._messages_received, (len(schemas) + 1) * (len(schemas) + 2) + 8)
@@ -2110,7 +2123,7 @@ class ObjectDatabaseTests:
 
         m1 = numpy.mean(times[:1000])
         m2 = numpy.mean(times[-1000:])
-        self.assertTrue(abs(m2/m1-1) < 1, (m1, m2))
+        self.assertTrue(abs(m2 / m1 - 1) < 1, (m1, m2))
 
     def test_memory_growth(self):
         db1 = self.createNewDb()
@@ -2129,7 +2142,7 @@ class ObjectDatabaseTests:
                 with db1.transaction():
                     x.delete()
 
-            self.server._garbage_collect(intervalOverride=.1)
+            self.server._garbage_collect(intervalOverride=0.1)
             print(passIx, currentMemUsageMb())
             self.assertLess(currentMemUsageMb() - m0, 10.0)
 
@@ -2144,13 +2157,15 @@ class ObjectDatabaseTests:
 
         self.assertLess(db1._connection_state.objectCount(), 10)
 
-        self.assertEqual(db1._connection_state.objectCount(), db2._connection_state.objectCount())
+        self.assertEqual(
+            db1._connection_state.objectCount(), db2._connection_state.objectCount()
+        )
 
-        time.sleep(.1)
+        time.sleep(0.1)
 
         self.assertTrue(len(self.server._version_numbers) > 10)
 
-        self.server._garbage_collect(intervalOverride=.1)
+        self.server._garbage_collect(intervalOverride=0.1)
 
         self.assertTrue(len(self.server._version_numbers) < 10)
 
@@ -2250,7 +2265,7 @@ class ObjectDatabaseOverChannelTestsWithRedis(unittest.TestCase, ObjectDatabaseT
         self.tempDirName = self.tempDir.__enter__()
         self.auth_token = genToken()
 
-        if hasattr(self, 'redisProcess') and self.redisProcess:
+        if hasattr(self, "redisProcess") and self.redisProcess:
             self.redisProcess.tearDown()
 
         self.redisProcess = RedisTestHelper(port=1115)
@@ -2258,7 +2273,7 @@ class ObjectDatabaseOverChannelTestsWithRedis(unittest.TestCase, ObjectDatabaseT
         try:
             self.mem_store = RedisPersistence(port=1115)
             self.server = InMemServer(self.mem_store, self.auth_token)
-            self.server._gc_interval = .1
+            self.server._gc_interval = 0.1
             self.server.start()
         except Exception:
             self.redisProcess.tearDown()
@@ -2319,7 +2334,7 @@ class ObjectDatabaseOverChannelTestsInMemory(unittest.TestCase, ObjectDatabaseTe
 
         self.mem_store = InMemoryPersistence()
         self.server = InMemServer(self.mem_store, self.auth_token)
-        self.server._gc_interval = .1
+        self.server._gc_interval = 0.1
         self.server.start()
         self.allConnections = []
 
@@ -2338,7 +2353,7 @@ class ObjectDatabaseOverChannelTestsInMemory(unittest.TestCase, ObjectDatabaseTe
         db = DatabaseConnection(self.server.getChannel())
 
         old_interval = messages.getHeartbeatInterval()
-        messages.setHeartbeatInterval(.25)
+        messages.setHeartbeatInterval(0.25)
 
         try:
             with self.assertRaises(DisconnectedException):
@@ -2349,7 +2364,7 @@ class ObjectDatabaseOverChannelTestsInMemory(unittest.TestCase, ObjectDatabaseTe
 
     def test_heartbeats(self):
         old_interval = messages.getHeartbeatInterval()
-        messages.setHeartbeatInterval(.25)
+        messages.setHeartbeatInterval(0.25)
 
         try:
             db1 = self.createNewDb()
@@ -2370,7 +2385,7 @@ class ObjectDatabaseOverChannelTestsInMemory(unittest.TestCase, ObjectDatabaseTe
 
             db2.waitForCondition(
                 lambda: len(core_schema.Connection.lookupAll()) == 1,
-                5.0 * self.PERFORMANCE_FACTOR
+                5.0 * self.PERFORMANCE_FACTOR,
             )
 
             with db2.view():
@@ -2399,7 +2414,7 @@ class ObjectDatabaseOverChannelTestsInMemory(unittest.TestCase, ObjectDatabaseTe
         def readerthread(db):
             c = None
             while not shouldStop[0]:
-                if numpy.random.uniform() < .5:
+                if numpy.random.uniform() < 0.5:
                     if c is None:
                         with db.transaction():
                             c = Counter(k=0)
@@ -2413,7 +2428,10 @@ class ObjectDatabaseOverChannelTestsInMemory(unittest.TestCase, ObjectDatabaseTe
 
             isOK.append(True)
 
-        threads = [threading.Thread(target=readerthread, args=(db1 if threadcount % 2 else db2,)) for _ in range(threadcount)]
+        threads = [
+            threading.Thread(target=readerthread, args=(db1 if threadcount % 2 else db2,))
+            for _ in range(threadcount)
+        ]
         for t in threads:
             t.start()
 
@@ -2437,13 +2455,16 @@ class ObjectDatabaseOverSocketTests(unittest.TestCase, ObjectDatabaseTests):
         self.auth_token = genToken()
 
         sc = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        sc.load_cert_chain('testcert.cert', 'testcert.key')
+        sc.load_cert_chain("testcert.cert", "testcert.key")
 
         self.server = TcpServer(
-            host="localhost", port=8888, mem_store=self.mem_store,
-            ssl_context=sc, auth_token=self.auth_token
+            host="localhost",
+            port=8888,
+            mem_store=self.mem_store,
+            ssl_context=sc,
+            auth_token=self.auth_token,
         )
-        self.server._gc_interval = .1
+        self.server._gc_interval = 0.1
         self.server.start()
 
     def createNewDb(self, useSecondaryLoop=False):
@@ -2456,7 +2477,7 @@ class ObjectDatabaseOverSocketTests(unittest.TestCase, ObjectDatabaseTests):
 
     def test_very_large_subscriptions(self):
         old_interval = messages.getHeartbeatInterval()
-        messages.setHeartbeatInterval(.1)
+        messages.setHeartbeatInterval(0.1)
 
         try:
             db1 = self.createNewDb()
@@ -2505,12 +2526,13 @@ class ObjectDatabaseOverSocketTests(unittest.TestCase, ObjectDatabaseTests):
                 self.assertEqual(len(Counter.lookupAll(k=1)), 5000)
                 self.assertEqual(len(Counter.lookupAll(k=2)), 5000)
                 self.assertEqual(
-                    sorted(set([c.x for c in Counter.lookupAll(k=1)])),
-                    sorted(range(5000))
+                    sorted(set([c.x for c in Counter.lookupAll(k=1)])), sorted(range(5000))
                 )
 
             # we should never have had a really long latency
-            self.assertTrue(maxLatency[0] < subscriptionTime / 10.0, (maxLatency[0], subscriptionTime))
+            self.assertTrue(
+                maxLatency[0] < subscriptionTime / 10.0, (maxLatency[0], subscriptionTime)
+            )
 
         finally:
             messages.setHeartbeatInterval(old_interval)

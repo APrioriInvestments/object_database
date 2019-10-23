@@ -42,7 +42,7 @@ def main(argv):
     parsedArgs = parser.parse_args(argv[1:])
 
     level = parsedArgs.log_level.upper()
-    level = validateLogLevel(level, fallback='INFO')
+    level = validateLogLevel(level, fallback="INFO")
 
     configureLogging(preamble=str(parsedArgs.instanceid), level=level)
 
@@ -52,12 +52,13 @@ def main(argv):
         "service_entrypoint.py connecting to %s:%s for %s",
         parsedArgs.host,
         parsedArgs.port,
-        parsedArgs.instanceid
+        parsedArgs.instanceid,
     )
 
     setCodebaseInstantiationDirectory(parsedArgs.sourceDir)
 
     try:
+
         def dbConnectionFactory():
             return connect(parsedArgs.host, parsedArgs.port, parsedArgs.authToken)
 
@@ -67,7 +68,7 @@ def main(argv):
             logger.info("Our ip explicitly specified as %s", parsedArgs.ip)
             ourIP = parsedArgs.ip
         else:
-            ourIP = mainDbConnection.getConnectionMetadata()['sockname'][0]
+            ourIP = mainDbConnection.getConnectionMetadata()["sockname"][0]
             logger.info("Our ip inferred from our connection back to the server as %s", ourIP)
 
         manager = ServiceWorker(
@@ -76,7 +77,7 @@ def main(argv):
             int(parsedArgs.instanceid),
             parsedArgs.storageRoot,
             parsedArgs.authToken,
-            ourIP
+            ourIP,
         )
 
         def shutdownCleanly(signalNumber, frame):
@@ -90,9 +91,11 @@ def main(argv):
 
         return 0
     except Exception:
-        logger.error("service_entrypoint failed with an exception:\n%s", traceback.format_exc())
+        logger.error(
+            "service_entrypoint failed with an exception:\n%s", traceback.format_exc()
+        )
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main(sys.argv))

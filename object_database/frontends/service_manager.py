@@ -33,24 +33,34 @@ from object_database.util import (
     configureLogging,
     genToken,
     sslContextFromCertPathOrNone,
-    validateLogLevel
+    validateLogLevel,
 )
-from object_database import TcpServer, RedisPersistence, InMemoryPersistence, DisconnectedException
+from object_database import (
+    TcpServer,
+    RedisPersistence,
+    InMemoryPersistence,
+    DisconnectedException,
+)
 from object_database.service_manager.SubprocessServiceManager import SubprocessServiceManager
 
 
 ownDir = os.path.dirname(os.path.abspath(__file__))
 
 
-def startServiceManagerProcess(tempDirectoryName, port, authToken, *,
-                               loglevelName="INFO",
-                               timeout=1.0,
-                               verbose=True,
-                               ownHostname='localhost',
-                               dbHostname='localhost',
-                               runDb=True,
-                               logDir=True,
-                               sslPath=None):
+def startServiceManagerProcess(
+    tempDirectoryName,
+    port,
+    authToken,
+    *,
+    loglevelName="INFO",
+    timeout=1.0,
+    verbose=True,
+    ownHostname="localhost",
+    dbHostname="localhost",
+    runDb=True,
+    logDir=True,
+    sslPath=None,
+):
     if not verbose:
         kwargs = dict(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
@@ -58,22 +68,29 @@ def startServiceManagerProcess(tempDirectoryName, port, authToken, *,
 
     cmd = [
         sys.executable,
-        os.path.join(ownDir, 'service_manager.py'),
-        ownHostname, dbHostname, str(port),
-        '--service-token', authToken,
-        '--shutdownTimeout', str(timeout),
-        '--log-level', loglevelName,
-        '--source', os.path.join(tempDirectoryName, 'source'),
-        '--storage', os.path.join(tempDirectoryName, 'storage'),
+        os.path.join(ownDir, "service_manager.py"),
+        ownHostname,
+        dbHostname,
+        str(port),
+        "--service-token",
+        authToken,
+        "--shutdownTimeout",
+        str(timeout),
+        "--log-level",
+        loglevelName,
+        "--source",
+        os.path.join(tempDirectoryName, "source"),
+        "--storage",
+        os.path.join(tempDirectoryName, "storage"),
     ]
     if runDb:
-        cmd.append('--run_db')
+        cmd.append("--run_db")
 
     if logDir:
-        cmd.extend(['--logdir', os.path.join(tempDirectoryName, 'logs')])
+        cmd.extend(["--logdir", os.path.join(tempDirectoryName, "logs")])
 
     if sslPath:
-        cmd.extend(['--ssl-path', sslPath])
+        cmd.extend(["--ssl-path", sslPath])
 
     server = subprocess.Popen(cmd, **kwargs)
     try:
@@ -86,7 +103,7 @@ def startServiceManagerProcess(tempDirectoryName, port, authToken, *,
             msg = f"Failed to start service_manager (retcode:{server.returncode})"
 
             if verbose and server.stderr:
-                error = b''.join(server.stderr.readlines())
+                error = b"".join(server.stderr.readlines())
                 msg += "\n" + error.decode("utf-8")
             server.terminate()
             server.wait()
@@ -96,25 +113,20 @@ def startServiceManagerProcess(tempDirectoryName, port, authToken, *,
 
 
 def autoconfigureAndStartServiceManagerProcess(
-        port=None, authToken=None, loglevelName=None, **kwargs):
+    port=None, authToken=None, loglevelName=None, **kwargs
+):
 
     port = port or 8020
     authToken = authToken or genToken()
 
     if loglevelName is None:
-        loglevelName = logging.getLevelName(
-            logging.getLogger(__name__).getEffectiveLevel()
-        )
+        loglevelName = logging.getLevelName(logging.getLogger(__name__).getEffectiveLevel())
 
     tempDirObj = tempfile.TemporaryDirectory()
     tempDirectoryName = tempDirObj.name
 
     server = startServiceManagerProcess(
-        tempDirectoryName,
-        port,
-        authToken,
-        loglevelName=loglevelName,
-        **kwargs
+        tempDirectoryName, port, authToken, loglevelName=loglevelName, **kwargs
     )
 
     def cleanupFn(error=False):
@@ -130,14 +142,13 @@ def autoconfigureAndStartServiceManagerProcess(
             try:
                 server.wait(timeout=5.0)
             except subprocess.TimeoutExpired:
-                logging.getLogger(__name__).warning(
-                    f"Failed to kill service manager process."
-                )
+                logging.getLogger(__name__).warning(f"Failed to kill service manager process.")
 
         if error or server.returncode:
             logging.getLogger(__name__).warning(
-                "Exited with an error. Leaving temporary directory around for inspection: {}"
-                .format(tempDirectoryName)
+                "Exited with an error. Leaving temporary directory around for inspection: {}".format(
+                    tempDirectoryName
+                )
             )
         else:
             tempDirObj.cleanup()
@@ -150,33 +161,46 @@ def main(argv=None):
         # this is a needed pathway for the 'console_scripts' in setup.py
         argv = sys.argv
 
-    parser = argparse.ArgumentParser("Run the main service manager and the object_database_service.")
+    parser = argparse.ArgumentParser(
+        "Run the main service manager and the object_database_service."
+    )
 
     parser.add_argument("own_hostname")
     parser.add_argument("db_hostname")
     parser.add_argument("port", type=int)
-    parser.add_argument("--source", help="path for the source trees used by services", required=True)
-    parser.add_argument("--storage", help="path for local storage used by services", required=True)
     parser.add_argument(
-        "--service-token", type=str, required=True,
-        help="the auth token to be used with this service"
+        "--source", help="path for the source trees used by services", required=True
     )
-    parser.add_argument("--run_db", default=False, action='store_true')
+    parser.add_argument(
+        "--storage", help="path for local storage used by services", required=True
+    )
+    parser.add_argument(
+        "--service-token",
+        type=str,
+        required=True,
+        help="the auth token to be used with this service",
+    )
+    parser.add_argument("--run_db", default=False, action="store_true")
 
-    parser.add_argument("--ssl-path", default=None, required=False, help="path to (self-signed) SSL certificate")
+    parser.add_argument(
+        "--ssl-path",
+        default=None,
+        required=False,
+        help="path to (self-signed) SSL certificate",
+    )
     parser.add_argument("--redis_port", type=int, default=None, required=False)
 
     parser.add_argument("--max_gb_ram", type=float, default=None, required=False)
     parser.add_argument("--max_cores", type=int, default=None, required=False)
     parser.add_argument("--shutdownTimeout", type=float, default=None, required=False)
 
-    parser.add_argument('--logdir', default=None, required=False)
+    parser.add_argument("--logdir", default=None, required=False)
     parser.add_argument("--log-level", required=False, default="INFO")
 
     parsedArgs = parser.parse_args(argv[1:])
 
     level_name = parsedArgs.log_level.upper()
-    level_name = validateLogLevel(level_name, fallback='INFO')
+    level_name = validateLogLevel(level_name, fallback="INFO")
 
     # getLevelName returns a name when given an int and an int when given a name,
     # and there doesn't seem to be an other way to get the int from the string.
@@ -186,13 +210,15 @@ def main(argv=None):
     parsedArgs = parser.parse_args(argv[1:])
 
     if parsedArgs.redis_port is not None and not parsedArgs.run_db:
-        sys.stderr.write('error: please add --run_db if you want to run a database\n')
+        sys.stderr.write("error: please add --run_db if you want to run a database\n")
         parser.print_help()
         return 2
 
     logger.info(
         "ServiceManager on %s connecting to %s:%s",
-        parsedArgs.own_hostname, parsedArgs.db_hostname, parsedArgs.port
+        parsedArgs.own_hostname,
+        parsedArgs.db_hostname,
+        parsedArgs.port,
     )
     shouldStop = threading.Event()
 
@@ -216,17 +242,20 @@ def main(argv=None):
             databaseServer = TcpServer(
                 parsedArgs.own_hostname,
                 object_database_port,
-                RedisPersistence(port=parsedArgs.redis_port) if parsedArgs.redis_port is not None
+                RedisPersistence(port=parsedArgs.redis_port)
+                if parsedArgs.redis_port is not None
                 else InMemoryPersistence(),
                 ssl_context=ssl_ctx,
-                auth_token=parsedArgs.service_token
+                auth_token=parsedArgs.service_token,
             )
 
             databaseServer.start()
 
             logger.info(
                 "Started a database server on %s:%s",
-                parsedArgs.own_hostname, object_database_port)
+                parsedArgs.own_hostname,
+                object_database_port,
+            )
 
         serviceManager = None
 
@@ -244,34 +273,53 @@ def main(argv=None):
                             parsedArgs.storage,
                             parsedArgs.service_token,
                             isMaster=parsedArgs.run_db,
-                            maxGbRam=parsedArgs.max_gb_ram or int(psutil.virtual_memory().total / 1024.0 / 1024.0 / 1024.0 + .1),
+                            maxGbRam=parsedArgs.max_gb_ram
+                            or int(
+                                psutil.virtual_memory().total / 1024.0 / 1024.0 / 1024.0 + 0.1
+                            ),
                             maxCores=parsedArgs.max_cores or multiprocessing.cpu_count(),
                             logfileDirectory=parsedArgs.logdir,
                             shutdownTimeout=parsedArgs.shutdownTimeout,
-                            logLevelName=level_name
+                            logLevelName=level_name,
                         )
                         logger.info("Connected the service-manager")
-                    except (ConnectionRefusedError, DisconnectedException, concurrent.futures._base.TimeoutError, OSError):
+                    except (
+                        ConnectionRefusedError,
+                        DisconnectedException,
+                        concurrent.futures._base.TimeoutError,
+                        OSError,
+                    ):
                         serviceManager = None
 
                     if serviceManager is None:
-                        logger.error("Failed to connect to service manager. Sleeping and retrying")
+                        logger.error(
+                            "Failed to connect to service manager. Sleeping and retrying"
+                        )
                         time.sleep(10)
                     else:
                         serviceManager.start()
                 else:
-                    timeout = max(.1, serviceManager.shutdownTimeout / 10)
+                    timeout = max(0.1, serviceManager.shutdownTimeout / 10)
                     shouldStop.wait(timeout=timeout)
                     try:
                         serviceManager.cleanup()
 
-                    except (ConnectionRefusedError, DisconnectedException, concurrent.futures._base.TimeoutError, OSError):
+                    except (
+                        ConnectionRefusedError,
+                        DisconnectedException,
+                        concurrent.futures._base.TimeoutError,
+                        OSError,
+                    ):
                         # try to reconnect
-                        logger.error("Disconnected from object_database host. Attempting to reconnect.")
+                        logger.error(
+                            "Disconnected from object_database host. Attempting to reconnect."
+                        )
                         serviceManager.stop(gracefully=False)
                         serviceManager = None
                     except Exception:
-                        logger.error("Service manager cleanup failed:\n%s", traceback.format_exc())
+                        logger.error(
+                            "Service manager cleanup failed:\n%s", traceback.format_exc()
+                        )
         except KeyboardInterrupt:
             logger.warning("Exiting due to KeyboardInterrupt")
             return 0
@@ -291,5 +339,5 @@ def main(argv=None):
                 logger.error("Failed to stop the database server:\n%s", traceback.format_exc())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main(sys.argv))

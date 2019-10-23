@@ -72,7 +72,7 @@ class Ring:
 class RingInvariantTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        configureLogging('database_ring_invariant_test')
+        configureLogging("database_ring_invariant_test")
 
     def setUp(self):
         self.token = genToken()
@@ -94,7 +94,7 @@ class RingInvariantTest(unittest.TestCase):
             r = Ring.New()
             for i in range(10):
                 r.insert(i)
-                self.assertEqual(r.check(), (i+2, 0))
+                self.assertEqual(r.check(), (i + 2, 0))
 
     def test_ring_invariants_reader_writer(self):
         db = self.createNewDb()
@@ -127,12 +127,12 @@ class RingInvariantTest(unittest.TestCase):
         for i in range(100):
             writeSome()
 
-            isLazy = (i%2) == 0
+            isLazy = (i % 2) == 0
 
             k = None if i % 5 != 3 or not isLazy else numpy.random.choice(10)
 
-            print("Pass ", i, 'isLazy=', isLazy, 'k=', k)
+            print("Pass ", i, "isLazy=", isLazy, "k=", k)
 
             count, sum = checkSome(isLazy, k)
-            self.assertEqual(count, i+2)
+            self.assertEqual(count, i + 2)
             self.assertEqual(sum, 0)

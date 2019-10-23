@@ -29,14 +29,36 @@ from object_database.service_manager.ServiceManager import ServiceManager
 from object_database.service_manager.ServiceBase import ServiceBase
 import object_database.service_manager.ServiceInstance as ServiceInstance
 from object_database.web.cells import (
-    Button, SubscribedSequence, Subscribed,
-    Text, Dropdown, Card, Plot, Code, Slot, CodeEditor, Tabs, Grid, Flex,
-    Sheet, ensureSubscribedType, SubscribeAndRetry, Expands, AsyncDropdown, ButtonGroup, Octicon, SplitView
+    Button,
+    SubscribedSequence,
+    Subscribed,
+    Text,
+    Dropdown,
+    Card,
+    Plot,
+    Code,
+    Slot,
+    CodeEditor,
+    Tabs,
+    Grid,
+    Flex,
+    Sheet,
+    ensureSubscribedType,
+    SubscribeAndRetry,
+    Expands,
+    AsyncDropdown,
+    ButtonGroup,
+    Octicon,
+    SplitView,
 )
 
 from object_database import (
-    Schema, Indexed, core_schema, Index,
-    service_schema, current_transaction
+    Schema,
+    Indexed,
+    core_schema,
+    Index,
+    service_schema,
+    current_transaction,
 )
 
 ownDir = os.path.dirname(os.path.abspath(__file__))
@@ -166,7 +188,12 @@ class TextEditorService(ServiceBase):
             if TextEditor.lookupAny() is not None:
                 TextEditor.lookupAny().code = buffer
 
-        ed = CodeEditor(keybindings={'Enter': onEnter}, noScroll=True, minLines=50, onTextChange=onTextChange)
+        ed = CodeEditor(
+            keybindings={"Enter": onEnter},
+            noScroll=True,
+            minLines=50,
+            onTextChange=onTextChange,
+        )
 
         def makePlotData():
             # data must be a list or dict here, but this is checked/asserted
@@ -176,7 +203,7 @@ class TextEditorService(ServiceBase):
                 data = ast.literal_eval(toEval.get())
             except (AttributeError, SyntaxError):
                 data = {}
-            return {'data': data}
+            return {"data": data}
 
         def onCodeChange():
             if TextEditor.lookupAny() is not None:
@@ -184,10 +211,7 @@ class TextEditorService(ServiceBase):
                     ed.setContents(TextEditor.lookupAny().code)
 
         # return Columns(ed, Card(Plot(makePlotData).height("100%").width("100%"))) + Subscribed(onCodeChange)
-        return SplitView([
-            (ed, 1),
-            (Card(Plot(makePlotData)), 1)
-        ]) + Subscribed(onCodeChange)
+        return SplitView([(ed, 1), (Card(Plot(makePlotData)), 1)]) + Subscribed(onCodeChange)
 
 
 class GraphDisplayService(ServiceBase):
@@ -208,7 +232,12 @@ class GraphDisplayService(ServiceBase):
         depth = Slot(50)
 
         def twinned():
-            data = {'PointsToShow': {'timestamp': [1500000000 + x for x in range(1000)], 'y': [numpy.sin(x) for x in range(1000)]}}
+            data = {
+                "PointsToShow": {
+                    "timestamp": [1500000000 + x for x in range(1000)],
+                    "y": [numpy.sin(x) for x in range(1000)],
+                }
+            }
             slot = Slot(None)
             p1 = Plot(lambda: data, xySlot=slot)
             p2 = Plot(lambda: data, xySlot=slot)
@@ -223,61 +252,65 @@ class GraphDisplayService(ServiceBase):
         return Tabs(
             Overlay=Card(
                 Plot(
-                    lambda:
-                        {
-                            'single_array': [1, 2, 3, 1, 2, 3],
-                            'xy': {
-                                'x': [1, 2, 3, 1, 2, 3],
-                                'y': [4, 5, 6, 7, 8, 9]
-                            },
-                        }
-                ).width(600).height(400) + Code("HI")
+                    lambda: {
+                        "single_array": [1, 2, 3, 1, 2, 3],
+                        "xy": {"x": [1, 2, 3, 1, 2, 3], "y": [4, 5, 6, 7, 8, 9]},
+                    }
+                )
+                .width(600)
+                .height(400)
+                + Code("HI")
             ),
             AGrid=Grid(
-                colFun=lambda: ['A', 'B', 'B'],
-                rowFun=lambda: ['1', '2', '2'],
+                colFun=lambda: ["A", "B", "B"],
+                rowFun=lambda: ["1", "2", "2"],
                 headerFun=lambda x: x,
                 rowLabelFun=None,
-                rendererFun=lambda row, col: row+col
+                rendererFun=lambda row, col: row + col,
             ),
             ASheet=Sheet(
                 ["A", "B", "C"],
                 1000000,
-                lambda rowIx: ["(%s) ts" % rowIx, rowIx, rowIx+1, rowIx+2]
-            ).width('calc(100vw - 70px)').height('calc(100vh - 150px)'),
+                lambda rowIx: ["(%s) ts" % rowIx, rowIx, rowIx + 1, rowIx + 2],
+            )
+            .width("calc(100vw - 70px)")
+            .height("calc(100vh - 150px)"),
             Timestamps=(
-                Button("Add a point!", GraphDisplayService.addAPoint) +
-                Card(Plot(GraphDisplayService.chartData)).width(600).height(400)
+                Button("Add a point!", GraphDisplayService.addAPoint)
+                + Card(Plot(GraphDisplayService.chartData)).width(600).height(400)
             ),
             Twinned=Subscribed(twinned),
             feigenbaum=(
                 Dropdown(
                     "Depth",
-                    [(val, depth.setter(val)) for val in [10, 50, 100, 250, 500, 750, 1000]]
-                ) +
-                Dropdown(
+                    [(val, depth.setter(val)) for val in [10, 50, 100, 250, 500, 750, 1000]],
+                )
+                + Dropdown(
                     "Polynomial",
                     [1.0, 1.5, 2.0],
-                    lambda polyVal: setattr(Feigenbaum.lookupAny(), 'y', float(polyVal))
-                ) +
-                Dropdown(
+                    lambda polyVal: setattr(Feigenbaum.lookupAny(), "y", float(polyVal)),
+                )
+                + Dropdown(
                     "Density",
                     list(range(100, 10000, 100)),
-                    lambda polyVal: setattr(Feigenbaum.lookupAny(), 'density', float(polyVal))
-                ) +
-                Card(
-                    Plot(
-                        lambda graph: GraphDisplayService.feigenbaum(graph, depth.get())
-                    )
-                ).width(600).height(400)
-            )
+                    lambda polyVal: setattr(Feigenbaum.lookupAny(), "density", float(polyVal)),
+                )
+                + Card(Plot(lambda graph: GraphDisplayService.feigenbaum(graph, depth.get())))
+                .width(600)
+                .height(400)
+            ),
         )
 
     @staticmethod
     def chartData(linePlot):
         points = sorted(PointsToShow.lookupAll(), key=lambda p: p.timestamp)
 
-        return {'PointsToShow': {'timestamp': [p.timestamp for p in points], 'y': [p.y for p in points]}}
+        return {
+            "PointsToShow": {
+                "timestamp": [p.timestamp for p in points],
+                "y": [p.y for p in points],
+            }
+        }
 
     @staticmethod
     def feigenbaum(linePlot, depth):
@@ -295,21 +328,29 @@ class GraphDisplayService(ServiceBase):
         y = Feigenbaum.lookupAny().y
 
         def feigenbaum(values):
-            x = numpy.ones(len(values)) * .5
+            x = numpy.ones(len(values)) * 0.5
             for _ in range(10000):
-                x = (values * x * (1-x)) ** ((y) ** .5)
+                x = (values * x * (1 - x)) ** ((y) ** 0.5)
 
             its = []
             for _ in range(depth):
-                x = (values * x * (1-x)) ** ((y) ** .5)
+                x = (values * x * (1 - x)) ** ((y) ** 0.5)
                 its.append(x)
 
             return numpy.concatenate(its)
 
         fvals = feigenbaum(values)
 
-        return {"feigenbaum": {'x': numpy.concatenate([values]*(len(fvals)//len(values))), 'y': fvals, 'type': 'scattergl',
-                'mode': 'markers', 'opacity': .5, 'marker': {'size': 2}}}
+        return {
+            "feigenbaum": {
+                "x": numpy.concatenate([values] * (len(fvals) // len(values))),
+                "y": fvals,
+                "type": "scattergl",
+                "mode": "markers",
+                "opacity": 0.5,
+                "marker": {"size": 2},
+            }
+        }
 
 
 class DropdownTestService(ServiceBase):
@@ -319,13 +360,13 @@ class DropdownTestService(ServiceBase):
     @staticmethod
     def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
         return Card(
-            AsyncDropdown('Dropdown', DropdownTestService.delayAndDisplay, Text("LOADING..."))
+            AsyncDropdown("Dropdown", DropdownTestService.delayAndDisplay, Text("LOADING..."))
         )
 
     @staticmethod
     def delayAndDisplay():
         time.sleep(1)
-        return Text('NOW WE HAVE LOADED')
+        return Text("NOW WE HAVE LOADED")
 
 
 bigGrid = Schema("core.test.biggrid")
@@ -335,7 +376,7 @@ bigGrid = Schema("core.test.biggrid")
 class GridValue:
     row = int
     col = int
-    row_and_col = Index('row', 'col')
+    row_and_col = Index("row", "col")
 
     value = int
 
@@ -355,7 +396,9 @@ class BigGridTestService(ServiceBase):
             rowFun=lambda: list(range(ROW_COUNT)),
             headerFun=lambda x: x,
             rowLabelFun=None,
-            rendererFun=lambda row, col: Subscribed(lambda: GridValue.lookupAny(row_and_col=(row, col)).value)
+            rendererFun=lambda row, col: Subscribed(
+                lambda: GridValue.lookupAny(row_and_col=(row, col)).value
+            ),
         )
 
     def doWork(self, shouldStop):
@@ -371,7 +414,9 @@ class BigGridTestService(ServiceBase):
             #  print("WRITNG ", passIx)
             passIx += 1
             time.sleep(GRID_INTERVAL)
-            rows_and_cols = [(row, col) for row in range(ROW_COUNT) for col in range(COL_COUNT)]
+            rows_and_cols = [
+                (row, col) for row in range(ROW_COUNT) for col in range(COL_COUNT)
+            ]
             numpy.random.shuffle(rows_and_cols)
 
             for row, col in rows_and_cols:
@@ -403,28 +448,35 @@ class HappyService(ServiceBase):
         if instance:
             return instance.display(queryArgs)
 
-        return Card(
-            Subscribed(lambda: Text("There are %s happy objects <this should not have lessthans>" % len(Happy.lookupAll()))) +
-            Expands(Text("Closed"), Subscribed(lambda: HappyService.serviceDisplay(serviceObject)))
-        ) + Button("go to google", "http://google.com/") + Flex(SubscribedSequence(
-            lambda: Happy.lookupAll(),
-            lambda h: Button("go to the happy", serviceObject.urlForObject(h, x=10))
-        )) + Subscribed(
-            lambda:
-                ButtonGroup([
-                    Button(
-                        Octicon("list-unordered"),
-                        lambda: None,
-                        active=lambda: True),
-                    Button(
-                        Octicon("terminal"),
-                        lambda: None,
-                        active=lambda: True),
-                    Button(
-                        Octicon("graph"),
-                        lambda: None,
-                        active=lambda: True)
-                ]).nowrap()
+        return (
+            Card(
+                Subscribed(
+                    lambda: Text(
+                        "There are %s happy objects <this should not have lessthans>"
+                        % len(Happy.lookupAll())
+                    )
+                )
+                + Expands(
+                    Text("Closed"),
+                    Subscribed(lambda: HappyService.serviceDisplay(serviceObject)),
+                )
+            )
+            + Button("go to google", "http://google.com/")
+            + Flex(
+                SubscribedSequence(
+                    lambda: Happy.lookupAll(),
+                    lambda h: Button("go to the happy", serviceObject.urlForObject(h, x=10)),
+                )
+            )
+            + Subscribed(
+                lambda: ButtonGroup(
+                    [
+                        Button(Octicon("list-unordered"), lambda: None, active=lambda: True),
+                        Button(Octicon("terminal"), lambda: None, active=lambda: True),
+                        Button(Octicon("graph"), lambda: None, active=lambda: True),
+                    ]
+                ).nowrap()
+            )
         )
 
     def doWork(self, shouldStop):
@@ -435,10 +487,10 @@ class HappyService(ServiceBase):
             h = Happy(i=2)
 
         while not shouldStop.is_set():
-            time.sleep(.5)
+            time.sleep(0.5)
             with self.db.transaction():
                 h = Happy()
-            time.sleep(.5)
+            time.sleep(0.5)
             with self.db.transaction():
 
                 h.delete()
@@ -446,7 +498,9 @@ class HappyService(ServiceBase):
 
 class StorageTest(ServiceBase):
     def initialize(self):
-        with open(os.path.join(self.runtimeConfig.serviceTemporaryStorageRoot, "a.txt"), "w") as f:
+        with open(
+            os.path.join(self.runtimeConfig.serviceTemporaryStorageRoot, "a.txt"), "w"
+        ) as f:
             f.write("This exists")
 
         self.db.subscribeToSchema(core_schema, service_schema, schema)
@@ -464,7 +518,7 @@ class CrashingService(ServiceBase):
         assert False
 
     def doWork(self, shouldStop):
-        time.sleep(.5)
+        time.sleep(0.5)
         assert False
 
 
@@ -491,7 +545,7 @@ class WaitForService(ServiceBase):
 
     def doWork(self, shouldStop):
         while not shouldStop.is_set():
-            time.sleep(.5)
+            time.sleep(0.5)
 
         with self.db.transaction():
             assert Stopped.lookupAny() is None
@@ -500,8 +554,9 @@ class WaitForService(ServiceBase):
 
 def getTestServiceModule(version):
     return {
-        'test_service/__init__.py': '',
-        'test_service/service.py': textwrap.dedent("""
+        "test_service/__init__.py": "",
+        "test_service/service.py": textwrap.dedent(
+            """
             from object_database import Schema, ServiceBase, Indexed, core_schema, service_schema
             import os
             import time
@@ -537,7 +592,10 @@ def getTestServiceModule(version):
                                 os._exit(1)
 
                             self.conn.lastPing = time.time()
-            """.format(version=version))
+            """.format(
+                version=version
+            )
+        ),
     }
 
 
@@ -554,7 +612,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
         self.assertTrue(
             self.database.waitForCondition(
                 lambda: MockServiceLastTimestamp.aliveCount() == count,
-                timeout=timeout * self.ENVIRONMENT_WAIT_MULTIPLIER
+                timeout=timeout * self.ENVIRONMENT_WAIT_MULTIPLIER,
             )
         )
 
@@ -585,12 +643,14 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
 
     def test_starting_uninitializable_services(self):
         with self.database.transaction():
-            svc = ServiceManager.createOrUpdateService(UninitializableService, "UninitializableService", target_count=1)
+            svc = ServiceManager.createOrUpdateService(
+                UninitializableService, "UninitializableService", target_count=1
+            )
 
         self.assertTrue(
             self.database.waitForCondition(
                 lambda: svc.timesBootedUnsuccessfully == ServiceInstance.MAX_BAD_BOOTS,
-                timeout=10 * self.ENVIRONMENT_WAIT_MULTIPLIER
+                timeout=10 * self.ENVIRONMENT_WAIT_MULTIPLIER,
             )
         )
 
@@ -606,7 +666,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
         self.assertTrue(
             self.database.waitForCondition(
                 lambda: svc.timesBootedUnsuccessfully == ServiceInstance.MAX_BAD_BOOTS,
-                timeout=10 * self.ENVIRONMENT_WAIT_MULTIPLIER
+                timeout=10 * self.ENVIRONMENT_WAIT_MULTIPLIER,
             )
         )
 
@@ -654,7 +714,8 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
 
         for count in numpy.random.choice(6, size=20):
             logging.getLogger(__name__).info(
-                "Setting count for MockService to %s and waiting for it to be alive.", count)
+                "Setting count for MockService to %s and waiting for it to be alive.", count
+            )
 
             with self.database.transaction():
                 ServiceManager.startService("MockService", int(count))
@@ -673,9 +734,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
     def test_shutdown_hanging_services(self):
         with self.database.transaction():
             ServiceManager.createOrUpdateService(
-                HangingService,
-                "HangingService",
-                target_count=10
+                HangingService, "HangingService", target_count=10
             )
 
         self.waitForCount(10)
@@ -695,27 +754,35 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
 
     def test_conflicting_codebases(self):
         with self.database.transaction():
-            v1 = service_schema.Codebase.createFromFiles({
-                'test_service/__init__.py': '',
-                'test_service/helper/__init__.py': 'g = 1',
-                'test_service/service.py': textwrap.dedent("""
+            v1 = service_schema.Codebase.createFromFiles(
+                {
+                    "test_service/__init__.py": "",
+                    "test_service/helper/__init__.py": "g = 1",
+                    "test_service/service.py": textwrap.dedent(
+                        """
                     import test_service.helper as helper
                     def f():
                         assert helper.g == 1
                         return 1
-                """)
-            })
+                """
+                    ),
+                }
+            )
 
-            v2 = service_schema.Codebase.createFromFiles({
-                'test_service/__init__.py': '',
-                'test_service/helper/__init__.py': 'g = 2',
-                'test_service/service.py': textwrap.dedent("""
+            v2 = service_schema.Codebase.createFromFiles(
+                {
+                    "test_service/__init__.py": "",
+                    "test_service/helper/__init__.py": "g = 2",
+                    "test_service/service.py": textwrap.dedent(
+                        """
                     import test_service.helper as helper
                     def f():
                         assert helper.g == 2
                         return 2
-                """)
-            })
+                """
+                    ),
+                }
+            )
 
             i1 = v1.instantiate("test_service.service")
             i2 = v2.instantiate("test_service.service")
@@ -733,7 +800,9 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
     @flaky(max_runs=3, min_passes=1)
     def test_redeploy_hanging_services(self):
         with self.database.transaction():
-            ServiceManager.createOrUpdateService(HangingService, "HangingService", target_count=10)
+            ServiceManager.createOrUpdateService(
+                HangingService, "HangingService", target_count=10
+            )
 
         self.waitForCount(10)
 
@@ -748,16 +817,20 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
                 service_schema.Codebase.createFromFiles(getTestServiceModule(2)),
                 "test_service.service.Service",
                 "HangingService",
-                10
+                10,
             )
 
         # this should force a redeploy.
         maxProcessesEver = [0]
 
         def checkIfRedeployedSuccessfully():
-            maxProcessesEver[0] = max(maxProcessesEver[0], len(psutil.Process().children()[0].children()))
+            maxProcessesEver[0] = max(
+                maxProcessesEver[0], len(psutil.Process().children()[0].children())
+            )
 
-            if not all(x.codebase is not None for x in service_schema.ServiceInstance.lookupAll()):
+            if not all(
+                x.codebase is not None for x in service_schema.ServiceInstance.lookupAll()
+            ):
                 return False
 
             if len(service_schema.ServiceInstance.lookupAll()) != 10:
@@ -847,8 +920,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             s.triggerSoftKill = True
 
         self.database.waitForCondition(
-            lambda: not s.connection.exists(),
-            timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
+            lambda: not s.connection.exists(), timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
         )
 
         self.waitForCount(1)
@@ -864,8 +936,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             s.triggerHardKill = True
 
         self.database.waitForCondition(
-            lambda: not s.connection.exists(),
-            timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
+            lambda: not s.connection.exists(), timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
         )
 
         self.waitForCount(1)
@@ -879,7 +950,8 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             self.database.waitForCondition(
                 lambda: len(os.listdir(self.logDir)) == 1,
                 timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER,
-                maxSleepTime=0.001)
+                maxSleepTime=0.001,
+            )
         )
         priorFilename = os.listdir(self.logDir)[0]
 
@@ -890,11 +962,11 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             self.database.waitForCondition(
                 lambda: len(os.listdir(self.logDir)) == 2,
                 timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER,
-                maxSleepTime=0.001
+                maxSleepTime=0.001,
             )
         )
 
-        newFilename = [x for x in os.listdir(self.logDir) if x != 'old'][0]
+        newFilename = [x for x in os.listdir(self.logDir) if x != "old"][0]
 
         self.assertNotEqual(priorFilename, newFilename)
 
@@ -913,7 +985,9 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
                 test_service = __import__("test_service.service")
 
                 with self.database.transaction():
-                    ServiceManager.createOrUpdateService(test_service.service.Service, "MockService", target_count=1)
+                    ServiceManager.createOrUpdateService(
+                        test_service.service.Service, "MockService", target_count=1
+                    )
 
                 self.waitForCount(1)
             finally:
@@ -926,10 +1000,12 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             with self.database.transaction():
                 try:
                     ServiceManager.createOrUpdateServiceWithCodebase(
-                        service_schema.Codebase.createFromFiles(getTestServiceModule(codebase_version)),
+                        service_schema.Codebase.createFromFiles(
+                            getTestServiceModule(codebase_version)
+                        ),
                         "test_service.service.Service",
                         serviceName,
-                        targetCount=1
+                        targetCount=1,
                     )
                 except Exception:
                     pass
@@ -938,7 +1014,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
                 self.assertTrue(
                     self.database.waitForCondition(
                         lambda: not existing_service.connection.exists(),
-                        timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
+                        timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER,
                     )
                 )
 

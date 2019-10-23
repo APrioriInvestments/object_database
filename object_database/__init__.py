@@ -36,6 +36,6 @@ from object_database.view import (
     RevisionConflictException,
     DisconnectedException,
     current_transaction,
-    MaskView
+    MaskView,
 )
 from object_database.inmem_server import InMemServer

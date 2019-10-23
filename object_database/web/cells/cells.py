@@ -2388,6 +2388,7 @@ class SingleLineTextBox(Cell):
     def recalculate(self):
         if self.pattern:
             self.exportData["pattern"] = self.pattern
+        self.exportData["initialValue"] = self.slot.get()
 
     def onMessage(self, msgFrame):
         self.slot.set(msgFrame["text"])
@@ -2638,6 +2639,7 @@ class Table(Cell):
         self.exportData["totalPages"] = totalPages
         self.exportData["numColumns"] = len(self.cols)
         self.exportData["numRows"] = len(self.rows)
+        self.exportData["currentPage"] = self.curPage.get()
 
 
 class Clickable(Cell):
@@ -2656,14 +2658,10 @@ class Clickable(Cell):
                 '"',
             )
         else:
-            return (
-                """
-                cellSocket.sendString(
-                    JSON.stringify({'event':'click', 'target_cell': '%s'})
-                )
-                """
-                % self.identity
-            )
+            javascript = "cellSocket.sendString("
+            javascript += "JSON.stringify({'event': 'click', "
+            javascript += "'target_cell': '%s'}))" % self.identity
+            return javascript
 
     def recalculate(self):
         self.children["content"] = self.content

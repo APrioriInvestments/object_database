@@ -42,7 +42,18 @@ class SingleLineTextBox extends Component {
             )
         );
     }
-}
+};
+
+SingleLineTextBox.propTypes = {
+    pattern: {
+        type: PropTypes.string,
+        description: "The pattern the input will accept (HTML5 valid)"
+    },
+    initialValue: {
+        type: PropTypes.string,
+        description: "An initial value that will be given to the input on first render"
+    }
+};
 
 SingleLineTextBox.propTypes = {
     defaultValue: {

@@ -3,6 +3,7 @@
  */
 
 import {Component} from './Component';
+import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**
@@ -27,9 +28,12 @@ class Table extends Component {
         this._makeRowElements = this._makeRowElements.bind(this);
         this._theadStyle = this._theadStyle.bind(this);
         this._getRowDisplayElements = this._getRowDisplayElements.bind(this);
+        this._getPageInfo = this._getPageInfo.bind(this);
     }
 
     build(){
+        console.dir(this.props.children);
+        console.dir(this.props);
         return(
             h('table', {
                 id: this.getElementId(),
@@ -100,9 +104,33 @@ class Table extends Component {
     _getRowDisplayElements(){
         return [
             this.renderChildNamed('left'),
+            this._getPageInfo(),
             this.renderChildNamed('right'),
             this.renderChildNamed('page')
         ];
+    }
+
+    _getPageInfo(){
+        return `${this.props.currentPage} of ${this.props.totalPages}`;
+    }
+}
+
+Table.propTypes = {
+    totalPages: {
+        type: PropTypes.number,
+        description: "Total number of pages the Table can display"
+    },
+    currentPage: {
+        type: PropTypes.number,
+        description: "The current page number being displayed"
+    },
+    numColumns: {
+        type: PropTypes.number,
+        description: "The total number of columns the table has"
+    },
+    numRows: {
+        type: PropTypes.number,
+        description: "The total number of rows the table has"
     }
 }
 

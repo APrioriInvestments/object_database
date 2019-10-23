@@ -18,7 +18,8 @@ def gen_named_tuple_type(full_name, **kwargs):
     Generate direct c++ wrapper code for a particular NamedTuple type.
 
     Args:
-        full_name: fully specified dotted name from codebase, module.class.subclass. ... .typename
+        full_name: fully specified dotted name from codebase,
+            module.class.subclass. ... .typename
         **kwargs: keys are element names and values are corresponding python Types
     Returns:
         A list of strings, containing c++ code implementing this wrapper.
@@ -58,7 +59,8 @@ def gen_named_tuple_type(full_name, **kwargs):
     ret.append(f"    static {name} fromPython(PyObject* p) {{")
     ret.append(f"        {name} l;")
     ret.append(
-        "        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);"
+        "        PyInstance::copyConstructFromPythonInstance"
+        "(getType(), (instance_ptr)&l, p, true);"
     )
     ret.append("        return l;")
     ret.append("    }")

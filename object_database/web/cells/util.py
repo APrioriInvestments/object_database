@@ -38,7 +38,7 @@ def waitForCellsCondition(cells: Cells, condition, timeout=10.0):
 
 
 class CellDecorator(object):
-    """A function that takes (and returns) a single Cell, and can be applied with the '*' operator."""
+    """ A Cell -> Cell function that can be applied with the '*' operator. """
 
     def __init__(self, cellFunction, name):
         self.cellFunction = cellFunction

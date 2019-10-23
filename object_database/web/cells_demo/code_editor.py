@@ -58,7 +58,10 @@ class CodeEditorInHorizSequence(CellsTestPage):
         )
 
     def text(self):
-        return "You should see two buttons that let you turn the editor on and off, and also see its contents."
+        return (
+            "You should see two buttons that let you turn the editor "
+            "on and off, and also see its contents."
+        )
 
 
 class CodeEditorBasicHorizSequence(CellsTestPage):
@@ -76,7 +79,10 @@ class CodeEditorBasicHorizSequence(CellsTestPage):
         )
 
     def text(self):
-        return "Should see a CodeEditor and its content (in panel) in a HorizontalSequence that is not a flex parent"
+        return (
+            "Should see a CodeEditor and its content (in panel) in a "
+            "HorizontalSequence that is not a flex parent"
+        )
 
 
 class CodeEditorInSplitView(CellsTestPage):

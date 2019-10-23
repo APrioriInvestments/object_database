@@ -48,7 +48,9 @@ class ServiceBase:
 
     @staticmethod
     def configureFromCommandline(db, serviceObject, args):
-        """Subclasses should take the remaining args from the commandline and configure using them"""
+        """Subclasses should take the remaining args from the commandline
+        and configure using them
+        """
         pass
 
     def initialize(self):

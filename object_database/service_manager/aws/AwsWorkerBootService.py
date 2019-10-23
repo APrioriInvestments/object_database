@@ -671,7 +671,8 @@ class AwsWorkerBootService(ServiceBase):
             for state in State.lookupAll():
                 while state.booted > state.desired:
                     self._logger.info(
-                        "We have %s instances of type %s booted vs %s desired. Shutting one down.",
+                        "We have %s instances of type %s booted "
+                        "vs %s desired. Shutting one down.",
                         state.booted,
                         state.instance_type,
                         state.desired,
@@ -733,7 +734,8 @@ class AwsWorkerBootService(ServiceBase):
 
                 while state.spot_booted < state.spot_desired:
                     self._logger.info(
-                        "We have %s spot instances of type %s booted vs %s desired. Booting one.",
+                        "We have %s spot instances of type %s booted "
+                        "vs %s desired. Booting one.",
                         state.spot_booted,
                         state.instance_type,
                         state.spot_desired,

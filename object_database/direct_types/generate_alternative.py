@@ -28,9 +28,11 @@ def gen_alternative_type(full_name, d):
     """Generate direct c++ wrapper code for a particular Alternative type.
 
     Args:
-        full_name: fully specified dotted name from codebase, module.class.subclass. ... .typename
+        full_name: fully specified dotted name from codebase,
+            module.class.subclass. ... .typename
         d: dict, where keys are subtypes of this Alternative type,
-            and values are corresponding named tuples, represented as a list of (param, type) pairs
+            and values are corresponding named tuples, represented
+            as a list of (param, type) pairs
     Returns:
         A list of strings, containing c++ code implementing this wrapper.
     """
@@ -65,7 +67,8 @@ def gen_alternative_type(full_name, d):
     ret.append("        if (!resolver)")
     ret.append(f'            throw std::runtime_error("{name}: no resolver");')
     ret.append(
-        f'        PyObject* res = PyObject_CallMethod(resolver, "resolveTypeByName", "s", "{full_name}");'
+        "        PyObject* res = PyObject_CallMethod"
+        f'(resolver, "resolveTypeByName", "s", "{full_name}");'
     )
     ret.append("        if (!res)")
     ret.append(f'            throw std::runtime_error("{full_name}: did not resolve");')
@@ -75,7 +78,8 @@ def gen_alternative_type(full_name, d):
     ret.append(f"    static {name} fromPython(PyObject* p) {{")
     ret.append("        Alternative::layout* l = nullptr;")
     ret.append(
-        "        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);"
+        "        PyInstance::copyConstructFromPythonInstance"
+        "(getType(), (instance_ptr)&l, p, true);"
     )
     ret.append(f"        return {name}(l);")
     ret.append("    }")
@@ -93,7 +97,8 @@ def gen_alternative_type(full_name, d):
     )
     ret.append(
         f"    {name}(kind k):mLayout(0) {{ "
-        "ConcreteAlternative::Make(getType(), (int64_t)k)->constructor((instance_ptr)&mLayout); }"
+        "ConcreteAlternative::Make(getType(), (int64_t)k)"
+        "->constructor((instance_ptr)&mLayout); }"
     )
     ret.append(
         f"    {name}(const {name}& in) "
@@ -101,7 +106,8 @@ def gen_alternative_type(full_name, d):
     )
     ret.append(
         f"    {name}& operator=(const {name}& other) "
-        "{ getType()->assign((instance_ptr)&mLayout, (instance_ptr)&other.mLayout); return *this; }"
+        "{ getType()->assign((instance_ptr)&mLayout, (instance_ptr)&other.mLayout);"
+        " return *this; }"
     )
     ret.append("")
     for nt in nts:
@@ -154,7 +160,8 @@ def gen_alternative_type(full_name, d):
         ret.append("    static ConcreteAlternative* getType() {")
 
         ret.append(
-            f"        static ConcreteAlternative* t = ConcreteAlternative::Make({name}::getType(), static_cast<int>(kind::{nt}));"
+            "        static ConcreteAlternative* t = ConcreteAlternative::Make"
+            f"({name}::getType(), static_cast<int>(kind::{nt}));"
         )
         ret.append("        return t;")
         ret.append("    }")

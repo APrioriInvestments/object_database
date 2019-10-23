@@ -100,8 +100,10 @@ def wrapCallback(callback):
 
 
 def augmentToBeUnique(listOfItems):
-    """Returns a list of [(x,index)] for each 'x' in listOfItems, where index is the number of times
-    we've seen 'x' before.
+    """ Given a list that may include duplicates, return a list of unique items
+
+    Returns a list of [(x,index)] for each 'x' in listOfItems,
+    where index is the number of times we've seen 'x' before.
     """
     counts = {}
     output = []
@@ -212,10 +214,11 @@ class Cells:
             return
 
     def scheduleCallback(self, callback):
-        """Schedule a callback that will execute on the main cells thread as soon as possible.
+        """Schedule a callback to execute on the main cells thread as soon as possible.
 
-        Code in other threads shouldn't modify cells or slots. Cells that want to trigger
-        asynchronous work can do so and then push content back into Slot objects using these callbacks.
+        Code in other threads shouldn't modify cells or slots.
+        Cells that want to trigger asynchronous work can do so and then push
+        content back into Slot objects using these callbacks.
         """
         self._callbacks.put(callback)
         self._gEventHasTransactions.trigger()
@@ -724,7 +727,10 @@ class Cell:
             return result
 
     def triggerPostscript(self, javascript):
-        """Queue a postscript (piece of javascript to execute) to be run at the end of message processing."""
+        """ Queue a postscript to be run at the end of message processing.
+
+        A postscript is a piece of javascript to execute.
+        """
         self.cells._pendingPostscripts.append(javascript)
 
     def tagged(self, tag):
@@ -776,7 +782,7 @@ class Cell:
         return Messenger.getStructure(self.parent.identity, self, expand)
 
     def onMessageWithTransaction(self, *args):
-        """Call our inner 'onMessage' function with a transaction and a revision conflict retry loop."""
+        """ Call our inner 'onMessage' function with a transaction in a retry loop. """
         tries = 0
         t0 = time.time()
         while True:
@@ -2351,8 +2357,10 @@ class Clickable(Cell):
                 '"',
             )
         else:
-            return "cellSocket.sendString(JSON.stringify({'event':'click', 'target_cell': '__identity__'}))".replace(
-                "__identity__", self.identity
+            return (
+                "cellSocket.sendString(JSON.stringify("
+                f"{'event':'click', 'target_cell': '{self.identity}'}"
+                "))"
             )
 
     def recalculate(self):
@@ -2582,11 +2590,15 @@ class CodeEditor(Cell):
 
                 curRange = editor.selection.getRange()
                 var Range = require('ace/range').Range
-                var range = new Range(curRange.start.row,curRange.start.column,curRange.end.row,curRange.end.column)
+                var range = new Range(curRange.start.row,
+                                      curRange.start.column,
+                                      curRange.end.row,
+                                      curRange.end.column)
 
                 newText = "__text__";
 
-                console.log("Resetting editor text to " + newText.length + " because it changed on the server" +
+                console.log("Resetting editor text to " + newText.length
+                    + " because it changed on the server" +
                     " Cur iteration is __iteration__.")
 
                 editor.setValue(newText, 1)
@@ -2603,7 +2615,7 @@ class CodeEditor(Cell):
 
 
 class OldSheet(Cell):
-    """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""
+    """A spreadsheet viewer. The dataset needs to be static."""
 
     def __init__(self, columnNames, rowCount, rowFun, colWidth=200, onCellDblClick=None):
         """
@@ -2707,7 +2719,7 @@ class OldSheet(Cell):
 
 
 class Sheet(Cell):
-    """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""
+    """A spreadsheet viewer. The dataset must be static."""
 
     def __init__(self, columnFun, rowFun, colWidth=50, rowHeight=30, onCellDblClick=None):
         """
@@ -2850,10 +2862,13 @@ class Plot(Cell):
 
             if (typeof(newLayout.xaxis.range[0]) === 'string') {{
                 formatDate = function(d) {{
-                    return (d.getYear() + 1900) + "-" + ("00" + (d.getMonth() + 1)).substr(-2) + "-" +
-                            ("00" + d.getDate()).substr(-2) + " " + ("00" + d.getHours()).substr(-2) + ":" +
-                            ("00" + d.getMinutes()).substr(-2) + ":" + ("00" + d.getSeconds()).substr(-2) + "." +
-                            ("000000" + d.getMilliseconds()).substr(-3)
+                    return (d.getYear() + 1900) +
+                            "-" + ("00" + (d.getMonth() + 1)).substr(-2) +
+                            "-" + ("00" + d.getDate()).substr(-2) +
+                            " " + ("00" + d.getHours()).substr(-2) +
+                            ":" + ("00" + d.getMinutes()).substr(-2) +
+                            ":" + ("00" + d.getSeconds()).substr(-2) +
+                            "." + ("000000" + d.getMilliseconds()).substr(-3)
                     }};
 
                 newLayout.xaxis.range[0] = formatDate(new Date({low*1000}));

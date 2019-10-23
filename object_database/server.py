@@ -467,7 +467,8 @@ class Server:
 
     def handleSubscriptionOnBackgroundThread(self, connectedChannel, msg):
         with Timer(
-            "Subscription requiring %s messages and produced %s objects for %s/%s/%s/isLazy=%s",
+            "Subscription requiring %s messages and produced %s objects "
+            "for %s/%s/%s/isLazy=%s",
             lambda: messageCount,
             lambda: len(identities),
             msg.schema,
@@ -506,9 +507,10 @@ class Server:
 
                     self._pendingSubscriptionRecheck = []
 
-                # we need to send everything we know about 'identities', keeping in mind that we have to
-                # check any new identities that get written to in the background to see if they belong
-                # in the new set
+                # we need to send everything we know about 'identities',
+                # keeping in mind that we have to check any new identities
+                # that get written to in the background to see if they
+                # belong in the new set
                 identities_left_to_send = set(identities)
 
                 messageCount = 0
@@ -648,7 +650,8 @@ class Server:
                     -1 if not isLazy else self._cur_transaction_num
                 )
             else:
-                # an object's identity cannot change, so we don't need to track our subscription to it
+                # an object's identity cannot change,
+                # so we don't need to track our subscription to it
                 assert not isLazy
         else:
             # this is a type-subscription
@@ -1077,8 +1080,9 @@ class Server:
 
         channelsTriggeredForPriors = set()
 
-        # check any index-level subscriptions that are going to increase as a result of this
-        # transaction and add the backing data to the relevant transaction.
+        # check any index-level subscriptions that are going to increase as a
+        # result of this transaction and add the backing data to the relevant
+        # transaction.
         for index_key, adds in list(set_adds.items()):
             if index_key in self._index_to_channel:
                 idsToAddToTransaction = set()
@@ -1088,8 +1092,9 @@ class Server:
                         index_key in channel.subscribedIndexKeys
                         and channel.subscribedIndexKeys[index_key] >= 0
                     ):
-                        # this is a lazy subscription. We're not using the transaction ID yet because
-                        # we don't store it on a per-object basis here. Instead, we're always sending
+                        # this is a lazy subscription. We're not using the
+                        # transaction ID yet because we don't store it on a
+                        # per-object basis here. Instead, we're always sending
                         # everything twice to lazy subscribers.
                         channelsTriggeredForPriors.add(channel)
 
@@ -1124,8 +1129,9 @@ class Server:
         for fieldId in fieldIdsWriting:
             for channel in self._field_id_to_channel.get(fieldId, ()):
                 if channel.subscribedFields[fieldId] >= 0:
-                    # this is a lazy subscription. We're not using the transaction ID yet because
-                    # we don't store it on a per-object basis here. Instead, we're always sending
+                    # this is a lazy subscription. We're not using the
+                    # transaction ID yet because we don't store it on a
+                    # per-object basis here. Instead, we're always sending
                     # everything twice to lazy subscribers.
                     channelsTriggeredForPriors.add(channel)
                 channelsTriggered.add(channel)

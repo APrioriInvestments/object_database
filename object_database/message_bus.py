@@ -157,36 +157,48 @@ class MessageBus(object):
         """Initialize a MessageBus
 
         Args:
-            busIdentity - any object that identifies this message bus
-            endpoint - a (host, port) tuple that we're supposed to listen on, or None if we accept no incoming.
-            messageType - the wire-type of all messages. Can be 'object' in which case we'll require a serializationContext
-                to know how to serialize the names of types.
-            serializationContext - the serialization context to use for serializing things, or None to use naked serialization
+            busIdentity: any object that identifies this message bus
+            endpoint: a (host, port) tuple that we're supposed to listen on,
+                or None if we accept no incoming.
+            messageType: the wire-type of all messages. Can be 'object', in
+                which case we'll require a serializationContext to know how
+                to serialize the names of types.
+            serializationContext: the serialization context to use for
+                serializing things, or None to use naked serialization
                 from typed_python without any 'object'.
-            authToken - the authentication token that must be sent to us for the connection to succeed. If None, then don't
-                require authentication. MessageBus objects must have the same authToken to work together.
-            onEvent - a callback function recieving a stream of 'eventType' objects (MessageBusEvents).
-            certPath - (str or None) if we use SSL, an optional path to a cert file.
-            wantsSSL (bool) - should we encrypt our channel with SSL
+            authToken: the authentication token that must be sent to us for
+                the connection to succeed. If None, then don't require
+                authentication. MessageBus objects must have the same
+                authToken to work together.
+            onEvent: a callback function recieving a stream of 'eventType'
+                objects (MessageBusEvents).
+            certPath(str or None): if we use SSL, an optional path to a cert file.
+            wantsSSL(bool): should we encrypt our channel with SSL
 
-        The MessageBus listen for connection on the endpoint and calls onEvent from the read thread whenever
-        a new event occurs.
+        The MessageBus listens for connection on the endpoint and calls
+        onEvent from the read thread whenever a new event occurs.
 
-        Clients may establish connection to other MessageBus objects, and will receive a ConnectionId object
-        representing that channel. Other clients connecting in will produce their own 'ConnectionId's associated
-        with the incoming connection. ConnectionIds are unique for a given MessageBus instance.
+        Clients may establish connection to other MessageBus objects, and
+        will receive a ConnectionId object representing that channel.
+        Other clients connecting in will produce their own 'ConnectionId's
+        associated with the incoming connection. ConnectionIds are unique
+        for a given MessageBus instance.
 
-        Clients may send messages to outgoing connections that have been established or to other incoming connections.
-        The send function indicates whether the send _might_ succeed (meaning it returns False only if it's KNOWN that
-        the message channel on the other side is closed.)
+        Clients may send messages to outgoing connections that have been
+        established or to other incoming connections.
+        The send function indicates whether the send _might_ succeed,
+        meaning it returns False only if it's KNOWN that the message
+        channel on the other side is closed.
 
-        All event callbacks are fired from the same internal thread. This function should never throw,
-        and if it blocks, it will block execution across all threads.
+        All event callbacks are fired from the same internal thread.
+        This function should never throw, and if it blocks, it will
+        block execution across all threads.
 
-        Clients are expected to call 'start' to start the bus, and 'stop' to stop it and tear down threads.
+        Clients are expected to call 'start' to start the bus, and 'stop'
+        to stop it and tear down threads.
 
-        Clients can call 'connect' to get a connection id back, which they can pass to 'closeConnection' or
-        'sendMessage'.
+        Clients can call 'connect' to get a connection id back, which they
+        can pass to 'closeConnection' or 'sendMessage'.
         """
         if authToken is not None:
             assert isinstance(authToken, str)
@@ -552,7 +564,8 @@ class MessageBus(object):
                             bytesReceived = b""
                         except Exception as e:
                             logging.info(
-                                "MessageBus read socket shutting down because of exception: %s",
+                                "MessageBus read socket shutting down "
+                                "because of exception: %s",
                                 e,
                             )
                             bytesReceived = b""
@@ -752,7 +765,8 @@ class MessageBus(object):
                     connId, msg = connectionAndMsg
 
                     if msg is TriggerDisconnect:
-                        # take this message, and make sure we never put this socket in the selectloop again.
+                        # take this message, and make sure we never put this
+                        # socket in the selectloop again.
                         if connId in socketToBytes:
                             del socketToBytes[connId]
 

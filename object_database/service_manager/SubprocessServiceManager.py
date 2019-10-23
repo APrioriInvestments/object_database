@@ -166,7 +166,8 @@ class SubprocessServiceManager(ServiceManager):
         if gracefully:
             if not self.stopAllServices(self.shutdownTimeout):
                 self._logger.error(
-                    f"Failed to gracefully stop all services within {self.shutdownTimeout} seconds"
+                    "Failed to gracefully stop all services "
+                    f"within {self.shutdownTimeout} seconds"
                 )
 
         ServiceManager.stop(self)
@@ -243,7 +244,8 @@ class SubprocessServiceManager(ServiceManager):
                         if workerProcess:
                             self._logger.warning(
                                 f"Worker Process '{identity}' failed to gracefully terminate"
-                                + f" within {self.shutdownTimeout} seconds. Sending KILL signal."
+                                + f" within {self.shutdownTimeout} seconds."
+                                + " Sending KILL signal."
                             )
                             self._killWorkerProcess(identity, workerProcess)
 
@@ -314,7 +316,8 @@ class SubprocessServiceManager(ServiceManager):
                                 shutil.rmtree(path)
                             except Exception:
                                 self._logger.error(
-                                    "Failed to remove storage at path %s for dead service:\n%s",
+                                    "Failed to remove storage at path %s "
+                                    "for dead service:\n%s",
                                     path,
                                     traceback.format_exc(),
                                 )
@@ -332,7 +335,8 @@ class SubprocessServiceManager(ServiceManager):
                                 shutil.rmtree(path)
                             except Exception:
                                 self._logger.error(
-                                    "Failed to remove source cache at path %s for dead service:\n%s",
+                                    "Failed to remove source cache at path %s "
+                                    "for dead service:\n%s",
                                     path,
                                     traceback.format_exc(),
                                 )

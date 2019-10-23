@@ -50,16 +50,19 @@ def anon_name(py_type):
 # implementation comment:
 # this is an awkward way to keep track of prerequisites
 def cpp_type(py_type) -> TupleType[str, dict]:
-    """Given a python Type, returns the corresponding c++ type name (as a string) and a dict of prerequisites.
+    """ Given a python Type, returns its C++ type name and a dict of prerequisites.
 
     examples:
         given Int64 return "int64_t"
         given ListOf(Int64) return ListOf<int64_t>
+
     For generated types with given names, just use the name
     example:
         if Arb=NamedTuple(X=Int64,Y=Bool)
         given Arb return "Arb"
-    For types containing anonymous subtypes, keep track of them so they can be generated as prerequisites for this type
+
+    For types containing anonymous subtypes, keep track of them so they can be
+    generated as prerequisites for this type
 
     Args:
         py_type: Type subclass.
@@ -98,7 +101,8 @@ def cpp_type(py_type) -> TupleType[str, dict]:
         for e in result:
             prerequisites.update(e[1])
         cpp_name = "OneOf<{}>".format(", ".join([e[0] for e in result]))
-    # Forwards are no longer supported here: types must be fully defined (resolved) before generating direct c++ types
+    # Forwards are no longer supported here:
+    # types must be fully defined (resolved) before generating direct c++ types
     # elif cat == 'Forward':
     #    cpp_name = str(py_type)[8:-2] + '*'  # just for now!
     elif cat in ("Tuple", "NamedTuple", "Alternative"):
@@ -119,8 +123,7 @@ def cpp_type(py_type) -> TupleType[str, dict]:
 
 
 def avoid_cpp_keywords(w):
-    """Given a string, return the string unless it is a c++ keyword, in which case modify the string.
-    """
+    """ Return a modified word if it's a C++ keyword, or the word itself. """
     keywords = ["typename", "class"]
     if w in keywords:
         return w + "0"
@@ -265,7 +268,8 @@ def generate_cpp(codebase, t, cpp, seen, verbose=False, produce_code=True):
 def generate_from_codebase(codebase, dest, listOfItems=None, verbose=False):
     """Generates direct c++ type wrappers from a codebase.
 
-    Specifically, generates code for direct c++ wrappers of test Tuple, NamedTuple, and Alternative types.
+    Specifically, generates code for direct c++ wrappers of test Tuple,
+    NamedTuple, and Alternative types.
 
     Args:
         codebase: Codebase
@@ -324,8 +328,10 @@ AnonTest = Tuple(
 def generate_some_types(dest):
     """Generates direct c++ type wrappers for testing.
 
-    Specifically, generates code for direct c++ wrappers of test Tuple, NamedTuple, and Alternative types.
-    This function will produce Alternatives that are unusable, because Type resolution will fail without a codebase.
+    Specifically, generates code for direct c++ wrappers of test Tuple,
+    NamedTuple, and Alternative types.
+    This function will produce Alternatives that are unusable,
+    because Type resolution will fail without a codebase.
 
     Args:
         dest: filename to which to write generated code.

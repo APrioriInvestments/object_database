@@ -37,7 +37,8 @@ ClientToServer = Alternative(
         "schema": str,
         "typename": OneOf(None, str),
         "fieldname_and_value": OneOf(None, Tuple(str, IndexValue)),
-        "isLazy": bool,  # load values when we first request them, instead of blocking on all the data.
+        # load values when we first request them, instead of blocking on all the data.
+        "isLazy": bool,
     },
     Flush={"guid": int},
     Authenticate={"token": str},

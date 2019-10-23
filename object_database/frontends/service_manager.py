@@ -146,9 +146,8 @@ def autoconfigureAndStartServiceManagerProcess(
 
         if error or server.returncode:
             logging.getLogger(__name__).warning(
-                "Exited with an error. Leaving temporary directory around for inspection: {}".format(
-                    tempDirectoryName
-                )
+                "Exited with an error. Leaving temporary directory around for inspection: %s",
+                tempDirectoryName,
             )
         else:
             tempDirObj.cleanup()

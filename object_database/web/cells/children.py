@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 
-class Children():
+class Children:
     """A 'Collection-Like' object that holds Cell child references.
 
     By 'Collection-like' we mean that this object maintains
@@ -52,6 +52,7 @@ class Children():
         the key where the instance appears in
         namedChildren. Used for reverse lookups.
     """
+
     def __init__(self, parent=None):
         """
         Parameters

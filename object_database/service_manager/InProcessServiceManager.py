@@ -29,7 +29,11 @@ class InProcessServiceManager(ServiceManager):
         setCodebaseInstantiationDirectory(self.sourceRoot.name)
 
         ServiceManager.__init__(
-            self, dbConnectionFactory, self.sourceRoot.name, isMaster=True, ownHostname="localhost"
+            self,
+            dbConnectionFactory,
+            self.sourceRoot.name,
+            isMaster=True,
+            ownHostname="localhost",
         )
 
         self.serviceWorkers = {}
@@ -44,10 +48,12 @@ class InProcessServiceManager(ServiceManager):
             instanceIdentity,
             os.path.join(self.storageRoot.name, str(instanceIdentity)),
             self.auth_token,
-            '127.0.0.1'
+            "127.0.0.1",
         )
 
-        self.serviceWorkers[instanceIdentity] = self.serviceWorkers.get(service, ()) + (worker,)
+        self.serviceWorkers[instanceIdentity] = self.serviceWorkers.get(service, ()) + (
+            worker,
+        )
 
         worker.start()
 

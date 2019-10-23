@@ -26,8 +26,7 @@ class BasicText(CellsTestPage):
 
 class EmbeddedColoredText(CellsTestPage):
     def cell(self):
-        return cells.Card(cells.Text("This is some text", text_color="blue"),
-                          padding=0)
+        return cells.Card(cells.Text("This is some text", text_color="blue"), padding=0)
 
     def text(self):
         return "You should see some colored text in a Card."

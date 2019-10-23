@@ -2,13 +2,12 @@ import unittest
 from object_database.web.cells.children import Children
 
 
-class DummyObject():
+class DummyObject:
     def __init__(self):
         self.parent = None
 
 
 class CellChildrenTests(unittest.TestCase):
-
     def test_get_dimensions_zero(self):
         item = DummyObject()
         children = Children()
@@ -22,19 +21,13 @@ class CellChildrenTests(unittest.TestCase):
         self.assertEqual(result, 1)
 
     def test_get_dimensions_two(self):
-        item = [
-            [DummyObject() for d in range(20)] for c in range(20)
-        ]
+        item = [[DummyObject() for d in range(20)] for c in range(20)]
         children = Children()
         result = children._getDimensions(item)
         self.assertEqual(result, 2)
 
     def test_get_dimensions_three(self):
-        item = [
-            [
-                [DummyObject() for a in range(20)] for b in range(20)
-            ] for c in range(20)
-        ]
+        item = [[[DummyObject() for a in range(20)] for b in range(20)] for c in range(20)]
         children = Children()
         result = children._getDimensions(item)
         self.assertEqual(result, 3)
@@ -42,19 +35,15 @@ class CellChildrenTests(unittest.TestCase):
     def test_add_child_zero_dm(self):
         child = DummyObject()
         children = Children()
-        children.addChildNamed('first', child)
-        self.assertTrue('first' in children.namedChildren)
+        children.addChildNamed("first", child)
+        self.assertTrue("first" in children.namedChildren)
         self.assertTrue(child in children.allChildren)
-        self.assertEqual(child, children.namedChildren['first'])
+        self.assertEqual(child, children.namedChildren["first"])
 
     def test_basic_add_child_one_dm(self):
-        child = [
-            DummyObject(),
-            DummyObject(),
-            DummyObject()
-        ]
+        child = [DummyObject(), DummyObject(), DummyObject()]
         children = Children()
-        children.addChildNamed('first', child)
+        children.addChildNamed("first", child)
         self.assertEqual(len(children.allChildren), 3)
         for item in children.allChildren:
             self.assertIsInstance(item, DummyObject)
@@ -62,91 +51,85 @@ class CellChildrenTests(unittest.TestCase):
     def test_add_child_one_dm(self):
         child = [DummyObject() for d in range(20)]
         children = Children()
-        children.addChildNamed('first', child)
-        self.assertTrue('first' in children.namedChildren)
+        children.addChildNamed("first", child)
+        self.assertTrue("first" in children.namedChildren)
         for item in child:
             self.assertTrue(item in children.allChildren)
-        self.assertEqual(child, children.namedChildren['first'])
+        self.assertEqual(child, children.namedChildren["first"])
         self.assertEqual(len(children.allChildren), 20)
         for item in children.allChildren:
             self.assertIsInstance(item, DummyObject)
 
     def test_add_child_two_dm(self):
-        child = [
-            [DummyObject() for d in range(20)] for c in range(30)
-        ]
+        child = [[DummyObject() for d in range(20)] for c in range(30)]
         children = Children()
-        children.addChildNamed('first', child)
-        self.assertTrue('first' in children.namedChildren)
+        children.addChildNamed("first", child)
+        self.assertTrue("first" in children.namedChildren)
         for outerItem in child:
             for innerItem in outerItem:
                 self.assertTrue(innerItem in children.allChildren)
-        self.assertEqual(child, children.namedChildren['first'])
+        self.assertEqual(child, children.namedChildren["first"])
         self.assertEqual(len(children.allChildren), 600)
 
     def test_remove_child_zero_dm(self):
         child = DummyObject()
         children = Children()
-        children.addChildNamed('first', child)
+        children.addChildNamed("first", child)
         self.assertEqual(len(children.allChildren), 1)
-        children.removeChildNamed('first')
+        children.removeChildNamed("first")
         self.assertEqual(len(children.allChildren), 0)
-        self.assertFalse('first' in children.namedChildren)
+        self.assertFalse("first" in children.namedChildren)
 
     def test_remove_child_one_dm(self):
         child = [DummyObject() for d in range(10)]
         children = Children()
-        children.addChildNamed('first', child)
+        children.addChildNamed("first", child)
         self.assertEqual(len(children.allChildren), 10)
-        children.removeChildNamed('first')
+        children.removeChildNamed("first")
         self.assertEqual(len(children.allChildren), 0)
-        self.assertFalse('first' in children.namedChildren)
+        self.assertFalse("first" in children.namedChildren)
 
     def test_remove_child_two_dm(self):
-        child = [
-            [DummyObject() for d in range(5)] for c in range(10)
-        ]
+        child = [[DummyObject() for d in range(5)] for c in range(10)]
         children = Children()
-        children.addChildNamed('first', child)
+        children.addChildNamed("first", child)
         self.assertEqual(len(children.allChildren), 50)
-        children.removeChildNamed('first')
+        children.removeChildNamed("first")
         self.assertEqual(len(children.allChildren), 0)
-        self.assertFalse('first' in children.namedChildren)
+        self.assertFalse("first" in children.namedChildren)
 
     def test_setitem_zero_dm(self):
         child = DummyObject()
         children = Children()
-        children['first'] = child
-        self.assertTrue('first' in children.namedChildren)
-        self.assertEqual(children.namedChildren['first'], child)
+        children["first"] = child
+        self.assertTrue("first" in children.namedChildren)
+        self.assertEqual(children.namedChildren["first"], child)
         self.assertEqual(len(children.allChildren), 1)
-        self.assertEqual(children.dimensionsForChildNamed('first'), 0)
+        self.assertEqual(children.dimensionsForChildNamed("first"), 0)
 
     def test_setitem_one_dm(self):
         child = [DummyObject() for d in range(10)]
         children = Children()
-        children['first'] = child
-        self.assertTrue('first' in children.namedChildren)
-        self.assertEqual(child, children.namedChildren['first'])
+        children["first"] = child
+        self.assertTrue("first" in children.namedChildren)
+        self.assertEqual(child, children.namedChildren["first"])
         self.assertEqual(len(children.allChildren), 10)
-        self.assertEqual(children.dimensionsForChildNamed('first'), 1)
+        self.assertEqual(children.dimensionsForChildNamed("first"), 1)
 
     def test_setitem_two_dm(self):
-        child = [
-            [DummyObject() for d in range(10)] for c in range(10)
-        ]
+        child = [[DummyObject() for d in range(10)] for c in range(10)]
         children = Children()
-        children['first'] = child
-        self.assertTrue('first' in children.namedChildren)
+        children["first"] = child
+        self.assertTrue("first" in children.namedChildren)
         self.assertEqual(len(children.allChildren), 100)
-        self.assertEqual(child, children.namedChildren['first'])
-        self.assertEqual(children.dimensionsForChildNamed('first'), 2)
+        self.assertEqual(child, children.namedChildren["first"])
+        self.assertEqual(children.dimensionsForChildNamed("first"), 2)
 
     def test_set_parent_zero_dm(self):
         parent = DummyObject()
         children = Children(parent)
         child = DummyObject()
-        children['test'] = child
+        children["test"] = child
         self.assertEqual(child.parent, parent)
         self.assertEqual(children.allChildren[0].parent, parent)
 
@@ -154,7 +137,7 @@ class CellChildrenTests(unittest.TestCase):
         parent = DummyObject()
         children = Children(parent)
         child = [DummyObject() for d in range(10)]
-        children['test'] = child
+        children["test"] = child
         for item in child:
             self.assertEqual(item.parent, parent)
         for item in children.allChildren:
@@ -163,10 +146,8 @@ class CellChildrenTests(unittest.TestCase):
     def test_set_parent_two_dm(self):
         parent = DummyObject()
         children = Children(parent)
-        child = [
-            [DummyObject() for d in range(5)] for c in range(5)
-        ]
-        children['test'] = child
+        child = [[DummyObject() for d in range(5)] for c in range(5)]
+        children["test"] = child
         for outerItem in child:
             for innerItem in outerItem:
                 self.assertEqual(innerItem.parent, parent)
@@ -176,12 +157,8 @@ class CellChildrenTests(unittest.TestCase):
     def test_set_parent_three_dm(self):
         parent = DummyObject()
         children = Children(parent)
-        child = [
-            [
-                [DummyObject() for d in range(5)] for c in range(5)
-            ] for b in range(4)
-        ]
-        children['test'] = child
+        child = [[[DummyObject() for d in range(5)] for c in range(5)] for b in range(4)]
+        children["test"] = child
         for outer in child:
             for middle in outer:
                 for inner in middle:
@@ -195,33 +172,31 @@ class CellChildrenTests(unittest.TestCase):
         parent = DummyObject()
         children = Children(parent)
         child = DummyObject()
-        children['test'] = child
+        children["test"] = child
         self.assertEqual(child.parent, parent)
-        del children['test']
+        del children["test"]
         self.assertIsNone(child.parent)
 
     def test_unset_parent_one_dm(self):
         parent = DummyObject()
         children = Children(parent)
         child = [DummyObject() for d in range(4)]
-        children['test'] = child
+        children["test"] = child
         for item in child:
             self.assertEqual(item.parent, parent)
-        del children['test']
+        del children["test"]
         for item in child:
             self.assertIsNone(item.parent)
 
     def test_unset_parent_two_dm(self):
         parent = DummyObject()
         children = Children(parent)
-        child = [
-            [DummyObject() for d in range(5)] for c in range(5)
-        ]
-        children['test'] = child
+        child = [[DummyObject() for d in range(5)] for c in range(5)]
+        children["test"] = child
         for outer in child:
             for inner in outer:
                 self.assertEqual(inner.parent, parent)
-        del children['test']
+        del children["test"]
         for outer in child:
             for inner in outer:
                 self.assertIsNone(inner.parent)
@@ -230,36 +205,34 @@ class CellChildrenTests(unittest.TestCase):
         children = Children()
         child = DummyObject()
         otherChild = DummyObject()
-        children['test'] = child
-        children['other_test'] = otherChild
+        children["test"] = child
+        children["other_test"] = otherChild
         self.assertTrue(child in children._reverseLookup)
-        self.assertEqual(children._reverseLookup[child], 'test')
+        self.assertEqual(children._reverseLookup[child], "test")
         self.assertTrue(otherChild in children._reverseLookup)
-        self.assertEqual(children._reverseLookup[otherChild], 'other_test')
+        self.assertEqual(children._reverseLookup[otherChild], "other_test")
 
     def test_add_reverse_lookup_one_dm(self):
         children = Children()
         child = [DummyObject() for d in range(5)]
-        children['test'] = child
+        children["test"] = child
         other_child = [DummyObject() for d in range(6)]
-        children['other_test'] = other_child
+        children["other_test"] = other_child
         for item in child:
             self.assertTrue(item in children._reverseLookup)
-            self.assertEqual(children._reverseLookup[item], 'test')
+            self.assertEqual(children._reverseLookup[item], "test")
         for item in other_child:
             self.assertTrue(item in children._reverseLookup)
-            self.assertEqual(children._reverseLookup[item], 'other_test')
+            self.assertEqual(children._reverseLookup[item], "other_test")
 
     def test_add_reverse_lookup_two_dm(self):
         children = Children()
-        child = [
-            [DummyObject() for d in range(5)] for c in range(10)
-        ]
-        children['test'] = child
+        child = [[DummyObject() for d in range(5)] for c in range(10)]
+        children["test"] = child
         for outer in child:
             for inner in outer:
                 self.assertTrue(inner in children._reverseLookup)
-                self.assertEqual(children._reverseLookup[inner], 'test')
+                self.assertEqual(children._reverseLookup[inner], "test")
 
     def test_remove_all(self):
         # One dimensional child
@@ -269,15 +242,13 @@ class CellChildrenTests(unittest.TestCase):
         one_dm = [DummyObject() for d in range(10)]
 
         # Three dimensional child
-        two_dm = [
-            [DummyObject() for d in range(10)] for c in range(10)
-        ]
+        two_dm = [[DummyObject() for d in range(10)] for c in range(10)]
 
         # Add the children
         children = Children()
-        children['zero'] = zero_dm
-        children['one'] = one_dm
-        children['two'] = two_dm
+        children["zero"] = zero_dm
+        children["one"] = one_dm
+        children["two"] = two_dm
         self.assertEqual(len(children.allChildren), 111)
         self.assertEqual(len(children.namedChildren.keys()), 3)
 

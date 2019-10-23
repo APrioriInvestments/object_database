@@ -21,7 +21,7 @@ class SplitSequence(CellsTestPage):
         return cells.Sequence(
             [
                 cells.Card(cells.Text("item 1", text_color="red")),
-                cells.Card(cells.Text("item 2", text_color="blue"))
+                cells.Card(cells.Text("item 2", text_color="blue")),
             ]
         )
 
@@ -34,7 +34,7 @@ class HorizontalSplitSequence(CellsTestPage):
         return cells.HorizontalSequence(
             [
                 cells.Card(cells.Text("item 1", text_color="red")),
-                cells.Card(cells.Text("item 2", text_color="blue"))
+                cells.Card(cells.Text("item 2", text_color="blue")),
             ]
         )
 

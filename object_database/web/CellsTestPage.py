@@ -19,6 +19,7 @@ class CellsTestPage(object):
     We find all subclasses of these in object_database.web.cells_demo and
     show them in a hierarchical view.
     """
+
     def category(self):
         """Return a string we'll use to group this."""
         return type(self).__module__.split(".")[-1]

@@ -25,7 +25,9 @@ import traceback
 
 
 class ServiceWorker:
-    def __init__(self, db, dbConnectionFactory, instance_id, storageRoot, authToken, ownIpAddress):
+    def __init__(
+        self, db, dbConnectionFactory, instance_id, storageRoot, authToken, ownIpAddress
+    ):
         self._logger = logging.getLogger(__name__)
         self.dbConnectionFactory = dbConnectionFactory
         self.db = db
@@ -38,7 +40,9 @@ class ServiceWorker:
 
         self.instance = service_schema.ServiceInstance.fromIdentity(instance_id)
 
-        self.runtimeConfig = ServiceRuntimeConfig(dbConnectionFactory, storageRoot, authToken, ownIpAddress, self.instance)
+        self.runtimeConfig = ServiceRuntimeConfig(
+            dbConnectionFactory, storageRoot, authToken, ownIpAddress, self.instance
+        )
 
         if not os.path.exists(storageRoot):
             os.makedirs(storageRoot)
@@ -71,8 +75,12 @@ class ServiceWorker:
         assert self.db.waitForCondition(lambda: self.instance.exists(), 5.0)
 
         with self.db.transaction():
-            assert self.instance.exists(), "Service Instance object %s doesn't exist" % self.instance._identity
-            assert self.instance.service.exists(), "Service object %s doesn't exist" % self.instance.service._identity
+            assert self.instance.exists(), (
+                "Service Instance object %s doesn't exist" % self.instance._identity
+            )
+            assert self.instance.service.exists(), (
+                "Service object %s doesn't exist" % self.instance.service._identity
+            )
             self.serviceName = self.instance.service.name
             self.instance.connection = self.db.connectionObject
             self.instance.codebase = self.instance.service.codebase
@@ -82,14 +90,22 @@ class ServiceWorker:
             try:
                 self.serviceObject = self._instantiateServiceObject()
             except Exception:
-                self._logger.error('Service thread for %s failed:\n%s', self.instance._identity, traceback.format_exc())
+                self._logger.error(
+                    "Service thread for %s failed:\n%s",
+                    self.instance._identity,
+                    traceback.format_exc(),
+                )
                 self.instance.markFailedToStart(traceback.format_exc())
                 return
         try:
             self._logger.info("Initializing service object for %s", self.instance._identity)
             self.serviceObject.initialize()
         except Exception:
-            self._logger.error('Service thread for %s failed:\n%s', self.instance._identity, traceback.format_exc())
+            self._logger.error(
+                "Service thread for %s failed:\n%s",
+                self.instance._identity,
+                traceback.format_exc(),
+            )
 
             self.serviceObject = None
 
@@ -113,14 +129,16 @@ class ServiceWorker:
             self.instance.state = "Running"
 
         try:
-            self._logger.info("Starting runloop for service object %s", self.instance._identity)
+            self._logger.info(
+                "Starting runloop for service object %s", self.instance._identity
+            )
             self.serviceObject.doWork(self.shouldStop)
         except Exception:
             self._logger.error(
                 "Service %s/%s failed: %s",
                 self.serviceName,
                 self.instance._identity,
-                traceback.format_exc()
+                traceback.format_exc(),
             )
 
             with self.db.transaction():
@@ -133,7 +151,7 @@ class ServiceWorker:
                 self._logger.info(
                     "Service %s/%s exited gracefully. Setting stopped flag.",
                     self.serviceName,
-                    self.instance._identity
+                    self.instance._identity,
                 )
 
                 self.instance.state = "Stopped"

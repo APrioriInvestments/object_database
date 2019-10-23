@@ -18,10 +18,22 @@ from itertools import chain
 from object_database.web.ActiveWebServiceSchema import active_webservice_schema
 
 from object_database.web.cells import (
-    Main, Subscribed, Traceback, Span, Button, Octicon,
-    Tabs, Table, Clickable, Dropdown, Popover, HeaderBar,
-    LargePendingDownloadDisplay, PageView,
-    HorizontalSequence, SplitView
+    Main,
+    Subscribed,
+    Traceback,
+    Span,
+    Button,
+    Octicon,
+    Tabs,
+    Table,
+    Clickable,
+    Dropdown,
+    Popover,
+    HeaderBar,
+    LargePendingDownloadDisplay,
+    PageView,
+    HorizontalSequence,
+    SplitView,
 )
 
 from object_database.web.AuthPlugin import AuthPluginBase
@@ -54,38 +66,45 @@ class Configuration:
 
 
 def view():
-    buttons = HorizontalSequence([
-        Button(
-            HorizontalSequence([Octicon('shield', color='green'), Span('Lock ALL')]),
-            lambda: [s.lock() for s in service_schema.Service.lookupAll()]),
-        Button(
-            HorizontalSequence([Octicon('shield', color='orange'), Span('Prepare ALL')]),
-            lambda: [s.prepare() for s in service_schema.Service.lookupAll()]),
-        Button(
-            HorizontalSequence([Octicon('stop', color='red'), Span('Unlock ALL')]),
-            lambda: [s.unlock() for s in service_schema.Service.lookupAll()]),
-    ], margin=1)
-    tabs = Tabs(
-        Services=servicesTable(),
-        Hosts=hostsTable()
+    buttons = HorizontalSequence(
+        [
+            Button(
+                HorizontalSequence([Octicon("shield", color="green"), Span("Lock ALL")]),
+                lambda: [s.lock() for s in service_schema.Service.lookupAll()],
+            ),
+            Button(
+                HorizontalSequence([Octicon("shield", color="orange"), Span("Prepare ALL")]),
+                lambda: [s.prepare() for s in service_schema.Service.lookupAll()],
+            ),
+            Button(
+                HorizontalSequence([Octicon("stop", color="red"), Span("Unlock ALL")]),
+                lambda: [s.unlock() for s in service_schema.Service.lookupAll()],
+            ),
+        ],
+        margin=1,
     )
+    tabs = Tabs(Services=servicesTable(), Hosts=hostsTable())
     return SplitView([(buttons, 1), (tabs, 10)], split="horizontal")
 
 
 def hostsTable():
     hosts = Table(
         colFun=lambda: [
-            'Connection', 'IsMaster', 'Hostname', 'RAM ALLOCATION',
-            'CORE ALLOCATION', 'SERVICE COUNT', 'CPU USE', 'RAM USE'
+            "Connection",
+            "IsMaster",
+            "Hostname",
+            "RAM ALLOCATION",
+            "CORE ALLOCATION",
+            "SERVICE COUNT",
+            "CPU USE",
+            "RAM USE",
         ],
         rowFun=lambda: sorted(
-            service_schema.ServiceHost.lookupAll(), key=lambda s:
-            s.hostname),
-        headerFun=lambda x: x,
-        rendererFun=lambda s, field: Subscribed(
-            lambda: hostsTableDataPrep(s, field)
+            service_schema.ServiceHost.lookupAll(), key=lambda s: s.hostname
         ),
-        maxRowsPerPage=50
+        headerFun=lambda x: x,
+        rendererFun=lambda s, field: Subscribed(lambda: hostsTableDataPrep(s, field)),
+        maxRowsPerPage=50,
     )
     return hosts
 
@@ -104,7 +123,7 @@ def hostsTableDataPrep(s, field):
     elif field == "Hostname":
         data = s.hostname
     elif field == "RAM ALLOCATION":
-        data = "%.1f / %.1f" % ( s.gbRamUsed, s.maxGbRam)
+        data = "%.1f / %.1f" % (s.gbRamUsed, s.maxGbRam)
     elif field == "CORE ALLOCATION":
         data = "%s / %s" % (s.coresUsed, s.maxCores)
     elif field == "SERVICE COUNT":
@@ -120,31 +139,41 @@ def hostsTableDataPrep(s, field):
 
 def servicesTable():
 
-    serviceCountsChain = chain(range(5), range(10, 100, 10), range(100, 400, 25),
-                               range(400, 1001, 100))
+    serviceCountsChain = chain(
+        range(5), range(10, 100, 10), range(100, 400, 25), range(400, 1001, 100)
+    )
     serviceCounts = [val for val in serviceCountsChain]
 
     table = Table(
         colFun=lambda: [
-            'Service', 'Codebase Status', 'Codebase', 'Module', 'Class',
-            'Placement', 'Active', 'TargetCount', 'Cores', 'RAM',
-            'Boot Status'],
-        rowFun=lambda:
-            sorted(service_schema.Service.lookupAll(), key=lambda s:
-                   s.name),
+            "Service",
+            "Codebase Status",
+            "Codebase",
+            "Module",
+            "Class",
+            "Placement",
+            "Active",
+            "TargetCount",
+            "Cores",
+            "RAM",
+            "Boot Status",
+        ],
+        rowFun=lambda: sorted(service_schema.Service.lookupAll(), key=lambda s: s.name),
         headerFun=lambda x: x,
         rendererFun=lambda s, field: Subscribed(
             lambda: servicesTableDataPrep(s, field, serviceCounts)
         ),
-        maxRowsPerPage=50
+        maxRowsPerPage=50,
     )
     return table
 
 
 def __serviceCountSetter(service, ct):
     """Helper function for servicesTableDataPrep. """
+
     def f():
         service.target_count = ct
+
     return f
 
 
@@ -157,58 +186,48 @@ def servicesTableDataPrep(s, field, serviceCounts):
     serviceCounts : list of ints
     """
 
-    if field == 'Service':
+    if field == "Service":
         data = Clickable(s.name, "/services/" + s.name)
-    elif field == 'Codebase Status':
+    elif field == "Codebase Status":
         data = (
             Clickable(
-                HorizontalSequence(
-                    [Octicon('stop', color='red'), Span('Unlocked')]
-                ),
-                lambda: s.lock()
-            ) if s.isUnlocked else
-            Clickable(
-                HorizontalSequence(
-                    [Octicon('shield', color='green'), Span('Locked')]
-                ),
-                lambda: s.prepare()
-            ) if s.isLocked else
-            Clickable(
-                HorizontalSequence(
-                    [Octicon('shield', color='orange'), Span('Prepared')]
-                ), lambda: s.unlock()
+                HorizontalSequence([Octicon("stop", color="red"), Span("Unlocked")]),
+                lambda: s.lock(),
+            )
+            if s.isUnlocked
+            else Clickable(
+                HorizontalSequence([Octicon("shield", color="green"), Span("Locked")]),
+                lambda: s.prepare(),
+            )
+            if s.isLocked
+            else Clickable(
+                HorizontalSequence([Octicon("shield", color="orange"), Span("Prepared")]),
+                lambda: s.unlock(),
             )
         )
-    elif field == 'Codebase':
-        data = (str(s.codebase) if s.codebase else "")
-    elif field == 'Module':
+    elif field == "Codebase":
+        data = str(s.codebase) if s.codebase else ""
+    elif field == "Module":
         data = s.service_module_name
-    elif field == 'Class':
+    elif field == "Class":
         data = s.service_class_name
-    elif field == 'Placement':
+    elif field == "Placement":
         data = s.placement
-    elif field == 'Active':
-        data = Subscribed(
-            lambda: len(
-                service_schema.ServiceInstance.lookupAll(service=s)
-            )
-        )
-    elif field == 'TargetCount':
+    elif field == "Active":
+        data = Subscribed(lambda: len(service_schema.ServiceInstance.lookupAll(service=s)))
+    elif field == "TargetCount":
         data = Dropdown(
-            s.target_count,
-            [(str(ct), __serviceCountSetter(s, ct)) for ct in serviceCounts]
+            s.target_count, [(str(ct), __serviceCountSetter(s, ct)) for ct in serviceCounts]
         )
-    elif field == 'Cores':
+    elif field == "Cores":
         data = str(s.coresUsed)
-    elif field == 'RAM':
+    elif field == "RAM":
         data = str(s.gbRamUsed)
-    elif field == 'Boot Status':
+    elif field == "Boot Status":
         data = (
-            Popover(
-                Octicon("alert"),
-                "Failed",
-                Traceback(s.lastFailureReason or "<Unknown>")
-            ) if s.isThrottled() else ""
+            Popover(Octicon("alert"), "Failed", Traceback(s.lastFailureReason or "<Unknown>"))
+            if s.isThrottled()
+            else ""
         )
     else:
         data = ""
@@ -232,11 +251,12 @@ def makeServiceDropdown(services):
         Subscribed(
             lambda: Dropdown(
                 "Service",
-                [("All", "/services")] +
-                [(s.name, "/services/" + s.name)
-                 for s in sorted(services.Service.lookupAll(),
-                                 key=lambda s:s.name)]
-            ),
+                [("All", "/services")]
+                + [
+                    (s.name, "/services/" + s.name)
+                    for s in sorted(services.Service.lookupAll(), key=lambda s: s.name)
+                ],
+            )
         )
     ]
 
@@ -262,10 +282,10 @@ def makeMainHeader(toggles, current_username, authorized_groups_text):
         toggles,
         [
             LargePendingDownloadDisplay(),
-            Octicon('person') >> Span(current_username),
-            Span('Authorized Groups: {}'.format(authorized_groups_text)),
-            Button(Octicon('sign-out'), '/logout')
-        ]
+            Octicon("person") >> Span(current_username),
+            Span("Authorized Groups: {}".format(authorized_groups_text)),
+            Button(Octicon("sign-out"), "/logout"),
+        ],
     )
 
 
@@ -287,14 +307,11 @@ def makeMainView(display, toggles, current_username, authorized_groups_text):
     primary view container, with configured header
     """
     header = makeMainHeader(toggles, current_username, authorized_groups_text)
-    return PageView(
-        Main(display),
-        header=header
-    )
+    return PageView(Main(display), header=header)
 
 
 def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
-    if len(path) and path[0] == 'services':
+    if len(path) and path[0] == "services":
         if len(path) == 1:
             return view(), []
 
@@ -313,12 +330,9 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
         if len(path) == 2:
             return (
                 Subscribed(
-                    lambda: serviceType.serviceDisplay(serviceObj,
-                                                       queryArgs=queryArgs)
-                ).withSerializationContext(
-                    serviceObj.getSerializationContext()
-                ),
-                serviceToggles
+                    lambda: serviceType.serviceDisplay(serviceObj, queryArgs=queryArgs)
+                ).withSerializationContext(serviceObj.getSerializationContext()),
+                serviceToggles,
             )
 
         typename = path[2]
@@ -331,33 +345,31 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
                 break
 
         if typeObj is None:
-            return Traceback(
-                "Can't find fully-qualified type %s" % typename), []
+            return Traceback("Can't find fully-qualified type %s" % typename), []
 
         if len(path) == 3:
             return (
-                serviceType.serviceDisplay(serviceObj, objType=typename,
-                                           queryArgs=queryArgs)
-                .withSerializationContext(
-                    serviceObj.getSerializationContext()
-                ),
-                serviceToggles
+                serviceType.serviceDisplay(
+                    serviceObj, objType=typename, queryArgs=queryArgs
+                ).withSerializationContext(serviceObj.getSerializationContext()),
+                serviceToggles,
             )
 
         instance = typeObj.fromIdentity(path[3])
 
         return (
-            serviceType.serviceDisplay(serviceObj, instance=instance,
-                                       queryArgs=queryArgs)
-            .withSerializationContext(serviceObj.getSerializationContext()),
-            serviceToggles
+            serviceType.serviceDisplay(
+                serviceObj, instance=instance, queryArgs=queryArgs
+            ).withSerializationContext(serviceObj.getSerializationContext()),
+            serviceToggles,
         )
 
     return Traceback("Invalid url path: %s" % path), []
 
 
-def writeJsonMessage(message, ws, largeMessageAck, logger, frames_per_ack=10,
-                     frame_size=32 * 1024):
+def writeJsonMessage(
+    message, ws, largeMessageAck, logger, frames_per_ack=10, frame_size=32 * 1024
+):
     """Send a message over the websocket.
 
     Note: We have to chunk in 64kb frames
@@ -381,12 +393,11 @@ def writeJsonMessage(message, ws, largeMessageAck, logger, frames_per_ack=10,
     frames = []
     i = 0
     while i < len(msg):
-        frames.append(msg[i:i+frame_size])
+        frames.append(msg[i : i + frame_size])
         i += frame_size
 
     if len(frames) >= frames_per_ack:
-        logger.info("Sending large message of %s bytes over %s frames",
-                    len(msg), len(frames))
+        logger.info("Sending large message of %s bytes over %s frames", len(msg), len(frames))
 
     ws.send(json.dumps(len(frames)))
 
@@ -395,14 +406,13 @@ def writeJsonMessage(message, ws, largeMessageAck, logger, frames_per_ack=10,
 
         # block until we get the ack for frames_per_ack frames ago. That
         # way we always have frames_per_ack frames in the buffer.
-        framesSent = index+1
+        framesSent = index + 1
         if framesSent % frames_per_ack == 0 and framesSent > frames_per_ack:
             ack = largeMessageAck.get()
             if ack is StopIteration:
                 return
             else:
-                assert ack == framesSent - frames_per_ack, (
-                    ack, framesSent - frames_per_ack)
+                assert ack == framesSent - frames_per_ack, (ack, framesSent - frames_per_ack)
 
     framesSent = len(frames)
 
@@ -439,16 +449,15 @@ def readThread(ws, cells, largeMessageAck, logger):
         else:
             try:
                 jsonMsg = json.loads(msg)
-                if 'ACK' in jsonMsg:
-                    largeMessageAck.put(jsonMsg['ACK'])
+                if "ACK" in jsonMsg:
+                    largeMessageAck.put(jsonMsg["ACK"])
                 else:
-                    cell_id = jsonMsg.get('target_cell')
+                    cell_id = jsonMsg.get("target_cell")
                     cell = cells[cell_id]
                     if cell is not None:
                         cell.onMessageWithTransaction(jsonMsg)
             except Exception:
-                logger.error("Exception in inbound message: %s",
-                             traceback.format_exc())
+                logger.error("Exception in inbound message: %s", traceback.format_exc())
 
             cells.triggerIfHasDirty()
 

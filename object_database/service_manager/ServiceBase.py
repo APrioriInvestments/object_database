@@ -17,7 +17,14 @@ import object_database
 
 
 class ServiceRuntimeConfig:
-    def __init__(self, dbConnectionFactory, serviceTemporaryStorageRoot, authToken, ownIpAddress, serviceInstance):
+    def __init__(
+        self,
+        dbConnectionFactory,
+        serviceTemporaryStorageRoot,
+        authToken,
+        ownIpAddress,
+        serviceInstance,
+    ):
         self.dbConnectionFactory = dbConnectionFactory
         self.serviceTemporaryStorageRoot = serviceTemporaryStorageRoot
         self.authToken = authToken
@@ -53,7 +60,9 @@ class ServiceBase:
 
     @staticmethod
     def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
-        return object_database.web.cells.Card("No details provided for service '%s'" % serviceObject.name)
+        return object_database.web.cells.Card(
+            "No details provided for service '%s'" % serviceObject.name
+        )
 
     @staticmethod
     def serviceHeaderToggles(serviceObject, instance=None):

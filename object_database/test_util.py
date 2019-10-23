@@ -46,10 +46,7 @@ def diff_object_types_histograms(new_histo, old_histo):
     """ Returns a new histogram that is the difference of it inputs """
     all_keys = set(new_histo.keys()).union(old_histo.keys())
 
-    dd = {
-        k: new_histo[k] - old_histo[k]
-        for k in all_keys if new_histo[k] - old_histo[k] != 0
-    }
+    dd = {k: new_histo[k] - old_histo[k] for k in all_keys if new_histo[k] - old_histo[k] != 0}
     return dd
 
 
@@ -59,10 +56,9 @@ def sort_by_value(histogram, topK=None, filterFn=None):
         If filter is specified the results are filtered using that function
         If topK is specified, only return topK results
     """
-    res = reversed(sorted(
-        [(val, tag) for tag, val in histogram.items()],
-        key=lambda pair: pair[0]
-    ))
+    res = reversed(
+        sorted([(val, tag) for tag, val in histogram.items()], key=lambda pair: pair[0])
+    )
 
     if filter is not None:
         res = filter(filterFn, res)
@@ -81,18 +77,12 @@ def log_cells_stats(cells, logger, indentation=0):
 
     log("#####################################################")
     log("#  Cells structure DEBUG Log")
-    log("#  - dirty: {}"
-        .format(len(cells._dirtyNodes)))
-    log("#  - need bcast: {}"
-        .format(len(cells._nodesToBroadcast)))
-    log("#  - cells: {}"
-        .format(len(cells._cells)))
-    log("#  - known children: {}"
-        .format(len(cells._cellsKnownChildren)))
-    log("#  - to discard: {}"
-        .format(len(cells._nodesToDiscard)))
-    log("#  - subscribed-to keys: {}"
-        .format(len(cells._subscribedCells)))
+    log("#  - dirty: {}".format(len(cells._dirtyNodes)))
+    log("#  - need bcast: {}".format(len(cells._nodesToBroadcast)))
+    log("#  - cells: {}".format(len(cells._cells)))
+    log("#  - known children: {}".format(len(cells._cellsKnownChildren)))
+    log("#  - to discard: {}".format(len(cells._nodesToDiscard)))
+    log("#  - subscribed-to keys: {}".format(len(cells._subscribedCells)))
     log("#####################################################")
 
 

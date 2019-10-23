@@ -55,6 +55,7 @@ class KeyAction(Cell):
     front end), see the MDN docs here:
     https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent
     """
+
     def __init__(self, keyCmd, callback, wantedInfo=None, priority=4, stopsPropagation=False):
         super().__init__()
         self.shouldDisplay = False
@@ -68,12 +69,12 @@ class KeyAction(Cell):
 
     def recalculate(self):
         self.exportData = {
-            'keyCombo': self.keyCmd,
-            'wantedEventKeys': self.wantedInfo,
-            'priority': self.priority,
-            'stopsPropagation': self.stopsPropagation
+            "keyCombo": self.keyCmd,
+            "wantedEventKeys": self.wantedInfo,
+            "priority": self.priority,
+            "stopsPropagation": self.stopsPropagation,
         }
 
     def onMessage(self, messageFrame):
-        messageFrame['data']['keyCmd'] = self.keyCmd
-        self.callback(messageFrame['data'])
+        messageFrame["data"]["keyCmd"] = self.keyCmd
+        self.callback(messageFrame["data"])

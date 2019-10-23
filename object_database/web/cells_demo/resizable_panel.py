@@ -17,15 +17,9 @@ from object_database.web.CellsTestPage import CellsTestPage
 
 
 class BasicHResizePanel(CellsTestPage):
-
     def cell(self):
         return cells.ResizablePanel(
-            cells.Card(
-                cells.Text("First")
-            ),
-            cells.Card(
-                cells.Text("Second")
-            )
+            cells.Card(cells.Text("First")), cells.Card(cells.Text("Second"))
         )
 
     def text(self):
@@ -35,13 +29,9 @@ class BasicHResizePanel(CellsTestPage):
 class BasicVResizePanel(CellsTestPage):
     def cell(self):
         return cells.ResizablePanel(
-            cells.Card(
-                cells.Text("First")
-            ),
-            cells.Card(
-                cells.Text("Second")
-            ),
-            split="horizontal"
+            cells.Card(cells.Text("First")),
+            cells.Card(cells.Text("Second")),
+            split="horizontal",
         )
 
     def text(self):

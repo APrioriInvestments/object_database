@@ -31,16 +31,15 @@ from object_database.web.cells import (
     Slot,
     ensureSubscribedType,
     registerDisplay,
-    Flex
+    Flex,
 )
 
 from object_database import InMemServer, Schema, Indexed, connect
 from object_database.util import genToken, configureLogging
-from object_database.frontends.service_manager import autoconfigureAndStartServiceManagerProcess
-from object_database.test_util import (
-    currentMemUsageMb,
-    log_cells_stats
+from object_database.frontends.service_manager import (
+    autoconfigureAndStartServiceManagerProcess,
 )
+from object_database.test_util import currentMemUsageMb, log_cells_stats
 from object_database.web.cells.Messenger import getStructure
 from object_database.web.cells import (
     Padding,
@@ -48,7 +47,7 @@ from object_database.web.cells import (
     PaddingLeft,
     Margin,
     MarginSides,
-    MarginRight
+    MarginRight,
 )
 
 import logging
@@ -67,10 +66,7 @@ class Thing:
 class CellsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        configureLogging(
-            preamble="cells_test",
-            level=logging.INFO
-        )
+        configureLogging(preamble="cells_test", level=logging.INFO)
         cls._logger = logging.getLogger(__name__)
 
     def setUp(self):
@@ -139,16 +135,11 @@ class CellsTests(unittest.TestCase):
         self.assertFalse(basicCell.wasRemoved)
 
     def test_cells_recalculation(self):
-        pair = [
-            Container("HI"),
-            Container("HI2")
-        ]
+        pair = [Container("HI"), Container("HI2")]
 
         sequence = Sequence(pair)
 
-        self.cells.withRoot(
-            sequence
-        )
+        self.cells.withRoot(sequence)
 
         self.cells._recalculateCells()
         pair[0].setChild("HIHI")
@@ -159,16 +150,14 @@ class CellsTests(unittest.TestCase):
         self.assertEqual(pair[1].parent, sequence)
 
         # Assert that the first Container has a Cell child
-        self.assertIsInstance(pair[0].children['child'], Cell)
+        self.assertIsInstance(pair[0].children["child"], Cell)
 
     def test_cells_reusable(self):
         c1 = Card(Text("HI"))
         c2 = Card(Text("HI2"))
         slot = Slot(0)
 
-        self.cells.withRoot(
-            Subscribed(lambda: c1 if slot.get() else c2)
-        )
+        self.cells.withRoot(Subscribed(lambda: c1 if slot.get() else c2))
 
         self.cells.renderMessages()
         slot.set(1)
@@ -181,10 +170,12 @@ class CellsTests(unittest.TestCase):
     def test_cells_subscriptions(self):
         self.cells.withRoot(
             Subscribed(
-                lambda: Sequence([
-                    Span("Thing(k=%s).x = %s" % (thing.k, thing.x))
-                    for thing in Thing.lookupAll()
-                ])
+                lambda: Sequence(
+                    [
+                        Span("Thing(k=%s).x = %s" % (thing.k, thing.x))
+                        for thing in Thing.lookupAll()
+                    ]
+                )
             )
         )
 
@@ -201,7 +192,7 @@ class CellsTests(unittest.TestCase):
 
         # three 'Span', three 'Text', the Sequence, the Subscribed, and a delete
         # self.assertEqual(len(self.cells.renderMessages()), 9)
-        nodes_created = [ node for node in self.cells._nodesToBroadcast if node.wasCreated]
+        nodes_created = [node for node in self.cells._nodesToBroadcast if node.wasCreated]
 
         # We have discarded only one
         self.assertEqual(len(self.cells._nodesToDiscard), 1)
@@ -222,10 +213,12 @@ class CellsTests(unittest.TestCase):
         def checkThing2s():
             ensureSubscribedType(Thing2)
 
-            res = Sequence([
-                Span("Thing(k=%s).x = %s"
-                     % (thing.k, thing.x)) for thing in Thing2.lookupAll()
-            ])
+            res = Sequence(
+                [
+                    Span("Thing(k=%s).x = %s" % (thing.k, thing.x))
+                    for thing in Thing2.lookupAll()
+                ]
+            )
 
             computed.set()
 
@@ -248,7 +241,7 @@ class CellsTests(unittest.TestCase):
                 lambda: Thing.lookupAll(k=0),
                 lambda thing: Subscribed(
                     lambda: Span("Thing(k=%s).x = %s" % (thing.k, thing.x))
-                )
+                ),
             )
         )
 
@@ -265,16 +258,17 @@ class CellsTests(unittest.TestCase):
 
             messages = self.cells.renderMessages()
 
-            self.assertTrue(len(self.cells) < 20, "Have %s cells at pass %s"
-                            % (len(self.cells), i))
-            self.assertTrue(len(messages) < 20, "Got %s messages at pass %s"
-                            % (len(messages), i))
+            self.assertTrue(
+                len(self.cells) < 20, "Have %s cells at pass %s" % (len(self.cells), i)
+            )
+            self.assertTrue(
+                len(messages) < 20, "Got %s messages at pass %s" % (len(messages), i)
+            )
 
     def helper_memory_leak(self, cell, initFn, workFn, thresholdMB):
         port = 8021
         server, cleanupFn = autoconfigureAndStartServiceManagerProcess(
-            port=port,
-            authToken=self.token,
+            port=port, authToken=self.token
         )
         try:
             db = connect("localhost", port, self.token, retry=True)
@@ -295,18 +289,19 @@ class CellsTests(unittest.TestCase):
             self._logger.info("Initial Memory Usage: {} MB".format(rss0))
             self._logger.info("Final   Memory Usage: {} MB".format(rss))
             self.assertTrue(
-                rss - rss0 < thresholdMB,
-                "Memory Usage Increased by {} MB.".format(rss - rss0)
+                rss - rss0 < thresholdMB, "Memory Usage Increased by {} MB.".format(rss - rss0)
             )
         finally:
             cleanupFn()
 
     def test_cells_memory_leak1(self):
         cell = Subscribed(
-            lambda: Sequence([
-                Span("Thing(k=%s).x = %s" % (thing.k, thing.x))
-                for thing in Thing.lookupAll(k=0)
-            ])
+            lambda: Sequence(
+                [
+                    Span("Thing(k=%s).x = %s" % (thing.k, thing.x))
+                    for thing in Thing.lookupAll(k=0)
+                ]
+            )
         )
 
         def workFn(db, cells, iterations=5000):
@@ -332,19 +327,12 @@ class CellsTests(unittest.TestCase):
 
     @unittest.skip("Test is failing oddly, but it's not clear what test is trying to do")
     def test_cells_memory_leak2(self):
-        cell = (
-            SubscribedSequence(
-                lambda: Thing.lookupAll(k=0),
-                lambda thing: Subscribed(
-                    lambda: Span("Thing(k=%s).x = %s" % (thing.k, thing.x))
-                )
-            ) +
-            SubscribedSequence(
-                lambda: Thing.lookupAll(k=1),
-                lambda thing: Subscribed(
-                    lambda: Span("Thing(k=%s).x = %s" % (thing.k, thing.x))
-                )
-            )
+        cell = SubscribedSequence(
+            lambda: Thing.lookupAll(k=0),
+            lambda thing: Subscribed(lambda: Span("Thing(k=%s).x = %s" % (thing.k, thing.x))),
+        ) + SubscribedSequence(
+            lambda: Thing.lookupAll(k=1),
+            lambda thing: Subscribed(lambda: Span("Thing(k=%s).x = %s" % (thing.k, thing.x))),
         )
 
         def workFn(db, cells, iterations=5000):
@@ -400,10 +388,10 @@ class CellsTests(unittest.TestCase):
             return Text(X.x).tagged("display " + str(X.x))
 
         self.cells.withRoot(
-            Card(X(0)).withContext(size="small") +
-            Card(X(1)).withContext(size="large") +
-            Card(X(2)).withContext(size="something else") +
-            Card(X(3))
+            Card(X(0)).withContext(size="small")
+            + Card(X(1)).withContext(size="large")
+            + Card(X(2)).withContext(size="something else")
+            + Card(X(3))
         )
 
         self.cells.renderMessages()
@@ -423,7 +411,7 @@ class CellsTests(unittest.TestCase):
         def handler():
             return changedCell
 
-        dropdown = AsyncDropdown('Untitled', handler)
+        dropdown = AsyncDropdown("Untitled", handler)
         dropdown.contentCell.loadingCell = Text("INITIAL")
         self.cells.withRoot(dropdown)
         self.cells.renderMessages()
@@ -441,10 +429,7 @@ class CellsTests(unittest.TestCase):
 class CellsMessagingTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        configureLogging(
-            preamble="cells_test",
-            level=logging.INFO
-        )
+        configureLogging(preamble="cells_test", level=logging.INFO)
         cls._logger = logging.getLogger(__name__)
 
     def setUp(self):
@@ -460,10 +445,7 @@ class CellsMessagingTests(unittest.TestCase):
         self.server.stop()
 
     def test_cells_initial_messages(self):
-        pair = [
-            Container("HI"),
-            Container("HI2")
-        ]
+        pair = [Container("HI"), Container("HI2")]
         pairCell = Sequence(pair)
         self.cells.withRoot(pairCell)
 
@@ -477,13 +459,10 @@ class CellsMessagingTests(unittest.TestCase):
         # We should for now only have the initial
         # creation message for the RootCell
         self.assertEqual(len(msgs), 1)
-        self.assertEqual(msgs[0]['id'], self.cells._root.identity)
+        self.assertEqual(msgs[0]["id"], self.cells._root.identity)
 
     def test_cells_simple_update_message(self):
-        pair = [
-            Container("Hello"),
-            Container("World")
-        ]
+        pair = [Container("Hello"), Container("World")]
         sequence = Sequence(pair)
 
         # Initial recalculation
@@ -502,19 +481,16 @@ class CellsMessagingTests(unittest.TestCase):
         self.assertEqual(len(msgs), 1)
 
         # It should be an update to the Sequence
-        self.assertEqual(msgs[0]['id'], sequence.identity)
+        self.assertEqual(msgs[0]["id"], sequence.identity)
 
         # Sequence's namedChildren should have a length now of 3
-        self.assertEqual(len(sequence.children['elements']), 3)
+        self.assertEqual(len(sequence.children["elements"]), 3)
 
 
 class CellsStructureTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        configureLogging(
-            preamble="cells_structure_test",
-            level=logging.INFO
-        )
+        configureLogging(preamble="cells_structure_test", level=logging.INFO)
         cls._logger = logging.getLogger(__name__)
 
     def setUp(self):
@@ -538,15 +514,12 @@ class CellsStructureTests(unittest.TestCase):
         container.cells = self.cells
         self.cells.withRoot(container)
         structure = getStructure(None, container, None)
-        expected_subset = {
-            "id": container.identity,
-            "cellType": "Sequence"
-        }
+        expected_subset = {"id": container.identity, "cellType": "Sequence"}
         self.assertTrue(isinstance(structure, dict))
         self.assertDictContainsSubset(expected_subset, structure)
-        self.assertIn('elements', structure['namedChildren'].keys())
-        self.assertIn(first.identity, structure['namedChildren']['elements'])
-        self.assertIn(second.identity, structure['namedChildren']['elements'])
+        self.assertIn("elements", structure["namedChildren"].keys())
+        self.assertIn(first.identity, structure["namedChildren"]["elements"])
+        self.assertIn(second.identity, structure["namedChildren"]["elements"])
 
     def test_basic_expanded_structure(self):
         first = Text("Hello")
@@ -557,35 +530,29 @@ class CellsStructureTests(unittest.TestCase):
         container.cells = self.cells
         self.cells.withRoot(container)
         struct = getStructure(None, container, None, expand=True)
-        expected_subset = {
-            "id": container.identity,
-            "cellType": "Sequence"
-        }
+        expected_subset = {"id": container.identity, "cellType": "Sequence"}
         expected_first_element = {
             "id": first.identity,
             "cellType": "Text",
-            "namedChildren": {}
+            "namedChildren": {},
         }
         expected_second_element = {
             "id": second.identity,
             "cellType": "Text",
-            "namedChildren": {}
+            "namedChildren": {},
         }
 
         self.assertTrue(isinstance(struct, dict))
-        self.assertTrue(isinstance(struct['namedChildren'], dict))
+        self.assertTrue(isinstance(struct["namedChildren"], dict))
         self.assertDictContainsSubset(expected_subset, struct)
-        self.assertIn("elements", struct['namedChildren'])
-        elements = struct['namedChildren']['elements']
+        self.assertIn("elements", struct["namedChildren"])
+        elements = struct["namedChildren"]["elements"]
         self.assertIsInstance(elements, list)
         self.assertDictContainsSubset(expected_first_element, elements[0])
         self.assertDictContainsSubset(expected_second_element, elements[1])
 
     def test_cell_self_flat_struct(self):
-        c = Sequence([
-            Text("Hello"),
-            Text("World")
-        ])
+        c = Sequence([Text("Hello"), Text("World")])
         self.cells.withRoot(c)
         self.cells._recalculateCells()
         struct = c.getCurrentStructure()
@@ -595,10 +562,7 @@ class CellsStructureTests(unittest.TestCase):
 class CellsSequenceHandlingTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        configureLogging(
-            preamble="cells_test",
-            level=logging.INFO
-        )
+        configureLogging(preamble="cells_test", level=logging.INFO)
         cls._logger = logging.getLogger(__name__)
 
     def setUp(self):
@@ -614,38 +578,40 @@ class CellsSequenceHandlingTests(unittest.TestCase):
         self.server.stop()
 
     def test_seq_elements_length(self):
-        child_elements = [Text('One'), Text('Two'), Text('Three')]
+        child_elements = [Text("One"), Text("Two"), Text("Three")]
         child_seq = Sequence(child_elements)
-        parent_seq = Sequence([Text('First'), child_seq, Text('Third')])
+        parent_seq = Sequence([Text("First"), child_seq, Text("Third")])
         self.cells.withRoot(parent_seq)
         self.cells._recalculateCells()
         self.assertEqual(len(child_seq.elements), len(child_elements))
 
     def test_seq_element_presence(self):
-        child_elements = [Text('One'), Text('Two'), Text('Three')]
+        child_elements = [Text("One"), Text("Two"), Text("Three")]
         child_seq = Sequence(child_elements)
-        parent_seq = Sequence([Text('First'), child_seq, Text('Third')])
+        parent_seq = Sequence([Text("First"), child_seq, Text("Third")])
         self.cells.withRoot(parent_seq)
 
         self.assertIn(child_elements[0], child_seq.elements)
 
     def test_seq_not_flex_parent(self):
-        child_seq = Sequence([Text('One'), Text('Two'), Text('Three')])
-        parent_seq = Sequence([Text('First'), child_seq, Text('Last')])
+        child_seq = Sequence([Text("One"), Text("Two"), Text("Three")])
+        parent_seq = Sequence([Text("First"), child_seq, Text("Last")])
         parent_seq.recalculate()
         self.assertFalse(parent_seq.isFlexParent)
         self.assertFalse(parent_seq.isFlex)
 
     def test_seq_becomes_flex_parent(self):
-        child_seq = Sequence([Text('One'), Text('Two'), Text('Three')])
-        parent_seq = Sequence([Flex(Text('First')), child_seq, Text('Last')])
+        child_seq = Sequence([Text("One"), Text("Two"), Text("Three")])
+        parent_seq = Sequence([Flex(Text("First")), child_seq, Text("Last")])
         parent_seq.recalculate()
         self.assertTrue(parent_seq.isFlexParent)
 
     def test_seq_flattens_non_flex(self):
-        first_child_seq = Sequence([Text('One'), Text('Two')])
-        second_child_seq = Sequence([Text('Five'), Text('Six')])
-        parent_seq = Sequence([Text('Outer'), first_child_seq, Flex(second_child_seq), Text('Last')])
+        first_child_seq = Sequence([Text("One"), Text("Two")])
+        second_child_seq = Sequence([Text("Five"), Text("Six")])
+        parent_seq = Sequence(
+            [Text("Outer"), first_child_seq, Flex(second_child_seq), Text("Last")]
+        )
         self.cells.withRoot(parent_seq)
         self.cells._recalculateCells()
 
@@ -655,7 +621,9 @@ class CellsSequenceHandlingTests(unittest.TestCase):
         self.assertIn(first_child_seq.elements[1], parent_seq.elements)
 
     def test_basic_plus_composition(self):
-        result = Text("Hello") + Text("There") + Text("This Is A") + Button("Button", lambda: None)
+        result = (
+            Text("Hello") + Text("There") + Text("This Is A") + Button("Button", lambda: None)
+        )
         self.assertTrue(isinstance(result, Sequence))
         self.assertEqual(len(result.elements), 4)
 
@@ -663,10 +631,7 @@ class CellsSequenceHandlingTests(unittest.TestCase):
 class CellsHorizSequenceHandlingTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        configureLogging(
-            preamble="cells_test",
-            level=logging.INFO
-        )
+        configureLogging(preamble="cells_test", level=logging.INFO)
         cls._logger = logging.getLogger(__name__)
 
     def setUp(self):
@@ -682,38 +647,40 @@ class CellsHorizSequenceHandlingTests(unittest.TestCase):
         self.server.stop()
 
     def test_horiz_seq_elements_length(self):
-        child_elements = [Text('One'), Text('Two'), Text('Three')]
+        child_elements = [Text("One"), Text("Two"), Text("Three")]
         child_seq = HorizontalSequence(child_elements)
-        parent_seq = HorizontalSequence([Text('First'), child_seq, Text('Third')])
+        parent_seq = HorizontalSequence([Text("First"), child_seq, Text("Third")])
         self.cells.withRoot(parent_seq)
         self.cells._recalculateCells()
         self.assertEqual(len(child_seq.elements), len(child_elements))
 
     def test_horiz_seq_element_presence(self):
-        child_elements = [Text('One'), Text('Two'), Text('Three')]
+        child_elements = [Text("One"), Text("Two"), Text("Three")]
         child_seq = HorizontalSequence(child_elements)
-        parent_seq = HorizontalSequence([Text('First'), child_seq, Text('Third')])
+        parent_seq = HorizontalSequence([Text("First"), child_seq, Text("Third")])
         self.cells.withRoot(parent_seq)
 
         self.assertIn(child_elements[0], child_seq.elements)
 
     def test_horiz_seq_not_flex_parent(self):
-        child_seq = HorizontalSequence([Text('One'), Text('Two'), Text('Three')])
-        parent_seq = HorizontalSequence([Text('First'), child_seq, Text('Last')])
+        child_seq = HorizontalSequence([Text("One"), Text("Two"), Text("Three")])
+        parent_seq = HorizontalSequence([Text("First"), child_seq, Text("Last")])
         parent_seq.recalculate()
         self.assertFalse(parent_seq.isFlexParent)
         self.assertFalse(parent_seq.isFlex)
 
     def test_horiz_seq_becomes_flex_parent(self):
-        child_seq = HorizontalSequence([Text('One'), Text('Two'), Text('Three')])
-        parent_seq = HorizontalSequence([Flex(Text('First')), child_seq, Text('Last')])
+        child_seq = HorizontalSequence([Text("One"), Text("Two"), Text("Three")])
+        parent_seq = HorizontalSequence([Flex(Text("First")), child_seq, Text("Last")])
         parent_seq.recalculate()
         self.assertTrue(parent_seq.isFlexParent)
 
     def test_horiz_seq_flattens_non_flex(self):
-        first_child_seq = HorizontalSequence([Text('One'), Text('Two')])
-        second_child_seq = HorizontalSequence([Text('Five'), Text('Six')])
-        parent_seq = HorizontalSequence([Text('Outer'), first_child_seq, Flex(second_child_seq), Text('Last')])
+        first_child_seq = HorizontalSequence([Text("One"), Text("Two")])
+        second_child_seq = HorizontalSequence([Text("Five"), Text("Six")])
+        parent_seq = HorizontalSequence(
+            [Text("Outer"), first_child_seq, Flex(second_child_seq), Text("Last")]
+        )
         self.cells.withRoot(parent_seq)
         self.cells._recalculateCells()
 
@@ -723,7 +690,7 @@ class CellsHorizSequenceHandlingTests(unittest.TestCase):
         self.assertIn(first_child_seq.elements[1], parent_seq.elements)
 
     def test_basic_rshift_composition(self):
-        result = (Text("Hi") >> Text("Bye") >> Text("Go Away") >> Button("Away", lambda: None))
+        result = Text("Hi") >> Text("Bye") >> Text("Go Away") >> Button("Away", lambda: None)
         self.assertTrue(isinstance(result, HorizontalSequence))
         self.assertEqual(len(result.elements), 4)
 
@@ -731,10 +698,7 @@ class CellsHorizSequenceHandlingTests(unittest.TestCase):
 class CellsSubscribedSequenceHandlingTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        configureLogging(
-            preamble="cells_test",
-            level=logging.INFO
-        )
+        configureLogging(preamble="cells_test", level=logging.INFO)
         cls._logger = logging.getLogger(__name__)
 
     def setUp(self):
@@ -766,7 +730,7 @@ class CellsSubscribedSequenceHandlingTests(unittest.TestCase):
         self.cells.withRoot(sub_seq)
         self.cells._recalculateCells()
         self.assertEqual(len(sub_seq.items), 50)
-        self.assertEqual(len(sub_seq.children['elements']), 50)
+        self.assertEqual(len(sub_seq.children["elements"]), 50)
 
     def test_elements_length_changed(self):
         exampleData = self.exampleItems
@@ -784,66 +748,65 @@ class CellsSubscribedSequenceHandlingTests(unittest.TestCase):
 
     def test_horizontal_constructor(self):
         sub_seq = HorizontalSubscribedSequence(self.itemsFun, self.rendererFun)
-        self.assertEqual(sub_seq.orientation, 'horizontal')
+        self.assertEqual(sub_seq.orientation, "horizontal")
         self.assertIsInstance(sub_seq, SubscribedSequence)
 
     def test_abbrev_vert_constructor(self):
         sub_seq = VSubscribedSequence(self.itemsFun, self.rendererFun)
-        self.assertEqual(sub_seq.orientation, 'vertical')
+        self.assertEqual(sub_seq.orientation, "vertical")
         self.assertIsInstance(sub_seq, SubscribedSequence)
 
     def test_abbrev_horiz_constructor(self):
         sub_seq = HSubscribedSequence(self.itemsFun, self.rendererFun)
-        self.assertEqual(sub_seq.orientation, 'horizontal')
+        self.assertEqual(sub_seq.orientation, "horizontal")
         self.assertIsInstance(sub_seq, SubscribedSequence)
 
 
 class CellsUtilTests(unittest.TestCase):
-
     def test_padding_all_dimensions(self):
-        cell = Text('test')
+        cell = Text("test")
         Padding(10, cell)
-        self.assertTrue('padding' in cell.exportData['customStyle'])
-        self.assertEqual('10px', cell.exportData['customStyle']['padding'])
+        self.assertTrue("padding" in cell.exportData["customStyle"])
+        self.assertEqual("10px", cell.exportData["customStyle"]["padding"])
 
     def test_padding_right(self):
         cell = Text("test")
         PaddingRight(22, cell)
-        self.assertFalse('padding' in cell.exportData['customStyle'])
-        self.assertTrue('padding-right' in cell.exportData['customStyle'])
-        self.assertEqual('22px', cell.exportData['customStyle']['padding-right'])
+        self.assertFalse("padding" in cell.exportData["customStyle"])
+        self.assertTrue("padding-right" in cell.exportData["customStyle"])
+        self.assertEqual("22px", cell.exportData["customStyle"]["padding-right"])
 
     def test_padding_left(self):
         cell = Text("test")
         PaddingLeft(22, cell)
-        self.assertFalse('padding' in cell.exportData['customStyle'])
-        self.assertTrue('padding-left' in cell.exportData['customStyle'])
-        self.assertEqual('22px', cell.exportData['customStyle']['padding-left'])
+        self.assertFalse("padding" in cell.exportData["customStyle"])
+        self.assertTrue("padding-left" in cell.exportData["customStyle"])
+        self.assertEqual("22px", cell.exportData["customStyle"]["padding-left"])
 
     def test_margin_all_dimensions(self):
         cell = Text("test")
         Margin(15, cell)
-        self.assertTrue('margin' in cell.exportData['customStyle'])
-        self.assertEqual('15px', cell.exportData['customStyle']['margin'])
+        self.assertTrue("margin" in cell.exportData["customStyle"])
+        self.assertEqual("15px", cell.exportData["customStyle"]["margin"])
 
     def test_margin_sides(self):
         cell = Text("test")
         MarginSides(10, cell)
-        self.assertTrue('margin-right' in cell.exportData['customStyle'])
-        self.assertTrue('margin-left' in cell.exportData['customStyle'])
-        self.assertEqual('10px', cell.exportData['customStyle']['margin-right'])
-        self.assertEqual('10px', cell.exportData['customStyle']['margin-left'])
+        self.assertTrue("margin-right" in cell.exportData["customStyle"])
+        self.assertTrue("margin-left" in cell.exportData["customStyle"])
+        self.assertEqual("10px", cell.exportData["customStyle"]["margin-right"])
+        self.assertEqual("10px", cell.exportData["customStyle"]["margin-left"])
 
     def test_margin_right(self):
         cell = Text("test")
         MarginRight(12, cell)
-        self.assertTrue('margin-right' in cell.exportData['customStyle'])
-        self.assertEqual('12px', cell.exportData['customStyle']['margin-right'])
-        self.assertFalse('margin' in cell.exportData['customStyle'])
-        self.assertEqual('0px', cell.exportData['customStyle']['margin-left'])
-        self.assertEqual('0px', cell.exportData['customStyle']['margin-bottom'])
-        self.assertEqual('0px', cell.exportData['customStyle']['margin-top'])
+        self.assertTrue("margin-right" in cell.exportData["customStyle"])
+        self.assertEqual("12px", cell.exportData["customStyle"]["margin-right"])
+        self.assertFalse("margin" in cell.exportData["customStyle"])
+        self.assertEqual("0px", cell.exportData["customStyle"]["margin-left"])
+        self.assertEqual("0px", cell.exportData["customStyle"]["margin-bottom"])
+        self.assertEqual("0px", cell.exportData["customStyle"]["margin-top"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

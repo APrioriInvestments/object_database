@@ -22,20 +22,18 @@ import object_database
 from object_database.util import genToken
 from object_database.service_manager.ServiceManager import ServiceManager
 
-from object_database import (
-    core_schema, connect, service_schema,
-)
+from object_database import core_schema, connect, service_schema
 from object_database.frontends import service_manager
 
 ownDir = os.path.dirname(os.path.abspath(__file__))
 
 VERBOSE = True
 # Turn VERBOSE off on TravisCI because subprocess.PIPE seems to lock things up
-VERBOSE = False if os.environ.get('TRAVIS_CI', None) else VERBOSE
+VERBOSE = False if os.environ.get("TRAVIS_CI", None) else VERBOSE
 
 
 class ServiceManagerTestCommon(object):
-    ENVIRONMENT_WAIT_MULTIPLIER = 5 if os.environ.get('TRAVIS_CI', None) is not None else 1
+    ENVIRONMENT_WAIT_MULTIPLIER = 5 if os.environ.get("TRAVIS_CI", None) is not None else 1
 
     def schemasToSubscribeTo(self):
         """Subclasses can override to extend the schema set."""
@@ -44,11 +42,9 @@ class ServiceManagerTestCommon(object):
     def waitRunning(self, serviceName):
         self.assertTrue(
             ServiceManager.waitRunning(
-                self.database,
-                serviceName,
-                5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
+                self.database, serviceName, 5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
             ),
-            "Service " + serviceName + " never came up."
+            "Service " + serviceName + " never came up.",
         )
 
     def timeElapsed(self):
@@ -64,21 +60,21 @@ class ServiceManagerTestCommon(object):
             self.tempDirectoryName, forceReset=True
         )
 
-        os.makedirs(os.path.join(self.tempDirectoryName, 'source'))
-        os.makedirs(os.path.join(self.tempDirectoryName, 'storage'))
-        os.makedirs(os.path.join(self.tempDirectoryName, 'logs'))
+        os.makedirs(os.path.join(self.tempDirectoryName, "source"))
+        os.makedirs(os.path.join(self.tempDirectoryName, "storage"))
+        os.makedirs(os.path.join(self.tempDirectoryName, "logs"))
 
-        self.logDir = os.path.join(self.tempDirectoryName, 'logs')
+        self.logDir = os.path.join(self.tempDirectoryName, "logs")
 
-        logLevelName = logging.getLevelName(
-            logging.getLogger(__name__).getEffectiveLevel()
-        )
+        logLevelName = logging.getLevelName(logging.getLogger(__name__).getEffectiveLevel())
 
         self.server = service_manager.startServiceManagerProcess(
-            self.tempDirectoryName, 8023, self.token,
+            self.tempDirectoryName,
+            8023,
+            self.token,
             loglevelName=logLevelName,
-            sslPath=os.path.join(ownDir, '..', '..', 'testcert.cert'),
-            verbose=VERBOSE
+            sslPath=os.path.join(ownDir, "..", "..", "testcert.cert"),
+            verbose=VERBOSE,
         )
 
         try:
@@ -108,8 +104,6 @@ class ServiceManagerTestCommon(object):
             try:
                 self.server.wait(timeout=5.0)
             except subprocess.TimeoutExpired:
-                self.logger.error(
-                    f"Failed to kill service manager process."
-                )
+                self.logger.error(f"Failed to kill service manager process.")
 
         self.tempDirObj.cleanup()

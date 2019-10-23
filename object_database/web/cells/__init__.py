@@ -8,7 +8,6 @@ from object_database.web.cells.cells import (
     ensureSubscribedType,
     ensureSubscribedSchema,
     wrapCallback,
-
     # Classes
     GeventPipe,
     Cells,
@@ -62,7 +61,7 @@ from object_database.web.cells.cells import (
     AsyncDropdown,
     CircleLoader,
     Timestamp,
-    HorizontalSequence
+    HorizontalSequence,
 )
 
 from object_database.web.cells.views.split_view import SplitView
@@ -84,7 +83,7 @@ from object_database.web.cells.util import (
     Margin,
     MarginSides,
     MarginRight,
-    MarginLeft
+    MarginLeft,
 )
 
 from object_database.web.cells.views.resizable_panel import ResizablePanel

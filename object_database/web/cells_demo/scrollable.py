@@ -19,9 +19,7 @@ from object_database.web.CellsTestPage import CellsTestPage
 class basicScrollable(CellsTestPage):
     def cell(self):
         return cells.Scrollable(
-            cells.Sequence([
-                cells.Card("This is a card", padding=2) for index in range(20)
-            ])
+            cells.Sequence([cells.Card("This is a card", padding=2) for index in range(20)])
         )
 
     def text(self):
@@ -30,18 +28,32 @@ class basicScrollable(CellsTestPage):
 
 class multiScrollable(CellsTestPage):
     def cell(self):
-        return cells.SplitView([
-            (cells.Card(
-                cells.Scrollable(cells.Sequence([
-                    cells.Card("Row %s of 20" % (item + 1)) for item in range(20)
-                ])),
-                padding=10), 1),
-            (cells.Card(
-                cells.Scrollable(cells.Sequence([
-                    cells.Card("Row %s of 10" % (item + 1)) for item in range(10)
-                ])),
-                padding=10), 10),
-        ])
+        return cells.SplitView(
+            [
+                (
+                    cells.Card(
+                        cells.Scrollable(
+                            cells.Sequence(
+                                [cells.Card("Row %s of 20" % (item + 1)) for item in range(20)]
+                            )
+                        ),
+                        padding=10,
+                    ),
+                    1,
+                ),
+                (
+                    cells.Card(
+                        cells.Scrollable(
+                            cells.Sequence(
+                                [cells.Card("Row %s of 10" % (item + 1)) for item in range(10)]
+                            )
+                        ),
+                        padding=10,
+                    ),
+                    10,
+                ),
+            ]
+        )
 
     def text(self):
         return "You should see some scrollable content."

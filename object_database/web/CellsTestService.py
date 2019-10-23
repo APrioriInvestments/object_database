@@ -45,12 +45,14 @@ def getPages():
     odbCodebase = Codebase.FromRootlevelModule(object_database)
     # these are all the cell_demo cells
     for name, value in odbCodebase.allModuleLevelValues():
-        if isinstance(value, type) and issubclass(value, CellsTestPage) and \
-           value is not CellsTestPage:
+        if (
+            isinstance(value, type)
+            and issubclass(value, CellsTestPage)
+            and value is not CellsTestPage
+        ):
             try:
                 instance = value()
-                _pagesCache.setdefault(instance.category(), {})[
-                    value.__name__] = instance
+                _pagesCache.setdefault(instance.category(), {})[value.__name__] = instance
             except Exception:
                 traceback.print_exc()
 
@@ -65,8 +67,8 @@ class CellsTestService(ServiceBase):
     def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
         queryArgs = queryArgs or {}
 
-        if 'category' in queryArgs and 'name' in queryArgs:
-            page = getPages()[queryArgs['category']][queryArgs['name']]
+        if "category" in queryArgs and "name" in queryArgs:
+            page = getPages()[queryArgs["category"]][queryArgs["name"]]
             contentsOverride = cells.Slot()
 
             pageSource = textwrap.dedent("".join(getsourcelines(page.cell.__func__)[0]))
@@ -75,9 +77,12 @@ class CellsTestService(ServiceBase):
                 if contentsOverride.get() is not None:
                     try:
                         locals = {}
-                        exec(contentsOverride.get(), sys.modules[
-                            type(page).__module__].__dict__, locals)
-                        return locals['cell'](page)
+                        exec(
+                            contentsOverride.get(),
+                            sys.modules[type(page).__module__].__dict__,
+                            locals,
+                        )
+                        return locals["cell"](page)
                     except Exception:
                         return cells.Traceback(traceback.format_exc())
 
@@ -86,9 +91,12 @@ class CellsTestService(ServiceBase):
             def onEnter(buffer, selection):
                 contentsOverride.set(buffer)
 
-            ed = cells.CodeEditor(keybindings={'Enter': onEnter},
-                                  noScroll=True, minLines=20,
-                                  onTextChange=lambda *args: None)
+            ed = cells.CodeEditor(
+                keybindings={"Enter": onEnter},
+                noScroll=True,
+                minLines=20,
+                onTextChange=lambda *args: None,
+            )
             ed.setContents(pageSource)
 
             description = page.text()
@@ -100,21 +108,17 @@ class CellsTestService(ServiceBase):
             def actualDisplay():
                 return cells.Card(cells.Text("nothing to display"), padding=10)
 
-        resultArea = cells.SplitView([
-            (cells.Subscribed(actualDisplay), 4),
-            (cells.Card(cells.Text(description), padding=2), 0)],
-            split="horizontal"
+        resultArea = cells.SplitView(
+            [
+                (cells.Subscribed(actualDisplay), 4),
+                (cells.Card(cells.Text(description), padding=2), 0),
+            ],
+            split="horizontal",
         )
 
-        inputArea = cells.SplitView(
-            [(selectionPanel(page), 2), (ed, 9)]
-        )
+        inputArea = cells.SplitView([(selectionPanel(page), 2), (ed, 9)])
 
-        return cells.ResizablePanel(
-            resultArea,
-            inputArea,
-            split="horizontal"
-        )
+        return cells.ResizablePanel(resultArea, inputArea, split="horizontal")
 
     def doWork(self, shouldStop):
         while not shouldStop.is_set():
@@ -125,6 +129,7 @@ def reload():
     """Force the process to kill itself. When you refresh,
     it'll be the new code."""
     import os
+
     os._exit(0)
 
 
@@ -134,8 +139,8 @@ def selectionPanel(page):
         for _, item in sorted(category.items()):
             displayName = "{}.{}".format(item.category(), item.name())
             url = "CellsTestService?{}".format(
-                urllib.parse.urlencode(
-                    dict(category=item.category(), name=item.name())))
+                urllib.parse.urlencode(dict(category=item.category(), name=item.name()))
+            )
             clickable = cells.Clickable(displayName, url, makeBold=item is page)
             availableCells.append(clickable)
     reloadInput = cells.Button(cells.Octicon("sync"), reload)

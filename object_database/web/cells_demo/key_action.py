@@ -17,18 +17,19 @@ from object_database.web.CellsTestPage import CellsTestPage
 
 
 class PressAltT(CellsTestPage):
-
     def cell(self):
         lastKeystroke = cells.Slot()
         subCell = cells.Subscribed(lambda: lastKeystroke.get())
-        card = cells.Card(
-            subCell,
-            cells.Text("Press Alt+t to update timestamp from browser")
-        )
+        card = cells.Card(subCell, cells.Text("Press Alt+t to update timestamp from browser"))
 
-        return cells.Sequence([
-            card,
-            cells.KeyAction('Alt+t', lambda x: lastKeystroke.set(x['timeStamp']), ['timeStamp'])])
+        return cells.Sequence(
+            [
+                card,
+                cells.KeyAction(
+                    "Alt+t", lambda x: lastKeystroke.set(x["timeStamp"]), ["timeStamp"]
+                ),
+            ]
+        )
 
     def text(self):
         return "Should print the current timestamp in the card when pushing Alt+t"

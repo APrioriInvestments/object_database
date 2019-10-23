@@ -25,10 +25,7 @@ class BasicModal(CellsTestPage):
 
         button = cells.Button("Toggle Modal", buttonCallback)
         modal = cells.Modal(
-            "Basic Modal",
-            cells.Text("Modal Body"),
-            isShowing,
-            Close=buttonCallback
+            "Basic Modal", cells.Text("Modal Body"), isShowing, Close=buttonCallback
         )
         return cells.Card(button + modal)
 
@@ -50,10 +47,11 @@ class ModalWithUpdateField(CellsTestPage):
             "Text Updater",
             cells.SingleLineTextBox(sharedContent),
             show=isShowing,
-            Close=buttonCallback
+            Close=buttonCallback,
         )
-        return cells.Card(
-            button + textDisplay + modal)
+        return cells.Card(button + textDisplay + modal)
 
     def text(self):
-        return "You should see a button that lets you edit the 'Some Text' text in a modal popup."
+        return (
+            "You should see a button that lets you edit the 'Some Text' text in a modal popup."
+        )

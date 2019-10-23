@@ -73,11 +73,13 @@ class Schema:
         self._types_to_original = {}
 
     def toDefinition(self):
-        return SchemaDefinition({
-            tname: self.typeToDef(t)
-            for tname, t in self._types.items()
-            if getattr(t, "__is_database_object_type__", False)
-        })
+        return SchemaDefinition(
+            {
+                tname: self.typeToDef(t)
+                for tname, t in self._types.items()
+                if getattr(t, "__is_database_object_type__", False)
+            }
+        )
 
     def __repr__(self):
         return "Schema(%s)" % self.name
@@ -85,12 +87,12 @@ class Schema:
     def lookupFullyQualifiedTypeByName(self, name):
         if not name.startswith(self.name + "."):
             return None
-        return self._types.get(name[len(self.name)+1:])
+        return self._types.get(name[len(self.name) + 1 :])
 
     def typeToDef(self, t):
         return TypeDefinition(
             fields=sorted(self._field_types[t.__name__]),
-            indices=sorted(self._indices[t.__name__])
+            indices=sorted(self._indices[t.__name__]),
         )
 
     def getType(self, t):
@@ -116,7 +118,9 @@ class Schema:
 
     def freeze(self):
         if not self._frozen:
-            assert not self._undefinedTypes, "Still need definitions for %s" % (", ".join(self._undefinedTypes))
+            assert not self._undefinedTypes, "Still need definitions for %s" % (
+                ", ".join(self._undefinedTypes)
+            )
             self._frozen = True
 
     def __setattr__(self, typename, val):
@@ -131,7 +135,7 @@ class Schema:
         self._supportingTypes[typename] = val
 
     def __getattr__(self, typename):
-        assert '.' not in typename
+        assert "." not in typename
 
         if typename.startswith("_"):
             return self.__dict__[typename]
@@ -157,7 +161,9 @@ class Schema:
     def define(self, cls):
         typename = cls.__name__
 
-        assert not typename.startswith("_"), "Illegal to use _ for first character in database classnames."
+        assert not typename.startswith(
+            "_"
+        ), "Illegal to use _ for first character in database classnames."
         assert not self._frozen, "Schema is already frozen"
 
         # get a type stub
@@ -165,12 +171,12 @@ class Schema:
 
         # add the canonical ' exists' property, which we use under the hood to indicate
         # existence/deletion of an object.
-        self._field_types[typename][' exists'] = bool
-        self._indices[typename][' exists'] = (' exists',)
-        self._index_types[typename][' exists'] = bool
+        self._field_types[typename][" exists"] = bool
+        self._indices[typename][" exists"] = (" exists",)
+        self._index_types[typename][" exists"] = bool
 
-        t.addField(' exists', bool)
-        t.addIndex(' exists', (' exists',))
+        t.addField(" exists", bool)
+        t.addIndex(" exists", (" exists",))
 
         # make sure it's not defined yet
         assert typename in self._undefinedTypes, f"Type {typename} is not undefined."
@@ -222,13 +228,17 @@ class Schema:
                 self._indices[typename][name] = tuple(val.names)
 
                 if len(val.names) > 1:
-                    self._index_types[typename][name] = Tuple(*[self._field_types[typename][fieldname] for fieldname in val.names])
+                    self._index_types[typename][name] = Tuple(
+                        *[self._field_types[typename][fieldname] for fieldname in val.names]
+                    )
                 else:
-                    self._index_types[typename][name] = self._field_types[typename][val.names[0]]
+                    self._index_types[typename][name] = self._field_types[typename][
+                        val.names[0]
+                    ]
 
         t.finalize()
 
-        if hasattr(cls, '__object_database_lazy_subscription__'):
+        if hasattr(cls, "__object_database_lazy_subscription__"):
             t.markLazyByDefault()
 
         return t

@@ -9,20 +9,18 @@ class CellsTestMixin:
 
     def assertNoCellExceptions(self, cells: Cells):
         exceptions = cells.childrenWithExceptions()
-        self.assertTrue(not exceptions, "\n\n".join([e.childByIndex(0).contents for e in exceptions]))
+        self.assertTrue(
+            not exceptions, "\n\n".join([e.childByIndex(0).contents for e in exceptions])
+        )
 
     def assertCellTagExists(self, cells: Cells, tag: str, expected_count=1):
-        res = self.waitForCells(
-            cells,
-            lambda: cells.findChildrenByTag(tag)
-        )
+        res = self.waitForCells(cells, lambda: cells.findChildrenByTag(tag))
         self.assertIsNotNone(res)
         self.assertEqual(len(res), expected_count)
 
     def assertCellTypeExists(self, cells: Cells, typ, expected_count=1):
         res = self.waitForCells(
-            cells,
-            lambda: cells.findChildrenMatching(lambda cell: isinstance(cell, typ))
+            cells, lambda: cells.findChildrenMatching(lambda cell: isinstance(cell, typ))
         )
         self.assertIsNotNone(res)
         self.assertEqual(len(res), expected_count)
@@ -101,7 +99,7 @@ class CellsTestMixin:
                 code = codeAndMaybeVars[0]
                 vars_in_ctx = codeAndMaybeVars[1]
 
-            vars_in_ctx['cell'] = cell
+            vars_in_ctx["cell"] = cell
 
             return code, vars_in_ctx
 
@@ -109,13 +107,13 @@ class CellsTestMixin:
         for step in script:
             selected_cells = []
 
-            if 'tag' in step:
-                selected_cells = root_cell.findChildrenByTag(step['tag'])
+            if "tag" in step:
+                selected_cells = root_cell.findChildrenByTag(step["tag"])
 
-            if 'cond' in step:
+            if "cond" in step:
                 really_selected_cells = []
                 for cell in selected_cells:
-                    code, vars_in_ctx = codeAndVars(step['cond'], cell)
+                    code, vars_in_ctx = codeAndVars(step["cond"], cell)
                     res = eval(compile(code, "<string>", "eval"), vars_in_ctx)
                     if res:
                         really_selected_cells.append(cell)
@@ -126,32 +124,30 @@ class CellsTestMixin:
 
             if expected_count is not None:
                 self.assertEqual(
-                    len(selected_cells), expected_count,
-                    f"{len(selected_cells)} != {expected_count} for cells with tag '{step['tag']}'"
+                    len(selected_cells),
+                    expected_count,
+                    f"{len(selected_cells)} != {expected_count} for cells with tag '{step['tag']}'",
                 )
 
             for cell in selected_cells:
-                if 'msg' in step:
-                    cell.onMessageWithTransaction(step['msg'])
+                if "msg" in step:
+                    cell.onMessageWithTransaction(step["msg"])
                     cells.renderMessages()
 
-                if 'check' in step:
-                    code, vars_in_ctx = codeAndVars(step['check'], cell)
+                if "check" in step:
+                    code, vars_in_ctx = codeAndVars(step["check"], cell)
 
                     res = eval(compile(code, "<string>", "eval"), vars_in_ctx)
-                    self.assertTrue(
-                        res,
-                        f"'{code}' is not True"
-                    )
+                    self.assertTrue(res, f"'{code}' is not True")
 
-                if 'script' in step:
-                    self.check_ui_script(cells, step['script'], root_cell=cell)
+                if "script" in step:
+                    self.check_ui_script(cells, step["script"], root_cell=cell)
 
     def expected_count_for_step(self, step):
-        if 'exp_cnt' in step:
-            return step['exp_cnt']
+        if "exp_cnt" in step:
+            return step["exp_cnt"]
 
-        if 'cond' in step:
+        if "cond" in step:
             return None
 
         return 1

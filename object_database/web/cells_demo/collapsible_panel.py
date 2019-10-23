@@ -23,21 +23,21 @@ class BasicCollapsiblePanel(CellsTestPage):
         return cells.Subscribed(
             lambda: cells.Button(
                 "Close" if isExpanded.get() else "Open",
-                lambda: isExpanded.set(not isExpanded.get())
+                lambda: isExpanded.set(not isExpanded.get()),
             )
         ) + cells.CollapsiblePanel(
             panel=cells.SubscribedSequence(
                 lambda: [1],
-                lambda i: cells.Text("PANE") +
+                lambda i: cells.Text("PANE")
                 # somehow, the presence of this cell prevents you from opening and closing
                 # the panel more than once?
-                cells.Subscribed(lambda: "Some Text")
+                + cells.Subscribed(lambda: "Some Text"),
             ),
             content=cells.ResizablePanel(
                 cells.Subscribed(lambda: cells.Card("I am some content")),
-                cells.Subscribed(lambda: cells.Card("I am the other half of content"))
+                cells.Subscribed(lambda: cells.Card("I am the other half of content")),
             ),
-            isExpanded=lambda: isExpanded.get()
+            isExpanded=lambda: isExpanded.get(),
         )
 
     def text(self):

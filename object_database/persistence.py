@@ -105,10 +105,14 @@ class InMemoryPersistence(object):
         new_sets, dropped_sets = set(), set()
 
         with self.lock:
-            for k in (adds or []):
-                assert not isinstance(self.values.get(k, None), str), k + " is already a string"
-            for k in (removes or []):
-                assert not isinstance(self.values.get(k, None), str), k + " is already a string"
+            for k in adds or []:
+                assert not isinstance(self.values.get(k, None), str), (
+                    k + " is already a string"
+                )
+            for k in removes or []:
+                assert not isinstance(self.values.get(k, None), str), (
+                    k + " is already a string"
+                )
 
             for k, v in kvs.items():
                 self.set(k, v)
@@ -143,7 +147,7 @@ class RedisPersistence(object):
         kwds = {}
 
         if port is not None:
-            kwds['port'] = port
+            kwds["port"] = port
 
         self.redis = redis.StrictRedis(db=db, **kwds)
         self.cache = {}

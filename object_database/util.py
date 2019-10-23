@@ -33,14 +33,14 @@ def formatTable(rows):
     colWidth = [max([len(c) for c in col]) for col in cols]
 
     formattedRows = [
-        "  ".join(
-            row[col] + " " * (colWidth[col] - len(row[col]))
-            for col in range(len(cols))
-        ) for row in rows
+        "  ".join(row[col] + " " * (colWidth[col] - len(row[col])) for col in range(len(cols)))
+        for row in rows
     ]
-    formattedRows = formattedRows[:1] + [
-        "  ".join("-" * colWidth[col] for col in range(len(cols)))
-    ] + formattedRows[1:]
+    formattedRows = (
+        formattedRows[:1]
+        + ["  ".join("-" * colWidth[col] for col in range(len(cols)))]
+        + formattedRows[1:]
+    )
 
     return "\n".join(formattedRows)
 
@@ -55,20 +55,17 @@ def recursiveUpdate(dictionary, updates):
 
 
 def setupLogging(
-    default_path=None,
-    default_level=None,
-    env_key='LOG_CFG',
-    default_format=None
+    default_path=None, default_level=None, env_key="LOG_CFG", default_format=None
 ):
     """Setup logging configuration """
     updates = {}
     if default_format:
-        updates['formatters'] = {}
-        updates['formatters']['default'] = {}
-        updates['formatters']['default']['format'] = default_format
+        updates["formatters"] = {}
+        updates["formatters"]["default"] = {}
+        updates["formatters"]["default"]["format"] = default_format
     if default_level:
-        updates['root'] = {}
-        updates['root']['level'] = default_level
+        updates["root"] = {}
+        updates["root"]["level"] = default_level
 
     path = default_path
     value = os.getenv(env_key, None)
@@ -76,7 +73,7 @@ def setupLogging(
         path = value
 
     if path is not None and os.path.exists(path):
-        with open(path, 'rt') as f:
+        with open(path, "rt") as f:
             config = yaml.safe_load(f.read())
         if updates:
             recursiveUpdate(config, updates)
@@ -85,26 +82,31 @@ def setupLogging(
     else:
         logging.info("Failed to configure logging from file. Falling back to basicConfig")
         level = default_level or logging.INFO
-        frmt = default_format or '[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s | %(message)s'
+        frmt = (
+            default_format
+            or "[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s | %(message)s"
+        )
         logging.basicConfig(level=level, format=frmt)
 
 
 def configureLogging(preamble="", level=logging.INFO):
     frmt = (
-        '[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s | ' +
-        (preamble + ' | ' if preamble else '') +
-        '%(message)s'
+        "[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s | "
+        + (preamble + " | " if preamble else "")
+        + "%(message)s"
     )
 
     ownDir = os.path.dirname(os.path.abspath(__file__))
     setupLogging(
-        default_path=os.path.join(ownDir, 'logging.yaml'),
+        default_path=os.path.join(ownDir, "logging.yaml"),
         default_level=level,
-        default_format=frmt
+        default_format=frmt,
     )
 
-    logging.getLogger('botocore.vendored.requests.packages.urllib3.connectionpool').setLevel(logging.CRITICAL)
-    logging.getLogger('asyncio').setLevel(logging.CRITICAL)
+    logging.getLogger("botocore.vendored.requests.packages.urllib3.connectionpool").setLevel(
+        logging.CRITICAL
+    )
+    logging.getLogger("asyncio").setLevel(logging.CRITICAL)
 
 
 def secondsToHumanReadable(seconds):
@@ -118,7 +120,7 @@ def secondsToHumanReadable(seconds):
 
 
 class Timer:
-    granularity = .1
+    granularity = 0.1
 
     def __init__(self, message=None, *args):
         self.message = message
@@ -161,9 +163,9 @@ class Timer:
         return inner
 
 
-def indent(text, amount=4, ch=' '):
+def indent(text, amount=4, ch=" "):
     padding = amount * ch
-    return ''.join(padding+line for line in text.splitlines(True))
+    return "".join(padding + line for line in text.splitlines(True))
 
 
 def distance(s1, s2):
@@ -179,7 +181,7 @@ def distance(s1, s2):
     for i, c1 in enumerate(s1):
         cur = [i + 1]
         for j, c2 in enumerate(s2):
-            cur.append(min(prev[j+1]+1, cur[j]+1, prev[j] + (1 if c1 != c2 else 0)))
+            cur.append(min(prev[j + 1] + 1, cur[j] + 1, prev[j] + (1 if c1 != c2 else 0)))
         prev = cur
 
     return prev[-1]
@@ -194,9 +196,13 @@ def closest_N_in(name, names, count):
 
 
 def sslContextFromCertPath(cert_path, key_path=None):
-    assert os.path.isfile(cert_path), "Expected path to existing SSL certificate ({})".format(cert_path)
-    key_path = key_path or os.path.splitext(cert_path)[0] + '.key'
-    assert os.path.isfile(key_path), "Expected to find .key file along SSL certificate ({})".format(cert_path)
+    assert os.path.isfile(cert_path), "Expected path to existing SSL certificate ({})".format(
+        cert_path
+    )
+    key_path = key_path or os.path.splitext(cert_path)[0] + ".key"
+    assert os.path.isfile(
+        key_path
+    ), "Expected to find .key file along SSL certificate ({})".format(cert_path)
 
     ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     ssl_ctx.load_cert_chain(cert_path, key_path)
@@ -207,25 +213,34 @@ def sslContextFromCertPath(cert_path, key_path=None):
 def generateSslContext():
     with tempfile.TemporaryDirectory() as tempDir:
         # openssl
-        cert_path = os.path.join(tempDir, 'selfsigned.cert')
-        key_path = os.path.join(tempDir, 'selfsigned.key')
+        cert_path = os.path.join(tempDir, "selfsigned.cert")
+        key_path = os.path.join(tempDir, "selfsigned.key")
         try:
             subprocess.run(
                 [
-                    'openssl', 'req', '-x509', '-newkey', 'rsa:2048',
-                    '-keyout', key_path, '-nodes',
-                    '-out', cert_path,
-                    '-sha256', '-days', '1000',
-                    '-subj', '/C=US/ST=New York/L=New York/CN=localhost'
+                    "openssl",
+                    "req",
+                    "-x509",
+                    "-newkey",
+                    "rsa:2048",
+                    "-keyout",
+                    key_path,
+                    "-nodes",
+                    "-out",
+                    cert_path,
+                    "-sha256",
+                    "-days",
+                    "1000",
+                    "-subj",
+                    "/C=US/ST=New York/L=New York/CN=localhost",
                 ],
                 check=True,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
             )
         except subprocess.CalledProcessError as e:
             logging.getLogger(__name__).error(
-                "Failed while executing 'openssl':\n" +
-                e.stderr.decode('utf-8')
+                "Failed while executing 'openssl':\n" + e.stderr.decode("utf-8")
             )
             raise
 
@@ -252,7 +267,7 @@ def tokenFromString(text):
     return sha.hexdigest()
 
 
-VALID_LOG_LEVELS = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+VALID_LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 def validateLogLevel(level: str, fallback=None):
@@ -263,6 +278,7 @@ def validateLogLevel(level: str, fallback=None):
         return fallback
     else:
         raise Exception(
-            "invalid log-level value: {level}. Must be one of {options}"
-            .format(level=level, options=VALID_LOG_LEVELS)
+            "invalid log-level value: {level}. Must be one of {options}".format(
+                level=level, options=VALID_LOG_LEVELS
+            )
         )

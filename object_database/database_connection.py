@@ -40,8 +40,8 @@ class Everything:
 TransactionResult = Alternative(
     "TransactionResult",
     Success={},
-    RevisionConflict={'key': OneOf(str, ObjectFieldId, IndexId)},
-    Disconnected={}
+    RevisionConflict={"key": OneOf(str, ObjectFieldId, IndexId)},
+    Disconnected={},
 )
 
 
@@ -56,7 +56,9 @@ class DatabaseConnection:
         # transaction of what's in the KV store
         self._cur_transaction_num = 0
 
-        self.serializationContext = TypedPythonCodebase.coreSerializationContext().withoutCompression()
+        self.serializationContext = (
+            TypedPythonCodebase.coreSerializationContext().withoutCompression()
+        )
 
         # a datastructure that keeps track of all the different versions of the objects
         # we have mapped in.
@@ -148,7 +150,9 @@ class DatabaseConnection:
         return self._max_tid_by_schema.get(schema.name, 0)
 
     def currentTransactionIdForType(self, dbType):
-        return self._max_tid_by_schema_and_type.get((dbType.__schema__.name, dbType.__qualname__), 0)
+        return self._max_tid_by_schema_and_type.get(
+            (dbType.__schema__.name, dbType.__qualname__), 0
+        )
 
     def waitForTransactionId(self, tid):
         if tid > self._cur_transaction_num:
@@ -186,9 +190,7 @@ class DatabaseConnection:
         assert self._auth_token is None, "We already authenticated."
         self._auth_token = token
 
-        self._channel.write(
-            ClientToServer.Authenticate(token=token)
-        )
+        self._channel.write(ClientToServer.Authenticate(token=token))
 
     def addSchema(self, schema):
         schema.freeze()
@@ -200,10 +202,7 @@ class DatabaseConnection:
                 schemaDesc = schema.toDefinition()
 
                 self._channel.write(
-                    ClientToServer.DefineSchema(
-                        name=schema.name,
-                        definition=schemaDesc
-                    )
+                    ClientToServer.DefineSchema(name=schema.name, definition=schemaDesc)
                 )
 
                 self._schema_response_events[schema.name] = threading.Event()
@@ -241,12 +240,17 @@ class DatabaseConnection:
         for t in objects:
             self.addSchema(type(t).__schema__)
 
-        self.subscribeMultiple([
-            (type(t).__schema__.name, type(t).__qualname__,
-                ("_identity", indexValueFor(type(t), t, self.serializationContext)),
-                False)
-            for t in objects
-        ])
+        self.subscribeMultiple(
+            [
+                (
+                    type(t).__schema__.name,
+                    type(t).__qualname__,
+                    ("_identity", indexValueFor(type(t), t, self.serializationContext)),
+                    False,
+                )
+                for t in objects
+            ]
+        )
 
     def _lazinessForType(self, typeObj, desiredLaziness):
         if desiredLaziness is not None:
@@ -262,25 +266,42 @@ class DatabaseConnection:
             indexVal = indexValueFor(
                 t.__schema__.indexType(t.__qualname__, fieldname),
                 fieldvalue,
-                self.serializationContext
+                self.serializationContext,
             )
 
-            toSubscribe.append((
-                t.__schema__.name,
-                t.__qualname__,
-                (fieldname, indexVal),
-                self._lazinessForType(t, lazySubscription)
-            ))
+            toSubscribe.append(
+                (
+                    t.__schema__.name,
+                    t.__qualname__,
+                    (fieldname, indexVal),
+                    self._lazinessForType(t, lazySubscription),
+                )
+            )
 
         return self.subscribeMultiple(toSubscribe, block=block)
 
     def subscribeToType(self, t, block=True, lazySubscription=None):
         self.addSchema(t.__schema__)
 
-        if self._connection_state.typeSubscriptionLowestTransaction(t.__schema__.name, t.__qualname__) is not None:
+        if (
+            self._connection_state.typeSubscriptionLowestTransaction(
+                t.__schema__.name, t.__qualname__
+            )
+            is not None
+        ):
             return ()
 
-        return self.subscribeMultiple([(t.__schema__.name, t.__qualname__, None, self._lazinessForType(t, lazySubscription))], block)
+        return self.subscribeMultiple(
+            [
+                (
+                    t.__schema__.name,
+                    t.__qualname__,
+                    None,
+                    self._lazinessForType(t, lazySubscription),
+                )
+            ],
+            block,
+        )
 
     def subscribeToSchema(self, *schemas, block=True, lazySubscription=None, excluding=()):
         for s in schemas:
@@ -290,7 +311,9 @@ class DatabaseConnection:
         for schema in schemas:
             for tname, t in schema._types.items():
                 if not self.isSubscribedToType(t) and t not in excluding:
-                    unsubscribedTypes.append((schema.name, tname, None, self._lazinessForType(t, lazySubscription)))
+                    unsubscribedTypes.append(
+                        (schema.name, tname, None, self._lazinessForType(t, lazySubscription))
+                    )
 
         if unsubscribedTypes:
             return self.subscribeMultiple(unsubscribedTypes, block=block)
@@ -301,7 +324,12 @@ class DatabaseConnection:
         return all(self.isSubscribedToType(t) for t in schema._types.values())
 
     def isSubscribedToType(self, t):
-        return self._connection_state.typeSubscriptionLowestTransaction(t.__schema__.name, t.__qualname__) is not None
+        return (
+            self._connection_state.typeSubscriptionLowestTransaction(
+                t.__schema__.name, t.__qualname__
+            )
+            is not None
+        )
 
     def subscribeMultiple(self, subscriptionTuples, block=True):
         with self._lock:
@@ -314,12 +342,19 @@ class DatabaseConnection:
                 e = self._pendingSubscriptions.get(tup)
 
                 if not e:
-                    e = self._pendingSubscriptions[(tup[0], tup[1], tup[2])] = threading.Event()
+                    e = self._pendingSubscriptions[
+                        (tup[0], tup[1], tup[2])
+                    ] = threading.Event()
 
                 assert tup[0] and tup[1]
 
                 self._channel.write(
-                    ClientToServer.Subscribe(schema=tup[0], typename=tup[1], fieldname_and_value=tup[2], isLazy=tup[3])
+                    ClientToServer.Subscribe(
+                        schema=tup[0],
+                        typename=tup[1],
+                        fieldname_and_value=tup[2],
+                        isLazy=tup[3],
+                    )
                 )
 
                 events.append(e)
@@ -345,6 +380,7 @@ class DatabaseConnection:
         the number of seconds between checks.
         """
         try:
+
             def checkCondition():
                 with self.view():
                     return cond()
@@ -412,7 +448,7 @@ class DatabaseConnection:
                     except Exception:
                         self._logger.error(
                             "Transaction commit callback threw an exception:\n%s",
-                            traceback.format_exc()
+                            traceback.format_exc(),
                         )
 
                 self._transaction_callbacks = {}
@@ -434,23 +470,23 @@ class DatabaseConnection:
             with self._lock:
                 try:
                     self._transaction_callbacks.pop(msg.transaction_guid)(
-                        TransactionResult.Success() if msg.success else
-                        TransactionResult.RevisionConflict(key=msg.badKey)
+                        TransactionResult.Success()
+                        if msg.success
+                        else TransactionResult.RevisionConflict(key=msg.badKey)
                     )
                 except Exception:
                     self._logger.error(
                         "Transaction commit callback threw an exception:\n%s",
-                        traceback.format_exc()
+                        traceback.format_exc(),
                     )
         elif msg.matches.Transaction:
             with self._lock:
-                self._markSchemaAndTypeMaxTids(set(k.fieldId for k in msg.writes), msg.transaction_id)
+                self._markSchemaAndTypeMaxTids(
+                    set(k.fieldId for k in msg.writes), msg.transaction_id
+                )
 
                 self._connection_state.incomingTransaction(
-                    msg.transaction_id,
-                    msg.writes,
-                    msg.set_adds,
-                    msg.set_removes
+                    msg.transaction_id, msg.writes, msg.set_adds, msg.set_removes
                 )
 
                 self._cur_transaction_num = msg.transaction_id
@@ -462,7 +498,7 @@ class DatabaseConnection:
                     self._logger.error(
                         "_onTransaction handler %s threw an exception:\n%s",
                         handler,
-                        traceback.format_exc()
+                        traceback.format_exc(),
                     )
 
         elif msg.matches.SchemaMapping:
@@ -471,13 +507,13 @@ class DatabaseConnection:
                     self._field_id_to_field_def[fieldId] = fieldDef
                     self._fields_to_field_ids[fieldDef] = fieldId
 
-                    self._field_id_to_schema_and_typename[fieldId] = (fieldDef.schema, fieldDef.fieldname)
+                    self._field_id_to_schema_and_typename[fieldId] = (
+                        fieldDef.schema,
+                        fieldDef.fieldname,
+                    )
 
                     self._connection_state.setFieldId(
-                        fieldDef.schema,
-                        fieldDef.typename,
-                        fieldDef.fieldname,
-                        fieldId
+                        fieldDef.schema, fieldDef.typename, fieldDef.fieldname, fieldId
                     )
 
                 self._schema_response_events[msg.schema].set()
@@ -492,24 +528,41 @@ class DatabaseConnection:
                 lookupTuple = (msg.schema, msg.typename, msg.fieldname_and_value)
 
                 if lookupTuple not in self._subscription_buildup:
-                    self._subscription_buildup[lookupTuple] = {'values': {}, 'index_values': {}, 'identities': None, 'markedLazy': False}
+                    self._subscription_buildup[lookupTuple] = {
+                        "values": {},
+                        "index_values": {},
+                        "identities": None,
+                        "markedLazy": False,
+                    }
                 else:
-                    assert not self._subscription_buildup[lookupTuple]['markedLazy'], 'received non-lazy data for a lazy subscription'
+                    assert not self._subscription_buildup[lookupTuple][
+                        "markedLazy"
+                    ], "received non-lazy data for a lazy subscription"
 
-                self._subscription_buildup[lookupTuple]['values'].update({k: msg.values[k] for k in msg.values})
-                self._subscription_buildup[lookupTuple]['index_values'].update({k: msg.index_values[k] for k in msg.index_values})
+                self._subscription_buildup[lookupTuple]["values"].update(
+                    {k: msg.values[k] for k in msg.values}
+                )
+                self._subscription_buildup[lookupTuple]["index_values"].update(
+                    {k: msg.index_values[k] for k in msg.index_values}
+                )
 
                 if msg.identities is not None:
-                    if self._subscription_buildup[lookupTuple]['identities'] is None:
-                        self._subscription_buildup[lookupTuple]['identities'] = set()
-                    self._subscription_buildup[lookupTuple]['identities'].update(msg.identities)
+                    if self._subscription_buildup[lookupTuple]["identities"] is None:
+                        self._subscription_buildup[lookupTuple]["identities"] = set()
+                    self._subscription_buildup[lookupTuple]["identities"].update(
+                        msg.identities
+                    )
         elif msg.matches.LazyTransactionPriors:
             with self._lock:
-                self._connection_state.incomingTransaction(self._connection_state.getMinTid(), msg.writes, {}, {})
+                self._connection_state.incomingTransaction(
+                    self._connection_state.getMinTid(), msg.writes, {}, {}
+                )
 
         elif msg.matches.LazyLoadResponse:
             with self._lock:
-                self._connection_state.incomingTransaction(self._connection_state.getMinTid(), msg.values, {}, {})
+                self._connection_state.incomingTransaction(
+                    self._connection_state.getMinTid(), msg.values, {}, {}
+                )
 
                 self._connection_state.markObjectNotLazy(msg.identity)
 
@@ -525,33 +578,40 @@ class DatabaseConnection:
                 assert lookupTuple not in self._subscription_buildup
 
                 self._subscription_buildup[lookupTuple] = {
-                    'values': {},
-                    'index_values': msg.index_values,
-                    'identities': msg.identities,
-                    'markedLazy': True
+                    "values": {},
+                    "index_values": msg.index_values,
+                    "identities": msg.identities,
+                    "markedLazy": True,
                 }
 
         elif msg.matches.SubscriptionComplete:
             with self._lock:
-                event = self._pendingSubscriptions.get((
-                    msg.schema,
-                    msg.typename,
-                    tuple(msg.fieldname_and_value) if msg.fieldname_and_value is not None else None
-                ))
+                event = self._pendingSubscriptions.get(
+                    (
+                        msg.schema,
+                        msg.typename,
+                        tuple(msg.fieldname_and_value)
+                        if msg.fieldname_and_value is not None
+                        else None,
+                    )
+                )
 
                 if not event:
                     self._logger.error(
                         "Received unrequested subscription to schema %s / %s / %s. have %s",
-                        msg.schema, msg.typename, msg.fieldname_and_value, self._pendingSubscriptions
+                        msg.schema,
+                        msg.typename,
+                        msg.fieldname_and_value,
+                        self._pendingSubscriptions,
                     )
                     return
 
                 lookupTuple = (msg.schema, msg.typename, msg.fieldname_and_value)
 
-                identities = self._subscription_buildup[lookupTuple]['identities']
-                values = self._subscription_buildup[lookupTuple]['values']
-                index_values = self._subscription_buildup[lookupTuple]['index_values']
-                markedLazy = self._subscription_buildup[lookupTuple]['markedLazy']
+                identities = self._subscription_buildup[lookupTuple]["identities"]
+                values = self._subscription_buildup[lookupTuple]["values"]
+                index_values = self._subscription_buildup[lookupTuple]["index_values"]
+                markedLazy = self._subscription_buildup[lookupTuple]["markedLazy"]
                 del self._subscription_buildup[lookupTuple]
 
                 self._markSchemaAndTypeMaxTids(set(v.fieldId for v in values), msg.tid)
@@ -561,9 +621,13 @@ class DatabaseConnection:
                 if msg.fieldname_and_value is None:
                     if msg.typename is None:
                         for typename in self._schemaToType[msg.schema]:
-                            self._connection_state.markTypeSubscribed(msg.schema, typename, msg.tid)
+                            self._connection_state.markTypeSubscribed(
+                                msg.schema, typename, msg.tid
+                            )
                     else:
-                        self._connection_state.markTypeSubscribed(msg.schema, msg.typename, msg.tid)
+                        self._connection_state.markTypeSubscribed(
+                            msg.schema, msg.typename, msg.tid
+                        )
                 else:
                     assert msg.typename is not None
                     for oid in identities:
@@ -574,9 +638,7 @@ class DatabaseConnection:
                 # this is a fault injection to allow us to verify that heartbeating during this
                 # function will keep the server connection alive.
                 for _ in range(self._largeSubscriptionHeartbeatDelay):
-                    self._channel.sendMessage(
-                        ClientToServer.Heartbeat()
-                    )
+                    self._channel.sendMessage(ClientToServer.Heartbeat())
                     time.sleep(heartbeatInterval)
 
                 if markedLazy:
@@ -604,7 +666,9 @@ class DatabaseConnection:
                 if existing < tid:
                     self._max_tid_by_schema[fieldDef.schema] = tid
 
-                existing = self._max_tid_by_schema_and_type.get((fieldDef.schema, fieldDef.typename), 0)
+                existing = self._max_tid_by_schema_and_type.get(
+                    (fieldDef.schema, fieldDef.typename), 0
+                )
                 if existing < tid:
                     self._max_tid_by_schema_and_type[fieldDef.schema, fieldDef.typename] = tid
 
@@ -633,16 +697,16 @@ class DatabaseConnection:
                 if time.time() - t0 > heartbeatInterval:
                     # note that this needs to be 'sendMessage' which sends immediately,
                     # not, 'write' which queues the message after this function finishes!
-                    self._channel.sendMessage(
-                        ClientToServer.Heartbeat()
-                    )
+                    self._channel.sendMessage(ClientToServer.Heartbeat())
                     t0 = time.time()
         return setAdds
 
     def requestLazyObjects(self, objects):
         with self._lock:
             for o in objects:
-                self._loadLazyObject(o._identity, type(o).__schema__.name, type(o).__qualname__)
+                self._loadLazyObject(
+                    o._identity, type(o).__schema__.name, type(o).__qualname__
+                )
 
     def loadLazyObject(self, identity, schemaName, typeName):
         with self._lock:
@@ -660,23 +724,22 @@ class DatabaseConnection:
 
         self._channel.write(
             ClientToServer.LoadLazyObject(
-                identity=identity,
-                schema=schemaName,
-                typename=typeName
+                identity=identity, schema=schemaName, typename=typeName
             )
         )
 
         return e
 
-    def _createTransaction(self,
-                           key_value,
-                           set_adds,
-                           set_removes,
-                           keys_to_check_versions,
-                           indices_to_check_versions,
-                           as_of_version,
-                           confirmCallback
-                           ):
+    def _createTransaction(
+        self,
+        key_value,
+        set_adds,
+        set_removes,
+        keys_to_check_versions,
+        indices_to_check_versions,
+        as_of_version,
+        confirmCallback,
+    ):
         assert confirmCallback is not None
 
         transaction_guid = self._connection_state.allocateIdentity()
@@ -690,9 +753,12 @@ class DatabaseConnection:
             if len(out_writes) > 10000:
                 self._channel.write(
                     ClientToServer.TransactionData(
-                        writes=out_writes, set_adds={}, set_removes={},
-                        key_versions=(), index_versions=(),
-                        transaction_guid=transaction_guid
+                        writes=out_writes,
+                        set_adds={},
+                        set_removes={},
+                        key_versions=(),
+                        index_versions=(),
+                        transaction_guid=transaction_guid,
                     )
                 )
                 self._channel.write(ClientToServer.Heartbeat())
@@ -707,9 +773,12 @@ class DatabaseConnection:
             if len(out_set_adds) > 10000 or ct > 100000:
                 self._channel.write(
                     ClientToServer.TransactionData(
-                        writes={}, set_adds=out_set_adds, set_removes={},
-                        key_versions=(), index_versions=(),
-                        transaction_guid=transaction_guid
+                        writes={},
+                        set_adds=out_set_adds,
+                        set_removes={},
+                        key_versions=(),
+                        index_versions=(),
+                        transaction_guid=transaction_guid,
                     )
                 )
                 self._channel.write(ClientToServer.Heartbeat())
@@ -725,9 +794,12 @@ class DatabaseConnection:
             if len(out_set_removes) > 10000 or ct > 100000:
                 self._channel.write(
                     ClientToServer.TransactionData(
-                        writes={}, set_adds={}, set_removes=out_set_removes,
-                        key_versions=(), index_versions=(),
-                        transaction_guid=transaction_guid
+                        writes={},
+                        set_adds={},
+                        set_removes=out_set_removes,
+                        key_versions=(),
+                        index_versions=(),
+                        transaction_guid=transaction_guid,
                     )
                 )
                 self._channel.write(ClientToServer.Heartbeat())
@@ -738,9 +810,12 @@ class DatabaseConnection:
         while len(keys_to_check_versions) > 10000:
             self._channel.write(
                 ClientToServer.TransactionData(
-                    writes={}, set_adds={}, set_removes={},
+                    writes={},
+                    set_adds={},
+                    set_removes={},
                     key_versions=keys_to_check_versions[:10000],
-                    index_versions=(), transaction_guid=transaction_guid
+                    index_versions=(),
+                    transaction_guid=transaction_guid,
                 )
             )
             self._channel.write(ClientToServer.Heartbeat())
@@ -750,9 +825,13 @@ class DatabaseConnection:
         while len(indices_to_check_versions) > 10000:
             self._channel.write(
                 ClientToServer.TransactionData(
-                    writes={}, set_adds={}, set_removes={},
-                    key_versions=(), index_versions=indices_to_check_versions[:10000],
-                    transaction_guid=transaction_guid)
+                    writes={},
+                    set_adds={},
+                    set_removes={},
+                    key_versions=(),
+                    index_versions=indices_to_check_versions[:10000],
+                    transaction_guid=transaction_guid,
+                )
             )
             indices_to_check_versions = indices_to_check_versions[10000:]
 
@@ -763,13 +842,12 @@ class DatabaseConnection:
                 set_removes=out_set_removes,
                 key_versions=keys_to_check_versions,
                 index_versions=indices_to_check_versions,
-                transaction_guid=transaction_guid
+                transaction_guid=transaction_guid,
             )
         )
 
         self._channel.write(
             ClientToServer.CompleteTransaction(
-                as_of_version=as_of_version,
-                transaction_guid=transaction_guid
+                as_of_version=as_of_version, transaction_guid=transaction_guid
             )
         )

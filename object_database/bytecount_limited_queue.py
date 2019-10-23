@@ -22,6 +22,7 @@ class BytecountLimitedQueue(object):
     We parametrize the Queue with a function that decides how many bytes are in a
     given message.
     """
+
     def __init__(self, bytecountFunction, maxBytes=None):
         self._bytecountFunction = bytecountFunction
         self._canPushCondition = threading.Condition(threading.Lock())

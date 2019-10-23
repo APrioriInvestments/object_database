@@ -23,6 +23,7 @@ from object_database.view import RevisionConflictException, ViewWatcher
 
 class Timeout:
     """Singleton used to indicate that the reactor timed out."""
+
     pass
 
 
@@ -84,8 +85,10 @@ class Reactor:
         ...
 
     """
+
     class STOP:
         """singleton class to indicate that we should exit the loop."""
+
         pass
 
     def __init__(self, db, reactorFunction, maxSleepTime=None):
@@ -123,7 +126,7 @@ class Reactor:
         If this function returns False, then as soon as it would return True it wakes up
         again.
         """
-        curTime = getattr(_currentReactor, 'timestamp', None)
+        curTime = getattr(_currentReactor, "timestamp", None)
         if curTime is None:
             raise Exception("No reactor is running.")
 
@@ -182,11 +185,15 @@ class Reactor:
             raise Exception("Can't call 'next' if the reactor is being used in threaded mode.")
 
         if self._lastReadKeys is not None:
-            if not self._blockUntilRecalculate(self._lastReadKeys, self._nextWakeup, timeout=timeout):
+            if not self._blockUntilRecalculate(
+                self._lastReadKeys, self._nextWakeup, timeout=timeout
+            ):
                 return Timeout
 
         self._drainTransactionQueue()
-        result, self._lastReadKeys, self._nextWakeup = self._calculate(catchRevisionConflicts=False)
+        result, self._lastReadKeys, self._nextWakeup = self._calculate(
+            catchRevisionConflicts=False
+        )
 
         return result
 
@@ -203,11 +210,16 @@ class Reactor:
                     exceptionsInARow = 0
                 except Exception:
                     exceptionsInARow += 1
-                    if exceptionsInARow < 10 or exceptionsInARow < 100 and exceptionsInARow % 10 == 0 or exceptionsInARow % 100 == 0:
+                    if (
+                        exceptionsInARow < 10
+                        or exceptionsInARow < 100
+                        and exceptionsInARow % 10 == 0
+                        or exceptionsInARow % 100 == 0
+                    ):
                         logging.error(
                             "Unexpected exception in Reactor user code (%s occurrences in a row):\n%s",
                             exceptionsInARow,
-                            traceback.format_exc()
+                            traceback.format_exc(),
                         )
                     time.sleep(0.001 * exceptionsInARow)
 
@@ -227,7 +239,7 @@ class Reactor:
             raise Exception("Reactor would block forever.")
 
         curTime = time.time()
-        finalTime = curTime + (timeout if timeout is not None else 10**8)
+        finalTime = curTime + (timeout if timeout is not None else 10 ** 8)
         if nextWakeup is not None and finalTime > nextWakeup:
             finalTime = nextWakeup
 
@@ -284,13 +296,15 @@ class Reactor:
 
             with ViewWatcher(onViewClose):
                 try:
-                    origTimestamp = getattr(_currentReactor, 'timestamp', None)
-                    origWakeup = getattr(_currentReactor, 'nextWakeup', None)
+                    origTimestamp = getattr(_currentReactor, "timestamp", None)
+                    origWakeup = getattr(_currentReactor, "nextWakeup", None)
 
                     _currentReactor.timestamp = time.time()
                     _currentReactor.nextWakeup = None
 
-                    logging.getLogger(__name__).debug("Reactor %s recalculating", self.reactorFunction)
+                    logging.getLogger(__name__).debug(
+                        "Reactor %s recalculating", self.reactorFunction
+                    )
                     functionResult = self.reactorFunction()
 
                     nextWakeup = _currentReactor.nextWakeup
@@ -308,7 +322,8 @@ class Reactor:
                 raise
 
             logging.getLogger(__name__).info(
-                "Handled a revision conflict on key %s in %s. Retrying." % (e, self.reactorFunction.__name__)
+                "Handled a revision conflict on key %s in %s. Retrying."
+                % (e, self.reactorFunction.__name__)
             )
             return None, None, None
 

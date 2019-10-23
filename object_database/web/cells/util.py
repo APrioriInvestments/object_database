@@ -25,7 +25,7 @@ def waitForCellsCondition(cells: Cells, condition, timeout=10.0):
         condRes = condition()
 
         if not condRes:
-            time.sleep(.1)
+            time.sleep(0.1)
             cells.renderMessages()
         else:
             return condRes
@@ -39,6 +39,7 @@ def waitForCellsCondition(cells: Cells, condition, timeout=10.0):
 
 class CellDecorator(object):
     """A function that takes (and returns) a single Cell, and can be applied with the '*' operator."""
+
     def __init__(self, cellFunction, name):
         self.cellFunction = cellFunction
         self.name = name
@@ -65,7 +66,7 @@ def ShrinkWrap(aCell):
     The modified Cell instance
     """
     aCell.isShrinkWrapped = True
-    aCell.exportData['shrinkwrap'] = True
+    aCell.exportData["shrinkwrap"] = True
     return aCell
 
 
@@ -84,11 +85,11 @@ def Flex(aCell):
     The modified Cell instance
     """
     aCell.isFlex = True
-    aCell.exportData['flexChild'] = True
+    aCell.exportData["flexChild"] = True
     return aCell
 
 
-def CustomInset(aCell, kind='padding', top=None, right=None, bottom=None, left=None):
+def CustomInset(aCell, kind="padding", top=None, right=None, bottom=None, left=None):
     """Cell modifier function that sets
     insets across varying dimensions of
     the visible Cell component.
@@ -128,17 +129,12 @@ def CustomInset(aCell, kind='padding', top=None, right=None, bottom=None, left=N
         (specified by `kind`) at the left
         dimension. Defaults to None.
     """
-    dimensions = {
-        'top': top,
-        'right': right,
-        'bottom': bottom,
-        'left': left
-    }
+    dimensions = {"top": top, "right": right, "bottom": bottom, "left": left}
 
-    if 'customStyle' not in aCell.exportData:
-        aCell.exportData['customStyle'] = {}
+    if "customStyle" not in aCell.exportData:
+        aCell.exportData["customStyle"] = {}
 
-    assert kind in ['padding', 'margin'], "Inset kind must be 'padding' or 'margin'"
+    assert kind in ["padding", "margin"], "Inset kind must be 'padding' or 'margin'"
 
     # Check if all values are the same.
     # If so, we only set the global inset
@@ -181,30 +177,32 @@ def Padding(amount, cell=None):
     if cell is None:
         return CellDecorator(lambda cell: Padding(amount, cell), f"Padding({amount})")
 
-    return CustomInset(cell, 'padding', top=amount,
-                       right=amount, bottom=amount, left=amount)
+    return CustomInset(cell, "padding", top=amount, right=amount, bottom=amount, left=amount)
 
 
 def PaddingDimension(amount, direction, cell=None):
-    assert direction in ['top', 'right', 'left', 'bottom'], f"Padding dimension error: {direction}"
+    assert direction in [
+        "top",
+        "right",
+        "left",
+        "bottom",
+    ], f"Padding dimension error: {direction}"
     if cell is None:
-        return CellDecorator(lambda cell: PaddingDimension(amount, direction, cell), f"PaddingDimension({amount}, {direction})")
-    dimensions = {
-        'top': 0,
-        'right': 0,
-        'bottom': 0,
-        'left': 0
-    }
+        return CellDecorator(
+            lambda cell: PaddingDimension(amount, direction, cell),
+            f"PaddingDimension({amount}, {direction})",
+        )
+    dimensions = {"top": 0, "right": 0, "bottom": 0, "left": 0}
     dimensions[direction] = amount
-    return CustomInset(cell, 'padding', **dimensions)
+    return CustomInset(cell, "padding", **dimensions)
 
 
 def PaddingRight(amount, cell=None):
-    return PaddingDimension(amount, 'right', cell)
+    return PaddingDimension(amount, "right", cell)
 
 
 def PaddingLeft(amount, cell=None):
-    return PaddingDimension(amount, 'left', cell)
+    return PaddingDimension(amount, "left", cell)
 
 
 def Margin(amount, cell=None):
@@ -230,8 +228,7 @@ def Margin(amount, cell=None):
     if cell is None:
         return CellDecorator(lambda cell: Margin(amount, cell), f"Margin({amount})")
 
-    return CustomInset(cell, 'margin', top=amount,
-                       right=amount, bottom=amount, left=amount)
+    return CustomInset(cell, "margin", top=amount, right=amount, bottom=amount, left=amount)
 
 
 def MarginRight(amount, cell=None):
@@ -259,8 +256,7 @@ def MarginRight(amount, cell=None):
     if cell is None:
         return CellDecorator(lambda cell: MarginSides(amount, cell), f"MarginRight({amount})")
 
-    return CustomInset(cell, 'margin', top=0,
-                       right=amount, bottom=0, left=0)
+    return CustomInset(cell, "margin", top=0, right=amount, bottom=0, left=0)
 
 
 def MarginLeft(amount, cell=None):
@@ -288,8 +284,7 @@ def MarginLeft(amount, cell=None):
     if cell is None:
         return CellDecorator(lambda cell: MarginSides(amount, cell), f"MarginRight({amount})")
 
-    return CustomInset(cell, 'margin', top=0,
-                       right=0, bottom=0, left=amount)
+    return CustomInset(cell, "margin", top=0, right=0, bottom=0, left=amount)
 
 
 def MarginSides(amount, cell=None):
@@ -316,5 +311,4 @@ def MarginSides(amount, cell=None):
     if cell is None:
         return CellDecorator(lambda cell: MarginSides(amount, cell), f"MarginSides({amount})")
 
-    return CustomInset(cell, 'margin', top=0,
-                       right=amount, bottom=0, left=amount)
+    return CustomInset(cell, "margin", top=0, right=amount, bottom=0, left=amount)

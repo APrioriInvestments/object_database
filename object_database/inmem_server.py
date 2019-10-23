@@ -47,13 +47,18 @@ class InMemoryChannel:
                 try:
                     self._clientCallback(e)
                 except Exception:
-                    self._logger.error("Pump thread failed for %s: %s", self, traceback.format_exc())
+                    self._logger.error(
+                        "Pump thread failed for %s: %s", self, traceback.format_exc()
+                    )
                     return
 
     def pumpMessagesFromClient(self):
         lastHeartbeat = time.time()
         while not self._shouldStop:
-            if time.time() - lastHeartbeat > getHeartbeatInterval() and not self._stopHeartbeatingSet:
+            if (
+                time.time() - lastHeartbeat > getHeartbeatInterval()
+                and not self._stopHeartbeatingSet
+            ):
                 lastHeartbeat = time.time()
                 e = ClientToServer.Heartbeat()
             else:
@@ -109,11 +114,13 @@ class InMemoryChannel:
 
 
 class InMemServer(Server):
-    def __init__(self, kvstore=None, auth_token=''):
+    def __init__(self, kvstore=None, auth_token=""):
         Server.__init__(self, kvstore or InMemoryPersistence(), auth_token)
         self.channels = []
         self.stopped = threading.Event()
-        self.checkForDeadConnectionsLoopThread = threading.Thread(target=self.checkForDeadConnectionsLoop)
+        self.checkForDeadConnectionsLoopThread = threading.Thread(
+            target=self.checkForDeadConnectionsLoop
+        )
         self.checkForDeadConnectionsLoopThread.daemon = True
         self.checkForDeadConnectionsLoopThread.start()
 

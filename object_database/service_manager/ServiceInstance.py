@@ -51,7 +51,9 @@ class CodebaseLockedException(Exception):
 class Service:
     name = Indexed(str)
     _codebase = OneOf(None, service_schema.Codebase)
-    _codebaseStatus = OneOf("PREPARED", "LOCKED", "UNLOCKED")  # protects _codebase from modification
+    _codebaseStatus = OneOf(
+        "PREPARED", "LOCKED", "UNLOCKED"
+    )  # protects _codebase from modification
 
     service_module_name = str
     service_class_name = str
@@ -114,12 +116,15 @@ class Service:
             self.deploy()
 
     def setCodebase(self, codebase, moduleName=None, className=None):
-        if (codebase != self.codebase or
-                (moduleName is not None and moduleName != self.service_module_name) or
-                (className is not None and className != self.service_class_name)):
+        if (
+            codebase != self.codebase
+            or (moduleName is not None and moduleName != self.service_module_name)
+            or (className is not None and className != self.service_class_name)
+        ):
             if self.isLocked:
                 raise CodebaseLockedException(
-                    "Cannot set codebase of locked service '{}'".format(self.name))
+                    "Cannot set codebase of locked service '{}'".format(self.name)
+                )
 
             self._setCodebase(codebase)
 
@@ -143,7 +148,9 @@ class Service:
 
     def getSerializationContext(self):
         if self.codebase is None:
-            return TypedPythonCodebase.FromRootlevelModule(object_database).serializationContext
+            return TypedPythonCodebase.FromRootlevelModule(
+                object_database
+            ).serializationContext
         else:
             return self.codebase.instantiate().serializationContext
 
@@ -176,6 +183,7 @@ class Service:
 
             return module.__dict__[typename]
         else:
+
             def _getobject(modname, attribute):
                 mod = __import__(modname, fromlist=[attribute])
                 return mod.__dict__[attribute]
@@ -186,8 +194,12 @@ class Service:
         return "/services/%s/%s/%s" % (
             self.name,
             type(obj).__schema__.name + "." + type(obj).__qualname__,
-            obj._identity
-        ) + ("" if not queryParams else "?" + urllib.parse.urlencode({k: str(v) for k, v in queryParams.items()}))
+            obj._identity,
+        ) + (
+            ""
+            if not queryParams
+            else "?" + urllib.parse.urlencode({k: str(v) for k, v in queryParams.items()})
+        )
 
     def findModuleSchemas(self):
         """Find all Schema objects in the same module as our type object."""
@@ -211,23 +223,24 @@ class Service:
             module = self.codebase.instantiate(self.service_module_name)
 
             if self.service_class_name not in module.__dict__:
-                raise Exception("Provided module %s at %s has no class %s. Options are:\n%s" % (
-                    self.service_module_name,
-                    module.__file__,
-                    self.service_class_name,
-                    "\n".join(["  " + x for x in sorted(module.__dict__)])
-                ))
+                raise Exception(
+                    "Provided module %s at %s has no class %s. Options are:\n%s"
+                    % (
+                        self.service_module_name,
+                        module.__file__,
+                        self.service_class_name,
+                        "\n".join(["  " + x for x in sorted(module.__dict__)]),
+                    )
+                )
 
             service_type = module.__dict__[self.service_class_name]
         else:
+
             def _getobject(modname, attribute):
                 mod = __import__(modname, fromlist=[attribute])
                 return mod.__dict__[attribute]
 
-            service_type = _getobject(
-                self.service_module_name,
-                self.service_class_name
-            )
+            service_type = _getobject(self.service_module_name, self.service_class_name)
 
         return service_type
 
@@ -265,9 +278,8 @@ class ServiceInstance:
         )
 
     def isNotActive(self):
-        return (
-            self.state in ("Stopped", "FailedToStart", "Crashed")
-            or (self.connection and not self.connection.exists())
+        return self.state in ("Stopped", "FailedToStart", "Crashed") or (
+            self.connection and not self.connection.exists()
         )
 
     def isActive(self):
@@ -278,8 +290,9 @@ class ServiceInstance:
             and (self.connection is None or self.connection.exists())
         )
 
-    state = Indexed(OneOf("Booting", "Initializing", "Running",
-                          "Stopped", "FailedToStart", "Crashed"))
+    state = Indexed(
+        OneOf("Booting", "Initializing", "Running", "Stopped", "FailedToStart", "Crashed")
+    )
 
     boot_timestamp = OneOf(None, float)
     start_timestamp = OneOf(None, float)

@@ -27,7 +27,9 @@ from object_database.web.ActiveWebService import ActiveWebService
 
 from object_database import core_schema, connect, service_schema
 from object_database.util import configureLogging, genToken
-from object_database.frontends.service_manager import autoconfigureAndStartServiceManagerProcess
+from object_database.frontends.service_manager import (
+    autoconfigureAndStartServiceManagerProcess,
+)
 from typed_python.Codebase import Codebase as TypedPythonCodebase
 
 ownDir = os.path.dirname(os.path.abspath(__file__))
@@ -47,16 +49,17 @@ class ActiveWebServiceTest(unittest.TestCase):
         cls._logger = logging.getLogger(__name__)
         cls.login_config = dict(company_name="Testing Company")
 
-    def configurableSetUp(self, hostname='localhost',
-                          login_plugin_factory=None,  # default: LoginIpPlugin,
-                          login_config=None,
-                          auth_plugins=(None), module=None,
-                          db_init_fun=None):
+    def configurableSetUp(
+        self,
+        hostname="localhost",
+        login_plugin_factory=None,  # default: LoginIpPlugin,
+        login_config=None,
+        auth_plugins=(None),
+        module=None,
+        db_init_fun=None,
+    ):
 
-        self.base_url = "http://{host}:{port}".format(
-            host=hostname,
-            port=WEB_SERVER_PORT
-        )
+        self.base_url = "http://{host}:{port}".format(host=hostname, port=WEB_SERVER_PORT)
         login_plugin_factory = login_plugin_factory or LoginIpPlugin
         self.token = genToken()
         log_level = self._logger.getEffectiveLevel()
@@ -67,12 +70,14 @@ class ActiveWebServiceTest(unittest.TestCase):
             authToken=self.token,
             loglevelName=loglevel_name,
             ownHostname=hostname,
-            dbHostname=hostname
+            dbHostname=hostname,
         )
 
         try:
             self.database = connect(hostname, DATABASE_SERVER_PORT, self.token, retry=True)
-            self.database.subscribeToSchema(core_schema, service_schema, active_webservice_schema)
+            self.database.subscribeToSchema(
+                core_schema, service_schema, active_webservice_schema
+            )
             if db_init_fun is not None:
                 db_init_fun(self.database)
 
@@ -88,16 +93,21 @@ class ActiveWebServiceTest(unittest.TestCase):
                     codebase = service_schema.Codebase.createFromCodebase(tpcodebase)
 
             with self.database.transaction():
-                service = ServiceManager.createOrUpdateService(ActiveWebService, "ActiveWebService", target_count=0)
+                service = ServiceManager.createOrUpdateService(
+                    ActiveWebService, "ActiveWebService", target_count=0
+                )
 
             ActiveWebService.configureFromCommandline(
                 self.database,
                 service,
                 [
-                    '--port', str(WEB_SERVER_PORT),
-                    '--host', hostname,
-                    '--log-level', loglevel_name,
-                ]
+                    "--port",
+                    str(WEB_SERVER_PORT),
+                    "--host",
+                    hostname,
+                    "--log-level",
+                    loglevel_name,
+                ],
             )
 
             if login_config is None:
@@ -109,7 +119,7 @@ class ActiveWebServiceTest(unittest.TestCase):
                 login_plugin_factory,
                 auth_plugins,
                 codebase=codebase,
-                config=login_config
+                config=login_config,
             )
 
             with self.database.transaction():
@@ -128,14 +138,14 @@ class ActiveWebServiceTest(unittest.TestCase):
                 requests.get(self.base_url + "/status")
                 return
             except Exception:
-                time.sleep(.5)
+                time.sleep(0.5)
 
         raise Exception("Webservice failed to come up after {} seconds.".format(timeout))
 
     def tearDown(self):
         self.cleanupFn()
 
-    def login(self, client, username='anonymous', password='bogus'):
+    def login(self, client, username="anonymous", password="bogus"):
         # Because of CSRF security we need to do the following to authenticate:
         # - Load the login page
         # - Extract the csrf token (using BeautifulSoup)
@@ -145,13 +155,15 @@ class ActiveWebServiceTest(unittest.TestCase):
         self.assertFalse(res.history)
         self.assertEqual(res.status_code, 200)
 
-        soup = BeautifulSoup(res.text, 'html.parser')
-        csrf_token = soup.find('input', dict(name='csrf_token'))['value']
+        soup = BeautifulSoup(res.text, "html.parser")
+        csrf_token = soup.find("input", dict(name="csrf_token"))["value"]
 
-        res = client.post(login_url, data=dict(username=username, password=password, csrf_token=csrf_token))
+        res = client.post(
+            login_url, data=dict(username=username, password=password, csrf_token=csrf_token)
+        )
         self.assertTrue(res.history)
         self.assertEqual(res.status_code, 200)
-        self.assertTrue('login' not in res.url)
+        self.assertTrue("login" not in res.url)
 
     def test_web_service_no_auth(self):
         self.configurableSetUp(auth_plugins=[None])
@@ -171,7 +183,7 @@ class ActiveWebServiceTest(unittest.TestCase):
         self.configurableSetUp(auth_plugins=[PermissiveAuthPlugin()])
         url = self.base_url + "/content/object_database.css"
         client = requests.Session()
-        username = 'anonymous'
+        username = "anonymous"
 
         # 1. Cannot access without login
         res = requests.get(url)
@@ -180,7 +192,7 @@ class ActiveWebServiceTest(unittest.TestCase):
         self.assertEqual(len(res.history), 1)
         self.assertEqual(res.status_code, 200)
         self.assertNotEqual(res.url, url)
-        self.assertTrue('login' in res.url)
+        self.assertTrue("login" in res.url)
 
         # 2. login successfully
         self.login(client, username)
@@ -199,13 +211,13 @@ class ActiveWebServiceTest(unittest.TestCase):
         res = client.get(url)
         self.assertTrue(res.history)
         self.assertEqual(res.status_code, 200)
-        self.assertTrue('login' in res.url)
+        self.assertTrue("login" in res.url)
 
     def test_web_service_login_ip(self):
         self.configurableSetUp(auth_plugins=[PermissiveAuthPlugin()])
         url = self.base_url + "/content/object_database.css"
         client = requests.Session()
-        username = 'anonymous'
+        username = "anonymous"
 
         # we can access our target page after login
         self.login(client, username)
@@ -227,4 +239,4 @@ class ActiveWebServiceTest(unittest.TestCase):
         self.assertEqual(len(res.history), 1)
         self.assertEqual(res.status_code, 200)
         self.assertNotEqual(res.url, url)
-        self.assertTrue('login' in res.url)
+        self.assertTrue("login" in res.url)

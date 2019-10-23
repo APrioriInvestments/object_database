@@ -40,7 +40,9 @@ class ServerToClientProtocol(AlgebraicProtocol):
             try:
                 return handler(*args)
             except Exception:
-                self._logger.error("Unexpected exception in %s:\n%s", handler.__name__, traceback.format_exc())
+                self._logger.error(
+                    "Unexpected exception in %s:\n%s", handler.__name__, traceback.format_exc()
+                )
 
         self.handler = callHandler
 
@@ -84,11 +86,16 @@ class ClientToServerProtocol(AlgebraicProtocol):
 
     def setServerToClientHandler(self, handler):
         with self.lock:
+
             def callHandler(*args):
                 try:
                     return handler(*args)
                 except Exception:
-                    self._logger.error("Unexpected exception in %s:\n%s", handler.__name__, traceback.format_exc())
+                    self._logger.error(
+                        "Unexpected exception in %s:\n%s",
+                        handler.__name__,
+                        traceback.format_exc(),
+                    )
 
             self.handler = callHandler
             for m in self.msgs:
@@ -145,7 +152,9 @@ class EventLoopInThread:
         self.start()
 
         async def doit():
-            return await self.loop.create_connection(protocol_factory, host=host, port=port, family=socket.AF_INET, ssl=ssl)
+            return await self.loop.create_connection(
+                protocol_factory, host=host, port=port, family=socket.AF_INET, ssl=ssl
+            )
 
         res = asyncio.run_coroutine_threadsafe(doit(), self.loop)
 
@@ -155,7 +164,9 @@ class EventLoopInThread:
         self.start()
 
         async def doit():
-            return await self.loop.create_server(protocol_factory, host=host, port=port, family=socket.AF_INET, ssl=ssl)
+            return await self.loop.create_server(
+                protocol_factory, host=host, port=port, family=socket.AF_INET, ssl=ssl
+            )
 
         res = asyncio.run_coroutine_threadsafe(doit(), self.loop)
 
@@ -178,21 +189,23 @@ def connect(host, port, auth_token, timeout=10.0, retry=False, eventLoop=_eventL
                 lambda: ClientToServerProtocol(host, port, eventLoop.loop),
                 host=host,
                 port=port,
-                ssl=ssl_ctx
+                ssl=ssl_ctx,
             )
         except Exception:
-            if not retry or time.time() - t0 > timeout * .8:
+            if not retry or time.time() - t0 > timeout * 0.8:
                 raise
             time.sleep(min(timeout, max(timeout / 100.0, 0.01)))
 
     if proto is None:
         raise ConnectionRefusedError()
 
-    conn = DatabaseConnection(proto, {
-        propertyName:
-            proto.transport.get_extra_info(propertyName)
-            for propertyName in ['socket', 'peername', 'sockname']
-    })
+    conn = DatabaseConnection(
+        proto,
+        {
+            propertyName: proto.transport.get_extra_info(propertyName)
+            for propertyName in ["socket", "peername", "sockname"]
+        },
+    )
 
     conn.authenticate(auth_token)
 
@@ -224,7 +237,7 @@ class TcpServer(Server):
             lambda: ServerToClientProtocol(self, _eventLoop.loop),
             host=self.host,
             port=self.port,
-            ssl=self.ssl_ctx
+            ssl=self.ssl_ctx,
         )
         _eventLoop.loop.call_soon_threadsafe(self.checkHeartbeatsCallback)
 
@@ -234,7 +247,9 @@ class TcpServer(Server):
             try:
                 self.checkForDeadConnections()
             except Exception:
-                logging.error("Caught exception in checkForDeadConnections:\n%s", traceback.format_exc())
+                logging.error(
+                    "Caught exception in checkForDeadConnections:\n%s", traceback.format_exc()
+                )
 
     def stop(self):
         Server.stop(self)

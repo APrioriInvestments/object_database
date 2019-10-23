@@ -36,7 +36,7 @@ class PermissiveAuthPlugin(AuthPluginBase):
     " An AuthPlugin that allows anyone to login (useful for testing)"
 
     def authenticate(self, username, password) -> str:
-        return ''
+        return ""
 
 
 class LdapAuthPlugin(AuthPluginBase):
@@ -59,33 +59,33 @@ class LdapAuthPlugin(AuthPluginBase):
 
     @property
     def username_key(self):
-        return 'sAMAccountName' if self._ntlm_domain else 'cn'
+        return "sAMAccountName" if self._ntlm_domain else "cn"
 
     def getLdapConnection(self, username, password):
         server = ldap3.Server(self._hostname, use_ssl=True, get_info=ldap3.ALL)
         if self._ntlm_domain:
             opts = dict(authentication=ldap3.NTLM)
-            ldap_username = self._ntlm_domain + '\\' + username
+            ldap_username = self._ntlm_domain + "\\" + username
         else:
             opts = dict()
-            ldap_username = 'CN={},'.format(username) + self._base_dn
+            ldap_username = "CN={},".format(username) + self._base_dn
 
         return ldap3.Connection(server, ldap_username, password, **opts)
 
     def getUserAttribute(self, connection, username: str, attributeName: str):
         if not connection.search(
-                self._base_dn,
-                '({username_key}={username})'.format(username_key=self.username_key, username=username),
-                attributes=attributeName
+            self._base_dn,
+            "({username_key}={username})".format(
+                username_key=self.username_key, username=username
+            ),
+            attributes=attributeName,
         ):
             return None
 
         if len(connection.response) != 1:
-            raise Exception(
-                "Non-unique LDAP username: {username}".format(username=username)
-            )
+            raise Exception("Non-unique LDAP username: {username}".format(username=username))
 
-        return connection.response[0]['attributes'][attributeName]
+        return connection.response[0]["attributes"][attributeName]
 
     def authenticate(self, username, password) -> str:
         with self.getLdapConnection(username, password) as conn:
@@ -95,7 +95,7 @@ class LdapAuthPlugin(AuthPluginBase):
             if self._authorized_groups is None:
                 return ""
             # else check group membership
-            memberOf = self.getUserAttribute(conn, username, 'memberOf')
+            memberOf = self.getUserAttribute(conn, username, "memberOf")
 
             if memberOf is None:
                 return "User '{}' is not a member of any group".format(username)
@@ -103,16 +103,17 @@ class LdapAuthPlugin(AuthPluginBase):
         # keep the first item of a comma-separated list and then keep the
         # last part after an equal-sign. This is because the memberOf attribute
         # returns a sequence of list like this "CN=GroupName, OU=..., ..."
-        memberOfGroups = [group.split(',')[0].split('=')[-1] for group in memberOf]
+        memberOfGroups = [group.split(",")[0].split("=")[-1] for group in memberOf]
 
         for group in memberOfGroups:
             if group in self._authorized_groups:
-                return ''
+                return ""
 
         self._logger.debug(
             "User '{username}' authenticated successfully with LDAP "
-            "but does not belong to an authorized group: {groups}"
-            .format(username=username, groups=self._authorized_groups)
+            "but does not belong to an authorized group: {groups}".format(
+                username=username, groups=self._authorized_groups
+            )
         )
 
         return "User '{}' does not belong to an authorized group".format(username)

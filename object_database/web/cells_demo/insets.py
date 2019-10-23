@@ -18,12 +18,11 @@ from object_database.web.cells.util import Padding, Margin
 
 
 class BasicPadding(CellsTestPage):
-
     def cell(self):
         buttons = [
             Padding(10, cells.Button("First", lambda: None)),
             Padding(10, cells.Button("Second", lambda: None)),
-            Padding(10, cells.Button("Third", lambda: None))
+            Padding(10, cells.Button("Third", lambda: None)),
         ]
         return cells.HorizontalSequence(buttons)
 
@@ -36,7 +35,7 @@ class BasicMargin(CellsTestPage):
         buttons = [
             Margin(10, cells.Button("First", lambda: None)),
             Margin(10, cells.Button("Second", lambda: None)),
-            Margin(10, cells.Button("Third", lambda: None))
+            Margin(10, cells.Button("Third", lambda: None)),
         ]
         return cells.HorizontalSequence(buttons)
 

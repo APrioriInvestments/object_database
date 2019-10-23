@@ -58,6 +58,7 @@ def registerDisplay(type, **context):
             is exactly matched in the parent cell. We'll check contexts in the
             order in which they were registered.
     """
+
     def registrar(displayFunc):
         ContextualDisplay._typeToDisplay.setdefault(type, []).append(
             (ContextualDisplay.ContextMatcher(context), displayFunc)
@@ -70,7 +71,7 @@ def registerDisplay(type, **context):
 
 def context(contextKey):
     """During cell evaluation, lookup context from our parent cell by name."""
-    if not hasattr(_cur_cell, 'cell'):
+    if not hasattr(_cur_cell, "cell"):
         raise Exception("Please call 'context' from within a message or cell update function.")
 
     return _cur_cell.cell.getContext(contextKey)
@@ -106,7 +107,7 @@ def augmentToBeUnique(listOfItems):
     output = []
     for x in listOfItems:
         counts[x] = counts.setdefault(x, 0) + 1
-        output.append((x, counts[x]-1))
+        output.append((x, counts[x] - 1))
 
     return output
 
@@ -120,8 +121,7 @@ class GeventPipe:
 
     def __init__(self):
         self.read_fd, self.write_fd = os.pipe()
-        self.fileobj = gevent.fileobject.FileObjectPosix(
-            self.read_fd, bufsize=2)
+        self.fileobj = gevent.fileobject.FileObjectPosix(self.read_fd, bufsize=2)
         self.netChange = 0
 
     def wait(self):
@@ -206,7 +206,7 @@ class Cells:
                     self._logger.error(
                         "Callback %s threw an unexpected exception:\n%s",
                         callback,
-                        traceback.format_exc()
+                        traceback.format_exc(),
                     )
         except queue.Empty:
             return
@@ -221,14 +221,12 @@ class Cells:
         self._gEventHasTransactions.trigger()
 
     def withRoot(self, root_cell, serialization_context=None, session_state=None):
-        self._root.setChild(
-            root_cell
-        )
+        self._root.setChild(root_cell)
         self._root.setContext(
             SessionState,
             session_state
             or self._root.context.get(SessionState)
-            or SessionState()._reset(self)
+            or SessionState()._reset(self),
         )
         self._root.withSerializationContext(
             serialization_context
@@ -321,13 +319,11 @@ class Cells:
                 del self._subscribedCells[subscription]
 
     def markDirty(self, cell):
-        assert not cell.garbageCollected, (cell, cell.text if isinstance(
-            cell, Text) else "")
+        assert not cell.garbageCollected, (cell, cell.text if isinstance(cell, Text) else "")
         self._dirtyNodes.add(cell)
 
     def markToDiscard(self, cell):
-        assert not cell.garbageCollected, (cell, cell.text if isinstance(
-            cell, Text) else "")
+        assert not cell.garbageCollected, (cell, cell.text if isinstance(cell, Text) else "")
 
         self._nodesToDiscard.add(cell)
         # TODO: lifecycle attribute; see cell.updateLifecycleState()
@@ -468,11 +464,10 @@ class Cells:
                         # to plain children dicts) in the near future.
                         if not isinstance(child_cell, Cell):
                             childname = node.children.findNameFor(child_cell)
-                            raise Exception("Cell of type %s had a non-cell child %s of type %s != Cell." % (
-                                type(node),
-                                childname,
-                                type(child_cell)
-                            ))
+                            raise Exception(
+                                "Cell of type %s had a non-cell child %s of type %s != Cell."
+                                % (type(node), childname, type(child_cell))
+                            )
                         if child_cell.cells:
                             child_cell.prepareForReuse()
                             # TODO: lifecycle attribute; see cell.updateLifecycleState()
@@ -480,11 +475,15 @@ class Cells:
 
                 except Exception:
                     self._logger.error(
-                        "Node %s had exception during recalculation:\n%s", node, traceback.format_exc())
+                        "Node %s had exception during recalculation:\n%s",
+                        node,
+                        traceback.format_exc(),
+                    )
                     self._logger.error(
-                        "Subscribed cell threw an exception:\n%s", traceback.format_exc())
+                        "Subscribed cell threw an exception:\n%s", traceback.format_exc()
+                    )
                     tracebackCell = Traceback(traceback.format_exc())
-                    node.children['content'] = tracebackCell
+                    node.children["content"] = tracebackCell
                 finally:
                     _cur_cell.cell = None
                     _cur_cell.isProcessingMessage = False
@@ -505,8 +504,7 @@ class Cells:
 
     def findChildrenByTag(self, tag, stopSearchingAtFoundTag=True):
         return self._root.findChildrenByTag(
-            tag,
-            stopSearchingAtFoundTag=stopSearchingAtFoundTag
+            tag, stopSearchingAtFoundTag=stopSearchingAtFoundTag
         )
 
     def findChildrenMatching(self, filtr):
@@ -533,7 +531,7 @@ class Slot:
 
         # mark the cells object present when we were created so we can trigger
         # it when we get updated.
-        if hasattr(_cur_cell, 'cell') and _cur_cell.cell is not None:
+        if hasattr(_cur_cell, "cell") and _cur_cell.cell is not None:
             self._cells = _cur_cell.cell.cells
         else:
             self._cells = None
@@ -549,7 +547,9 @@ class Slot:
         with self._lock:
             # we can only create a dependency if we're being read
             # as part of a cell's state recalculation.
-            if getattr(_cur_cell, 'cell', None) is not None and getattr(_cur_cell, 'isProcessingCell', False):
+            if getattr(_cur_cell, "cell", None) is not None and getattr(
+                _cur_cell, "isProcessingCell", False
+            ):
                 self._subscribedCells.add(_cur_cell.cell)
 
             return self._value
@@ -587,8 +587,7 @@ class SessionState(object):
 
     def _reset(self, cells):
         self._slots = {
-            k: Slot(v.getWithoutRegisteringDependency())
-            for k, v in self._slots.items()
+            k: Slot(v.getWithoutRegisteringDependency()) for k, v in self._slots.items()
         }
 
         for s in self._slots.values():
@@ -597,8 +596,7 @@ class SessionState(object):
                 try:
                     s._value.prepareForReuse()
                 except Exception:
-                    logging.warn(
-                        f"Reusing a Cell slot could create a problem: {s._value}")
+                    logging.warn(f"Reusing a Cell slot could create a problem: {s._value}")
         return self
 
     def _slotFor(self, name):
@@ -705,14 +703,14 @@ class Cell:
         message sends to the client. In the future, this should be integrated
         into a general lifecycle management scheme.
         """
-        if (self.wasCreated):
+        if self.wasCreated:
             self.wasCreated = False
-        if (self.wasUpdated):
+        if self.wasUpdated:
             self.wasUpdated = False
-        if (self.wasDataUpdated):
+        if self.wasDataUpdated:
             self.wasDataUpdated = False
         # NOTE: self.wasRemoved is set to False for self.prepareForReuse
-        if (self.wasRemoved):
+        if self.wasRemoved:
             self.wasRemoved = False
 
     def evaluateWithDependencies(self, fun):
@@ -748,10 +746,7 @@ class Cell:
                 return cells
 
         for child in self.children.allChildren:
-            cells.extend(
-                child.findChildrenByTag(
-                    tag, stopSearchingAtFoundTag)
-            )
+            cells.extend(child.findChildrenByTag(tag, stopSearchingAtFoundTag))
 
         return cells
 
@@ -796,12 +791,10 @@ class Cell:
             except RevisionConflictException:
                 tries += 1
                 if tries > MAX_TRIES or time.time() - t0 > MAX_TIMEOUT:
-                    self._logger.error(
-                        "OnMessage timed out. This should really fail.")
+                    self._logger.error("OnMessage timed out. This should really fail.")
                     return
             except Exception:
-                self._logger.error(
-                    "Exception in dropdown logic:\n%s", traceback.format_exc())
+                self._logger.error("Exception in dropdown logic:\n%s", traceback.format_exc())
                 return
             finally:
                 _cur_cell.cell = None
@@ -837,8 +830,14 @@ class Cell:
         return self.cells.db.transaction().setSerializationContext(self.serializationContext)
 
     def prepare(self):
-        if self.serializationContext is TypedPythonCodebase.coreSerializationContext() and self.parent is not None:
-            if self.parent.serializationContext is TypedPythonCodebase.coreSerializationContext():
+        if (
+            self.serializationContext is TypedPythonCodebase.coreSerializationContext()
+            and self.parent is not None
+        ):
+            if (
+                self.parent.serializationContext
+                is TypedPythonCodebase.coreSerializationContext()
+            ):
                 self.parent.prepare()
             self.serializationContext = self.parent.serializationContext
 
@@ -926,7 +925,9 @@ class Cell:
     @property
     def identity(self):
         if self._identity is None:
-            assert self.cells is not None, "Can't ask for identity for %s as it's not part of a cells package" % self
+            assert self.cells is not None, (
+                "Can't ask for identity for %s as it's not part of a cells package" % self
+            )
             self._identity = self.cells._newID()
         return self._identity
 
@@ -983,13 +984,13 @@ class Card(Cell):
 
     def recalculate(self):
         bodyCell = Cell.makeCell(self.body)
-        self.children['body'] = bodyCell
+        self.children["body"] = bodyCell
 
         if self.header is not None:
             headerCell = Cell.makeCell(self.header)
-            self.children['header'] = headerCell
+            self.children["header"] = headerCell
 
-        self.exportData['padding'] = self.padding
+        self.exportData["padding"] = self.padding
 
     def sortsAs(self):
         return self.contents.sortsAs()
@@ -999,7 +1000,7 @@ class CardTitle(Cell):
     def __init__(self, inner):
         super().__init__()
         innerCell = Cell.makeCell(inner)
-        self.children['inner'] = innerCell
+        self.children["inner"] = innerCell
 
     def sortsAs(self):
         return self.inner.sortsAs()
@@ -1030,18 +1031,21 @@ class Modal(Cell):
         self.buttons = {}
         for i in range(len(buttons)):
             button = buttons[i]
-            self.buttons['____button_{}__'.format(i)] = button
+            self.buttons["____button_{}__".format(i)] = button
 
     def recalculate(self):
-        self.children.addFromDict({
-            'buttons': list(self.buttons.values()),
-            'title': self.title,
-            'message': self.message})
-        self.exportData['show'] = self.show.get()
+        self.children.addFromDict(
+            {
+                "buttons": list(self.buttons.values()),
+                "title": self.title,
+                "message": self.message,
+            }
+        )
+        self.exportData["show"] = self.show.get()
 
 
 class Octicon(Cell):
-    def __init__(self, which, color='black'):
+    def __init__(self, which, color="black"):
         super().__init__()
         self.whichOcticon = which
         self.color = color
@@ -1050,23 +1054,23 @@ class Octicon(Cell):
         return self.whichOcticon
 
     def recalculate(self):
-        octiconClasses = ['octicon', ('octicon-%s' % self.whichOcticon)]
-        self.exportData['octiconClasses'] = octiconClasses
-        self.exportData['color'] = self.color
+        octiconClasses = ["octicon", ("octicon-%s" % self.whichOcticon)]
+        self.exportData["octiconClasses"] = octiconClasses
+        self.exportData["color"] = self.color
 
 
 class Badge(Cell):
-    def __init__(self, inner, style='primary'):
+    def __init__(self, inner, style="primary"):
         super().__init__()
         self.inner = self.makeCell(inner)
         self.style = style
-        self.exportData['badgeStyle'] = self.style
+        self.exportData["badgeStyle"] = self.style
 
     def sortsAs(self):
         return self.inner.sortsAs()
 
     def recalculate(self):
-        self.children['inner'] = self.inner
+        self.children["inner"] = self.inner
 
 
 class CollapsiblePanel(Cell):
@@ -1081,10 +1085,10 @@ class CollapsiblePanel(Cell):
 
     def recalculate(self):
         expanded = self.evaluateWithDependencies(self.isExpanded)
-        self.exportData['isExpanded'] = expanded
-        self.children['content'] = self.content
+        self.exportData["isExpanded"] = expanded
+        self.children["content"] = self.content
         if expanded:
-            self.children['panel'] = self.panel
+            self.children["panel"] = self.panel
 
 
 class Text(Cell):
@@ -1099,9 +1103,9 @@ class Text(Cell):
 
     def recalculate(self):
         escapedText = html.escape(str(self.text)) if self.text else " "
-        self.exportData['escapedText'] = escapedText
-        self.exportData['rawText'] = self.text
-        self.exportData['textColor'] = self.text_color
+        self.exportData["escapedText"] = escapedText
+        self.exportData["rawText"] = self.text
+        self.exportData["textColor"] = self.text_color
 
 
 class Padding(Cell):
@@ -1115,7 +1119,7 @@ class Padding(Cell):
 class Span(Cell):
     def __init__(self, text):
         super().__init__()
-        self.exportData['text'] = text
+        self.exportData["text"] = text
 
     def sortsAs(self):
         return self.contents
@@ -1139,7 +1143,7 @@ class Sequence(Cell):
         elements = [Cell.makeCell(x) for x in elements]
 
         self.elements = elements
-        self.children['elements'] = elements
+        self.children["elements"] = elements
         self.overflow = overflow
         self.margin = margin
         self.isFlexParent = False
@@ -1155,9 +1159,9 @@ class Sequence(Cell):
     def recalculate(self):
         self.updateChildren()
         if self.isFlexParent:
-            self.exportData['flexParent'] = True
-        self.children['elements'] = self.elements
-        self.exportData['margin'] = self.margin
+            self.exportData["flexParent"] = True
+        self.children["elements"] = self.elements
+        self.exportData["margin"] = self.margin
 
     def updateChildren(self):
         newElements = []
@@ -1170,7 +1174,7 @@ class Sequence(Cell):
             else:
                 newElements.append(childCell)
         self.elements = newElements
-        self.children['elements'] = self.elements
+        self.children["elements"] = self.elements
 
     def sortsAs(self):
         if self.elements:
@@ -1212,9 +1216,9 @@ class HorizontalSequence(Cell):
     def recalculate(self):
         self.updateChildren()
         if self.isFlexParent:
-            self.exportData['flexParent'] = True
-        self.exportData['margin'] = self.margin
-        self.exportData['wrap'] = self.wrap
+            self.exportData["flexParent"] = True
+        self.exportData["margin"] = self.margin
+        self.exportData["wrap"] = self.wrap
 
     def updateChildren(self):
         newElements = []
@@ -1227,7 +1231,7 @@ class HorizontalSequence(Cell):
             else:
                 newElements.append(childCell)
         self.elements = newElements
-        self.children['elements'] = self.elements
+        self.children["elements"] = self.elements
 
     def sortAs(self):
         if self.elements:
@@ -1241,7 +1245,7 @@ class Columns(Cell):
         elements = [Cell.makeCell(x) for x in elements]
 
         self.elements = elements
-        self.children['elements'] = self.elements
+        self.children["elements"] = self.elements
 
     def __add__(self, other):
         other = Cell.makeCell(other)
@@ -1268,16 +1272,19 @@ class HeaderBar(Cell):
         self.centerItems = centerItems
         self.rightItems = rightItems
 
-        self.children.addFromDict({
-            'leftItems': self.leftItems,
-            'centerItems': self.centerItems,
-            'rightItems': self.rightItems})
+        self.children.addFromDict(
+            {
+                "leftItems": self.leftItems,
+                "centerItems": self.centerItems,
+                "rightItems": self.rightItems,
+            }
+        )
 
 
 class Main(Cell):
     def __init__(self, child):
         super().__init__()
-        self.children['child'] = child
+        self.children["child"] = child
 
 
 class _NavTab(Cell):
@@ -1290,19 +1297,19 @@ class _NavTab(Cell):
         self.child = child
 
     def recalculate(self):
-        self.exportData['clickData'] = {
-            'event': 'click',
-            'ix': str(self.index),
-            'target_cell': self.target
+        self.exportData["clickData"] = {
+            "event": "click",
+            "ix": str(self.index),
+            "target_cell": self.target,
         }
 
         if self.index == self.slot.get():
-            self.exportData['isActive'] = True
+            self.exportData["isActive"] = True
         else:
-            self.exportData['isActive'] = False
+            self.exportData["isActive"] = False
 
         childCell = Cell.makeCell(self.child)
-        self.children['child'] = childCell
+        self.children["child"] = childCell
 
 
 class Tabs(Cell):
@@ -1320,20 +1327,20 @@ class Tabs(Cell):
         self.whichSlot.set(index)
 
     def recalculate(self):
-        displayCell = Subscribed(
-            lambda: self.headersAndChildren[self.whichSlot.get()][1])
-        self.children['display'] = displayCell
-        self.children['headers'] = []
+        displayCell = Subscribed(lambda: self.headersAndChildren[self.whichSlot.get()][1])
+        self.children["display"] = displayCell
+        self.children["headers"] = []
 
         headersToAdd = []
         for i in range(len(self.headersAndChildren)):
             headerCell = _NavTab(
-                self.whichSlot, i, self._identity, self.headersAndChildren[i][0])
+                self.whichSlot, i, self._identity, self.headersAndChildren[i][0]
+            )
             headersToAdd.append(headerCell)
-        self.children['headers'] = headersToAdd
+        self.children["headers"] = headersToAdd
 
     def onMessage(self, msgFrame):
-        self.whichSlot.set(int(msgFrame['ix']))
+        self.whichSlot.set(int(msgFrame["ix"]))
 
 
 class Dropdown(Cell):
@@ -1353,13 +1360,16 @@ class Dropdown(Cell):
         super().__init__()
 
         if singleLambda is not None:
+
             def makeCallback(cell):
                 def callback():
                     singleLambda(cell)
+
                 return callback
 
-            self.headersAndLambdas = [(header, makeCallback(header))
-                                      for header in headersAndLambdas]
+            self.headersAndLambdas = [
+                (header, makeCallback(header)) for header in headersAndLambdas
+            ]
         else:
             self.headersAndLambdas = headersAndLambdas
 
@@ -1369,15 +1379,15 @@ class Dropdown(Cell):
         return self.title.sortsAs()
 
     def recalculate(self):
-        self.children['title'] = self.title
-        self.children['dropdownItems'] = []
+        self.children["title"] = self.title
+        self.children["dropdownItems"] = []
 
         # Because the items here are not separate cells,
         # we have to perform an extra hack of a dict
         # to get the proper data to the temporary
         # JS Component
-        self.exportData['targetIdentity'] = self.identity
-        self.exportData['dropdownItemInfo'] = {}
+        self.exportData["targetIdentity"] = self.identity
+        self.exportData["dropdownItemInfo"] = {}
 
         itemsToAdd = []
         for i in range(len(self.headersAndLambdas)):
@@ -1385,20 +1395,21 @@ class Dropdown(Cell):
             childCell = Cell.makeCell(header)
             itemsToAdd.append(childCell)
             if not isinstance(onDropdown, str):
-                self.exportData['dropdownItemInfo'][i] = 'callback'
+                self.exportData["dropdownItemInfo"][i] = "callback"
             else:
-                self.exportData['dropdownItemInfo'][i] = onDropdown
-        self.children['dropdownItems'] = itemsToAdd
+                self.exportData["dropdownItemInfo"][i] = onDropdown
+        self.children["dropdownItems"] = itemsToAdd
 
     def onMessage(self, msgFrame):
         self._logger.info(msgFrame)
-        fun = self.headersAndLambdas[msgFrame['ix']][1]
+        fun = self.headersAndLambdas[msgFrame["ix"]][1]
         fun()
 
 
 class CircleLoader(Cell):
     """A simple circular loading indicator
     """
+
     def __init__(self):
         super().__init__()
 
@@ -1425,6 +1436,7 @@ class AsyncDropdown(Cell):
             )
 
     """
+
     def __init__(self, labelText, contentCellFunc, loadingIndicatorCell=None):
         """
         Parameters
@@ -1445,19 +1457,21 @@ class AsyncDropdown(Cell):
         super().__init__()
         self.slot = Slot(False)
         self.labelText = labelText
-        self.exportData['labelText'] = self.labelText
+        self.exportData["labelText"] = self.labelText
         if not loadingIndicatorCell:
             loadingIndicatorCell = CircleLoader()
-        self.contentCell = Cell.makeCell(AsyncDropdownContent(self.slot, contentCellFunc, loadingIndicatorCell))
-        self.children['content'] = Cell.makeCell(self.contentCell)
+        self.contentCell = Cell.makeCell(
+            AsyncDropdownContent(self.slot, contentCellFunc, loadingIndicatorCell)
+        )
+        self.children["content"] = Cell.makeCell(self.contentCell)
 
     def onMessage(self, messageFrame):
         """On `dropdown` events sent to this
         Cell over the socket, we will be told
         whether the dropdown menu is open or not
         """
-        if messageFrame['event'] == 'dropdown':
-            self.slot.set(not messageFrame['isOpen'])
+        if messageFrame["event"] == "dropdown":
+            self.slot.set(not messageFrame["isOpen"])
 
 
 class AsyncDropdownContent(Cell):
@@ -1479,6 +1493,7 @@ class AsyncDropdownContent(Cell):
     the front-end, meaning the drawer would never open
     or close since Dropdowns render closed initially.
     """
+
     def __init__(self, slot, contentFunc, loadingIndicatorCell):
         """
         Parameters
@@ -1504,8 +1519,7 @@ class AsyncDropdownContent(Cell):
         self.contentFunc = contentFunc
         self.loadingCell = loadingIndicatorCell
         self.contentCell = Subscribed(self.changeHandler)
-        self.children.addFromDict({
-            'content': Cell.makeCell(self.contentCell)})
+        self.children.addFromDict({"content": Cell.makeCell(self.contentCell)})
 
     def changeHandler(self):
         """If the slot is true, the
@@ -1529,23 +1543,23 @@ class Container(Cell):
     def __init__(self, child=None):
         super().__init__()
         if child is None:
-            self.children['child'] = None
+            self.children["child"] = None
         else:
             childCell = Cell.makeCell(child)
-            self.children['child'] = childCell
+            self.children["child"] = childCell
 
     def setChild(self, child):
         self.setContents("", child)
 
     def setContents(self, newContents, newChildren):
-        self.children['child'] = Cell.makeCell(newChildren)
+        self.children["child"] = Cell.makeCell(newChildren)
         self.markDirty()
 
 
 class Scrollable(Container):
     def __init__(self, child=None, height=None):
         super().__init__(child)
-        self.exportData['height'] = height
+        self.exportData["height"] = height
 
 
 class RootCell(Container):
@@ -1570,7 +1584,7 @@ class Traceback(Cell):
         super().__init__()
         self.traceback = traceback
         tracebackCell = Cell.makeCell(traceback)
-        self.children['traceback'] = tracebackCell
+        self.children["traceback"] = tracebackCell
 
     def sortsAs(self):
         return self.traceback
@@ -1584,7 +1598,7 @@ class Code(Cell):
         super().__init__()
         self.codeContents = codeContents
         codeContentsCell = Cell.makeCell(codeContents)
-        self.children['code'] = codeContentsCell
+        self.children["code"] = codeContentsCell
 
     def sortsAs(self):
         return self.codeContents
@@ -1632,8 +1646,8 @@ class ContextualDisplay(Cell):
     def recalculate(self):
         with self.view():
             childCell = self.getChild()
-            self.children['child'] = childCell
-            self.exportData['objectType'] = str(type(self.obj))
+            self.children["child"] = childCell
+            self.exportData["objectType"] = str(type(self.obj))
 
 
 class Subscribed(Cell):
@@ -1689,15 +1703,15 @@ class Subscribed(Cell):
                     self.wrapsSequence = True
                 elif isinstance(newCell, HorizontalSequence):
                     self.wrapsHorizSequence = True
-                self.children['content'] = newCell
+                self.children["content"] = newCell
             except SubscribeAndRetry:
                 raise
             except Exception:
-                tracebackCell = Traceback(
-                    traceback.format_exc())
-                self.children['content'] = tracebackCell
+                tracebackCell = Traceback(traceback.format_exc())
+                self.children["content"] = tracebackCell
                 self._logger.error(
-                    "Subscribed inner function threw exception:\n%s", traceback.format_exc())
+                    "Subscribed inner function threw exception:\n%s", traceback.format_exc()
+                )
 
             self._resetSubscriptionsToViewReads(v)
 
@@ -1732,7 +1746,8 @@ class SubscribedSequence(Cell):
         The axis along which this SubscribedSequence
         should lay itself out.
     """
-    def __init__(self, itemsFun, rendererFun, orientation='vertical'):
+
+    def __init__(self, itemsFun, rendererFun, orientation="vertical"):
         """
         Parameters
         ----------
@@ -1784,9 +1799,9 @@ class SubscribedSequence(Cell):
             self._updateExistingItems()
             self.updateChildren()
 
-            self.exportData['orientation'] = self.orientation
+            self.exportData["orientation"] = self.orientation
             if self.isFlexParent:
-                self.exportData['flexParent'] = True
+                self.exportData["flexParent"] = True
 
     def updateChildren(self):
         """Updates the stored children and namedChildren
@@ -1818,11 +1833,11 @@ class SubscribedSequence(Cell):
 
             self._processChild(current_child, new_children)
 
-        self.children['elements'] = new_children
+        self.children["elements"] = new_children
 
     def sortAs(self):
-        if len(self.children['elements']):
-            return self.children['elements'][0].sortAs()
+        if len(self.children["elements"]):
+            return self.children["elements"][0].sortAs()
 
     def _processChild(self, child, children):
         """Determines whether or not to flatten nested
@@ -1838,7 +1853,7 @@ class SubscribedSequence(Cell):
             # or SubscribedSequence of some kind.
             # In this case, we need to flatten its elements.
             # Note that only matching orientations flatten.
-            children += child.children['content'].children['elements']
+            children += child.children["content"].children["elements"]
         else:
             children.append(child)
 
@@ -1852,8 +1867,8 @@ class SubscribedSequence(Cell):
             raise
         except Exception:
             self._logger.error(
-                "SubscribedSequence itemsFun threw exception:\n%s",
-                traceback.format_exc())
+                "SubscribedSequence itemsFun threw exception:\n%s", traceback.format_exc()
+            )
             self.items = []
 
     def _updateExistingItems(self):
@@ -1870,15 +1885,15 @@ class SubscribedSequence(Cell):
         """Returns true if this object wraps
         a Subscribed that wraps a Sequence that
         has the same orientation as itself"""
-        if self.orientation == 'vertical':
+        if self.orientation == "vertical":
             return child.wrapsSequence
-        elif self.orientation == 'horizontal':
+        elif self.orientation == "horizontal":
             return child.wrapsHorizSequence
         return False
 
 
 def HorizontalSubscribedSequence(itemsFun, rendererFun):
-    return SubscribedSequence(itemsFun, rendererFun, orientation='horizontal')
+    return SubscribedSequence(itemsFun, rendererFun, orientation="horizontal")
 
 
 HSubscribedSequence = HorizontalSubscribedSequence
@@ -1899,18 +1914,16 @@ class Popover(Cell):
         contentCell = Cell.makeCell(contents)
         detailCell = Cell.makeCell(detail)
         titleCell = Cell.makeCell(title)
-        self.children.addFromDict({
-            'content': contentCell,
-            'detail': detailCell,
-            'title': titleCell
-        })
+        self.children.addFromDict(
+            {"content": contentCell, "detail": detailCell, "title": titleCell}
+        )
 
     def recalculate(self):
-        self.exportData['width'] = self.width
+        self.exportData["width"] = self.width
 
     def sortsAs(self):
-        if self.children.hasChildNamed('title'):
-            return self.children['title'].sortAs()
+        if self.children.hasChildNamed("title"):
+            return self.children["title"].sortAs()
 
 
 class Grid(Cell):
@@ -1946,7 +1959,8 @@ class Grid(Cell):
                 raise
             except Exception:
                 self._logger.error(
-                    "Row fun calc threw an exception:\n%s", traceback.format_exc())
+                    "Row fun calc threw an exception:\n%s", traceback.format_exc()
+                )
                 self.rows = []
             try:
                 self.cols = augmentToBeUnique(self.colFun())
@@ -1954,56 +1968,53 @@ class Grid(Cell):
                 raise
             except Exception:
                 self._logger.error(
-                    "Col fun calc threw an exception:\n%s", traceback.format_exc())
+                    "Col fun calc threw an exception:\n%s", traceback.format_exc()
+                )
                 self.cols = []
 
             self._resetSubscriptionsToViewReads(v)
 
-        new_named_children = {
-            'headers': [],
-            'rowLabels': [],
-            'dataCells': []
-        }
+        new_named_children = {"headers": [], "rowLabels": [], "dataCells": []}
         seen = set()
 
         for col_ix, col in enumerate(self.cols):
             seen.add((None, col))
             if (None, col) in self.existingItems:
-                new_named_children['headers'].append(self.existingItems[(None, col)])
+                new_named_children["headers"].append(self.existingItems[(None, col)])
             else:
                 try:
                     headerCell = Cell.makeCell(self.headerFun(col[0]))
                     self.existingItems[(None, col)] = headerCell
-                    new_named_children['headers'].append(headerCell)
+                    new_named_children["headers"].append(headerCell)
                 except SubscribeAndRetry:
                     raise
                 except Exception:
                     tracebackCell = Traceback(traceback.format_exc)()
                     self.existingItems[(None, col)] = tracebackCell
-                    new_named_children['headers'].append(tracebackCell)
+                    new_named_children["headers"].append(tracebackCell)
 
         if self.rowLabelFun is not None:
             for row_ix, row in enumerate(self.rows):
                 seen.add((None, row))
                 if (row, None) in self.existingItems:
                     rowLabelCell = self.existingItems[(row, None)]
-                    new_named_children['rowLabels'].append(rowLabelCell)
+                    new_named_children["rowLabels"].append(rowLabelCell)
                 else:
                     try:
                         rowLabelCell = Cell.makeCell(self.rowLabelFun(row[0]))
                         self.existingItems[(row, None)] = rowLabelCell
-                        new_named_children['rowLabels'].append(rowLabelCell)
+                        new_named_children["rowLabels"].append(rowLabelCell)
                     except SubscribeAndRetry:
                         raise
                     except Exception:
                         tracebackCell = Traceback(traceback.format_exc())
                         self.existingItems[(row, None)] = tracebackCell
-                        new_named_children['rowLabels'].append(tracebackCell)
+                        new_named_children["rowLabels"].append(tracebackCell)
 
         seen = set()
         for row_ix, row in enumerate(self.rows):
             new_named_children_column = []
-            new_named_children['dataCells'].append(new_named_children_column)
+            new_named_children["dataCells"].append(new_named_children_column)
             for col_ix, col in enumerate(self.cols):
                 seen.add((row, col))
                 if (row, col) in self.existingItems:
@@ -2027,9 +2038,9 @@ class Grid(Cell):
             if i not in seen:
                 del self.existingItems[i]
 
-        self.exportData['rowNum'] = len(self.rows)
-        self.exportData['colNum'] = len(self.cols)
-        self.exportData['hasTopHeader'] = (self.rowLabelFun is not None)
+        self.exportData["rowNum"] = len(self.rows)
+        self.exportData["colNum"] = len(self.cols)
+        self.exportData["hasTopHeader"] = self.rowLabelFun is not None
 
 
 class SortWrapper:
@@ -2069,10 +2080,10 @@ class SingleLineTextBox(Cell):
 
     def recalculate(self):
         if self.pattern:
-            self.exportData['pattern'] = self.pattern
+            self.exportData["pattern"] = self.pattern
 
     def onMessage(self, msgFrame):
-        self.slot.set(msgFrame['text'])
+        self.slot.set(msgFrame["text"])
 
 
 class Table(Cell):
@@ -2160,13 +2171,12 @@ class Table(Cell):
 
         page = 0
         try:
-            page = max(0, int(self.curPage.get())-1)
+            page = max(0, int(self.curPage.get()) - 1)
             page = min(page, (len(rows) - 1) // self.maxRowsPerPage)
         except Exception:
-            self._logger.error(
-                "Failed to parse current page: %s", traceback.format_exc())
+            self._logger.error("Failed to parse current page: %s", traceback.format_exc())
 
-        return rows[page * self.maxRowsPerPage:(page+1) * self.maxRowsPerPage]
+        return rows[page * self.maxRowsPerPage : (page + 1) * self.maxRowsPerPage]
 
     def makeHeaderCell(self, col_ix):
         col = self.cols[col_ix]
@@ -2179,13 +2189,15 @@ class Table(Cell):
                 return ""
             return Octicon("arrow-up" if not self.sortColumnAscending.get() else "arrow-down")
 
-        cell = Cell.makeCell(self.headerFun(col)).nowrap() >> \
-            Padding() >> Subscribed(icon).nowrap()
+        cell = (
+            Cell.makeCell(self.headerFun(col)).nowrap()
+            >> Padding()
+            >> Subscribed(icon).nowrap()
+        )
 
         def onClick():
             if self.sortColumn.get() == col_ix:
-                self.sortColumnAscending.set(
-                    not self.sortColumnAscending.get())
+                self.sortColumnAscending.set(not self.sortColumnAscending.get())
             else:
                 self.sortColumn.set(col_ix)
                 self.sortColumnAscending.set(False)
@@ -2193,12 +2205,18 @@ class Table(Cell):
         res = Clickable(cell, onClick, makeBold=True)
 
         if self.columnFilters[col].get() is None:
-            res = res.nowrap() >> Clickable(Octicon("search"),
-                                            lambda: self.columnFilters[col].set("")).nowrap()
+            res = (
+                res.nowrap()
+                >> Clickable(
+                    Octicon("search"), lambda: self.columnFilters[col].set("")
+                ).nowrap()
+            )
         else:
-            res = res >> SingleLineTextBox(self.columnFilters[col]).nowrap() >> \
-                Button(Octicon("x"), lambda: self.columnFilters[col].set(
-                    None), small=True)
+            res = (
+                res
+                >> SingleLineTextBox(self.columnFilters[col]).nowrap()
+                >> Button(Octicon("x"), lambda: self.columnFilters[col].set(None), small=True)
+            )
 
         return Card(res, padding=1)
 
@@ -2210,7 +2228,8 @@ class Table(Cell):
                 raise
             except Exception:
                 self._logger.error(
-                    "Col fun calc threw an exception:\n%s", traceback.format_exc())
+                    "Col fun calc threw an exception:\n%s", traceback.format_exc()
+                )
                 self.cols = []
 
             try:
@@ -2222,40 +2241,41 @@ class Table(Cell):
                 raise
             except Exception:
                 self._logger.error(
-                    "Row fun calc threw an exception:\n%s", traceback.format_exc())
+                    "Row fun calc threw an exception:\n%s", traceback.format_exc()
+                )
                 self.rows = []
 
             self._resetSubscriptionsToViewReads(v)
 
         new_named_children = {
-            'headers': [],
-            'dataCells': [],
-            'page': None,
-            'right': None,
-            'left': None
+            "headers": [],
+            "dataCells": [],
+            "page": None,
+            "right": None,
+            "left": None,
         }
         seen = set()
 
         for col_ix, col in enumerate(self.cols):
             seen.add((None, col))
             if (None, col) in self.existingItems:
-                new_named_children['headers'].append(self.existingItems[(None, col)])
+                new_named_children["headers"].append(self.existingItems[(None, col)])
             else:
                 try:
                     headerCell = self.makeHeaderCell(col_ix)
                     self.existingItems[(None, col)] = headerCell
-                    new_named_children['headers'].append(headerCell)
+                    new_named_children["headers"].append(headerCell)
                 except SubscribeAndRetry:
                     raise
                 except Exception:
                     tracebackCell = Traceback(traceback.format_exc())
                     self.existingItems[(None, col)] = tracebackCell
-                    new_named_children['headers'].append(tracebackCell)
+                    new_named_children["headers"].append(tracebackCell)
 
         seen = set()
         for row_ix, row in enumerate(self.rows):
             new_named_children_columns = []
-            new_named_children['dataCells'].append(new_named_children_columns)
+            new_named_children["dataCells"].append(new_named_children_columns)
             for col_ix, col in enumerate(self.cols):
                 seen.add((row, col))
                 if (row, col) in self.existingItems:
@@ -2279,11 +2299,11 @@ class Table(Cell):
             if i not in seen:
                 del self.existingItems[i]
 
-        totalPages = ((len(self.filteredRows) - 1) // self.maxRowsPerPage + 1)
+        totalPages = (len(self.filteredRows) - 1) // self.maxRowsPerPage + 1
 
         if totalPages <= 1:
             pageCell = Cell.makeCell(totalPages).nowrap()
-            self.children['page'] = pageCell
+            self.children["page"] = pageCell
         else:
             pageCell = (
                 SingleLineTextBox(self.curPage, pattern="[0-9]+")
@@ -2291,36 +2311,30 @@ class Table(Cell):
                 .height(20)
                 .nowrap()
             )
-            self.children['page'] = pageCell
+            self.children["page"] = pageCell
         if self.curPage.get() == "1":
-            leftCell = Octicon(
-                "triangle-left", color="lightgray").nowrap()
-            self.children['left'] = leftCell
+            leftCell = Octicon("triangle-left", color="lightgray").nowrap()
+            self.children["left"] = leftCell
         else:
-            leftCell = (
-                Clickable(
-                    Octicon("triangle-left"),
-                    lambda: self.curPage.set(str(int(self.curPage.get())-1))
-                ).nowrap()
-            )
-            self.children['left'] = leftCell
+            leftCell = Clickable(
+                Octicon("triangle-left"),
+                lambda: self.curPage.set(str(int(self.curPage.get()) - 1)),
+            ).nowrap()
+            self.children["left"] = leftCell
         if self.curPage.get() == str(totalPages):
-            rightCell = Octicon(
-                "triangle-right", color="lightgray").nowrap()
-            self.children['right'] = rightCell
+            rightCell = Octicon("triangle-right", color="lightgray").nowrap()
+            self.children["right"] = rightCell
         else:
-            rightCell = (
-                Clickable(
-                    Octicon("triangle-right"),
-                    lambda: self.curPage.set(str(int(self.curPage.get())+1))
-                ).nowrap()
-            )
-            self.children['right'] = rightCell
+            rightCell = Clickable(
+                Octicon("triangle-right"),
+                lambda: self.curPage.set(str(int(self.curPage.get()) + 1)),
+            ).nowrap()
+            self.children["right"] = rightCell
 
         # temporary js WS refactoring data
-        self.exportData['totalPages'] = totalPages
-        self.exportData['numColumns'] = len(self.cols)
-        self.exportData['numRows'] = len(self.rows)
+        self.exportData["totalPages"] = totalPages
+        self.exportData["numColumns"] = len(self.cols)
+        self.exportData["numRows"] = len(self.rows)
 
 
 class Clickable(Cell):
@@ -2332,19 +2346,21 @@ class Clickable(Cell):
 
     def calculatedOnClick(self):
         if isinstance(self.f, str):
-            return quoteForJs("window.location.href = '__url__'".replace("__url__", quoteForJs(self.f, "'")), '"')
+            return quoteForJs(
+                "window.location.href = '__url__'".replace("__url__", quoteForJs(self.f, "'")),
+                '"',
+            )
         else:
-            return (
-                "cellSocket.sendString(JSON.stringify({'event':'click', 'target_cell': '__identity__'}))"
-                .replace("__identity__", self.identity)
+            return "cellSocket.sendString(JSON.stringify({'event':'click', 'target_cell': '__identity__'}))".replace(
+                "__identity__", self.identity
             )
 
     def recalculate(self):
-        self.children['content'] = self.content
-        self.exportData['bold'] = self.bold
+        self.children["content"] = self.content
+        self.exportData["bold"] = self.bold
 
         # TODO: this event handling situation must be refactored
-        self.exportData['events'] = {"onclick": self.calculatedOnClick()}
+        self.exportData["events"] = {"onclick": self.calculatedOnClick()}
 
     def sortsAs(self):
         return self.content.sortsAs()
@@ -2352,8 +2368,14 @@ class Clickable(Cell):
     def onMessage(self, msgFrame):
         val = self.f()
         if isinstance(val, str):
-            self.triggerPostscript(quoteForJs("window.location.href = '__url__'".replace(
-                "__url__", quoteForJs(val, "'")), '"'))
+            self.triggerPostscript(
+                quoteForJs(
+                    "window.location.href = '__url__'".replace(
+                        "__url__", quoteForJs(val, "'")
+                    ),
+                    '"',
+                )
+            )
 
 
 class Button(Clickable):
@@ -2364,19 +2386,19 @@ class Button(Clickable):
         self.style = style
 
     def recalculate(self):
-        self.children['content'] = self.content
+        self.children["content"] = self.content
 
         isActive = False
         if self.active:
             isActive = True
 
         # temporary js WS refactoring data
-        self.exportData['small'] = self.small
-        self.exportData['active'] = isActive
-        self.exportData['style'] = self.style
+        self.exportData["small"] = self.small
+        self.exportData["active"] = isActive
+        self.exportData["style"] = self.style
 
         # TODO: this event handling situation must be refactored
-        self.exportData['events'] = {"onclick": self.calculatedOnClick()}
+        self.exportData["events"] = {"onclick": self.calculatedOnClick()}
 
 
 class ButtonGroup(Cell):
@@ -2385,7 +2407,7 @@ class ButtonGroup(Cell):
         self.buttons = buttons
 
     def recalculate(self):
-        self.children['buttons'] = self.buttons
+        self.children["buttons"] = self.buttons
 
 
 class LoadContentsFromUrl(Cell):
@@ -2399,13 +2421,11 @@ class LoadContentsFromUrl(Cell):
         self.targetUrl = targetUrl
 
     def recalculate(self):
-        self.exportData['loadTargetId'] = 'loadtarget%s' % self._identity
+        self.exportData["loadTargetId"] = "loadtarget%s" % self._identity
 
-        self.postscript = (
-            "$('#loadtarget__identity__').load('__url__')"
-            .replace("__identity__", self._identity)
-            .replace("__url__", quoteForJs(self.targetUrl, "'"))
-        )
+        self.postscript = "$('#loadtarget__identity__').load('__url__')".replace(
+            "__identity__", self._identity
+        ).replace("__url__", quoteForJs(self.targetUrl, "'"))
 
 
 class SubscribeAndRetry(Exception):
@@ -2451,17 +2471,22 @@ class Expands(Cell):
         return self.closed.sortsAs()
 
     def recalculate(self):
-        inlineScript = "cellSocket.sendString(JSON.stringify({'event':'click', 'target_cell': '%s'}))" % self.identity
+        inlineScript = (
+            "cellSocket.sendString(JSON.stringify({'event':'click', 'target_cell': '%s'}))"
+            % self.identity
+        )
 
-        self.children.addFromDict({
-            'content': self.open if self.isExpanded else self.closed,
-            'icon': self.openedIcon if self.isExpanded else self.closedIcon
-        })
+        self.children.addFromDict(
+            {
+                "content": self.open if self.isExpanded else self.closed,
+                "icon": self.openedIcon if self.isExpanded else self.closedIcon,
+            }
+        )
 
         # TODO: Refactor this. We shouldn't need to send
         # an inline script!
-        self.exportData['events'] = {"onclick": inlineScript}
-        self.exportData['isOpen'] = self.isExpanded
+        self.exportData["events"] = {"onclick": inlineScript}
+        self.exportData["isOpen"] = self.isExpanded
 
         for c in self.children.allChildren:
             if c.cells is not None:
@@ -2475,13 +2500,15 @@ class Expands(Cell):
 class CodeEditor(Cell):
     """Produce a code editor."""
 
-    def __init__(self,
-                 keybindings=None,
-                 noScroll=False,
-                 minLines=None,
-                 fontSize=None,
-                 autocomplete=True,
-                 onTextChange=None):
+    def __init__(
+        self,
+        keybindings=None,
+        noScroll=False,
+        minLines=None,
+        fontSize=None,
+        autocomplete=True,
+        onTextChange=None,
+    ):
         """Create a code editor
 
         keybindings - map from keycode to a lambda function that will receive
@@ -2511,37 +2538,36 @@ class CodeEditor(Cell):
         # and will cause parent Sequences
         # to become flex parent
         self.isFlex = True
-        self.exportData['flexChild'] = True
+        self.exportData["flexChild"] = True
 
     def getContents(self):
         return self._slot.get()[1]
 
     def setContents(self, contents):
-        newSlotState = (self._slot.getWithoutRegisteringDependency()[
-                        0]+1000000, contents)
+        newSlotState = (self._slot.getWithoutRegisteringDependency()[0] + 1000000, contents)
         self._slot.set(newSlotState)
         self.sendCurrentStateToBrowser(newSlotState)
 
     def onMessage(self, msgFrame):
-        if msgFrame['event'] == 'keybinding':
-            self.keybindings[msgFrame['key']](
-                msgFrame['buffer'], msgFrame['selection'])
-        elif msgFrame['event'] == 'editing':
+        if msgFrame["event"] == "keybinding":
+            self.keybindings[msgFrame["key"]](msgFrame["buffer"], msgFrame["selection"])
+        elif msgFrame["event"] == "editing":
             if self.onTextChange:
-                self._slot.set((self._slot.getWithoutRegisteringDependency()[
-                               0] + 1, msgFrame['buffer']))
-                self.onTextChange(msgFrame['buffer'], msgFrame['selection'])
+                self._slot.set(
+                    (self._slot.getWithoutRegisteringDependency()[0] + 1, msgFrame["buffer"])
+                )
+                self.onTextChange(msgFrame["buffer"], msgFrame["selection"])
 
     def recalculate(self):
         # temporary js WS refactoring data
-        self.exportData['initialText'] = self.initialText
-        self.exportData['autocomplete'] = self.autocomplete
-        self.exportData['noScroll'] = self.noScroll
+        self.exportData["initialText"] = self.initialText
+        self.exportData["autocomplete"] = self.autocomplete
+        self.exportData["noScroll"] = self.noScroll
         if self.fontSize is not None:
-            self.exportData['fontSize'] = self.fontSize
+            self.exportData["fontSize"] = self.fontSize
         if self.minLines is not None:
-            self.exportData['minLines'] = self.minLines
-        self.exportData['keybindings'] = [k for k in self.keybindings.keys()]
+            self.exportData["minLines"] = self.minLines
+        self.exportData["keybindings"] = [k for k in self.keybindings.keys()]
 
     def sendCurrentStateToBrowser(self, newSlotState):
         if self.cells is not None:
@@ -2566,8 +2592,9 @@ class CodeEditor(Cell):
                 editor.setValue(newText, 1)
                 editor.selection.setRange(range)
 
-                """
-                .replace("__identity__", self.identity)
+                """.replace(
+                    "__identity__", self.identity
+                )
                 .replace("__text__", quoteForJs(newSlotState[1], '"'))
                 .replace("__iteration__", str(newSlotState[0]))
             )
@@ -2578,9 +2605,7 @@ class CodeEditor(Cell):
 class OldSheet(Cell):
     """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""
 
-    def __init__(self, columnNames, rowCount, rowFun,
-                 colWidth=200,
-                 onCellDblClick=None):
+    def __init__(self, columnNames, rowCount, rowFun, colWidth=200, onCellDblClick=None):
         """
         columnNames:
             names to go in column Header
@@ -2610,46 +2635,49 @@ class OldSheet(Cell):
 
         self._hookfns = {}
         if onCellDblClick is not None:
+
             def _makeOnCellDblClick(func):
                 def _onMessage(sheet, msgFrame):
-                    return onCellDblClick(sheet=sheet,
-                                          row=msgFrame["row"],
-                                          col=msgFrame["col"])
+                    return onCellDblClick(
+                        sheet=sheet, row=msgFrame["row"], col=msgFrame["col"]
+                    )
+
                 return _onMessage
 
-            self._hookfns["onCellDblClick"] = _makeOnCellDblClick(
-                onCellDblClick)
+            self._hookfns["onCellDblClick"] = _makeOnCellDblClick(onCellDblClick)
 
     def _addHandsontableOnCellDblClick(self):
         pass
 
     def recalculate(self):
-        errorCell = Subscribed(lambda: Traceback(self.error.get()) if self.error.get() is not None else Text(""))
-        self.children['error'] = errorCell
+        errorCell = Subscribed(
+            lambda: Traceback(self.error.get()) if self.error.get() is not None else Text("")
+        )
+        self.children["error"] = errorCell
 
         # Deleted the postscript that was here.
         # Should now be implemented completely
         # in the JS side component.
 
-        self.exportData['divStyle'] = self._divStyle()
-        self.exportData['columnNames'] = [x for x in self.columnNames]
-        self.exportData['rowCount'] = self.rowCount
-        self.exportData['columnWidth'] = self.colWidth
-        self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
+        self.exportData["divStyle"] = self._divStyle()
+        self.exportData["columnNames"] = [x for x in self.columnNames]
+        self.exportData["rowCount"] = self.rowCount
+        self.exportData["columnWidth"] = self.colWidth
+        self.exportData["handlesDoubleClick"] = "onCellDblClick" in self._hookfns
 
     def onMessage(self, msgFrame):
         """TODO: We will need to update the Cell lifecycle
         and data handling before we can move this
         to the JS side"""
 
-        if msgFrame["event"] == 'sheet_needs_data':
-            row = msgFrame['data']
+        if msgFrame["event"] == "sheet_needs_data":
+            row = msgFrame["data"]
 
             if row in self.rowsSent:
                 return
 
             rows = []
-            for rowToRender in range(max(0, row-100), min(row+100, self.rowCount)):
+            for rowToRender in range(max(0, row - 100), min(row + 100, self.rowCount)):
                 if rowToRender not in self.rowsSent:
                     self.rowsSent.add(rowToRender)
                     rows.append(rowToRender)
@@ -2661,16 +2689,18 @@ class OldSheet(Cell):
                         var hot = handsOnTables["__identity__"].table
 
                         hot.getSettings().data.cache[__row__] = __data__
-                        """
-                        .replace("__row__", str(rowToRender))
+                        """.replace(
+                            "__row__", str(rowToRender)
+                        )
                         .replace("__identity__", self._identity)
                         .replace("__data__", json.dumps(rowData))
                     )
 
             if rows:
                 self.triggerPostscript(
-                    """handsOnTables["__identity__"].table.render()"""
-                    .replace("__identity__", self._identity)
+                    """handsOnTables["__identity__"].table.render()""".replace(
+                        "__identity__", self._identity
+                    )
                 )
         else:
             return self._hookfns[msgFrame["event"]](self, msgFrame)
@@ -2679,8 +2709,7 @@ class OldSheet(Cell):
 class Sheet(Cell):
     """Make a nice spreadsheet viewer. The dataset needs to be static in this implementation."""
 
-    def __init__(self, columnFun, rowFun, colWidth=50, rowHeight=30,
-                 onCellDblClick=None):
+    def __init__(self, columnFun, rowFun, colWidth=50, rowHeight=30, onCellDblClick=None):
         """
         columnFun:
             function taking 'start' and 'end' integer column as arguments and
@@ -2711,29 +2740,32 @@ class Sheet(Cell):
 
         self._hookfns = {}
         if onCellDblClick is not None:
+
             def _makeOnCellDblClick(func):
                 def _onMessage(sheet, msgFrame):
-                    return onCellDblClick(sheet=sheet,
-                                          row=msgFrame["row"],
-                                          col=msgFrame["col"])
+                    return onCellDblClick(
+                        sheet=sheet, row=msgFrame["row"], col=msgFrame["col"]
+                    )
+
                 return _onMessage
 
-            self._hookfns["onCellDblClick"] = _makeOnCellDblClick(
-                onCellDblClick)
+            self._hookfns["onCellDblClick"] = _makeOnCellDblClick(onCellDblClick)
 
     def _addHandsontableOnCellDblClick(self):
         pass
 
     def recalculate(self):
-        errorCell = Subscribed(lambda: Traceback(self.error.get()) if self.error.get() is not None else Text(""))
-        self.children['error'] = errorCell
+        errorCell = Subscribed(
+            lambda: Traceback(self.error.get()) if self.error.get() is not None else Text("")
+        )
+        self.children["error"] = errorCell
 
         # Deleted the postscript that was here.
         # Should now be implemented completely
         # in the JS side component.
 
-        self.exportData['colWidth'] = self.colWidth
-        self.exportData['rowHeight'] = self.rowHeight
+        self.exportData["colWidth"] = self.colWidth
+        self.exportData["rowHeight"] = self.rowHeight
         # self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
 
     def onMessage(self, msgFrame):
@@ -2747,27 +2779,22 @@ class Sheet(Cell):
         # their first column values set.
         ROW_LEN_OFFSET = 0
 
-        if msgFrame["event"] == 'sheet_needs_data':
-            start_row = msgFrame['start_row']
-            end_row = msgFrame['end_row']
-            start_column = msgFrame['start_column']
-            end_column = msgFrame['end_column']
-            rowsToSend = self.rowFun(start_row,
-                                     end_row,
-                                     start_column,
-                                     end_column)
-            columnsToSend = self.columnFun(start_column,
-                                           end_column)
-            if (not all([len(columnsToSend) == (len(row) - ROW_LEN_OFFSET) for row in
-                         rowsToSend])):
-                self._logger.error(
-                    "Sheet.rowFun generated rows don't match column length. "
-                )
+        if msgFrame["event"] == "sheet_needs_data":
+            start_row = msgFrame["start_row"]
+            end_row = msgFrame["end_row"]
+            start_column = msgFrame["start_column"]
+            end_column = msgFrame["end_column"]
+            rowsToSend = self.rowFun(start_row, end_row, start_column, end_column)
+            columnsToSend = self.columnFun(start_column, end_column)
+            if not all(
+                [len(columnsToSend) == (len(row) - ROW_LEN_OFFSET) for row in rowsToSend]
+            ):
+                self._logger.error("Sheet.rowFun generated rows don't match column length. ")
             dataInfo = {
                 "data": rowsToSend,
                 "column_names": columnsToSend,
                 "action": msgFrame["action"],
-                "axis": msgFrame["axis"]
+                "axis": msgFrame["axis"],
             }
             self.exportData["dataInfo"] = dataInfo
             self.wasDataUpdated = True
@@ -2793,32 +2820,31 @@ class Plot(Cell):
 
     def recalculate(self):
         chartUpdaterCell = Subscribed(lambda: _PlotUpdater(self))
-        errorCell = Subscribed(lambda: Traceback(self.error.get()) if self.error.get() is not None else Text(""))
-        self.children.addFromDict({
-            'chartUpdater': chartUpdaterCell,
-            'error': errorCell
-        })
+        errorCell = Subscribed(
+            lambda: Traceback(self.error.get()) if self.error.get() is not None else Text("")
+        )
+        self.children.addFromDict({"chartUpdater": chartUpdaterCell, "error": errorCell})
         self.postscript = ""
 
     def onMessage(self, msgFrame):
-        d = msgFrame['data']
+        d = msgFrame["data"]
         curVal = self.curXYRanges.get() or ((None, None), (None, None))
 
         self.curXYRanges.set(
-            ((d.get('xaxis.range[0]', curVal[0][0]), d.get('xaxis.range[1]', curVal[0][1])),
-             (d.get('yaxis.range[0]', curVal[1][0]), d.get('yaxis.range[1]', curVal[1][1])))
+            (
+                (d.get("xaxis.range[0]", curVal[0][0]), d.get("xaxis.range[1]", curVal[0][1])),
+                (d.get("yaxis.range[0]", curVal[1][0]), d.get("yaxis.range[1]", curVal[1][1])),
+            )
         )
 
-        self.cells._logger.info(
-            "User navigated plot to %s", self.curXYRanges.get())
+        self.cells._logger.info("User navigated plot to %s", self.curXYRanges.get())
 
     def setXRange(self, low, high):
         curXY = self.curXYRanges.getWithoutRegisteringDependency()
-        self.curXYRanges.set(
-            ((low, high), curXY[1] if curXY else (None, None))
-        )
+        self.curXYRanges.set(((low, high), curXY[1] if curXY else (None, None)))
 
-        self.triggerPostscript(f"""
+        self.triggerPostscript(
+            f"""
             plotDiv = document.getElementById('plot__identity__');
             newLayout = plotDiv.layout
 
@@ -2847,7 +2873,10 @@ class Plot(Cell):
             console.log("cells.Plot: range for 'plot__identity__' is now " +
                 plotDiv.layout.xaxis.range[0] + " to " + plotDiv.layout.xaxis.range[1])
 
-            """.replace("__identity__", self._identity))
+            """.replace(
+                "__identity__", self._identity
+            )
+        )
 
 
 class _PlotUpdater(Cell):
@@ -2859,7 +2888,7 @@ class _PlotUpdater(Cell):
         self.linePlot = linePlot
         self.namedDataSubscriptions = linePlot.namedDataSubscriptions
         self.chartId = linePlot._identity
-        self.exportData['plotId'] = self.chartId
+        self.exportData["plotId"] = self.chartId
 
     def calculatedDataJson(self):
         series = self.callFun(self.namedDataSubscriptions)
@@ -2867,8 +2896,10 @@ class _PlotUpdater(Cell):
         assert isinstance(series, (dict, list))
 
         if isinstance(series, dict):
-            return [self.processSeries(callableOrData, name)
-                    for name, callableOrData in series.items()]
+            return [
+                self.processSeries(callableOrData, name)
+                for name, callableOrData in series.items()
+            ]
         else:
             return [self.processSeries(callableOrData, None) for callableOrData in series]
 
@@ -2887,18 +2918,17 @@ class _PlotUpdater(Cell):
         data = self.callFun(callableOrData)
 
         if isinstance(data, list):
-            res = {'x': [float(x) for x in range(len(data))],
-                   'y': [float(d) for d in data]}
+            res = {"x": [float(x) for x in range(len(data))], "y": [float(d) for d in data]}
         else:
             assert isinstance(data, dict)
             res = dict(data)
 
             for k, v in res.items():
                 if isinstance(v, numpy.ndarray):
-                    res[k] = v.astype('float64').tostring().hex()
+                    res[k] = v.astype("float64").tostring().hex()
 
         if name is not None:
-            res['name'] = name
+            res["name"] = name
 
         return res
 
@@ -2909,16 +2939,16 @@ class _PlotUpdater(Cell):
             self.linePlot.error.set(None)
 
             # temporary js WS refactoring data
-            self.exportData['exceptionOccured'] = False
+            self.exportData["exceptionOccured"] = False
 
             try:
                 jsonDataToDraw = self.calculatedDataJson()
-                self.exportData['plotData'] = jsonDataToDraw
+                self.exportData["plotData"] = jsonDataToDraw
             except SubscribeAndRetry:
                 raise
             except Exception:
                 # temporary js WS refactoring data
-                self.exportData['exceptionOccured'] = True
+                self.exportData["exceptionOccured"] = True
 
                 self._logger.error(traceback.format_exc())
                 self.linePlot.error.set(traceback.format_exc())
@@ -2928,6 +2958,7 @@ class _PlotUpdater(Cell):
 
 class Timestamp(Cell):
     """Display current time zone."""
+
     def __init__(self, timestamp):
         """
         Parameters:
@@ -2936,13 +2967,13 @@ class Timestamp(Cell):
             time from epoch
         """
         super().__init__()
-        assert isinstance(timestamp, (float, int)), ("expected time since "
-                                                     "epoch float or int for"
-                                                     " 'timestamp' argument.")
+        assert isinstance(timestamp, (float, int)), (
+            "expected time since " "epoch float or int for" " 'timestamp' argument."
+        )
         self.timestamp = timestamp
 
     def recalculate(self):
-        self.exportData['timestamp'] = self.timestamp
+        self.exportData["timestamp"] = self.timestamp
 
 
 class Panel(Cell):
@@ -2957,6 +2988,7 @@ class Panel(Cell):
         A child cell that will be displayed within
         the bordered Panel area.
     """
+
     def __init__(self, content):
         """
         Parameters
@@ -2972,4 +3004,4 @@ class Panel(Cell):
         self.content = Cell.makeCell(content)
 
     def recalculate(self):
-        self.children['content'] = Cell.makeCell(self.content)
+        self.children["content"] = Cell.makeCell(self.content)

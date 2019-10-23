@@ -23,7 +23,7 @@ class MultiPageTable(CellsTestPage):
             rowFun=lambda: list(range(100)),
             headerFun=lambda x: x,
             rendererFun=lambda w, field: "hi",
-            maxRowsPerPage=50
+            maxRowsPerPage=50,
         )
 
     def text(self):

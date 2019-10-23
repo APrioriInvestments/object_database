@@ -42,15 +42,15 @@ class EditorDisplayService(ServiceBase):
         def onEnter(buffer, selection):
             contentsOverride.set(buffer)
 
-        ed = cells.CodeEditor(keybindings={'Enter': onEnter},
-                              noScroll=True, minLines=20,
-                              onTextChange=lambda *args: None)
+        ed = cells.CodeEditor(
+            keybindings={"Enter": onEnter},
+            noScroll=True,
+            minLines=20,
+            onTextChange=lambda *args: None,
+        )
 
         inputArea = cells.SplitView(
-            [
-                (cells.Button(cells.Octicon("sync"), reload), 1),
-                (ed, 25)
-            ], split="horizontal"
+            [(cells.Button(cells.Octicon("sync"), reload), 1), (ed, 25)], split="horizontal"
         )
 
         contentsOverride = cells.Slot()
@@ -59,26 +59,23 @@ class EditorDisplayService(ServiceBase):
             if contentsOverride.get() is not None:
                 try:
                     locals = {}
-                    exec(contentsOverride.get(), sys.modules[
-                        type(page).__module__].__dict__, locals)
-                    return locals['cell'](page)
+                    exec(
+                        contentsOverride.get(),
+                        sys.modules[type(page).__module__].__dict__,
+                        locals,
+                    )
+                    return locals["cell"](page)
                 except Exception:
                     return cells.Traceback(traceback.format_exc())
             else:
                 return cells.Sequence(
-                    [cells.Card(cells.Text("Row %s of 20" % (item + 1))) for item in
-                     range(20)]
+                    [cells.Card(cells.Text("Row %s of 20" % (item + 1))) for item in range(20)]
                 )
 
         # DISPLAY AREA
-        displayArea = cells.Card(
-            cells.Subscribed(actualDisplay)
-        )
+        displayArea = cells.Card(cells.Subscribed(actualDisplay))
 
-        return cells.SplitView([
-            (displayArea, 3),
-            (inputArea, 2)
-        ], split="vertical")
+        return cells.SplitView([(displayArea, 3), (inputArea, 2)], split="vertical")
 
     def doWork(self, shouldStop):
         while not shouldStop.is_set():
@@ -89,4 +86,5 @@ def reload():
     """Force the process to kill itself. When you refresh,
     it'll be the new code."""
     import os
+
     os._exit(0)

@@ -35,6 +35,7 @@ class FlaskUser:
         We make these objects from our ObjectDB User classes so that Flask can
         handle them without having to hold a view into ObjectDB
     """
+
     @staticmethod
     def makeFromUser(user):
         if user is None:
@@ -62,7 +63,7 @@ class FlaskUser:
 
     @property
     def is_anonymous(self):
-        return True if self.username.lower() == 'anonymous' else False
+        return True if self.username.lower() == "anonymous" else False
 
     def get_id(self) -> str:
         return self.username  # must return unicode by Python 3 strings are unicode
@@ -74,6 +75,7 @@ class LoginPluginInterface:
         The derived class will register `/login` and `/logout` endpoints with
         the Flask app and it will provide a load_user method.
     """
+
     REQUIRED_KEYS = None
 
     def __init__(self, object_db, auth_plugins, config=None):
@@ -100,17 +102,18 @@ class LoginPluginInterface:
             for key in self.REQUIRED_KEYS:
                 if key not in config:
                     raise Exception(
-                        "{cls} missing configuration parameter '{key}'"
-                        .format(cls=self.__class__.__name__, key=key)
+                        "{cls} missing configuration parameter '{key}'".format(
+                            cls=self.__class__.__name__, key=key
+                        )
                     )
-                setattr(self, '_' + key, config[key])
+                setattr(self, "_" + key, config[key])
 
 
 class LoginForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    remember_me = BooleanField('Remember Me')
-    submit = SubmitField('Sign In')
+    username = StringField("Username", validators=[DataRequired()])
+    password = PasswordField("Password", validators=[DataRequired()])
+    remember_me = BooleanField("Remember Me")
+    submit = SubmitField("Sign In")
 
 
 USER_LOGIN_DURATION = 24 * 60 * 60  # 24 hours
@@ -132,16 +135,16 @@ class User:
         self.login_ip = ""
 
 
-def authorized_groups_text(authorized_groups, default_text='All') -> str:
+def authorized_groups_text(authorized_groups, default_text="All") -> str:
     """ Helper function that returns a string for display purposes. """
     res = default_text
     if authorized_groups:
-        res = ', '.join(authorized_groups)
+        res = ", ".join(authorized_groups)
     return res
 
 
 class LoginIpPlugin(LoginPluginInterface):
-    REQUIRED_KEYS = ['company_name']
+    REQUIRED_KEYS = ["company_name"]
 
     def __init__(self, db, auth_plugins, config=None):
         self._logger = logging.getLogger(__name__)
@@ -150,8 +153,9 @@ class LoginIpPlugin(LoginPluginInterface):
 
         if len(auth_plugins) != 1:
             raise Exception(
-                "LoginIpPlugin requires exactly 1 auth_plugin but {} were given."
-                .format(len(auth_plugins))
+                "LoginIpPlugin requires exactly 1 auth_plugin but {} were given.".format(
+                    len(auth_plugins)
+                )
             )
 
         self._auth_plugins = auth_plugins
@@ -162,8 +166,10 @@ class LoginIpPlugin(LoginPluginInterface):
         self.init_config(config)
 
     def init_app(self, flask_app):
-        flask_app.add_url_rule('/login', endpoint=None, view_func=self.login, methods=['GET', 'POST'])
-        flask_app.add_url_rule('/logout', endpoint=None, view_func=self.logout)
+        flask_app.add_url_rule(
+            "/login", endpoint=None, view_func=self.login, methods=["GET", "POST"]
+        )
+        flask_app.add_url_rule("/logout", endpoint=None, view_func=self.logout)
 
     @property
     def authorized_groups_text(self):
@@ -190,14 +196,14 @@ class LoginIpPlugin(LoginPluginInterface):
                 return error
 
         self._login_user(username, login_ip)
-        return ''
+        return ""
 
     def login(self):
         if current_user.is_authenticated:
             return redirect(next_url())
 
         if self.bypassAuth:
-            error = self._authenticate('anonymous', 'fake-pass')
+            error = self._authenticate("anonymous", "fake-pass")
             assert not error, error
             return redirect(next_url())
 
@@ -205,12 +211,12 @@ class LoginIpPlugin(LoginPluginInterface):
 
         def render(error=None):
             if error:
-                flash(error, 'danger')
+                flash(error, "danger")
             return render_template(
-                'login.html',
+                "login.html",
                 form=form,
                 title=self._company_name,
-                authorized_groups_text=self.authorized_groups_text
+                authorized_groups_text=self.authorized_groups_text,
             )
 
         if form.validate_on_submit():
@@ -228,7 +234,9 @@ class LoginIpPlugin(LoginPluginInterface):
     def logout(self):
         current_username = current_user.username
         self._logout_user(current_username)
-        return redirect(url_for('index'))  # FIXME: we are assuming the app has defined the 'index' endpoint
+        return redirect(
+            url_for("index")
+        )  # FIXME: we are assuming the app has defined the 'index' endpoint
 
     def load_user(self, username):
         with self._db.view():

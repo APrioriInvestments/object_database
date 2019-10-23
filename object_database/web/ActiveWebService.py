@@ -30,16 +30,15 @@ from object_database import ServiceBase, service_schema
 from object_database.web.AuthPlugin import AuthPluginBase, LdapAuthPlugin
 from object_database.web.LoginPlugin import LoginIpPlugin
 from object_database.web.ActiveWebService_util import (
-    Configuration, LoginPlugin,
+    Configuration,
+    LoginPlugin,
     makeMainView,
     displayAndHeadersForPathAndQueryArgs,
     writeJsonMessage,
-    readThread
+    readThread,
 )
 
-from object_database.web.cells import (
-    Subscribed, Cells, Card, Text, MAX_FPS, SessionState
-)
+from object_database.web.cells import Subscribed, Cells, Card, Text, MAX_FPS, SessionState
 
 from typed_python import OneOf, TupleOf
 from typed_python.Codebase import Codebase as TypedPythonCodebase
@@ -48,14 +47,7 @@ from gevent import pywsgi, sleep
 from gevent.greenlet import Greenlet
 from geventwebsocket.handler import WebSocketHandler
 
-from flask import (
-    Flask,
-    jsonify,
-    make_response,
-    redirect,
-    request,
-    send_from_directory,
-)
+from flask import Flask, jsonify, make_response, redirect, request, send_from_directory
 from flask_sockets import Sockets
 from flask_cors import CORS
 from flask_login import LoginManager, current_user, login_required
@@ -69,6 +61,7 @@ class ActiveWebService(ServiceBase):
     See object_database.frontends.object_database_webtest.py for example
     useage.
     """
+
     def __init__(self, db, serviceObject, serviceRuntimeConfig):
         ServiceBase.__init__(self, db, serviceObject, serviceRuntimeConfig)
         self._logger = logging.getLogger(__name__)
@@ -87,8 +80,9 @@ class ActiveWebService(ServiceBase):
             c.log_level = logging.getLevelName(level_name)
 
     @staticmethod
-    def setLoginPlugin(db, serviceObject, loginPluginFactory, authPlugins,
-                       codebase=None, config=None):
+    def setLoginPlugin(
+        db, serviceObject, loginPluginFactory, authPlugins, codebase=None, config=None
+    ):
         db.subscribeToType(Configuration)
         db.subscribeToType(LoginPlugin)
 
@@ -103,7 +97,7 @@ class ActiveWebService(ServiceBase):
                 login_plugin_factory=loginPluginFactory,
                 auth_plugins=TupleOf(OneOf(None, AuthPluginBase))(authPlugins),
                 codebase=codebase,
-                config=config
+                config=config,
             )
             c.login_plugin = login_plugin
 
@@ -119,14 +113,12 @@ class ActiveWebService(ServiceBase):
         parser.add_argument("--hostname", type=str)
         parser.add_argument("--port", type=int)
         # optional arguments
-        parser.add_argument("--log-level", type=str, required=False,
-                            default="INFO")
+        parser.add_argument("--log-level", type=str, required=False, default="INFO")
 
         parser.add_argument("--ldap-hostname", type=str, required=False)
         parser.add_argument("--ldap-base-dn", type=str, required=False)
         parser.add_argument("--ldap-ntlm-domain", type=str, required=False)
-        parser.add_argument("--authorized-groups", type=str, required=False,
-                            nargs="+")
+        parser.add_argument("--authorized-groups", type=str, required=False, nargs="+")
         parser.add_argument("--company-name", type=str, required=False)
 
         parsedArgs = parser.parse_args(args)
@@ -137,7 +129,7 @@ class ActiveWebService(ServiceBase):
                 c = Configuration(service=serviceObject)
 
             level_name = parsedArgs.log_level.upper()
-            level_name = validateLogLevel(level_name, fallback='INFO')
+            level_name = validateLogLevel(level_name, fallback="INFO")
 
             c.port = parsedArgs.port
             c.hostname = parsedArgs.hostname
@@ -149,13 +141,15 @@ class ActiveWebService(ServiceBase):
                 db,
                 serviceObject,
                 LoginIpPlugin,
-                [LdapAuthPlugin(
-                    parsedArgs.ldap_hostname,
-                    parsedArgs.ldap_base_dn,
-                    parsedArgs.ldap_ntlm_domain,
-                    parsedArgs.authorized_groups
-                )],
-                config={'company_name': parsedArgs.company_name}
+                [
+                    LdapAuthPlugin(
+                        parsedArgs.ldap_hostname,
+                        parsedArgs.ldap_base_dn,
+                        parsedArgs.ldap_ntlm_domain,
+                        parsedArgs.authorized_groups,
+                    )
+                ],
+                config={"company_name": parsedArgs.company_name},
             )
 
     def initialize(self):
@@ -173,7 +167,7 @@ class ActiveWebService(ServiceBase):
             self.sockets = Sockets(self.app)
             self.configureApp()
         self.login_manager = LoginManager(self.app)
-        self.login_manager.login_view = 'login'
+        self.login_manager.login_view = "login"
 
     def doWork(self, shouldStop):
         resource.setrlimit(resource.RLIMIT_AS, (MAX_PROCESS_MEMORY_HARD_LIMIT, -1))
@@ -200,7 +194,8 @@ class ActiveWebService(ServiceBase):
 
             # register `load_user` method with login_manager
             self.login_plugin.load_user = self.login_manager.user_loader(
-                self.login_plugin.load_user)
+                self.login_plugin.load_user
+            )
 
             self.authorized_groups_text = self.login_plugin.authorized_groups_text
 
@@ -212,11 +207,7 @@ class ActiveWebService(ServiceBase):
         self.memoryUsageMonitorThread.daemon = True
         self.memoryUsageMonitorThread.start()
 
-        server = pywsgi.WSGIServer(
-            (host, port),
-            self.app,
-            handler_class=WebSocketHandler
-        )
+        server = pywsgi.WSGIServer((host, port), self.app, handler_class=WebSocketHandler)
 
         server.serve_forever()
 
@@ -230,20 +221,19 @@ class ActiveWebService(ServiceBase):
                 os._exit(0)
 
     def configureApp(self):
-        self.app.config['SECRET_KEY'] = os.environ.get(
-            'SECRET_KEY') or genToken()
+        self.app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or genToken()
 
-        self.app.add_url_rule('/', endpoint='index', view_func=lambda:
-                              redirect("/services"))
-        self.app.add_url_rule('/content/<path:path>', endpoint=None,
-                              view_func=self.sendContent)
-        self.app.add_url_rule('/services', endpoint=None,
-                              view_func=self.sendPage)
-        self.app.add_url_rule('/services/<path:path>', endpoint=None,
-                              view_func=self.sendPage)
-        self.app.add_url_rule('/status', view_func=self.statusPage)
-        self.app.add_url_rule('/api/<path:path>/initial-structure', view_func=self.sendInitialStructure)
-        self.sockets.add_url_rule('/socket/<path:path>', None, self.mainSocket)
+        self.app.add_url_rule("/", endpoint="index", view_func=lambda: redirect("/services"))
+        self.app.add_url_rule(
+            "/content/<path:path>", endpoint=None, view_func=self.sendContent
+        )
+        self.app.add_url_rule("/services", endpoint=None, view_func=self.sendPage)
+        self.app.add_url_rule("/services/<path:path>", endpoint=None, view_func=self.sendPage)
+        self.app.add_url_rule("/status", view_func=self.statusPage)
+        self.app.add_url_rule(
+            "/api/<path:path>/initial-structure", view_func=self.sendInitialStructure
+        )
+        self.sockets.add_url_rule("/socket/<path:path>", None, self.mainSocket)
 
     @login_required
     def sendInitialStructure(self, path=None):
@@ -254,22 +244,20 @@ class ActiveWebService(ServiceBase):
         cells = Cells(self.db)
         sessionState._reset(cells)
         cells = cells.withRoot(
-            Subscribed(
-                lambda: self.displayForPathAndQueryArgs(path, queryArgs)
-            ),
+            Subscribed(lambda: self.displayForPathAndQueryArgs(path, queryArgs)),
             serialization_context=self.db.serializationContext,
-            session_state=sessionState
+            session_state=sessionState,
         )
         cells.renderMessages()
         initialStructure = cells.currentStructureFromCell(cells._root)
         responseDict = {
-            'structure': initialStructure,
-            'path': path,
-            'queryArgs': queryArgs,
-            'sessionId': sessionId
+            "structure": initialStructure,
+            "path": path,
+            "queryArgs": queryArgs,
+            "sessionId": sessionId,
         }
         response = make_response(json.dumps(responseDict, indent=4))
-        response.headers['Content-Type'] = 'application/json'
+        response.headers["Content-Type"] = "application/json"
         return response
 
     def statusPage(self):
@@ -282,8 +270,9 @@ class ActiveWebService(ServiceBase):
 
     def displayForPathAndQueryArgs(self, path, queryArgs):
         display, toggles = displayAndHeadersForPathAndQueryArgs(path, queryArgs)
-        return makeMainView(display, toggles, current_user.username,
-                            self.authorized_groups_text)
+        return makeMainView(
+            display, toggles, current_user.username, self.authorized_groups_text
+        )
 
     @login_required
     def mainSocket(self, ws, path):
@@ -293,7 +282,7 @@ class ActiveWebService(ServiceBase):
         sessionId = request.cookies.get("session")
 
         # wait for the other socket to close if we were bounced
-        sleep(.25)
+        sleep(0.25)
         sessionState = self._getSessionState(sessionId)
 
         self._logger.info("entering websocket with path %s", path)
@@ -316,19 +305,17 @@ class ActiveWebService(ServiceBase):
         sessionState._reset(cells)
 
         cells = cells.withRoot(
-            Subscribed(
-                lambda: self.displayForPathAndQueryArgs(path, queryArgs)
-            ),
+            Subscribed(lambda: self.displayForPathAndQueryArgs(path, queryArgs)),
             serialization_context=self.db.serializationContext,
-            session_state=sessionState
+            session_state=sessionState,
         )
 
         # large messages (more than frames_per_ack frames) send an ack
         # after every frames_per_ackth message
         largeMessageAck = gevent.queue.Queue()
-        reader = Greenlet.spawn(functools.partial(readThread, ws,
-                                                  cells, largeMessageAck,
-                                                  self._logger))
+        reader = Greenlet.spawn(
+            functools.partial(readThread, ws, cells, largeMessageAck, self._logger)
+        )
 
         self._logger.info("Starting main websocket handler with %s", ws)
 
@@ -352,8 +339,7 @@ class ActiveWebService(ServiceBase):
                 for message in messages:
                     gevent.socket.wait_write(ws.stream.handler.socket.fileno())
 
-                    writeJsonMessage(message, ws, largeMessageAck,
-                                     self._logger)
+                    writeJsonMessage(message, ws, largeMessageAck, self._logger)
 
                     lastDumpMessages += 1
 
@@ -366,7 +352,7 @@ class ActiveWebService(ServiceBase):
                         time.time() - lastDumpTimestamp,
                         lastDumpTimeSpentCalculating,
                         lastDumpMessages,
-                        lastDumpFrames
+                        lastDumpFrames,
                     )
 
                     lastDumpFrames = 0
@@ -375,8 +361,7 @@ class ActiveWebService(ServiceBase):
                     lastDumpTimestamp = time.time()
 
                 # tell the browser to execute the postscripts that its built up
-                writeJsonMessage("postscripts", ws, largeMessageAck,
-                                 self._logger)
+                writeJsonMessage("postscripts", ws, largeMessageAck, self._logger)
 
                 # request an ACK from the browser before sending any more data
                 # otherwise it can get overloaded and crash because it can't
@@ -392,19 +377,18 @@ class ActiveWebService(ServiceBase):
                 timestamps.append(time.time())
 
                 if len(timestamps) > MAX_FPS:
-                    timestamps = timestamps[-MAX_FPS+1:]
+                    timestamps = timestamps[-MAX_FPS + 1 :]
                     if (time.time() - timestamps[0]) < 1.0:
-                        sleep(1.0 / MAX_FPS + .001)
+                        sleep(1.0 / MAX_FPS + 0.001)
 
             except Exception:
-                self._logger.error("Websocket handler error: %s",
-                                   traceback.format_exc())
+                self._logger.error("Websocket handler error: %s", traceback.format_exc())
                 self.sessionStates[sessionId].append(sessionState)
 
                 self._logger.info(
                     "Returning session state to pool for %s. Have %s",
                     sessionId,
-                    len(self.sessionStates[sessionId])
+                    len(self.sessionStates[sessionId]),
                 )
 
                 if reader:
@@ -420,8 +404,7 @@ class ActiveWebService(ServiceBase):
             # you'll get a random one
             sessionStateList = self.sessionStates.setdefault(sessionId, [])
             if not sessionStateList:
-                self._logger.info("Creating a new SessionState for %s",
-                                  sessionId)
+                self._logger.info("Creating a new SessionState for %s", sessionId)
                 sessionState = SessionState()
             else:
                 sessionState = sessionStateList.pop()
@@ -440,8 +423,7 @@ class ActiveWebService(ServiceBase):
         return send_from_directory(os.path.join(own_dir, "content"), path)
 
     @staticmethod
-    def serviceDisplay(serviceObject, instance=None, objType=None,
-                       queryArgs=None):
+    def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
         c = Configuration.lookupAny(service=serviceObject)
 
         return Card(Text("Host: " + c.hostname) + Text("Port: " + str(c.port)))

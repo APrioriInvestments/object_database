@@ -281,20 +281,24 @@ class Cells:
                     del self._subscribedCells[k]
 
     def _addCell(self, cell, parent):
-        assert isinstance(cell, Cell), type(cell)
-        assert cell.cells is None, cell
+        if not isinstance(cell, Cell):
+            raise Exception(
+                f"Can't add a cell of type {type(cell)} which isn't a subclass of Cell."
+            )
 
-        cell.cells = self
-        cell.parent = parent
-        cell.level = parent.level + 1 if parent else 0
+        if cell.cells is not None:
+            raise Exception(
+                f"Cell {cell} is already installed as a child of {cell.parent}."
+                f" We can't add it to {parent}"
+            )
+
+        cell.install(self, parent, self._newID())
 
         assert cell.identity not in self._cellsKnownChildren
         self._cellsKnownChildren[cell.identity] = set()
 
         assert cell.identity not in self._cells
         self._cells[cell.identity] = cell
-
-        self.markDirty(cell)
 
     def _cellOutOfScope(self, cell):
         for c in cell.children.allChildren:
@@ -343,11 +347,19 @@ class Cells:
         self._nodesToDataUpdate.add(node)
 
     def findStableParent(self, cell):
-        if not cell.parent:
-            return cell
-        if cell.parent.wasUpdated or cell.parent.wasCreated:
-            return self.findStableParent(cell.parent)
-        return cell
+        while True:
+            if not cell.parent:
+                return cell
+
+            if cell.parent.wasUpdated or cell.parent.wasCreated or cell.isMergedIntoParent():
+                cell = cell.parent
+            else:
+                return cell
+
+    def dumpTree(self, cell=None, indent=0):
+        print(" " * indent + str(cell))
+        for child in cell.children.allChildren:
+            self.dumpTree(child, indent + 2)
 
     def renderMessages(self):
         self._processCallbacks()
@@ -413,10 +425,6 @@ class Cells:
         # TODO we should not be going through all the cells here
         for node in self._cells:
             if node.wasDataUpdated:
-                print()
-                print("whoa found one")
-                print(node)
-                print()
                 self.markToDataUpdate(node)
 
     def _recalculateCells(self):
@@ -431,76 +439,87 @@ class Cells:
             pass
 
         while self._dirtyNodes:
-            node = self._dirtyNodes.pop()
+            cellsByLevel = {}
+            for node in self._dirtyNodes:
+                if not node.garbageCollected:
+                    cellsByLevel.setdefault(node.level, []).append(node)
+            self._dirtyNodes.clear()
 
-            if not node.garbageCollected:
-                if node.wasDataUpdated:
-                    self.markToDataUpdate(node)
-                    # TODO this should be cleaned up
-                    continue
-                else:
-                    self.markToBroadcast(node)
-                # TODO: lifecycle attribute; see cell.updateLifecycleState()
+            for level, nodesAtThisLevel in sorted(cellsByLevel.items()):
+                for node in nodesAtThisLevel:
+                    if not node.garbageCollected:
+                        self._recalculateSingleCell(node)
 
-                origChildren = self._cellsKnownChildren[node.identity]
+    def _recalculateSingleCell(self, node):
+        if node.wasDataUpdated:
+            self.markToDataUpdate(node)
+            # TODO this should be cleaned up
+            return
 
+        origChildren = self._cellsKnownChildren.get(node.identity, set())
+
+        try:
+            _cur_cell.cell = node
+            _cur_cell.isProcessingMessage = False
+            _cur_cell.isProcessingCell = True
+            while True:
                 try:
-                    _cur_cell.cell = node
-                    _cur_cell.isProcessingMessage = False
-                    _cur_cell.isProcessingCell = True
-                    while True:
-                        try:
-                            node.prepare()
-                            node.recalculate()
-                            if not node.wasCreated:
-                                # if a cell is marked to broadcast it is either new or has
-                                # been updated. Hence, if it's not new here that means it's
-                                # to be updated.
-                                node.wasUpdated = True
-                            break
-                        except SubscribeAndRetry as e:
-                            e.callback(self.db)
-                    # GLORP
-                    for child_cell in node.children.allChildren:
-                        # TODO: We are going to have to update this
-                        # to deal with namedChildren structures (as opposed
-                        # to plain children dicts) in the near future.
-                        if not isinstance(child_cell, Cell):
-                            childname = node.children.findNameFor(child_cell)
-                            raise Exception(
-                                "Cell of type %s had a non-cell child %s of type %s != Cell."
-                                % (type(node), childname, type(child_cell))
-                            )
-                        if child_cell.cells:
-                            child_cell.prepareForReuse()
-                            # TODO: lifecycle attribute; see cell.updateLifecycleState()
-                            child_cell.wasRemoved = False
+                    node.prepare()
+                    node.recalculate()
 
-                except Exception:
-                    self._logger.error(
-                        "Node %s had exception during recalculation:\n%s",
-                        node,
-                        traceback.format_exc(),
+                    if not node.wasCreated:
+                        # if a cell is marked to broadcast it is either new or has
+                        # been updated. Hence, if it's not new here that means it's
+                        # to be updated.
+                        node.wasUpdated = True
+                    break
+                except SubscribeAndRetry as e:
+                    e.callback(self.db)
+
+            for child_cell in node.children.allChildren:
+                # TODO: We are going to have to update this
+                # to deal with namedChildren structures (as opposed
+                # to plain children dicts) in the near future.
+                if not isinstance(child_cell, Cell):
+                    childname = node.children.findNameFor(child_cell)
+                    raise Exception(
+                        "Cell of type %s had a non-cell child %s of type %s != Cell."
+                        % (type(node), childname, type(child_cell))
                     )
-                    self._logger.error(
-                        "Subscribed cell threw an exception:\n%s", traceback.format_exc()
-                    )
-                    tracebackCell = Traceback(traceback.format_exc())
-                    node.children["content"] = tracebackCell
-                finally:
-                    _cur_cell.cell = None
-                    _cur_cell.isProcessingMessage = False
-                    _cur_cell.isProcessingCell = False
 
-                newChildren = set(node.children.allChildren)
+                if child_cell.cells:
+                    # ensure all new children that were garbage collected get marked for
+                    # re-use so that we can add them back in.
+                    child_cell.prepareForReuse()
+                    # TODO: lifecycle attribute; see cell.updateLifecycleState()
+                    child_cell.wasRemoved = False
 
-                for child in newChildren.difference(origChildren):
-                    self._addCell(child, node)
+        except Exception:
+            self._logger.error(
+                "Node %s had exception during recalculation:\n%s", node, traceback.format_exc()
+            )
+            self._logger.error(
+                "Subscribed cell threw an exception:\n%s", traceback.format_exc()
+            )
+            tracebackCell = Traceback(traceback.format_exc())
+            node.children["content"] = tracebackCell
+        finally:
+            _cur_cell.cell = None
+            _cur_cell.isProcessingMessage = False
+            _cur_cell.isProcessingCell = False
 
-                for child in origChildren.difference(newChildren):
-                    self._cellOutOfScope(child)
+        self.markToBroadcast(node.rootMergeNode())
 
-                self._cellsKnownChildren[node.identity] = newChildren
+        newChildren = set(node.children.allChildren)
+
+        for child in newChildren.difference(origChildren):
+            self._addCell(child, node)
+            self._recalculateSingleCell(child)
+
+        for child in origChildren.difference(newChildren):
+            self._cellOutOfScope(child)
+
+        self._cellsKnownChildren[node.identity] = newChildren
 
     def childrenWithExceptions(self):
         return self._root.findChildrenMatching(lambda cell: isinstance(cell, Traceback))
@@ -641,15 +660,17 @@ def sessionState():
 class Cell:
     def __init__(self):
         self.cells = None  # will get set when its added to a 'Cells' object
+
+        # the cell that created us. This will never change.
         self.parent = None
+
         self.level = None
-        self.children = Children(self)
+        self.children = Children()
         self.contents = ""  # some contents containing a local node def
         self.shouldDisplay = True  # Whether or not this is a cell that will be displayed
         self.isRoot = False
         self.isShrinkWrapped = False  # If will be shrinkwrapped inside flex parent
-        self.isFlex = False  # If it will be a flex child
-        self.isFlexParent = False  # If it will be a parent flex
+        self.isFlex = False  # If True, then we are 'Flex'
         self._identity = None
         self._tag = None
         self._nowrap = None
@@ -682,6 +703,77 @@ class Cell:
         # components will need to know about
         # when composing DOM.
         self.exportData = {}
+
+    def rootMergeNode(self):
+        """Return the root node we're merged into, or ourself if we're not merged."""
+        while True:
+            if not self.isMergedIntoParent():
+                return self
+            if self.parent is None:
+                return None
+            self = self.parent
+
+    def getDisplayExportData(self):
+        """Get the version of 'self.exportData' we should actually use.
+
+        Cells that have children who are collapsed into their parent are responsible for
+        updating things like 'flexParent' here.
+        """
+        return self.exportData
+
+    def getDisplayChildren(self):
+        """Get the version of 'self.children' that we should use when displaying this cell.
+
+        Cells that have children who are collapsed into their parent are
+        responsible for flattening the tree here.
+        """
+        return self.children
+
+    def _sequenceOrientation(self):
+        """If we are an oriented sequence, return 'horizontal' or 'vertical'.
+
+        Otherwise None."""
+        return None
+
+    def isMergedIntoParent(self):
+        return False
+
+    def rootSequenceOfOrientation(self, orientation):
+        """Are we (or are we contained within) a sequence of a given orientation?
+
+        Args:
+            orientation - one of 'vertical' or 'horizontal'
+
+        Returns:
+            A Cell representing the root sequence of a given orientation. This will
+            end up being the 'display parent' for all child sequences that get
+            flattened within this tree.
+        """
+        if self._sequenceOrientation() != orientation:
+            return None
+
+        if self.isFlex:
+            # if we're marked 'Flex', then we are the terminal node.
+            return self
+
+        if not self.parent:
+            return self
+
+        root = self.parent.rootSequenceOfOrientation(orientation)
+        if root is not None:
+            return root
+
+        return self
+
+    def install(self, cells, parent, identity):
+        assert self.cells is None
+        self.cells = cells
+        self.parent = parent
+        self.level = parent.level + 1 if parent is not None else 0
+        self._identity = identity
+
+    def __repr__(self):
+        return f"{type(self).__name__}(id={self._identity})"
 
     def applyCellDecorator(self, decorator):
         """Return a new cell which applies the function 'decorator' to 'self'.
@@ -800,7 +892,12 @@ class Cell:
                     self._logger.error("OnMessage timed out. This should really fail.")
                     return
             except Exception:
-                self._logger.error("Exception in dropdown logic:\n%s", traceback.format_exc())
+                self._logger.error(
+                    "Exception processing message %s to cell %s logic:\n%s",
+                    args,
+                    self,
+                    traceback.format_exc(),
+                )
                 return
             finally:
                 _cur_cell.cell = None
@@ -931,10 +1028,9 @@ class Cell:
     @property
     def identity(self):
         if self._identity is None:
-            assert self.cells is not None, (
+            raise Exception(
                 "Can't ask for identity for %s as it's not part of a cells package" % self
             )
-            self._identity = self.cells._newID()
         return self._identity
 
     def markDirty(self):
@@ -1132,15 +1228,13 @@ class Span(Cell):
 
 
 class Sequence(Cell):
-    def __init__(self, elements, overflow=True, margin=None):
+    def __init__(self, elements, margin=None):
         """
         Lays out (children) elements in a vertical sequence.
 
         Parameters:
         -----------
         elements: list of cells
-        overflow: bool
-            Sets overflow-auto on the div.
         margin : int
             Bootstrap style margin size for all children elements.
 
@@ -1150,10 +1244,43 @@ class Sequence(Cell):
 
         self.elements = elements
         self.children["elements"] = elements
-        self.overflow = overflow
         self.margin = margin
-        self.isFlexParent = False
-        self.updateChildren()
+        self._mergedIntoParent = False
+
+    def isMergedIntoParent(self):
+        return self._mergedIntoParent
+
+    def _sequenceOrientation(self):
+        return "vertical"
+
+    def getDisplayChildren(self):
+        children = []
+
+        for child in self.elements:
+            if child.isMergedIntoParent():
+                children.extend(child.getDisplayChildren().allChildren)
+            else:
+                children.append(child)
+
+        res = Children()
+        res["elements"] = children
+        return res
+
+    def getDisplayExportData(self):
+        """Get the version of 'self.exportData' we should actually use.
+
+        Cells that have children who are collapsed into their parent are responsible for
+        updating things like 'flexParent' here.
+        """
+        exportData = dict(self.exportData)
+
+        displayChildren = self.getDisplayChildren()
+
+        for child in displayChildren.allChildren:
+            if child.isFlex:
+                exportData["flexParent"] = True
+
+        return exportData
 
     def __add__(self, other):
         other = Cell.makeCell(other)
@@ -1163,24 +1290,13 @@ class Sequence(Cell):
             return Sequence(self.elements + [other])
 
     def recalculate(self):
-        self.updateChildren()
-        if self.isFlexParent:
-            self.exportData["flexParent"] = True
+        if self.parent and not self.isFlex:
+            rootSequence = self.parent.rootSequenceOfOrientation("vertical")
+            if rootSequence is not None:
+                self._mergedIntoParent = True
+
         self.children["elements"] = self.elements
         self.exportData["margin"] = self.margin
-
-    def updateChildren(self):
-        newElements = []
-        for childCell in self.elements:
-            if childCell.isFlex:
-                self.isFlexParent = True
-                newElements.append(childCell)
-            elif isinstance(childCell, Sequence):
-                newElements += childCell.elements
-            else:
-                newElements.append(childCell)
-        self.elements = newElements
-        self.children["elements"] = self.elements
 
     def sortsAs(self):
         if self.elements:
@@ -1209,8 +1325,13 @@ class HorizontalSequence(Cell):
         self.overflow = overflow
         self.margin = margin
         self.wrap = wrap
-        self.isFlexParent = False
-        self.updateChildren()
+        self._mergedIntoParent = False
+
+    def isMergedIntoParent(self):
+        return self._mergedIntoParent
+
+    def _sequenceOrientation(self):
+        return "horizontal"
 
     def __rshift__(self, other):
         other = Cell.makeCell(other)
@@ -1219,24 +1340,42 @@ class HorizontalSequence(Cell):
         else:
             return HorizontalSequence(self.elements + [other])
 
+    def getDisplayChildren(self):
+        children = []
+
+        for child in self.elements:
+            if child.isMergedIntoParent():
+                children.extend(child.getDisplayChildren().allChildren)
+            else:
+                children.append(child)
+
+        res = Children()
+        res["elements"] = children
+        return res
+
+    def getDisplayExportData(self):
+        """Get the version of 'self.exportData' we should actually use.
+
+        Cells that have children who are collapsed into their parent are responsible for
+        updating things like 'flexParent' here.
+        """
+        exportData = dict(self.exportData)
+
+        displayChildren = self.getDisplayChildren()
+        for child in displayChildren.allChildren:
+            if child.isFlex:
+                exportData["flexParent"] = True
+
+        return exportData
+
     def recalculate(self):
-        self.updateChildren()
-        if self.isFlexParent:
-            self.exportData["flexParent"] = True
+        if self.parent and not self.isFlex:
+            rootSequence = self.parent.rootSequenceOfOrientation("horizontal")
+            if rootSequence is not None:
+                self._mergedIntoParent = True
+
         self.exportData["margin"] = self.margin
         self.exportData["wrap"] = self.wrap
-
-    def updateChildren(self):
-        newElements = []
-        for childCell in self.elements:
-            if childCell.isFlex:
-                self.isFlexParent = True
-                newElements.append(childCell)
-            elif isinstance(childCell, HorizontalSequence):
-                newElements += childCell.elements
-            else:
-                newElements.append(childCell)
-        self.elements = newElements
         self.children["elements"] = self.elements
 
     def sortAs(self):
@@ -1334,6 +1473,7 @@ class Tabs(Cell):
 
     def recalculate(self):
         displayCell = Subscribed(lambda: self.headersAndChildren[self.whichSlot.get()][1])
+
         self.children["display"] = displayCell
         self.children["headers"] = []
 
@@ -1343,10 +1483,12 @@ class Tabs(Cell):
                 self.whichSlot, i, self._identity, self.headersAndChildren[i][0]
             )
             headersToAdd.append(headerCell)
+
         self.children["headers"] = headersToAdd
 
     def onMessage(self, msgFrame):
         self.whichSlot.set(int(msgFrame["ix"]))
+        self.markDirty()
 
 
 class Dropdown(Cell):
@@ -1665,11 +1807,8 @@ class Subscribed(Cell):
         # when to recalculate the element.
         self.cellFactory = f
 
-        # We need this to properly
-        # cooperate with nested
-        # Sequences
-        self.wrapsSequence = False
-        self.wrapsHorizSequence = False
+    def rootSequenceOfOrientation(self, orientation):
+        return self.parent.rootSequenceOfOrientation(orientation)
 
     def prepareForReuse(self):
         if not self.garbageCollected:
@@ -1678,7 +1817,7 @@ class Subscribed(Cell):
         return super().prepareForReuse()
 
     def __repr__(self):
-        return "Subscribed(%s)" % self.cellFactory
+        return f"Subscribed(id={self._identity}, factory={self.cellFactory})"
 
     def applyCellDecorator(self, decorator):
         """Return a new cell which applies the function 'decorator' to 'self'.
@@ -1699,16 +1838,25 @@ class Subscribed(Cell):
 
         return Cell.makeCell(self.cellFactory()).sortsAs()
 
+    def isMergedIntoParent(self):
+        if "content" not in self.children:
+            return False
+
+        return self.children["content"].isMergedIntoParent()
+
+    def getDisplayChildren(self):
+        if self.isMergedIntoParent():
+            return self.children["content"].getDisplayChildren()
+
+        return self.children
+
     def recalculate(self):
         with self.view() as v:
             try:
                 newCell = Cell.makeCell(self.cellFactory())
                 if newCell.cells is not None:
                     newCell.prepareForReuse()
-                if isinstance(newCell, Sequence):
-                    self.wrapsSequence = True
-                elif isinstance(newCell, HorizontalSequence):
-                    self.wrapsHorizSequence = True
+
                 self.children["content"] = newCell
             except SubscribeAndRetry:
                 raise
@@ -1778,6 +1926,41 @@ class SubscribedSequence(Cell):
         self.items = []
 
         self.orientation = orientation
+        self._mergedIntoParent = False
+
+    def _sequenceOrientation(self):
+        return self.orientation
+
+    def isMergedIntoParent(self):
+        return self._mergedIntoParent
+
+    def getDisplayChildren(self):
+        children = []
+
+        for child in self.children["elements"]:
+            if child.isMergedIntoParent():
+                children.extend(child.getDisplayChildren().allChildren)
+            else:
+                children.append(child)
+
+        res = Children()
+        res["elements"] = children
+        return res
+
+    def getDisplayExportData(self):
+        """Get the version of 'self.exportData' we should actually use.
+
+        Cells that have children who are collapsed into their parent are responsible for
+        updating things like 'flexParent' here.
+        """
+        exportData = dict(self.exportData)
+
+        displayChildren = self.getDisplayChildren()
+        for child in displayChildren.allChildren:
+            if child.isFlex:
+                exportData["flexParent"] = True
+
+        return exportData
 
     def makeCell(self, item):
         """Makes a Cell instance from an object.
@@ -1799,17 +1982,20 @@ class SubscribedSequence(Cell):
         return wrapperCell
 
     def recalculate(self):
+        if self.parent and not self.isFlex:
+            rootSequence = self.parent.rootSequenceOfOrientation(self.orientation)
+            if rootSequence is not None:
+                self._mergedIntoParent = True
+
         with self.view() as v:
             self._getItems()
             self._resetSubscriptionsToViewReads(v)
             self._updateExistingItems()
-            self.updateChildren()
+            self._updateChildren()
 
             self.exportData["orientation"] = self.orientation
-            if self.isFlexParent:
-                self.exportData["flexParent"] = True
 
-    def updateChildren(self):
+    def _updateChildren(self):
         """Updates the stored children and namedChildren
 
         Notes
@@ -1819,7 +2005,6 @@ class SubscribedSequence(Cell):
         the existingItems cache.
         Otherwise we use makeCell to create a new
         instance.
-        See `_processChild` for deeper information
         """
         new_children = []
         current_child = None
@@ -1828,40 +2013,24 @@ class SubscribedSequence(Cell):
                 current_child = self.existingItems[item]
             else:
                 try:
-                    # Do we assume index 0 always?
+                    # the items in 'existingItems' are pairs of (key, timesKeySeen)
+                    # which we created using 'augmentToBeUnique', so that we have a separate
+                    # unique key for each cell we create (since the 'itemsFun' might produce
+                    # duplicate values.)
                     current_child = self.makeCell(item[0])
                     self.existingItems[item] = current_child
                 except SubscribeAndRetry:
-                    current_child = 4
                     raise
                 except Exception:
                     current_child = Traceback(traceback.format_exc())
 
-            self._processChild(current_child, new_children)
+            new_children.append(current_child)
 
         self.children["elements"] = new_children
 
     def sortAs(self):
         if len(self.children["elements"]):
             return self.children["elements"][0].sortAs()
-
-    def _processChild(self, child, children):
-        """Determines whether or not to flatten nested
-        Sequences based on flex properties."""
-        if child.isFlex:
-            self.isFlexParent = True
-            children.append(child)
-        elif not isinstance(child, Subscribed):
-            children.append(child)
-        elif self.childWrapsOwnKind(child):
-            # In this case the child is a Subscribed
-            # wrapping a Sequence, Horizontal Sequence,
-            # or SubscribedSequence of some kind.
-            # In this case, we need to flatten its elements.
-            # Note that only matching orientations flatten.
-            children += child.children["content"].children["elements"]
-        else:
-            children.append(child)
 
     def _getItems(self):
         """Retrieves the items using itemsFunc
@@ -1886,16 +2055,6 @@ class SubscribedSequence(Cell):
         for item in list(self.existingItems):
             if item not in itemSet:
                 del self.existingItems[item]
-
-    def childWrapsOwnKind(self, child):
-        """Returns true if this object wraps
-        a Subscribed that wraps a Sequence that
-        has the same orientation as itself"""
-        if self.orientation == "vertical":
-            return child.wrapsSequence
-        elif self.orientation == "horizontal":
-            return child.wrapsHorizSequence
-        return False
 
 
 def HorizontalSubscribedSequence(itemsFun, rendererFun):
@@ -2037,7 +2196,7 @@ class Grid(Cell):
                         self.existingItems[(row, col)] = tracebackCell
                         new_named_children_column.append(tracebackCell)
 
-        self.children = Children(self)
+        self.children = Children()
         self.children.addFromDict(new_named_children)
 
         for i in list(self.existingItems):
@@ -2298,7 +2457,7 @@ class Table(Cell):
                         self.existingItems[(row, col)] = tracebackCell
                         new_named_children_columns.append(tracebackCell)
 
-        self.children = Children(self)
+        self.children = Children()
         self.children.addFromDict(new_named_children)
 
         for i in list(self.existingItems):

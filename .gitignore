@@ -28,6 +28,7 @@ object_database/web/content/dist
 /.coverage*
 /.tox
 /.env
+/.pytest_cache
 /pip-wheel-metadata
 
 # don't need the package lock for this sub-pipenv.

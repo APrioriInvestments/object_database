@@ -43,36 +43,22 @@ class Children:
     allChildren: list
         A flat list of all child Cell instances,
         regardless of their place in namedChildren
-    parent: Cell
-        A reference to a Cell instance that will serve
-        as the parent for all added Cell instance
-        children.
     _reverseLookup: dict
         A dictionary that maps Cell instances to
         the key where the instance appears in
         namedChildren. Used for reverse lookups.
     """
 
-    def __init__(self, parent=None):
-        """
-        Parameters
-        ----------
-        parent: Cell
-            A reference to a Cell instance that all
-            become the parent for all added children.
-        """
+    def __init__(self):
         self.namedChildren = {}
         self.allChildren = []
-        self.parent = parent
         self._reverseLookup = {}
 
     def addChildNamed(self, name, childStructure):
         """Adds a child with the given name.
 
         If the name is already set in the internal
-        dictionary, we call `removeChildNamed first
-        in order to unset parent on the previous child,
-        should it exist.
+        dictionary, we call `removeChildNamed first.
 
         We use a recursive call to `_addChildstructure` in
         order to deal with multi-dimensional values.
@@ -81,8 +67,6 @@ class Children:
         -----
         Using helper functions, this method will:
         * Add the structure to the internal dict
-        * Set the parent of all incoming Cell instances
-          to the value of the property `parent`
         * Add any encountered Cell instance child
           to the reverse lookup dictionary
         * Add any incoming Cell instance to the
@@ -100,8 +84,10 @@ class Children:
         """
         if name in self.namedChildren:
             self.removeChildNamed(name)
+
         if childStructure is None:
             return
+
         self.namedChildren[name] = self._addChildStructure(childStructure, name)
 
     def addFromDict(self, childrenDict):
@@ -133,8 +119,6 @@ class Children:
         -----
         Using helper functions, this method will:
         * Remove the given entry from the internal dict
-        * Set the parent of all removed Cell instances
-          to None
         * Remove the removed Cell instances from the
           reverse lookup dictionary
         * Remove the removed Cell instances from the
@@ -157,11 +141,7 @@ class Children:
 
     def removeAll(self):
         """Removes all children and child structures.
-
-        Will set parent of all removed Cell instances to None.
         """
-        for child in self.allChildren:
-            self._unsetParent(child)
         self.namedChildren = {}
         self.allChildren = []
 
@@ -250,47 +230,29 @@ class Children:
     def _removeChildStructure(self, structure):
         """Recursively iterates through a possible
         multidimensional child structure, removing any found
-        Cell instances to the various internal collections
-        and setting each parent to None.
+        Cell instances to the various internal collections.
         """
         if isinstance(structure, list):
             return [self._removeChildStructure(s) for s in structure]
         else:
             self.allChildren.remove(structure)
             del self._reverseLookup[structure]
-            self._unsetParent(structure)
             return True
 
     def _addChildStructure(self, structure, name):
         """Recursively iterates through a possible
         multidimensional child structure, adding any found
-        Cell instances to the various internal collections
-        and setting each parent to Children's parent.
+        Cell instances to the various internal collections.
         """
         if isinstance(structure, list):
             return [self._addChildStructure(item, name) for item in structure]
         else:
             self.allChildren.append(structure)
-            self._setParent(structure)
             self._reverseLookup[structure] = name
             return structure
 
-    def _setParent(self, child):
-        """Sets the `parent` property of the incoming Cell
-        instance to that of this Children instance.
-        """
-        try:
-            child.parent = self.parent
-        except Exception:
-            pass
-
-    def _unsetParent(self, child):
-        """Sets the `parent` property of the incoming Cell
-        to None"""
-        try:
-            child.parent = None
-        except Exception:
-            pass
+    def __contains__(self, key):
+        return key in self.namedChildren
 
     def __getitem__(self, key):
         """Override that wraps access to namedChildren"""

@@ -507,12 +507,11 @@ class CellsStructureTests(unittest.TestCase):
 
     def test_basic_flat_structure(self):
         first = Text("Hello")
-        first.cells = self.cells
         second = Text("World")
-        second.cells = self.cells
         container = Sequence([first, second])
-        container.cells = self.cells
         self.cells.withRoot(container)
+        self.cells.renderMessages()
+
         structure = getStructure(None, container, None)
         expected_subset = {"id": container.identity, "cellType": "Sequence"}
         self.assertTrue(isinstance(structure, dict))
@@ -523,12 +522,12 @@ class CellsStructureTests(unittest.TestCase):
 
     def test_basic_expanded_structure(self):
         first = Text("Hello")
-        first.cells = self.cells
         second = Text("World")
-        second.cells = self.cells
         container = Sequence([first, second])
-        container.cells = self.cells
+
         self.cells.withRoot(container)
+        self.cells.renderMessages()
+
         struct = getStructure(None, container, None, expand=True)
         expected_subset = {"id": container.identity, "cellType": "Sequence"}
         expected_first_element = {
@@ -597,14 +596,14 @@ class CellsSequenceHandlingTests(unittest.TestCase):
         child_seq = Sequence([Text("One"), Text("Two"), Text("Three")])
         parent_seq = Sequence([Text("First"), child_seq, Text("Last")])
         parent_seq.recalculate()
-        self.assertFalse(parent_seq.isFlexParent)
+        self.assertFalse(parent_seq.getDisplayExportData().get("flexParent", False))
         self.assertFalse(parent_seq.isFlex)
 
     def test_seq_becomes_flex_parent(self):
         child_seq = Sequence([Text("One"), Text("Two"), Text("Three")])
         parent_seq = Sequence([Flex(Text("First")), child_seq, Text("Last")])
         parent_seq.recalculate()
-        self.assertTrue(parent_seq.isFlexParent)
+        self.assertTrue(parent_seq.getDisplayExportData().get("flexParent", False))
 
     def test_seq_flattens_non_flex(self):
         first_child_seq = Sequence([Text("One"), Text("Two")])
@@ -615,10 +614,10 @@ class CellsSequenceHandlingTests(unittest.TestCase):
         self.cells.withRoot(parent_seq)
         self.cells._recalculateCells()
 
-        self.assertNotIn(first_child_seq, parent_seq.elements)
-        self.assertIn(second_child_seq, parent_seq.elements)
-        self.assertIn(first_child_seq.elements[0], parent_seq.elements)
-        self.assertIn(first_child_seq.elements[1], parent_seq.elements)
+        self.assertNotIn(first_child_seq, parent_seq.getDisplayChildren()["elements"])
+        self.assertIn(second_child_seq, parent_seq.getDisplayChildren()["elements"])
+        self.assertIn(first_child_seq.elements[0], parent_seq.getDisplayChildren()["elements"])
+        self.assertIn(first_child_seq.elements[1], parent_seq.getDisplayChildren()["elements"])
 
     def test_basic_plus_composition(self):
         result = (
@@ -666,14 +665,14 @@ class CellsHorizSequenceHandlingTests(unittest.TestCase):
         child_seq = HorizontalSequence([Text("One"), Text("Two"), Text("Three")])
         parent_seq = HorizontalSequence([Text("First"), child_seq, Text("Last")])
         parent_seq.recalculate()
-        self.assertFalse(parent_seq.isFlexParent)
+        self.assertFalse(parent_seq.getDisplayExportData().get("flexParent", False))
         self.assertFalse(parent_seq.isFlex)
 
     def test_horiz_seq_becomes_flex_parent(self):
         child_seq = HorizontalSequence([Text("One"), Text("Two"), Text("Three")])
         parent_seq = HorizontalSequence([Flex(Text("First")), child_seq, Text("Last")])
         parent_seq.recalculate()
-        self.assertTrue(parent_seq.isFlexParent)
+        self.assertTrue(parent_seq.getDisplayExportData().get("flexParent", False))
 
     def test_horiz_seq_flattens_non_flex(self):
         first_child_seq = HorizontalSequence([Text("One"), Text("Two")])
@@ -684,10 +683,36 @@ class CellsHorizSequenceHandlingTests(unittest.TestCase):
         self.cells.withRoot(parent_seq)
         self.cells._recalculateCells()
 
-        self.assertNotIn(first_child_seq, parent_seq.elements)
-        self.assertIn(second_child_seq, parent_seq.elements)
-        self.assertIn(first_child_seq.elements[0], parent_seq.elements)
-        self.assertIn(first_child_seq.elements[1], parent_seq.elements)
+        self.assertNotIn(first_child_seq, parent_seq.getDisplayChildren()["elements"])
+        self.assertIn(second_child_seq, parent_seq.getDisplayChildren()["elements"])
+        self.assertIn(first_child_seq.elements[0], parent_seq.getDisplayChildren()["elements"])
+        self.assertIn(first_child_seq.elements[1], parent_seq.getDisplayChildren()["elements"])
+
+    def test_subscribed_sequence_in_subscribed_sequence(self):
+        x = Slot([1])
+        y = Slot([1])
+
+        seq = SubscribedSequence(
+            x.get, lambda xVal: SubscribedSequence(y.get, lambda yVal: Text(f"{xVal},{yVal}"))
+        )
+
+        self.cells.withRoot(seq)
+        self.cells.renderMessages()
+
+        def check():
+            self.cells.renderMessages()
+            self.assertEqual(
+                sorted(
+                    [x.children["content"].text for x in seq.getDisplayChildren()["elements"]]
+                ),
+                sorted([f"{xVal},{yVal}" for xVal in x.get() for yVal in y.get()]),
+            )
+
+        check()
+        x.set([1, 2])
+        check()
+        y.set([1, 2])
+        check()
 
     def test_basic_rshift_composition(self):
         result = Text("Hi") >> Text("Bye") >> Text("Go Away") >> Button("Away", lambda: None)

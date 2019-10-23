@@ -7,16 +7,26 @@ should be formatted using functions in this module
 
 def cellUpdated(cell):
     parent_id = None
+    if cell.isMergedIntoParent():
+        # check that we're not sending a merged cell over the wire. When we nest
+        # two Sequences, for example, we don't actually render the inner one - we rely
+        # on the cells to flatten themselves.
+        raise Exception(
+            f"Cell {cell} was merged into its parent. and shouldn't be sent over the wire."
+        )
+
     if cell.parent is not None:
         parent_id = cell.parent.identity
 
     structure = getStructure(parent_id, cell, None, expand=True)
+
     envelope = {
         "channel": "#main",
         "type": "#cellUpdated",
         "shouldDisplay": cell.shouldDisplay,
-        "extraData": cell.exportData,
+        "extraData": cell.getDisplayExportData(),
     }
+
     structure.update(envelope)
     if cell.postscript:
         structure["postscript"] = cell.postscript
@@ -136,13 +146,13 @@ def _getFlatStructure(parent_id, cell, name_in_parent):
         "nameInParent": name_in_parent,
         "parentId": parent_id,
         "namedChildren": own_children,
-        "extraData": cell.exportData,
+        "extraData": cell.getDisplayExportData(),
     }
 
 
 def _getFlatChildren(cell):
     own_children = {}
-    for child_name, child in cell.children.items():
+    for child_name, child in cell.getDisplayChildren().items():
         own_children[child_name] = _resolveFlatChild(child)
 
     return own_children
@@ -161,7 +171,7 @@ def _getExpandedStructure(parent_id, cell, name_in_parent):
     return {
         "id": cell.identity,
         "cellType": cell.__class__.__name__,
-        "extraData": cell.exportData,
+        "extraData": cell.getDisplayExportData(),
         "nameInParent": name_in_parent,
         "parentId": parent_id,
         "namedChildren": own_children,
@@ -170,7 +180,7 @@ def _getExpandedStructure(parent_id, cell, name_in_parent):
 
 def _getExpandedChildren(cell):
     own_children = {}
-    for child_name, child in cell.children.items():
+    for child_name, child in cell.getDisplayChildren().items():
         own_children[child_name] = _resolveExpandedChild(cell.identity, child, child_name)
     return own_children
 

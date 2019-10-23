@@ -52,23 +52,28 @@ TESTTYPES2 = $(DT_SRC_PATH)/ClientToServer0.hpp
 #  MAIN RULES
 
 .PHONY: install
-install: $(VIRTUAL_ENV) testcert.cert testcert.key
+install: $(VIRTUAL_ENV) testcert.cert testcert.key pre-commit-install
 	. $(VIRTUAL_ENV)/bin/activate; \
-		pip3 install pipenv==2018.11.26; \
+		pip install pipenv==2018.11.26; \
 		pipenv install --dev --deploy; \
-		pip3 install -e .; \
-		nodeenv -p --prebuilt --node=10.15.3 $(NODE_ENV); \
-		npm install -g webpack webpack-cli; \
+		pip install -e .; \
+		nodeenv --python-virtualenv --prebuilt --node=10.15.3 $(NODE_ENV); \
+		npm install --global webpack webpack-cli; \
 		cd object_database/web/content; \
 		npm install; \
 	 	webpack
+
+.PHONY: pre-commit-install
+pre-commit-install: $(VIRTUAL_ENV)
+	pip install pre-commit
+	pre-commit install
 
 .PHONY: node-install
 node-install:
 	pip3 install nodeenv; \
 	nodeenv --prebuilt --node=10.15.3 $(NODE_ENV); \
 	. $(NODE_ENV)/bin/activate; \
-	npm install -g webpack webpack-cli; \
+	npm install --global webpack webpack-cli; \
 	cd object_database/web/content; \
 	npm install
 
@@ -82,11 +87,11 @@ build-js:
 install_local: $(VIRTUAL_ENV)
 	. $(VIRTUAL_ENV)/bin/activate; \
 		pip install pipenv==2018.11.26; \
-		pip install -e ../typed_python; \
-		pip install -e .
+		pip install --editable ../typed_python; \
+		pip install --editable .
 
 .PHONY: test
-test: testcert.cert testcert.key js-test
+test: $(VIRTUAL_ENV) testcert.cert testcert.key js-test
 	. $(VIRTUAL_ENV)/bin/activate; pytest
 
 .PHONY:
@@ -193,7 +198,3 @@ testcert.cert testcert.key:
 	openssl req -x509 -newkey rsa:2048 -keyout testcert.key -nodes \
 		-out testcert.cert -sha256 -days 1000 \
 		-subj '/C=US/ST=New York/L=New York/CN=localhost'
-
-
-
-

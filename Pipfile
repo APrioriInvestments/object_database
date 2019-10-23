@@ -11,6 +11,7 @@ coverage = "*"
 pytest = "*"
 flaky = "*"
 nodeenv = "*"
+pre-commit = "*"
 
 [packages]
 boto3 = "*"

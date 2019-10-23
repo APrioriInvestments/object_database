@@ -96,8 +96,7 @@ class Reactor:
         self.maxSleepTime = maxSleepTime
 
         self._transactionQueue = queue.Queue()
-        self._thread = threading.Thread(target=self.updateLoop)
-        self._thread.daemon = True
+        self._thread = threading.Thread(target=self.updateLoop, daemon=True)
         self._isStarted = False
         self._lastReadKeys = None
         self._nextWakeup = None
@@ -125,6 +124,9 @@ class Reactor:
         If this function returns False, then as soon as it would return True it wakes up
         again.
         """
+        if not isinstance(ts, (int, float)):
+            raise TypeError(f"Timestamp `ts` must be of type float but was of type {type(ts)}")
+
         curTime = getattr(_currentReactor, "timestamp", None)
         if curTime is None:
             raise Exception("No reactor is running.")

@@ -3,6 +3,7 @@
  */
 
 import {Component} from './Component';
+import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 class SingleLineTextBox extends Component {
@@ -14,19 +15,19 @@ class SingleLineTextBox extends Component {
     }
 
     build(){
-        let attrs =
-            {
-                class: "cell",
-                id: "text_" + this.props.id,
-                type: "text",
-                "data-cell-id": this.props.id,
-                "data-cell-type": "SingleLineTextBox",
-                onchange: (event) => {this.changeHandler(event.target.value);}
-            };
-        if (this.props.inputValue !== undefined) {
-            attrs.pattern = this.props.inputValue;
+        let attributes = {
+            class: 'cell single-line-textbox',
+            type: 'text',
+            id: this.props.id,
+            "data-cell-id": this.props.id,
+            "data-cell-type": "SingleLineTextBox",
+            pattern: this.props.pattern,
+            onchange: (event) => {this.changeHandler(event.target.value);}
+        };
+        if(this.numRenders == 0 && this.props.initialValue){
+            attributes.value = this.props.initialValue;
         }
-        return h('input', attrs, []);
+        return h('input', attributes, []);
     }
 
     changeHandler(val) {
@@ -40,6 +41,17 @@ class SingleLineTextBox extends Component {
             )
         );
     }
-}
+};
+
+SingleLineTextBox.propTypes = {
+    pattern: {
+        type: PropTypes.string,
+        description: "The pattern the input will accept (HTML5 valid)"
+    },
+    initialValue: {
+        type: PropTypes.string,
+        description: "An initial value that will be given to the input on first render"
+    }
+};
 
 export {SingleLineTextBox, SingleLineTextBox as default};

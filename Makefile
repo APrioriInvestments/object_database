@@ -55,6 +55,7 @@ TESTTYPES2 = $(DT_SRC_PATH)/ClientToServer0.hpp
 install: $(VIRTUAL_ENV) testcert.cert testcert.key pre-commit-install
 	. $(VIRTUAL_ENV)/bin/activate; \
 		pip install pipenv==2018.11.26; \
+		pip install black; \
 		pipenv install --dev --deploy; \
 		pip install -e .; \
 		nodeenv --python-virtualenv --prebuilt --node=10.15.3 $(NODE_ENV); \
@@ -106,6 +107,11 @@ lint:
 vlint: $(VIRTUAL_ENV)
 	. $(VIRTUAL_ENV)/bin/activate; \
 		make lint
+
+.PHONY: black
+black: $(VIRTUAL_ENV)
+	. $(VIRTUAL_ENV)/bin/activate; \
+		black --target-version=py36  --line-length=95  .
 
 .PHONY: lib
 lib: object_database/_types.cpython-36m-x86_64-linux-gnu.so

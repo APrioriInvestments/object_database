@@ -2359,7 +2359,7 @@ class Clickable(Cell):
         else:
             return (
                 "cellSocket.sendString(JSON.stringify("
-                f"{'event':'click', 'target_cell': '{self.identity}'}"
+                f"{{'event':'click', 'target_cell': '{self.identity}'}}"
                 "))"
             )
 

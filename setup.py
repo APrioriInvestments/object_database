@@ -28,76 +28,71 @@ class BuildExtension(build_ext):
     """
 
     def run(self):
-        self.include_dirs.append(
-            pkg_resources.resource_filename('numpy', 'core/include'))
+        self.include_dirs.append(pkg_resources.resource_filename("numpy", "core/include"))
 
-        # the typed_python includes are inline. We want to find them as #include <typed_python/...>
-        # so we kluge this together this way. Better to modify typed_python to export its includes
-        # in a more reasonable way.
+        # The typed_python includes are inline.
+        # We want to find them as #include <typed_python/...>, so we kluge this
+        # together this way. Better to modify typed_python to export its
+        # includes in a more reasonable way.
         self.include_dirs.append(
-            os.path.dirname(os.path.dirname(pkg_resources.resource_filename('typed_python', '.')))
+            os.path.dirname(
+                os.path.dirname(pkg_resources.resource_filename("typed_python", "."))
+            )
         )
         build_ext.run(self)
 
 
 extra_compile_args = [
-    '-O2',
-    '-fstack-protector-strong',
-    '-Wformat',
-    '-Wdate-time',
-    '-Werror=format-security',
-    '-std=c++14',
-    '-Wno-sign-compare',
-    '-Wno-narrowing',
-    '-Wno-sign-compare',
-    '-Wno-terminate',
-    '-Wno-reorder',
-    '-Wno-bool-compare',
-    '-Wno-cpp'
+    "-O2",
+    "-fstack-protector-strong",
+    "-Wformat",
+    "-Wdate-time",
+    "-Werror=format-security",
+    "-std=c++14",
+    "-Wno-sign-compare",
+    "-Wno-narrowing",
+    "-Wno-sign-compare",
+    "-Wno-terminate",
+    "-Wno-reorder",
+    "-Wno-bool-compare",
+    "-Wno-cpp",
 ]
 
 ext_modules = [
     Extension(
-        'object_database._types',
-        sources=[
-            'object_database/all.cpp',
-        ],
-        define_macros=[
-            ("_FORTIFY_SOURCE", 2)
-        ],
-        extra_compile_args=extra_compile_args
-    ),
+        "object_database._types",
+        sources=["object_database/all.cpp"],
+        define_macros=[("_FORTIFY_SOURCE", 2)],
+        extra_compile_args=extra_compile_args,
+    )
 ]
 
-INSTALL_REQUIRES = [line.strip() for line in open('install-requires.txt')]
+INSTALL_REQUIRES = [line.strip() for line in open("install-requires.txt")]
 
 setuptools.setup(
-    name='object_database',
-    version='0.1',
-    description='Distributed software transactional memory.',
-    author='Braxton Mckee',
-    author_email='braxton.mckee@gmail.com',
-    url='https://github.com/aprioriinvestments/object_database',
+    name="object_database",
+    version="0.1",
+    description="Distributed software transactional memory.",
+    author="Braxton Mckee",
+    author_email="braxton.mckee@gmail.com",
+    url="https://github.com/aprioriinvestments/object_database",
     packages=setuptools.find_packages(),
-    cmdclass={'build_ext': BuildExtension},
+    cmdclass={"build_ext": BuildExtension},
     ext_modules=ext_modules,
-    setup_requires=['numpy', 'typed_python'],
+    setup_requires=["numpy", "typed_python"],
     install_requires=INSTALL_REQUIRES,
-
     # https://pypi.org/classifiers/
     classifiers=[
         "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python :: 3 :: Only",
     ],
-
     license="Apache Software License v2.0",
     entry_points={
-        'console_scripts': [
-            'object_database_webtest=object_database.frontends.object_database_webtest:main',
-            'object_database_service_manager=object_database.frontends.service_manager:main',
+        "console_scripts": [
+            "object_database_webtest=object_database.frontends.object_database_webtest:main",
+            "object_database_service_manager=object_database.frontends.service_manager:main",
         ]
     },
-
     include_package_data=True,
-    zip_safe=False
+    zip_safe=False,
 )

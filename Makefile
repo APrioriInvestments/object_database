@@ -113,6 +113,15 @@ black: $(VIRTUAL_ENV)
 	. $(VIRTUAL_ENV)/bin/activate; \
 		black --target-version=py36  --line-length=95  .
 
+.PHONY: black-check
+black-check: $(VIRTUAL_ENV)
+	. $(VIRTUAL_ENV)/bin/activate; \
+		make black-check-local
+
+.PHONY: black-check-local
+black-check-local:
+	black --check --target-version=py36  --line-length=95  .
+
 .PHONY: lib
 lib: object_database/_types.cpython-36m-x86_64-linux-gnu.so
 

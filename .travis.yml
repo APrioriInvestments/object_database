@@ -30,7 +30,7 @@ jobs:
       install:
         - pip install flake8
       script:
-        - make lint
+        - make lint-local
 
     - name: "pipenv check"
       install:
@@ -39,6 +39,12 @@ jobs:
         # `pipenv check` is occasionally flaky and depends on network connectivity,
         # so try up to 3 times, waiting 60 seconds between tries
         - pipenv check || (sleep 60; pipenv check) || (sleep 60; pipenv check)
+
+    - name: "black check"
+      install:
+        - pip install black
+      script:
+        - make black-check-local
 
     - name: "Unit Tests"
       before_script:

@@ -64,6 +64,7 @@ from object_database.web.cells.cells import (
     CircleLoader,
     Timestamp,
     HorizontalSequence,
+    DisplayLineTextBox
 )
 
 from object_database.web.cells.views.split_view import SplitView

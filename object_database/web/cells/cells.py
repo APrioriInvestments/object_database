@@ -2614,6 +2614,7 @@ class Table(Cell):
         self.exportData["numColumns"] = len(self.cols)
         self.exportData["numRows"] = len(self.rows)
         self.exportData["currentPage"] = self.curPage.get()
+        self.exportData["rowsPerPage"] = self.maxRowsPerPage
 
 
 class Clickable(Cell):

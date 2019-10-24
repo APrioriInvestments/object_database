@@ -2366,6 +2366,26 @@ class SingleLineTextBox(Cell):
         self.slot.set(msgFrame["text"])
 
 
+class DisplayLineTextBox(Cell):
+    def __init__(self, slot, displayText="[default]", pattern=None, octicon=None):
+        super().__init__()
+        self.pattern = pattern
+        self.slot = slot
+        self.displayText = displayText
+        self.octicon = octicon
+
+    def recalculate(self):
+        if self.pattern:
+            self.exportData['pattern'] = self.pattern
+        self.exportData['initialValue'] = self.slot.get()
+        self.exportData['displayText'] = self.displayText
+        if self.octicon:
+            self.children['octicon'] = Cell.makeCell(self.octicon)
+
+    def onMessage(self, msgFrame):
+        self.slot.set(msgFrame["text"])
+
+
 class Table(Cell):
     """An active table with paging, filtering, sortable columns."""
 

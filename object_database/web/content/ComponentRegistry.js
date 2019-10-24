@@ -53,6 +53,7 @@ import {Timestamp} from './components/Timestamp';
 import {SplitView} from './components/SplitView';
 import {PageView} from './components/PageView';
 import {HorizontalSequence} from './components/HorizontalSequence';
+import {DisplayLineTextBox} from './components/DisplayLineTextBox';
 
 const ComponentRegistry = {
     AsyncDropdown,
@@ -71,6 +72,7 @@ const ComponentRegistry = {
     Container,
     ContextualDisplay,
     Dropdown,
+    DisplayLineTextBox,
     Expands,
     HeaderBar,
     HorizontalSequence,

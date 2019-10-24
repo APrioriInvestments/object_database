@@ -64,6 +64,7 @@ from object_database.web.cells.cells import (
     Timestamp,
     HorizontalSequence,
     WSMessageTester,
+    DisplayLineTextBox
 )
 
 from object_database.web.cells.views.split_view import SplitView

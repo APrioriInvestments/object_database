@@ -26,7 +26,6 @@ class Table extends Component {
         this.makeRows = this.makeRows.bind(this);
         this.makeFirstRow = this.makeFirstRow.bind(this);
         this._makeRowElements = this._makeRowElements.bind(this);
-        this._theadStyle = this._theadStyle.bind(this);
         this._getRowDisplayElements = this._getRowDisplayElements.bind(this);
         this._getPageInfo = this._getPageInfo.bind(this);
     }
@@ -39,18 +38,14 @@ class Table extends Component {
                 id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Table",
-                class: "cell table-hscroll table-sm table-striped"
+                class: "cell cell-table table-hscroll table-sm table-striped"
             }, [
-                h('thead', {style: this._theadStyle()},[
+                h('thead', {},[
                     this.makeFirstRow()
                 ]),
                 h('tbody', {}, this.makeRows())
             ])
         );
-    }
-
-    _theadStyle(){
-        return "border-bottom: black;border-bottom-style:solid;border-bottom-width:thin;";
     }
 
     makeHeaderElements(){
@@ -91,13 +86,7 @@ class Table extends Component {
         let headerElements = this.makeHeaderElements();
         return(
             h('tr', {}, [
-                h('th', {style: "vertical-align:top;"}, [
-                    h('div', {class: "card"}, [
-                        h('div', {class: "card-body p-1"}, [
-                            ...this._getRowDisplayElements()
-                        ])
-                    ])
-                ]),
+                h('th', {}, [...this._getRowDisplayElements()]),
                 ...headerElements
             ])
         );
@@ -113,7 +102,8 @@ class Table extends Component {
     }
 
     _getPageInfo(){
-        return `${this.props.currentPage} of ${this.props.totalPages}`;
+        let count = `${this.props.currentPage} of ${this.props.totalPages}`;
+        return h('div', {class: 'cell-table-page-info'}, [count]);
     }
 }
 

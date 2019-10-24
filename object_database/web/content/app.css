@@ -242,7 +242,24 @@ td.row-index-item {
     width: auto;
     overflow-wrap: break-word;
     white-space: pre-wrap;
- }
+}
+
+/* Table (multipage table Cell)
+ * ============================================================*/
+.cell-table > thead {
+    border-bottom: solid thin black;
+}
+
+.cell-table > thead th:first-child {
+    /*display: flex;*/
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.cell-table-page-info {
+    display: inline-block;
+    margin-right: 10px;
+}
 
 /* Expands
  * ============================================================*/

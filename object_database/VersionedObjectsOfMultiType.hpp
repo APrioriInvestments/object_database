@@ -156,7 +156,7 @@ public:
         return id;
     }
 
-    std::pair<instance_ptr, transaction_id> best(Type* valueType, SerializationContext& ctx, object_id objectId, transaction_id version) {
+    std::pair<instance_ptr, transaction_id> best(Type* valueType, const std::shared_ptr<SerializationContext>& ctx, object_id objectId, transaction_id version) {
         transaction_id bestTid = bestTransactionId(objectId, version);
 
         if (bestTid == NO_TRANSACTION) {
@@ -167,7 +167,7 @@ public:
             return std::pair<instance_ptr, transaction_id>(nullptr, NO_TRANSACTION);
         }
 
-        auto& dataForType = dataCacheForType(valueType);
+        auto& dataForType = dataCacheForType(valueType, ctx);
 
         ObjectData* od = dataForType.lookupKey(ObjectAndVersion(objectId, bestTid));
         if (od) {
@@ -183,7 +183,7 @@ public:
 
         Bytes serializedVal(serialized_it->second);
 
-        DeserializationBuffer buffer((uint8_t*)&serializedVal[0], serializedVal.size(), ctx);
+        DeserializationBuffer buffer((uint8_t*)&serializedVal[0], serializedVal.size(), *ctx);
 
         Instance instance(valueType, [&](instance_ptr dataPtr) {
             auto fieldAndWireType = buffer.readFieldNumberAndWireType();
@@ -194,7 +194,7 @@ public:
         });
 
         //re-grab 'dataCacheForType' because it could have moved.
-        od = dataCacheForType(valueType).insertKey(ObjectAndVersion(objectId, bestTid));
+        od = dataCacheForType(valueType, ctx).insertKey(ObjectAndVersion(objectId, bestTid));
 
         valueType->copy_constructor(od->object_data, instance.data());
 
@@ -381,9 +381,16 @@ public:
         m_deleted_values.erase(std::make_pair(oid, tid));
         m_serialized_values.erase(std::make_pair(oid, tid));
 
-        for (auto& typeAndData: m_data) {
+        for (auto& typeAndData: m_simple_data) {
             typeAndData.second.deleteKey(ObjectAndVersion(oid, tid));
         }
+
+        for (auto& typeAndData: m_nonsimple_data) {
+            for (auto& contextAndData: typeAndData.second) {
+                contextAndData.second.deleteKey(ObjectAndVersion(oid, tid));
+            }
+        }
+
         std::pair<transaction_id, transaction_id> priorAndNext = m_prior_and_next[std::make_pair(oid, tid)];
         m_prior_and_next.erase(std::make_pair(oid, tid));
 
@@ -418,18 +425,34 @@ public:
         return m_min_max_versions.size();
     }
 
-    DictInstance<ObjectAndVersion, ObjectData>& dataCacheForType(Type* t) {
-        auto it = m_data.find(t);
-        if (it != m_data.end()) {
-            return it->second;
+    DictInstance<ObjectAndVersion, ObjectData>& dataCacheForType(Type* t, const std::shared_ptr<SerializationContext>& ctx) {
+        if (t->isSimple()) {
+            auto it = m_simple_data.find(t);
+            if (it != m_simple_data.end()) {
+                return it->second;
+            }
+
+            m_simple_data[t] = DictInstance<ObjectAndVersion, ObjectData>(
+                Tuple::Make(std::vector<Type*>({Int64::Make(),Int64::Make()})),
+                t
+            );
+
+            return m_simple_data[t];
+        } else {
+            auto& byContext = m_nonsimple_data[t];
+
+            auto it = byContext.find(ctx);
+            if (it != byContext.end()) {
+                return it->second;
+            }
+
+            byContext[ctx] = DictInstance<ObjectAndVersion, ObjectData>(
+                Tuple::Make(std::vector<Type*>({Int64::Make(),Int64::Make()})),
+                t
+            );
+
+            return byContext[ctx];
         }
-
-        m_data[t] = DictInstance<ObjectAndVersion, ObjectData>(
-            Tuple::Make(std::vector<Type*>({Int64::Make(),Int64::Make()})),
-            t
-        );
-
-        return m_data[t];
     }
 
     void check(object_id oid) {
@@ -478,8 +501,18 @@ private:
     //any deleted values
     std::unordered_set<std::pair<object_id, transaction_id> > m_deleted_values;
 
-    //a cache of the deserialized versions of each value
-    std::unordered_map<Type*, DictInstance<ObjectAndVersion, ObjectData> > m_data;
+    //a cache of the deserialized versions of each value for simple types (e.g. int)
+    std::unordered_map<Type*, DictInstance<ObjectAndVersion, ObjectData> > m_simple_data;
+
+    //a cache of the deserialized values for nonsimple types (e.g. ConstDict(int, object))
+    //where the deserialization result could depend on the SerializationContext.
+    std::unordered_map<
+        Type*,
+        std::map<
+            std::shared_ptr<SerializationContext>,
+            DictInstance<ObjectAndVersion, ObjectData>
+        >
+    > m_nonsimple_data;
 
     //for each transaction, a list of objects we want to check when that version number
     //gets consumed by the m_guaranteed_lowest_id, in case we want to delete things.

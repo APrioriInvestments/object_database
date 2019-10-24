@@ -111,7 +111,7 @@ public:
          return write_it->second.data();
       }
 
-      instance_ptr i = m_versioned_objects.bestObjectVersion(t, *m_serialization_context, field, oid, m_tid).first;
+      instance_ptr i = m_versioned_objects.bestObjectVersion(t, m_serialization_context, field, oid, m_tid).first;
 
       if (recordAccess) {
          m_read_values.insert(std::make_pair(field, oid));

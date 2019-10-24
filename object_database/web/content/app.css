@@ -35,6 +35,46 @@
     white-space: pre;
 }
 
+/* DisplayLineTextBox
+ * =====================================================*/
+.display-line-textbox {
+    width: 100%;
+    position: relative;
+    /* display: flex !important;*/
+    align-items: center;
+}
+
+.display-line-textbox-input {
+    font-weight: bold;
+    outline: none;
+    border: 1px solid transparent;
+}
+
+.display-line-textbox-input:hover {
+    cursor: pointer;
+    border: 1px solid rgba(0, 0, 255, 0.1);
+}
+
+.display-line-textbox-input:focus {
+    border: 2px solid red;
+    font-weight: normal;
+    border: 1px solid rgba(100, 100, 200, 0.5);
+}
+.display-line-textbox-input:focus:hover {
+    cursor: text;
+}
+
+.display-line-textbox-secondary {
+    position: relative;
+    display: inline-block;
+    transform: translateY(0);
+    transition: transform 0.1s ease-in;
+}
+
+.display-line-textbox-secondary:hover {
+    cursor: pointer;
+}
+
 /* SplitView
  * =====================================================*/
 .split-view {

@@ -379,6 +379,20 @@ class Cells:
             stableParent = self.findStableParent(node)
             updatedNodesToSend.add(stableParent)
 
+        def checkNode(n):
+            while n is not None:
+                if n in updatedNodesToSend:
+                    return True
+                n = n.parent
+            return False
+
+        toRemove = []
+        for u in updatedNodesToSend:
+            if checkNode(u.parent):
+                toRemove.append(u)
+        for u in toRemove:
+            updatedNodesToSend.discard(u)
+
         for nodeToSend in list(updatedNodesToSend):
             res.append(Messenger.cellUpdated(nodeToSend))
 
@@ -2847,35 +2861,21 @@ class OldSheet(Cell):
         if msgFrame["event"] == "sheet_needs_data":
             row = msgFrame["data"]
 
-            if row in self.rowsSent:
-                return
+            rowData = self.rowFun(row)
 
-            rows = []
-            for rowToRender in range(max(0, row - 100), min(row + 100, self.rowCount)):
-                if rowToRender not in self.rowsSent:
-                    self.rowsSent.add(rowToRender)
-                    rows.append(rowToRender)
+            self.triggerPostscript(
+                """
+                var hot = handsOnTables["__identity__"].table
 
-                    rowData = self.rowFun(rowToRender)
+                hot.getSettings().data.cache[__row__] = __data__
 
-                    self.triggerPostscript(
-                        """
-                        var hot = handsOnTables["__identity__"].table
-
-                        hot.getSettings().data.cache[__row__] = __data__
-                        """.replace(
-                            "__row__", str(rowToRender)
-                        )
-                        .replace("__identity__", self._identity)
-                        .replace("__data__", json.dumps(rowData))
-                    )
-
-            if rows:
-                self.triggerPostscript(
-                    """handsOnTables["__identity__"].table.render()""".replace(
-                        "__identity__", self._identity
-                    )
+                handsOnTables["__identity__"].component.dataChanged()
+                """.replace(
+                    "__row__", str(row)
                 )
+                .replace("__identity__", self._identity)
+                .replace("__data__", json.dumps(rowData))
+            )
         else:
             return self._hookfns[msgFrame["event"]](self, msgFrame)
 

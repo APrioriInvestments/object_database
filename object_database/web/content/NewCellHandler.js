@@ -153,17 +153,19 @@ class NewCellHandler {
      */
     cellUpdated(message){
         let component = this._getUpdatedComponent(message);
+
         let velement = render(component);
-        //let domElement = document.getElementById(component.props.id);
         let domElement = component.getDOMElement();
         this.projector.replace(domElement, () => {
             return velement;
         });
         this._callDidLoadForNew();
         this._callDidUpdate();
+
         if(message.postscript){
             this.postscripts.push(message.postscript);
         }
+
         return component;
     }
 

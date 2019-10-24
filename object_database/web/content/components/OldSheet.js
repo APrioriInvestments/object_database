@@ -28,7 +28,10 @@ class Sheet extends Component {
         // Bind context to methods
         this.initializeTable = this.initializeTable.bind(this);
         this.initializeHooks = this.initializeHooks.bind(this);
+        this.dataChanged = this.dataChanged.bind(this);
         this.makeError = this.makeError.bind(this);
+
+        this.pendingDataRequests = 0
 
         /**
          * WARNING: The Cell version of Sheet is still using certain
@@ -46,15 +49,26 @@ class Sheet extends Component {
         if(this.props.extraData['handlesDoubleClick']){
             this.initializeHooks();
         }
-        // Request initial data?
-        cellSocket.sendString(JSON.stringify({
-            event: "sheet_needs_data",
-            target_cell: this.props.id,
-            data: 0
-        }));
     }
 
-    render(){
+    /***
+     * called by the synchronous callback function in the posted javascript for this handler.
+     ***/
+
+    dataChanged() {
+        this.pendingDataRequests = this.pendingDataRequests - 1
+
+        if (this.pendingDataRequests < 0) {
+            this.pendingDataRequests = 0
+            console.warn("Negative pendingDataRequests?" + this.pendingDataRequests)
+        }
+
+        if (this.pendingDataRequests == 0) {
+            this.currentTable.render()
+        }
+    }
+
+    build(){
         console.log(`Rendering sheet ${this.props.id}`);
         return (
             h('div', {
@@ -80,10 +94,13 @@ class Sheet extends Component {
             };
         };
         let emptyRow = [];
+
         let dataNeededCallback = function(eventObject){
             eventObject.target_cell = this.props.id;
             cellSocket.sendString(JSON.stringify(eventObject));
+            this.pendingDataRequests = this.pendingDataRequests + 1;
         }.bind(this);
+
         let data = new SyntheticIntegerArray(this.props.extraData.rowCount, emptyRow, dataNeededCallback);
         let container = document.getElementById(`sheet${this.props.id}`);
         let columnNames = this.props.extraData.columnNames;
@@ -111,7 +128,8 @@ class Sheet extends Component {
         handsOnTables[this.props.id] = {
             table: this.currentTable,
             lastCellClicked: {row: -100, col: -100},
-            dblClicked: true
+            dblClicked: true,
+            component: this
         };
     }
 
@@ -166,6 +184,7 @@ class Sheet extends Component {
 const SyntheticIntegerArray = function(size, emptyRow = [], callback){
     this.length = size;
     this.cache = {};
+    this.requested = {};
     this.push = function(){};
     this.splice = function(){};
 
@@ -179,7 +198,8 @@ const SyntheticIntegerArray = function(size, emptyRow = [], callback){
         while(low < high){
             let out = this.cache[low];
             if(out === undefined){
-                if(callback){
+                if(callback && this.requested[low] === undefined){
+                    this.requested[low] = 1
                     callback({
                         event: 'sheet_needs_data',
                         data: low

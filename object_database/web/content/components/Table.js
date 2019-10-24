@@ -78,7 +78,9 @@ class Table extends Component {
                     }, [childElement])
                 );
             });
-            let indexElement = h('td', {}, [`${rowIdx + 1}`]);
+            let pageRows = (this.props.currentPage - 1) * this.props.rowsPerPage;
+            let relativeIndex = rowIdx + 1 + pageRows;
+            let indexElement = h('td', {}, [`${relativeIndex}`]);
             return (
                 h('tr', {key: `${this.props.id}-tr-${rowIdx}`}, [indexElement, ...columns])
             );
@@ -131,6 +133,10 @@ Table.propTypes = {
     numRows: {
         type: PropTypes.number,
         description: "The total number of rows the table has"
+    },
+    rowsPerPage: {
+        type: PropTypes.number,
+        description: "The maximum number of rows to display on teach page"
     }
 }
 

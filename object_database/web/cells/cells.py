@@ -658,13 +658,16 @@ class SessionState(object):
             self._slots[attr] = Slot(value)
 
     def set(self, attr, value):
-        self.__setattr__(attr, value)
+        self._slotFor(attr).set(value)
 
     def toggle(self, attr):
-        self.set(attr, not self.__getattr__(attr))
+        self.set(attr, not self.get(attr))
 
     def get(self, attr):
-        return self.__getattr__(attr)
+        return self._slotFor(attr).get()
+
+    def getWithoutRegisteringDependency(self, attr):
+        return self._slotFor(attr).getWithoutRegisteringDependency()
 
 
 def sessionState():
@@ -785,6 +788,29 @@ class Cell:
         self.parent = parent
         self.level = parent.level + 1 if parent is not None else 0
         self._identity = identity
+        self._identityPath = None
+
+    @property
+    def identityPath(self):
+        """Return a stable unique id for this cell representing its position in the tree."""
+        if self.cells is None:
+            return ()
+
+        if self.parent is None:
+            return ()
+
+        if self._identityPath is None:
+            self._identityPath = (
+                self.parent.identityPath + (self.parent.identityOfChild(self),)
+            )
+
+        return self._identityPath
+
+    def identityOfChild(self, child):
+        try:
+            return self.children.allChildren.index(child)
+        except ValueError:
+            return child._identity
 
     def __repr__(self):
         return f"{type(self).__name__}(id={self._identity})"
@@ -1821,6 +1847,9 @@ class Subscribed(Cell):
         # when to recalculate the element.
         self.cellFactory = f
 
+    def identityOfChild(self, child):
+        return 0
+
     def rootSequenceOfOrientation(self, orientation):
         return self.parent.rootSequenceOfOrientation(orientation)
 
@@ -2641,13 +2670,20 @@ class Expands(Cell):
     # In fact, does Octicon need to be its own Cell class/object at all,
     # considering it is a styling/visual issue that can
     # more easily be handled by passing names to the front end?
-    def __init__(self, closed, open, closedIcon=None, openedIcon=None, initialState=False):
+    def __init__(self, closed, open, closedIcon=None, openedIcon=None):
         super().__init__()
-        self.isExpanded = initialState
         self.closed = closed
         self.open = open
         self.openedIcon = openedIcon or Octicon("diff-removed")
         self.closedIcon = closedIcon or Octicon("diff-added")
+
+    @property
+    def isExpanded(self):
+        return sessionState().get(self.identityPath + ("ExpandState",)) or False
+
+    @isExpanded.setter
+    def isExpanded(self, isExpanded):
+        return sessionState().set(self.identityPath + ("ExpandState",), bool(isExpanded))
 
     def sortsAs(self):
         if self.isExpanded:
@@ -2678,7 +2714,6 @@ class Expands(Cell):
 
     def onMessage(self, msgFrame):
         self.isExpanded = not self.isExpanded
-        self.markDirty()
 
 
 class CodeEditor(Cell):

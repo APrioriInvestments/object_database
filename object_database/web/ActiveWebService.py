@@ -319,9 +319,10 @@ class ActiveWebService(ServiceBase):
 
         self._logger.info("Starting main websocket handler with %s", ws)
 
-        while not ws.closed:
-            t0 = time.time()
-            try:
+        try:
+            while not ws.closed:
+                t0 = time.time()
+
                 # make sure user is authenticated
                 user = self.login_plugin.load_user(current_user.username)
                 if not user.is_authenticated:
@@ -379,20 +380,27 @@ class ActiveWebService(ServiceBase):
                 if len(timestamps) > MAX_FPS:
                     timestamps = timestamps[-MAX_FPS + 1 :]
                     if (time.time() - timestamps[0]) < 1.0:
-                        sleep(1.0 / MAX_FPS + 0.001)
+                        maxTime = time.time() + 1.0 / MAX_FPS + 0.001
 
-            except Exception:
-                self._logger.error("Websocket handler error: %s", traceback.format_exc())
-                self.sessionStates[sessionId].append(sessionState)
+                        while time.time() < maxTime:
+                            sleep(0.01)
+                            if ws.closed:
+                                return
 
-                self._logger.info(
-                    "Returning session state to pool for %s. Have %s",
-                    sessionId,
-                    len(self.sessionStates[sessionId]),
-                )
+        except Exception:
+            self._logger.error("Websocket handler error: %s", traceback.format_exc())
 
-                if reader:
-                    reader.join()
+        finally:
+            self.sessionStates[sessionId].append(sessionState)
+
+            self._logger.info(
+                "Returning session state to pool for %s. Have %s",
+                sessionId,
+                len(self.sessionStates[sessionId]),
+            )
+
+            if reader:
+                reader.join()
 
     def _getSessionState(self, sessionId):
         if sessionId is None:

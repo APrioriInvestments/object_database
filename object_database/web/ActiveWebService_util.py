@@ -445,6 +445,7 @@ def readThread(ws, cells, largeMessageAck, logger):
     while not ws.closed:
         msg = ws.receive()
         if msg is None:
+            largeMessageAck.put(StopIteration)
             return
         else:
             try:

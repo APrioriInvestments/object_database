@@ -188,11 +188,17 @@ class TextEditorService(ServiceBase):
             if TextEditor.lookupAny() is not None:
                 TextEditor.lookupAny().code = buffer
 
+        def textToDisplay():
+            ed = TextEditor.lookupAny()
+            if ed is not None:
+                return ed.code
+
         ed = CodeEditor(
             keybindings={"Enter": onEnter},
             noScroll=True,
             minLines=50,
             onTextChange=onTextChange,
+            textToDisplayFunction=textToDisplay
         )
 
         def makePlotData():
@@ -205,14 +211,7 @@ class TextEditorService(ServiceBase):
                 data = {}
             return {"data": data}
 
-        def onCodeChange():
-            if TextEditor.lookupAny() is not None:
-                if ed.getContents() != TextEditor.lookupAny().code:
-                    ed.setContents(TextEditor.lookupAny().code)
-
-        # return Columns(ed, Card(Plot(makePlotData).height("100%").width("100%")))
-        #        + Subscribed(onCodeChange)
-        return SplitView([(ed, 1), (Card(Plot(makePlotData)), 1)]) + Subscribed(onCodeChange)
+        return SplitView([(ed, 1), (Card(Plot(makePlotData)), 1)])
 
 
 class GraphDisplayService(ServiceBase):

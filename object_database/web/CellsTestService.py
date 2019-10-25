@@ -69,16 +69,18 @@ class CellsTestService(ServiceBase):
 
         if "category" in queryArgs and "name" in queryArgs:
             page = getPages()[queryArgs["category"]][queryArgs["name"]]
-            contentsOverride = cells.Slot()
 
-            pageSource = textwrap.dedent("".join(getsourcelines(page.cell.__func__)[0]))
+            contentsBuffer = cells.Slot(
+                textwrap.dedent("".join(getsourcelines(page.cell.__func__)[0]))
+            )
+            contentsToEvaluate = cells.Slot(contentsBuffer.getWithoutRegisteringDependency())
 
             def actualDisplay():
-                if contentsOverride.get() is not None:
+                if contentsToEvaluate.get() is not None:
                     try:
                         locals = {}
                         exec(
-                            contentsOverride.get(),
+                            contentsToEvaluate.get(),
                             sys.modules[type(page).__module__].__dict__,
                             locals,
                         )
@@ -89,15 +91,15 @@ class CellsTestService(ServiceBase):
                 return page.cell()
 
             def onEnter(buffer, selection):
-                contentsOverride.set(buffer)
+                contentsToEvaluate.set(buffer)
 
             ed = cells.CodeEditor(
                 keybindings={"Enter": onEnter},
                 noScroll=True,
                 minLines=20,
-                onTextChange=lambda *args: None,
+                onTextChange=lambda buffer, selection: contentsBuffer.set(buffer),
+                textToDisplayFunction=lambda: contentsBuffer.get()
             )
-            ed.setContents(pageSource)
 
             description = page.text()
         else:

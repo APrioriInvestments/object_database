@@ -11,17 +11,20 @@ class CodeEditor extends Component {
         super(props, ...args);
         this.editor = null;
         // used to schedule regular server updates
-        this.SERVER_UPDATE_DELAY_MS = 1;
+        this.SERVER_UPDATE_DELAY_MS = 50;
         //this.editorStyle = 'width:100%;min-height:100%;margin:auto;border:1px solid lightgray;';
 
+        this.onChange = this.onChange.bind(this);
         this.setupEditor = this.setupEditor.bind(this);
         this.setupKeybindings = this.setupKeybindings.bind(this);
-        this.changeHandler = this.changeHandler.bind(this);
-
+        this.installChangeHandlers = this.installChangeHandlers.bind(this);
+        this.setTextFromServer = this.setTextFromServer.bind(this)
+        this.lastSentText = null
         // Used to register and deregister
         // any global KeyListener instance
         this._onBlur = this._onBlur.bind(this);
         this._onFocus = this._onFocus.bind(this);
+        this.disableEventFiring = false;
     }
 
     componentDidLoad() {
@@ -36,7 +39,19 @@ class CodeEditor extends Component {
             this.editor.session.setMode("ace/mode/python");
             this.editor.setAutoScrollEditorIntoView(true);
             this.editor.session.setUseSoftTabs(true);
-            this.editor.setValue(this.props.initialText);
+
+
+            if (this.props.initialText !== null) {
+                this.editor.setValue(this.props.initialText, 1)
+            }
+
+            if (this.props.currentIteration !== null) {
+                this.editor.current_iteration = this.props.currentIteration;
+            }
+
+            if (this.props.initialSelection !== null) {
+                this.editor.selection.setSelectionRange(this.props.initialSelection)
+            }
 
             if (this.props.autocomplete) {
                 this.editor.setOptions({enableBasicAutocompletion: true});
@@ -59,7 +74,7 @@ class CodeEditor extends Component {
 
             this.setupKeybindings();
 
-            this.changeHandler();
+            this.installChangeHandlers();
         }
     }
 
@@ -92,50 +107,83 @@ class CodeEditor extends Component {
         // this.render()
         this.editor = ace.edit(editorId);
         // TODO: deal with this global editor list
-        aceEditors[editorId] = this.editor;
+        aceEditorComponents[editorId] = this;
+
+        // force a focus. it would be better to pick a better way to trigger
+        // this from the serverside after an action
+        this.editor.focus()
     }
 
-    changeHandler() {
-	var editorId = this.props.id;
-	var editor = this.editor;
-	var SERVER_UPDATE_DELAY_MS = this.SERVER_UPDATE_DELAY_MS;
+    setTextFromServer(iteration, newBufferText) {
+        this.editor.last_edit_millis = Date.now();
+        this.editor.current_iteration = iteration;
+        this.editor.lastSentText = newBufferText;
+
+        var curRange = this.editor.selection.getRange();
+        this.lastSentText = newBufferText;
+
+        console.log("Resetting editor text to " + newBufferText.length
+            + " because it changed on the server" +
+            " Cur iteration is " + iteration + ".");
+
+        try {
+            this.disableEventFiring = true;
+            this.editor.setValue(newBufferText, 1);
+            this.editor.selection.setSelectionRange(curRange);
+        } finally {
+            this.disableEventFiring = false;
+        }
+    }
+
+    onChange() {
+        // if we're setting this as a part of a server update, we don't want to
+        // immediately fire an event back to the server.
+        if (this.disableEventFiring) {
+            return;
+        }
+
+        //record that we just edited
+        this.editor.last_edit_millis = Date.now();
+
+        //schedule a function to run in 'SERVER_UPDATE_DELAY_MS'ms
+        //that will update the server, but only if the user has stopped typing.
+        window.setTimeout(() => {
+            if (Date.now() - this.editor.last_edit_millis >= this.SERVER_UPDATE_DELAY_MS) {
+                //save our current state to the remote buffer
+                console.log("Updating server state for CodeEditor(" + this.props.id + ")")
+
+                this.editor.current_iteration += 1;
+                this.editor.last_edit_millis = Date.now();
+
+                var bufferToSend = null;
+
+                // don't send the buffer again if it hasn't changed.
+                if (this.editor.getValue() != this.lastSentText) {
+                    bufferToSend = this.editor.getValue();
+                    this.lastSentText = bufferToSend;
+                }
+
+                let responseData = {
+                    event: 'editing',
+                    'target_cell': this.props.id,
+                    buffer: bufferToSend,
+                    selection: this.editor.selection.getRange(),
+                    iteration: this.editor.current_iteration
+                };
+
+                cellSocket.sendString(JSON.stringify(responseData));
+            }
+        }, this.SERVER_UPDATE_DELAY_MS + 2); //note the 2ms grace period
+    }
+
+    installChangeHandlers() {
         this.editor.on('focus', this._onFocus);
         this.editor.on('blur', this._onBlur);
-        this.editor.session.on(
-            "change",
-            function(delta) {
-                // WS
-                let responseData = {
-                    event: 'editor_change',
-                    'target_cell': editorId,
-                    data: delta
-                };
-                cellSocket.sendString(JSON.stringify(responseData));
-                //record that we just edited
-                editor.last_edit_millis = Date.now();
 
-		//schedule a function to run in 'SERVER_UPDATE_DELAY_MS'ms
-		//that will update the server, but only if the user has stopped typing.
-		// TODO unclear if this is owrking properly
-		window.setTimeout(function() {
-		    if (Date.now() - editor.last_edit_millis >= SERVER_UPDATE_DELAY_MS) {
-			//save our current state to the remote buffer
-			editor.current_iteration += 1;
-			editor.last_edit_millis = Date.now();
-			editor.last_edit_sent_text = editor.getValue();
-			// WS
-			let responseData = {
-			    event: 'editing',
-			    'target_cell': editorId,
-			    buffer: editor.getValue(),
-			    selection: editor.selection.getRange(),
-			    iteration: editor.current_iteration
-			};
-			cellSocket.sendString(JSON.stringify(responseData));
-		    }
-		}, SERVER_UPDATE_DELAY_MS + 2); //note the 2ms grace period
-            }
-        );
+        //any time we do anything, update the server
+        this.editor.selection.on("changeCursor", this.onChange)
+        this.editor.selection.on("changeSelection", this.onChange)
+        this.editor.session.on("change", this.onChange);
     }
 
     setupKeybindings() {
@@ -148,7 +196,7 @@ class CodeEditor extends Component {
                     exec: () => {
                         this.editor.current_iteration += 1;
                         this.editor.last_edit_millis = Date.now();
-                        this.editor.last_edit_sent_text = this.editor.getValue();
+                        this.editor.lastSentText = this.editor.getValue();
 
                         // WS
                         let responseData = {
@@ -186,8 +234,13 @@ CodeEditor.propTypes = {
     },
 
     initialText: {
-        description: "The initial text content to show in the Ace Editor",
+        description: "The initial text to show in the Ace Editor",
         type: PropTypes.string
+    },
+
+    initialSelection: {
+        description: "The initial selection state to show in the Ace Editor",
+        type: PropTypes.object
     },
 
     autocomplete: {

@@ -337,12 +337,17 @@ class ActiveWebService(ServiceBase):
                     self._logger.info("Completed first rendering loop")
                     isFirstMessage = False
 
+                bytesSent = 0
+
                 for message in messages:
                     gevent.socket.wait_write(ws.stream.handler.socket.fileno())
 
-                    writeJsonMessage(message, ws, largeMessageAck, self._logger)
+                    bytesSent += writeJsonMessage(message, ws, largeMessageAck, self._logger)
 
                     lastDumpMessages += 1
+
+                if bytesSent > 100 * 1024:
+                    self._logger.info("Sent a large message packet of %.2f mb", bytesSent / 1024.0**2)
 
                 lastDumpFrames += 1
                 # log slow messages

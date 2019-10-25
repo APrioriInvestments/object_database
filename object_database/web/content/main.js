@@ -15,7 +15,7 @@ import './webcomponents';
  * Globals
  **/
 window.langTools = ace.require("ace/ext/language_tools");
-window.aceEditors = {};
+window.aceEditorComponents = {};
 window.handsOnTables = {};
 
 /**

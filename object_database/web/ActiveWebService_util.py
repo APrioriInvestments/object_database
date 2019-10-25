@@ -386,6 +386,8 @@ def writeJsonMessage(
         large messages (more than frames_per_ack frames) send an ack
         after every frames_per_ackth message
     loggger : logging.logger
+
+    Returns: the bytecount of the json message we sent.
     """
     msg = json.dumps(message)
 
@@ -410,7 +412,7 @@ def writeJsonMessage(
         if framesSent % frames_per_ack == 0 and framesSent > frames_per_ack:
             ack = largeMessageAck.get()
             if ack is StopIteration:
-                return
+                return len(msg)
             else:
                 assert ack == framesSent - frames_per_ack, (ack, framesSent - frames_per_ack)
 
@@ -421,9 +423,11 @@ def writeJsonMessage(
 
         ack = largeMessageAck.get()
         if ack is StopIteration:
-            return
+            return len(msg)
         else:
             assert ack == finalAckIx, (ack, finalAckIx)
+
+    return len(msg)
 
 
 def readThread(ws, cells, largeMessageAck, logger):

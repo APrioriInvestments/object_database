@@ -29,6 +29,7 @@ from object_database.web.cells.children import Children
 
 from inspect import signature
 
+from object_database import MaskView
 from object_database.view import RevisionConflictException
 from object_database.view import current_transaction
 from object_database.util import Timer
@@ -37,7 +38,39 @@ from typed_python.Codebase import Codebase as TypedPythonCodebase
 MAX_TIMEOUT = 1.0
 MAX_TRIES = 10
 
-_cur_cell = threading.local()
+
+_cur_computing_cell = threading.local()
+
+
+class ComputingCellContext:
+    def __init__(self, cell, isProcessingMessage=False):
+        self.cell = cell
+        self.isProcessingMessage = isProcessingMessage
+        self.prior = None
+
+    @staticmethod
+    def get():
+        return getattr(_cur_computing_cell, 'cell', None)
+
+    @staticmethod
+    def isProcessingMessage():
+        return getattr(_cur_computing_cell, 'isProcessingMessage', None)
+
+    def __enter__(self):
+        self.prior = (
+            getattr(_cur_computing_cell, 'cell', None),
+            getattr(_cur_computing_cell, 'isProcessingMessage', None)
+        )
+
+        _cur_computing_cell.cell = self.cell
+        _cur_computing_cell.isProcessingMessage = self.isProcessingMessage
+
+
+    def __exit__(self, *args):
+        _cur_computing_cell.cell = self.prior[0]
+        _cur_computing_cell.isProcessingMessage = self.prior[1]
+
+
 
 
 def registerDisplay(type, **context):
@@ -71,10 +104,10 @@ def registerDisplay(type, **context):
 
 def context(contextKey):
     """During cell evaluation, lookup context from our parent cell by name."""
-    if not hasattr(_cur_cell, "cell"):
+    if ComputingCellContext.get() is None:
         raise Exception("Please call 'context' from within a message or cell update function.")
 
-    return _cur_cell.cell.getContext(contextKey)
+    return ComputingCellContext.get().getContext(contextKey)
 
 
 def quoteForJs(string, quoteType):
@@ -89,7 +122,7 @@ def wrapCallback(callback):
 
     This must be called from within a 'cell' or message update.
     """
-    cells = _cur_cell.cell.cells
+    cells = ComputingCellContext.get().cells
 
     def realCallback(*args, **kwargs):
         cells.scheduleCallback(lambda: callback(*args, **kwargs))
@@ -269,13 +302,14 @@ class Cells:
         """ Given the updates coming from a transaction, update self._subscribedCells. """
         for k in list(key_value) + list(set_adds) + list(set_removes):
             if k in self._subscribedCells:
-
                 self._subscribedCells[k] = set(
                     cell for cell in self._subscribedCells[k] if not cell.garbageCollected
                 )
 
-                for cell in self._subscribedCells[k]:
-                    cell.markDirty()
+                toTrigger = list(self._subscribedCells[k])
+
+                for cell in toTrigger:
+                    cell.subscribedOdbValueChanged(k)
 
                 if not self._subscribedCells[k]:
                     del self._subscribedCells[k]
@@ -472,55 +506,49 @@ class Cells:
 
         origChildren = self._cellsKnownChildren.get(node.identity, set())
 
-        try:
-            _cur_cell.cell = node
-            _cur_cell.isProcessingMessage = False
-            _cur_cell.isProcessingCell = True
-            while True:
-                try:
-                    node.prepare()
-                    node.recalculate()
+        with ComputingCellContext(node):
+            try:
+                while True:
+                    try:
+                        node.prepare()
+                        node.recalculate()
 
-                    if not node.wasCreated:
-                        # if a cell is marked to broadcast it is either new or has
-                        # been updated. Hence, if it's not new here that means it's
-                        # to be updated.
-                        node.wasUpdated = True
-                    break
-                except SubscribeAndRetry as e:
-                    e.callback(self.db)
+                        if not node.wasCreated:
+                            # if a cell is marked to broadcast it is either new or has
+                            # been updated. Hence, if it's not new here that means it's
+                            # to be updated.
+                            node.wasUpdated = True
+                        break
+                    except SubscribeAndRetry as e:
+                        e.callback(self.db)
 
-            for child_cell in node.children.allChildren:
-                # TODO: We are going to have to update this
-                # to deal with namedChildren structures (as opposed
-                # to plain children dicts) in the near future.
-                if not isinstance(child_cell, Cell):
-                    childname = node.children.findNameFor(child_cell)
-                    raise Exception(
-                        "Cell of type %s had a non-cell child %s of type %s != Cell."
-                        % (type(node), childname, type(child_cell))
-                    )
+                for child_cell in node.children.allChildren:
+                    # TODO: We are going to have to update this
+                    # to deal with namedChildren structures (as opposed
+                    # to plain children dicts) in the near future.
+                    if not isinstance(child_cell, Cell):
+                        childname = node.children.findNameFor(child_cell)
+                        raise Exception(
+                            "Cell of type %s had a non-cell child %s of type %s != Cell."
+                            % (type(node), childname, type(child_cell))
+                        )
 
-                if child_cell.cells:
-                    # ensure all new children that were garbage collected get marked for
-                    # re-use so that we can add them back in.
-                    child_cell.prepareForReuse()
-                    # TODO: lifecycle attribute; see cell.updateLifecycleState()
-                    child_cell.wasRemoved = False
+                    if child_cell.cells:
+                        # ensure all new children that were garbage collected get marked for
+                        # re-use so that we can add them back in.
+                        child_cell.prepareForReuse()
+                        # TODO: lifecycle attribute; see cell.updateLifecycleState()
+                        child_cell.wasRemoved = False
 
-        except Exception:
-            self._logger.error(
-                "Node %s had exception during recalculation:\n%s", node, traceback.format_exc()
-            )
-            self._logger.error(
-                "Subscribed cell threw an exception:\n%s", traceback.format_exc()
-            )
-            tracebackCell = Traceback(traceback.format_exc())
-            node.children["content"] = tracebackCell
-        finally:
-            _cur_cell.cell = None
-            _cur_cell.isProcessingMessage = False
-            _cur_cell.isProcessingCell = False
+            except Exception:
+                self._logger.error(
+                    "Node %s had exception during recalculation:\n%s", node, traceback.format_exc()
+                )
+                self._logger.error(
+                    "Subscribed cell threw an exception:\n%s", traceback.format_exc()
+                )
+                tracebackCell = Traceback(traceback.format_exc())
+                node.children["content"] = tracebackCell
 
         self.markToBroadcast(node.rootMergeNode())
 
@@ -565,13 +593,6 @@ class Slot:
         self._subscribedCells = set()
         self._lock = threading.Lock()
 
-        # mark the cells object present when we were created so we can trigger
-        # it when we get updated.
-        if hasattr(_cur_cell, "cell") and _cur_cell.cell is not None:
-            self._cells = _cur_cell.cell.cells
-        else:
-            self._cells = None
-
     def setter(self, val):
         return lambda: self.set(val)
 
@@ -583,10 +604,9 @@ class Slot:
         with self._lock:
             # we can only create a dependency if we're being read
             # as part of a cell's state recalculation.
-            if getattr(_cur_cell, "cell", None) is not None and getattr(
-                _cur_cell, "isProcessingCell", False
-            ):
-                self._subscribedCells.add(_cur_cell.cell)
+            curCell = ComputingCellContext.get()
+            if curCell is not None and not ComputingCellContext.isProcessingMessage():
+                self._subscribedCells.add(curCell)
 
             return self._value
 
@@ -603,11 +623,11 @@ class Slot:
 
             self._value = val
 
-            for c in self._subscribedCells:
-                logging.debug("Setting value %s triggering cell %s", val, c)
-                c.markDirty()
-
+            toTrigger = self._subscribedCells
             self._subscribedCells = set()
+
+            for c in toTrigger:
+                c.subscribedSlotChanged(self)
 
     def toggle(self):
         self.set(not self.get())
@@ -720,6 +740,14 @@ class Cell:
         # components will need to know about
         # when composing DOM.
         self.exportData = {}
+
+    def subscribedSlotChanged(self, slot):
+        """Called when a slot we're subscribed to changes."""
+        self.markDirty()
+
+    def subscribedOdbValueChanged(self, odbKey):
+        """Called when an object database key we depend on changes."""
+        self.markDirty()
 
     def rootMergeNode(self):
         """Return the root node we're merged into, or ourself if we're not merged."""
@@ -918,31 +946,24 @@ class Cell:
         tries = 0
         t0 = time.time()
         while True:
-            try:
-                _cur_cell.cell = self
-                _cur_cell.isProcessingMessage = True
-                _cur_cell.isProcessingCell = False
-
-                with self.transaction():
-                    self.onMessage(*args)
+            with ComputingCellContext(self, isProcessingMessage=True):
+                try:
+                    with self.transaction():
+                        self.onMessage(*args)
+                        return
+                except RevisionConflictException:
+                    tries += 1
+                    if tries > MAX_TRIES or time.time() - t0 > MAX_TIMEOUT:
+                        self._logger.error("OnMessage timed out. This should really fail.")
+                        return
+                except Exception:
+                    self._logger.error(
+                        "Exception processing message %s to cell %s logic:\n%s",
+                        args,
+                        self,
+                        traceback.format_exc(),
+                    )
                     return
-            except RevisionConflictException:
-                tries += 1
-                if tries > MAX_TRIES or time.time() - t0 > MAX_TIMEOUT:
-                    self._logger.error("OnMessage timed out. This should really fail.")
-                    return
-            except Exception:
-                self._logger.error(
-                    "Exception processing message %s to cell %s logic:\n%s",
-                    args,
-                    self,
-                    traceback.format_exc(),
-                )
-                return
-            finally:
-                _cur_cell.cell = None
-                _cur_cell.isProcessingMessage = False
-                _cur_cell.isProcessingCell = False
 
     def withSerializationContext(self, context):
         self.serializationContext = context
@@ -1839,16 +1860,17 @@ class ContextualDisplay(Cell):
 
 
 class Subscribed(Cell):
-    def __init__(self, f):
+    def __init__(self, cellFactory, childIdentity=0):
         super().__init__()
 
         # a function of no arguments that proces a cell.
         # we call it and watch which view values it reads to know
         # when to recalculate the element.
-        self.cellFactory = f
+        self.cellFactory = cellFactory
+        self.childIdentity = childIdentity
 
     def identityOfChild(self, child):
-        return 0
+        return self.childIdentity
 
     def rootSequenceOfOrientation(self, orientation):
         return self.parent.rootSequenceOfOrientation(orientation)
@@ -2727,6 +2749,7 @@ class CodeEditor(Cell):
         fontSize=None,
         autocomplete=True,
         onTextChange=None,
+        textToDisplayFunction=lambda: ""
     ):
         """Create a code editor
 
@@ -2740,17 +2763,20 @@ class CodeEditor(Cell):
 
         onTextChange - called when the text buffer changes with the new buffer
             and a json selection.
+
+        textToDisplayFunction - a function of no arguments that should return
+            the current text we _ought_ to be displaying.
         """
         super().__init__()
         # contains (current_iteration_number: int, text: str)
-        self._slot = Slot((0, ""))
+        self.currentIteration = 0
         self.keybindings = keybindings or {}
         self.noScroll = noScroll
         self.fontSize = fontSize
         self.minLines = minLines
         self.autocomplete = autocomplete
         self.onTextChange = onTextChange
-        self.initialText = ""
+        self.textToDisplayFunction = textToDisplayFunction
 
         # All CodeEditors will be
         # flexed inside of Sequences,
@@ -2759,70 +2785,100 @@ class CodeEditor(Cell):
         self.isFlex = True
         self.exportData["flexChild"] = True
 
-    def getContents(self):
-        return self._slot.get()[1]
-
-    def setContents(self, contents):
-        newSlotState = (self._slot.getWithoutRegisteringDependency()[0] + 1000000, contents)
-        self._slot.set(newSlotState)
-        self.sendCurrentStateToBrowser(newSlotState)
-
     def onMessage(self, msgFrame):
         if msgFrame["event"] == "keybinding":
             self.keybindings[msgFrame["key"]](msgFrame["buffer"], msgFrame["selection"])
+
         elif msgFrame["event"] == "editing":
-            if self.onTextChange:
-                self._slot.set(
-                    (self._slot.getWithoutRegisteringDependency()[0] + 1, msgFrame["buffer"])
-                )
-                self.onTextChange(msgFrame["buffer"], msgFrame["selection"])
+            if (
+                msgFrame['iteration'] is not None and self.onTextChange
+                and self.currentIteration < msgFrame['iteration']
+            ):
+                if msgFrame["buffer"] is not None:
+                    self.exportData["initialText"] = msgFrame["buffer"]
+                    self.onTextChange(msgFrame["buffer"], msgFrame["selection"])
+                    self.currentIteration = msgFrame['iteration']
+
+                self.selectionSlot.set(msgFrame["selection"])
+
+    def setCurrentTextFromServer(self, text):
+        if text is None:
+            text = ""
+
+        # prevent firing an event to the client if the text isn't actually
+        # different than what we know locally.
+        if text == self.exportData["initialText"]:
+            return
+
+        self.exportData["initialText"] = text
+
+        self.currentIteration += 1000000
+
+        self.triggerPostscript(f"""
+            console.log("Setting contents to __text__")
+
+            aceEditorComponents['editor__identity__'].setTextFromServer(
+                __iteration__,
+                "__text__",
+            )
+            """.replace("__identity__", self.identity)
+            .replace("__text__", quoteForJs(text, '"'))
+            .replace("__iteration__", str(self.currentIteration))
+        )
+
+    def updateFromCallback(self):
+        self.setCurrentTextFromServer(self.calculateCurrentText())
+
+    def subscribedSlotChanged(self, slot):
+        """Override the way we respond to a slot changing.
+
+        Instead of recalculating, which would rebuild the component, we
+        simply send a message to the server. Eventually this will used the 'data changed'
+        channel
+        """
+        # we can't calculate this directly because we're on a message processing thread
+        self.cells.scheduleCallback(self.updateFromCallback)
+
+    def subscribedOdbValueChanged(self, odbKey):
+        """Override the way we respond to an odb value changing.
+
+        Instead of recalculating, which would rebuild the component, we
+        simply send a message to the server. Eventually this will used the 'data changed'
+        channel
+        """
+        # we can't calculate this directly because we're on a message processing thread
+        self.cells.scheduleCallback(self.updateFromCallback)
+
+    def calculateCurrentText(self):
+        """Calculate the text we're supposed to display (according to the server)
+
+        as part of this change, look at which values changed and make sure we subscribe
+        correctly to them.
+        """
+        with ComputingCellContext(self):
+            with self.view() as v:
+                try:
+                    return self.textToDisplayFunction()
+                finally:
+                    self._resetSubscriptionsToViewReads(v)
+
+    @property
+    def selectionSlot(self):
+        return sessionState()._slotFor(self.identityPath + ("CodeEditorState",))
 
     def recalculate(self):
-        # temporary js WS refactoring data
-        self.exportData["initialText"] = self.initialText
+        self.exportData["initialText"] = self.calculateCurrentText()
+        self.exportData["currentIteration"] = self.currentIteration
+        self.exportData["initialSelection"] = self.selectionSlot.getWithoutRegisteringDependency()
         self.exportData["autocomplete"] = self.autocomplete
         self.exportData["noScroll"] = self.noScroll
+
         if self.fontSize is not None:
             self.exportData["fontSize"] = self.fontSize
         if self.minLines is not None:
             self.exportData["minLines"] = self.minLines
+
         self.exportData["keybindings"] = [k for k in self.keybindings.keys()]
-
-    def sendCurrentStateToBrowser(self, newSlotState):
-        if self.cells is not None:
-            # if self.identity is None, then we have not been installed in the tree yet
-            # so sending ourselves a message makes no sense.
-            self.triggerPostscript(
-                """
-                var editor = aceEditors["editor__identity__"]
-
-                editor.last_edit_millis = Date.now()
-                editor.current_iteration = __iteration__;
-
-                curRange = editor.selection.getRange()
-                var Range = require('ace/range').Range
-                var range = new Range(curRange.start.row,
-                                      curRange.start.column,
-                                      curRange.end.row,
-                                      curRange.end.column)
-
-                newText = "__text__";
-
-                console.log("Resetting editor text to " + newText.length
-                    + " because it changed on the server" +
-                    " Cur iteration is __iteration__.")
-
-                editor.setValue(newText, 1)
-                editor.selection.setRange(range)
-
-                """.replace(
-                    "__identity__", self.identity
-                )
-                .replace("__text__", quoteForJs(newSlotState[1], '"'))
-                .replace("__iteration__", str(newSlotState[0]))
-            )
-        else:
-            self.initialText = newSlotState[1]
 
 
 class OldSheet(Cell):

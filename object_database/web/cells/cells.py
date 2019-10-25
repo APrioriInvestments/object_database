@@ -29,7 +29,6 @@ from object_database.web.cells.children import Children
 
 from inspect import signature
 
-from object_database import MaskView
 from object_database.view import RevisionConflictException
 from object_database.view import current_transaction
 from object_database.util import Timer
@@ -50,27 +49,24 @@ class ComputingCellContext:
 
     @staticmethod
     def get():
-        return getattr(_cur_computing_cell, 'cell', None)
+        return getattr(_cur_computing_cell, "cell", None)
 
     @staticmethod
     def isProcessingMessage():
-        return getattr(_cur_computing_cell, 'isProcessingMessage', None)
+        return getattr(_cur_computing_cell, "isProcessingMessage", None)
 
     def __enter__(self):
         self.prior = (
-            getattr(_cur_computing_cell, 'cell', None),
-            getattr(_cur_computing_cell, 'isProcessingMessage', None)
+            getattr(_cur_computing_cell, "cell", None),
+            getattr(_cur_computing_cell, "isProcessingMessage", None),
         )
 
         _cur_computing_cell.cell = self.cell
         _cur_computing_cell.isProcessingMessage = self.isProcessingMessage
 
-
     def __exit__(self, *args):
         _cur_computing_cell.cell = self.prior[0]
         _cur_computing_cell.isProcessingMessage = self.prior[1]
-
-
 
 
 def registerDisplay(type, **context):
@@ -542,7 +538,9 @@ class Cells:
 
             except Exception:
                 self._logger.error(
-                    "Node %s had exception during recalculation:\n%s", node, traceback.format_exc()
+                    "Node %s had exception during recalculation:\n%s",
+                    node,
+                    traceback.format_exc(),
                 )
                 self._logger.error(
                     "Subscribed cell threw an exception:\n%s", traceback.format_exc()
@@ -828,8 +826,8 @@ class Cell:
             return ()
 
         if self._identityPath is None:
-            self._identityPath = (
-                self.parent.identityPath + (self.parent.identityOfChild(self),)
+            self._identityPath = self.parent.identityPath + (
+                self.parent.identityOfChild(self),
             )
 
         return self._identityPath
@@ -2750,7 +2748,7 @@ class CodeEditor(Cell):
         readOnly=False,
         autocomplete=True,
         onTextChange=None,
-        textToDisplayFunction=lambda: ""
+        textToDisplayFunction=lambda: "",
     ):
         """Create a code editor
 
@@ -2793,13 +2791,14 @@ class CodeEditor(Cell):
 
         elif msgFrame["event"] == "editing":
             if (
-                msgFrame['iteration'] is not None and self.onTextChange
-                and self.currentIteration < msgFrame['iteration']
+                msgFrame["iteration"] is not None
+                and self.onTextChange
+                and self.currentIteration < msgFrame["iteration"]
             ):
                 if msgFrame["buffer"] is not None:
                     self.exportData["initialText"] = msgFrame["buffer"]
                     self.onTextChange(msgFrame["buffer"], msgFrame["selection"])
-                    self.currentIteration = msgFrame['iteration']
+                    self.currentIteration = msgFrame["iteration"]
 
                 self.selectionSlot.set(msgFrame["selection"])
 
@@ -2816,14 +2815,17 @@ class CodeEditor(Cell):
 
         self.currentIteration += 1000000
 
-        self.triggerPostscript(f"""
+        self.triggerPostscript(
+            f"""
             console.log("Setting contents to __text__")
 
             aceEditorComponents['editor__identity__'].setTextFromServer(
                 __iteration__,
                 "__text__",
             )
-            """.replace("__identity__", self.identity)
+            """.replace(
+                "__identity__", self.identity
+            )
             .replace("__text__", quoteForJs(text, '"'))
             .replace("__iteration__", str(self.currentIteration))
         )
@@ -2871,7 +2873,9 @@ class CodeEditor(Cell):
     def recalculate(self):
         self.exportData["initialText"] = self.calculateCurrentText()
         self.exportData["currentIteration"] = self.currentIteration
-        self.exportData["initialSelection"] = self.selectionSlot.getWithoutRegisteringDependency()
+        self.exportData[
+            "initialSelection"
+        ] = self.selectionSlot.getWithoutRegisteringDependency()
         self.exportData["autocomplete"] = self.autocomplete
         self.exportData["noScroll"] = self.noScroll
         self.exportData["readOnly"] = self.readOnly

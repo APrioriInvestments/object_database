@@ -198,7 +198,7 @@ class TextEditorService(ServiceBase):
             noScroll=True,
             minLines=50,
             onTextChange=onTextChange,
-            textToDisplayFunction=textToDisplay
+            textToDisplayFunction=textToDisplay,
         )
 
         def makePlotData():

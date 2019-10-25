@@ -98,7 +98,7 @@ class CellsTestService(ServiceBase):
                 noScroll=True,
                 minLines=20,
                 onTextChange=lambda buffer, selection: contentsBuffer.set(buffer),
-                textToDisplayFunction=lambda: contentsBuffer.get()
+                textToDisplayFunction=lambda: contentsBuffer.get(),
             )
 
             description = page.text()

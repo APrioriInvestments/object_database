@@ -347,7 +347,9 @@ class ActiveWebService(ServiceBase):
                     lastDumpMessages += 1
 
                 if bytesSent > 100 * 1024:
-                    self._logger.info("Sent a large message packet of %.2f mb", bytesSent / 1024.0**2)
+                    self._logger.info(
+                        "Sent a large message packet of %.2f mb", bytesSent / 1024.0 ** 2
+                    )
 
                 lastDumpFrames += 1
                 # log slow messages

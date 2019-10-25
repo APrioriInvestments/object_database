@@ -37,12 +37,12 @@ class KeyAction(Cell):
     Parameters
     __________
     keyCmd str: A string of a key combo like `Alt+i`, `Meta+D`
-                or event single keys like `X`.
+                or event single keys like `X`. "all" means send all key events.
     callback func: A function that will be called with the
                 event response dictionary data as the sole arg.
     wantedInfo list of str: A list of keys on the UI keydown event object
                 whose values should be sent back to the Cell in the response
-                message. Optional; defaults to None.
+                message. Optional; defaults to None
     priority int: The priority level of the event response.
     stopsPropagation bool: Whether or not this KeyAction should fire and then
                 stop other KeyActions with the same keyCmd from firing
@@ -61,7 +61,7 @@ class KeyAction(Cell):
         self.shouldDisplay = False
         self.keyCmd = keyCmd
         self.callback = callback
-        self.wantedInfo = wantedInfo
+        self.wantedInfo = wantedInfo or ()
         self.priority = priority
         self.stopsPropagation = stopsPropagation
 

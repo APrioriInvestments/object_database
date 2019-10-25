@@ -43,6 +43,10 @@ class KeyAction extends Component {
             throw new Error(`KeyAction(${this.props.id}) attempted to register with the KeyListener but there was no contstructor instance found!`);
         }
     }
+
+    componentWillUnload() {
+        this.constructor.keyListener.deregister(this.props.id)
+    }
 }
 
 export {KeyAction, KeyAction as default};

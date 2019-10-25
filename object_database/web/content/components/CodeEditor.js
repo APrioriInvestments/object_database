@@ -62,6 +62,10 @@ class CodeEditor extends Component {
                 this.editor.setOption("maxLines", Infinity);
             }
 
+            if (this.props.readOnly) {
+                this.editor.setReadOnly(true);
+            }
+
             if (this.props.fontSize !== undefined) {
                 this.editor.setOption("fontSize", this.props.fontSize);
             }
@@ -177,8 +181,8 @@ class CodeEditor extends Component {
     }
 
     installChangeHandlers() {
-        this.editor.on('focus', this._onFocus);
-        this.editor.on('blur', this._onBlur);
+        //this.editor.on('focus', this._onFocus);
+        //this.editor.on('blur', this._onBlur);
 
         //any time we do anything, update the server
         this.editor.selection.on("changeCursor", this.onChange)
@@ -250,6 +254,11 @@ CodeEditor.propTypes = {
 
     noScroll: {
         description: "If true, sets Ace Editor's maxLines to Infinity",
+        type: PropTypes.boolean
+    },
+
+    readOnly: {
+        description: "If true, sets Ace Editor's readOnly to True",
         type: PropTypes.boolean
     },
 

@@ -205,6 +205,8 @@ class NewCellHandler {
     cellDiscarded(message){
         let found = this.activeComponents[message.id];
         if(found){
+            found.componentWillUnload()
+
             delete this.activeComponents[message.id];
         }
         return found;

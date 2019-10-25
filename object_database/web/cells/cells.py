@@ -2747,6 +2747,7 @@ class CodeEditor(Cell):
         noScroll=False,
         minLines=None,
         fontSize=None,
+        readOnly=False,
         autocomplete=True,
         onTextChange=None,
         textToDisplayFunction=lambda: ""
@@ -2774,6 +2775,7 @@ class CodeEditor(Cell):
         self.noScroll = noScroll
         self.fontSize = fontSize
         self.minLines = minLines
+        self.readOnly = readOnly
         self.autocomplete = autocomplete
         self.onTextChange = onTextChange
         self.textToDisplayFunction = textToDisplayFunction
@@ -2872,6 +2874,7 @@ class CodeEditor(Cell):
         self.exportData["initialSelection"] = self.selectionSlot.getWithoutRegisteringDependency()
         self.exportData["autocomplete"] = self.autocomplete
         self.exportData["noScroll"] = self.noScroll
+        self.exportData["readOnly"] = self.readOnly
 
         if self.fontSize is not None:
             self.exportData["fontSize"] = self.fontSize
@@ -3269,6 +3272,27 @@ class Panel(Cell):
         """
         super().__init__()
 
+        self.content = Cell.makeCell(content)
+
+    def recalculate(self):
+        self.children["content"] = Cell.makeCell(self.content)
+
+
+class Highlighted(Cell):
+    """Highlighted
+
+    This cell acts as a generic, highlighted container.
+    It has a single child Cell element which is displayed.
+
+    Properties
+    ----------
+    content: Cell
+        A child cell that will be displayed within
+        the bordered Panel area.
+    """
+
+    def __init__(self, content):
+        super().__init__()
         self.content = Cell.makeCell(content)
 
     def recalculate(self):

@@ -96,7 +96,7 @@ class KeyListener {
         if(socket){
             this.socket = socket;
         }
-        this._target.addEventListener('keydown', this.mainListener);
+        this._target.addEventListener('keydown', this.mainListener, {'capture': true});
     }
 
     /**
@@ -128,6 +128,10 @@ class KeyListener {
                 let currentBinding = bindings[j];
                 let shouldStop = currentBinding.handle(event);
                 if(shouldStop){
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
+                    event.preventDefault();
+                    event.cancelBubble=true;
                     return;
                 }
             }
@@ -199,7 +203,7 @@ class KeyListener {
                 let updated = current.filter(item => {
                     return !found.includes(item);
                 });
-                this.listenersByPriority[priorityLevel] = current;
+                this.listenersByPriority[priorityLevel] = updated;
             });
             delete this.listenersByCellId[cellId];
         }
@@ -308,7 +312,7 @@ class KeyBinding {
      * other cases.
      */
     handleSingleKey(event, keyName){
-        if(event.key == keyName){
+        if(event.key == keyName || keyName == "all"){
             this.listener(event);
             return this.stopsPropagation;
         } else {

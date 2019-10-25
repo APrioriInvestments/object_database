@@ -337,6 +337,12 @@ td.row-index-item {
     display: flex;
 }
 
+/* Highlight
+ * ============================================================== */
+.cell-highlighted {
+    background-color: lightgray;
+}
+
 /* Panel
  * ============================================================== */
 .cell-panel {

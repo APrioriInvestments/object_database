@@ -24,6 +24,7 @@ import json
 import psutil
 import resource
 import threading
+import socket
 
 from object_database.util import genToken, validateLogLevel
 from object_database import ServiceBase, service_schema
@@ -276,6 +277,8 @@ class ActiveWebService(ServiceBase):
 
     @login_required
     def mainSocket(self, ws, path):
+        ws.stream.handler.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
+
         path = str(path).split("/")
         queryArgs = dict(request.args.items())
 
@@ -331,68 +334,72 @@ class ActiveWebService(ServiceBase):
 
                 messages = cells.renderMessages()
 
-                lastDumpTimeSpentCalculating += time.time() - t0
+                if messages:
+                    lastDumpTimeSpentCalculating += time.time() - t0
 
-                if isFirstMessage:
-                    self._logger.info("Completed first rendering loop")
-                    isFirstMessage = False
+                    if isFirstMessage:
+                        self._logger.info("Completed first rendering loop")
+                        isFirstMessage = False
 
-                bytesSent = 0
+                    bytesSent = 0
 
-                for message in messages:
-                    gevent.socket.wait_write(ws.stream.handler.socket.fileno())
+                    for message in messages:
+                        gevent.socket.wait_write(ws.stream.handler.socket.fileno())
 
-                    bytesSent += writeJsonMessage(message, ws, largeMessageAck, self._logger)
+                        bytesSent += writeJsonMessage(
+                            message, ws, largeMessageAck, self._logger
+                        )
 
-                    lastDumpMessages += 1
+                        lastDumpMessages += 1
 
-                if bytesSent > 100 * 1024:
-                    self._logger.info(
-                        "Sent a large message packet of %.2f mb", bytesSent / 1024.0 ** 2
-                    )
+                    if bytesSent > 100 * 1024:
+                        self._logger.info(
+                            "Sent a large message packet of %.2f mb", bytesSent / 1024.0 ** 2
+                        )
 
-                lastDumpFrames += 1
-                # log slow messages
-                if time.time() - lastDumpTimestamp > 60.0:
-                    self._logger.info(
-                        "In the last %.2f seconds, spent %.2f seconds"
-                        " calculating %s messages over %s frames",
-                        time.time() - lastDumpTimestamp,
-                        lastDumpTimeSpentCalculating,
-                        lastDumpMessages,
-                        lastDumpFrames,
-                    )
+                    lastDumpFrames += 1
+                    # log slow messages
+                    if time.time() - lastDumpTimestamp > 60.0:
+                        self._logger.info(
+                            "In the last %.2f seconds, spent %.2f seconds"
+                            " calculating %s messages over %s frames",
+                            time.time() - lastDumpTimestamp,
+                            lastDumpTimeSpentCalculating,
+                            lastDumpMessages,
+                            lastDumpFrames,
+                        )
 
-                    lastDumpFrames = 0
-                    lastDumpMessages = 0
-                    lastDumpTimeSpentCalculating = 0
-                    lastDumpTimestamp = time.time()
+                        lastDumpFrames = 0
+                        lastDumpMessages = 0
+                        lastDumpTimeSpentCalculating = 0
+                        lastDumpTimestamp = time.time()
 
-                # tell the browser to execute the postscripts that its built up
-                writeJsonMessage("postscripts", ws, largeMessageAck, self._logger)
+                    # tell the browser to execute the postscripts that its built up
+                    writeJsonMessage("postscripts", ws, largeMessageAck, self._logger)
 
-                # request an ACK from the browser before sending any more data
-                # otherwise it can get overloaded and crash because it can't
-                # keep up with the data volume
-                writeJsonMessage("request_ack", ws, largeMessageAck, self._logger)
+                    # request an ACK from the browser before sending any more data
+                    # otherwise it can get overloaded and crash because it can't
+                    # keep up with the data volume
+                    writeJsonMessage("request_ack", ws, largeMessageAck, self._logger)
 
-                ack = largeMessageAck.get()
-                if ack is StopIteration:
-                    raise Exception("Websocket closed.")
+                    ack = largeMessageAck.get()
+
+                    if ack is StopIteration:
+                        raise Exception("Websocket closed.")
+
+                    timestamps.append(time.time())
+
+                    if len(timestamps) > MAX_FPS:
+                        timestamps = timestamps[-MAX_FPS + 1 :]
+                        if (time.time() - timestamps[0]) < 1.0:
+                            maxTime = time.time() + 1.0 / MAX_FPS + 0.001
+
+                            while time.time() < maxTime:
+                                sleep(0.01)
+                                if ws.closed:
+                                    return
 
                 cells.wait()
-
-                timestamps.append(time.time())
-
-                if len(timestamps) > MAX_FPS:
-                    timestamps = timestamps[-MAX_FPS + 1 :]
-                    if (time.time() - timestamps[0]) < 1.0:
-                        maxTime = time.time() + 1.0 / MAX_FPS + 0.001
-
-                        while time.time() < maxTime:
-                            sleep(0.01)
-                            if ws.closed:
-                                return
 
         except Exception:
             self._logger.error("Websocket handler error: %s", traceback.format_exc())

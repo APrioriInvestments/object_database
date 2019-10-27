@@ -25,7 +25,13 @@ class Sheet extends Component {
         // columns/rows
         this.max_num_rows = null;
         this.max_num_columns = null;
+        this.cursor_target_data = null;
         this.offset = 1;
+        // this.frame defines the coordinates of the current data view frame
+        this.frame = {
+            upper_left: {x: 0, y: 0},
+            lower_right: {x: null, y:null}
+        }
         this.current_start_row_index = null;
         this.current_end_row_index = null;
         this.current_start_column_index = null;
@@ -33,19 +39,19 @@ class Sheet extends Component {
 
         // scrolling attributes used to guage the direction of key scrolling and offset
         // then top/bottom appropriately
-        this.scrollTop = 0;
-        this.scrollLeft = 0;
+        // this.scrollTop = 0;
+        // this.scrollLeft = 0;
 
         // Bind context to methods
         this.generate_rows = this.generate_rows.bind(this);
-        this.generate_header = this.generate_header.bind(this);
+        // this.generate_header = this.generate_header.bind(this);
         this.__updateDataAppend = this.__updateDataAppend.bind(this);
         this.__updateDataPrepend = this.__updateDataPrepend.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this._handleCoordInput = this._handleCoordInput.bind(this);
         this.paginate = this.paginate.bind(this);
         this.jump_to_cell = this.jump_to_cell.bind(this);
-        this.make_header_item_zero = this.make_header_item_zero.bind(this);
+        // this.make_header_item_zero = this.make_header_item_zero.bind(this);
 
     }
 
@@ -54,6 +60,7 @@ class Sheet extends Component {
         this.container = document.getElementById(this.props.id).parentNode;
         this.max_num_columns = this._calc_max_num_columns(this.container.offsetWidth);
         this.max_num_rows = this._calc_max_num_rows(this.container.offsetHeight);
+        this.frame.bottom_right {x: this.max_num_columns, y: max_num_rows};
         // console.log("max num of rows: " + this.max_num_rows)
         // console.log("max num of columns: " + this.max_num_columns)
         this.current_start_row_index = 0;
@@ -81,19 +88,20 @@ class Sheet extends Component {
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Sheet",
                 class: "cell sheet-wrapper",
-                scrollTop: this.scrollTop,
-                scrollLeft: this.scrollLeft
+                // scrollTop: this.scrollTop,
+                // scrollLeft: this.scrollLeft
             }, [
                 h("table", {
                     class: "sheet",
                     style: "table-layout:fixed",
                     tabindex: "-1",
-                    onkeydown: this.handleKeyDown
+                    onkeydown: this.handleKeyDown,
+                    onclick: this.handleClick
                 }, [
-                    h("thead", {}, [
-                        h("tr", {id: `sheet-${this.props.id}-head`}, [
-                        ])
-                    ]),
+                    // h("thead", {}, [
+                    //     h("tr", {id: `sheet-${this.props.id}-head`}, [
+                    //     ])
+                    // ]),
                     h("tbody", {id: `sheet-${this.props.id}-body`}, rows)
                 ])
             ])
@@ -101,6 +109,7 @@ class Sheet extends Component {
     }
 
     /* I am a special element that allows for sheet data navigation */
+    /*
     make_header_item_zero(){
         let style = `max-width: ${this.props.colWidth/2}px; width: ${this.props.colWidth/2}px`
         return h("th", {class: "header-item zero"},
@@ -110,6 +119,7 @@ class Sheet extends Component {
             ]
         )
     }
+    */
 
     /* I handle navigation by coordinate input. I will only call fetch data if
      * both x, y coordinates are filled with valid Number's
@@ -137,6 +147,7 @@ class Sheet extends Component {
 
 
     /* I generate the table header.*/
+    /*
     generate_header(column_names){
         let header = [];
         if (column_names === null){
@@ -147,12 +158,14 @@ class Sheet extends Component {
         })
         return header;
     }
+    */
 
     /* I generate the rows, including the passing in row indexes (which are
      * assumed to be element row[0])
      */
     generate_rows(data){
-        return data.map((item) => {
+        // TODO figure out how to deal with fixed rows/columns
+        return data.map((item, counter) => {
             return (
                 new SheetRow(
                     {
@@ -168,21 +181,46 @@ class Sheet extends Component {
     }
 
     /* I listen for arrow keys and call this.paginate when I see one. */
-
     handleKeyDown(event){
-        if (event.key === "ArrowUp"){
-            event.preventDefault();
-            this.paginate("row", "prepend")
-        } else if (event.key === "ArrowDown"){
-            event.preventDefault();
-            this.paginate("row", "append")
-            this.scrollTop = this.props.rowHeight;
-        } else if (event.key === "ArrowLeft"){
-            event.preventDefault();
-            this.paginate("column", "prepend")
-        } else if (event.key === "ArrowRight"){
-            event.preventDefault();
-            this.paginate("column", "append")
+        // make sure that we have an active cursor target
+        // otherwise there is no root for naviation
+        if (this.cursor_target_data !== null){
+            if (event.key === "ArrowUp"){
+                event.preventDefault();
+                if (this.cursor_target_data.y > 0){
+                    this.cursor_target_data.y -= 1;
+                }
+                // this.paginate("row", "prepend")
+            } else if (event.key === "ArrowDown"){
+                event.preventDefault();
+                if (this.cursor_target_data.y < this.props.totalRows - 1){
+                    this.cursor_target_data.y += 1;
+                }
+                // this.paginate("row", "append")
+                this.scrollTop = this.props.rowHeight;
+            } else if (event.key === "ArrowLeft"){
+                event.preventDefault();
+                if (this.cursor_target_data.x > 0){
+                    this.cursor_target_data.x -= 1;
+                }
+                // this.paginate("column", "prepend")
+            } else if (event.key === "ArrowRight"){
+                event.preventDefault();
+                if (this.cursor_target_data.x < this.props.totalColumns - 1){
+                    this.cursor_target_data.x += 1;
+                }
+                // this.paginate("column", "append")
+            }
+        }
+    }
+
+    /* I listen for clicks and trigger relevant pagination events.*/
+    handlClick(event){
+        let target = event.target;
+        this.cursor_target_data = {
+            x: target.properties['data-x'],
+            y: target.properties['data-y'],
+            text: target.textContent
         }
     }
 
@@ -442,7 +480,6 @@ class Sheet extends Component {
      * for the current view. For the moment we use window.innerHeight and
      * window.innerWidth divided by the number provided height and width of the
      * rows, columns, respecitively and then add a bit more for lazy loading.
-     * TODO: this uses the entire window which a table will almost never take up
      */
     _calc_max_num_rows(max_height){
         return Math.ceil(max_height/this.props.rowHeight + this.offset);
@@ -463,8 +500,20 @@ Sheet.propTypes = {
         description: "Width of the column (and cell) in pixels.",
         type: PropTypes.oneOf([PropTypes.number])
     },
-    rowCount: {
-        description: "Number of rows.",
+    numLockRows: {
+        description: "The number of initial (first) rows to lock in place.",
+        type: PropTypes.oneOf([PropTypes.number])
+    },
+    numLockColumns: {
+        description: "The number of initial (first) columns to lock in place.",
+        type: PropTypes.oneOf([PropTypes.number])
+    },
+    totalRows: {
+        description: "Total number of rows.",
+        type: PropTypes.oneOf([PropTypes.number])
+    },
+    totalColumns: {
+        description: "Total number of columns.",
         type: PropTypes.oneOf([PropTypes.number])
     },
     dontFetch: {
@@ -522,18 +571,20 @@ SheetRow.propTypes = {
 class SheetCell extends Component {
     constructor(props, ...args){
         super(props, ...args);
-        this.style = `max-width: ${this.props.width}px; width: ${this.props.width}px`
+        this.style = `max-width: ${this.props.width}px; width: ${this.props.width}px`;
+        this.class = "sheet-cell custom-tooltip";
 
         // Bind component methods
     }
 
     componentDidLoad(){
+        //TODO: check if cell is active and add proper styling
     }
 
     build(){
         return (
             h("td",
-                {class: "sheet-cell custom-tooltip", style: this.style},
+                {class: this.class, style: this.style},
                 [
                     h("span", {}, [this.props.data.toString()]),
                     h("span", {class: "tooltiptext"}, [this.props.data.toString()]),

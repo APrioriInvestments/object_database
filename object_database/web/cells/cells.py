@@ -2697,13 +2697,25 @@ class Expands(Cell):
         self.openedIcon = openedIcon or Octicon("diff-removed")
         self.closedIcon = closedIcon or Octicon("diff-added")
 
+        # if we get 'isExpanded' written to before we get calculated, we write here.
+        self.toWrite = None
+
     @property
     def isExpanded(self):
-        return sessionState().get(self.identityPath + ("ExpandState",)) or False
+        if self.toWrite is not None:
+            return self.toWrite
+
+        return self.getContext(SessionState).get(self.identityPath + ("ExpandState",)) or False
 
     @isExpanded.setter
     def isExpanded(self, isExpanded):
-        return sessionState().set(self.identityPath + ("ExpandState",), bool(isExpanded))
+        if self.cells is None:
+            self.toWrite = isExpanded
+            return
+
+        return self.getContext(SessionState).set(
+            self.identityPath + ("ExpandState",), bool(isExpanded)
+        )
 
     def sortsAs(self):
         if self.isExpanded:
@@ -2711,6 +2723,10 @@ class Expands(Cell):
         return self.closed.sortsAs()
 
     def recalculate(self):
+        if self.toWrite is not None:
+            self.isExpanded = self.toWrite
+            self.toWrite = None
+
         inlineScript = (
             "cellSocket.sendString(JSON.stringify({'event':'click', 'target_cell': '%s'}))"
             % self.identity

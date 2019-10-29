@@ -22,14 +22,6 @@ class NewBasicSheet(CellsTestPage):
         # Create the datasource
         datasource = [["{},{}".format(i, j) for j in range(100)] for i in range(10)]
 
-        def colFun(start_column, end_column, num_columns=10):
-            columns = []
-            if start_column >= num_columns:
-                return columns
-            for i in range(start_column, min(end_column, num_columns)):
-                columns.append("Column {}".format(i))
-            return columns
-
         def rowFun(start_row, end_row, start_column, end_column, num_rows=100, num_columns=10):
             rows = []
             if start_row >= num_rows or start_column >= num_columns:
@@ -42,7 +34,7 @@ class NewBasicSheet(CellsTestPage):
                 rows.append(r)
             return rows
 
-        return cells.Sheet(colFun, rowFun, colWidth=75, rowHeight=30)
+        return cells.Sheet(rowFun, colWidth=75, rowHeight=30)
 
     def text(self):
         return "Basic demo on 10x100 datasource"
@@ -52,14 +44,6 @@ class NewBasicSheetWithDelay(CellsTestPage):
     def cell(self):
         # Create the datasource
         datasource = [["{},{}".format(i, j) for j in range(100)] for i in range(10)]
-
-        def colFun(start_column, end_column, num_columns=10):
-            columns = []
-            if start_column >= num_columns:
-                return columns
-            for i in range(start_column, min(end_column, num_columns)):
-                columns.append("Column {}".format(i))
-            return columns
 
         def rowFun(start_row, end_row, start_column, end_column, num_rows=100, num_columns=10):
             rows = []
@@ -74,7 +58,7 @@ class NewBasicSheetWithDelay(CellsTestPage):
             time.sleep(0.2)
             return rows
 
-        return cells.Sheet(colFun, rowFun, colWidth=75, rowHeight=30)
+        return cells.Sheet(rowFun, colWidth=75, rowHeight=30)
 
     def text(self):
         return "Basic demo on 10x100 datasource, with a 0.2s delay"
@@ -83,14 +67,6 @@ class NewBasicSheetWithDelay(CellsTestPage):
 class BasicSheet(CellsTestPage):
     def cell(self):
         num_columns = 3
-
-        def colFun(start_column, end_column, num_columns=num_columns):
-            columns = []
-            if start_column >= num_columns:
-                return columns
-            for i in range(start_column, min(end_column, num_columns)):
-                columns.append("column_%s" % i)
-            return columns
 
         def rowFun(
             start_row, end_row, start_column, end_column, num_rows=100, num_columns=num_columns
@@ -107,7 +83,7 @@ class BasicSheet(CellsTestPage):
                 rows.append(r)
             return rows
 
-        return cells.Sheet(colFun, rowFun, colWidth=70, rowHeight=25)
+        return cells.Sheet(rowFun, colWidth=70, rowHeight=25)
 
     def text(self):
         return "You should see a basic sheet."
@@ -117,14 +93,6 @@ class BiggerSheet(CellsTestPage):
     def cell(self):
         num_columns = 300
         num_rows = 10000
-
-        def colFun(start_column, end_column, num_columns=num_columns):
-            columns = []
-            if start_column >= num_columns:
-                return columns
-            for i in range(start_column, min(end_column, num_columns)):
-                columns.append("column_%s" % i)
-            return columns
 
         def rowFun(
             start_row,
@@ -146,7 +114,7 @@ class BiggerSheet(CellsTestPage):
                 rows.append(r)
             return rows
 
-        return cells.Sheet(colFun, rowFun, colWidth=80)
+        return cells.Sheet(rowFun, colWidth=80)
 
     def text(self):
         return "You should see a bigger sheet."

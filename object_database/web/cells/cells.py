@@ -3061,11 +3061,8 @@ class OldSheet(Cell):
 class Sheet(Cell):
     """A spreadsheet viewer. The dataset must be static."""
 
-    def __init__(self, columnFun, rowFun, colWidth=50, rowHeight=30, onCellDblClick=None):
+    def __init__(self, rowFun, colWidth=50, rowHeight=30, onCellDblClick=None):
         """
-        columnFun:
-            function taking 'start' and 'end' integer column as arguments and
-            returns that returns a list of values to populate the header of the table
         rowFun:
             function taking integer 'start_row' and 'end_row' row indexes and
             'start_column' and 'end_column' that
@@ -3084,7 +3081,6 @@ class Sheet(Cell):
         super().__init__()
 
         self.rowFun = rowFun
-        self.columnFun = columnFun
         self.colWidth = colWidth
         self.rowHeight = rowHeight
         self.error = Slot(None)
@@ -3129,22 +3125,17 @@ class Sheet(Cell):
         # 1, using the old assumption
         # that rows would not come over with
         # their first column values set.
-        ROW_LEN_OFFSET = 0
+        # ROW_LEN_OFFSET = 0
 
         if msgFrame["event"] == "sheet_needs_data":
-            start_row = msgFrame["start_row"]
-            end_row = msgFrame["end_row"]
-            start_column = msgFrame["start_column"]
-            end_column = msgFrame["end_column"]
+            frame = msgFrame["frame"]
+            start_row = frame["top_left"]["y"]
+            end_row = frame["bottom_right"]["y"]
+            start_column = frame["top_left"]["x"]
+            end_column = frame["bottom_right"]["x"]
             rowsToSend = self.rowFun(start_row, end_row, start_column, end_column)
-            columnsToSend = self.columnFun(start_column, end_column)
-            if not all(
-                [len(columnsToSend) == (len(row) - ROW_LEN_OFFSET) for row in rowsToSend]
-            ):
-                self._logger.error("Sheet.rowFun generated rows don't match column length. ")
             dataInfo = {
                 "data": rowsToSend,
-                "column_names": columnsToSend,
                 "action": msgFrame["action"],
                 "axis": msgFrame["axis"],
             }

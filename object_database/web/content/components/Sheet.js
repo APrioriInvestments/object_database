@@ -29,8 +29,8 @@ class Sheet extends Component {
         this.offset = 1;
         // this.frame defines the coordinates of the current data view frame
         this.frame = {
-            upper_left: {x: 0, y: 0},
-            lower_right: {x: null, y:null}
+            top_left: {x: 0, y: 0},
+            bottom_right: {x: null, y:null}
         }
         this.current_start_row_index = null;
         this.current_end_row_index = null;
@@ -60,19 +60,15 @@ class Sheet extends Component {
         this.container = document.getElementById(this.props.id).parentNode;
         this.max_num_columns = this._calc_max_num_columns(this.container.offsetWidth);
         this.max_num_rows = this._calc_max_num_rows(this.container.offsetHeight);
-        this.frame.bottom_right {x: this.max_num_columns, y: max_num_rows};
-        // console.log("max num of rows: " + this.max_num_rows)
-        // console.log("max num of columns: " + this.max_num_columns)
-        this.current_start_row_index = 0;
-        this.current_start_column_index = 0;
-        this.current_end_row_index = this.max_num_rows + this.offset;
-        this.current_end_column_index = this.max_num_columns + this.offset;
+        this.frame.bottom_right = {x: this.max_num_columns, y: this.max_num_rows};
+        console.log(this.frame);
+        // this.current_start_row_index = 0;
+        // this.current_start_column_index = 0;
+        // this.current_end_row_index = this.max_num_rows + this.offset;
+        // this.current_end_column_index = this.max_num_columns + this.offset;
         if (this.props.dontFetch != true){
             this.fetchData(
-                this.current_start_row_index,
-                this.current_end_row_index,
-                this.current_start_column_index,
-                this.current_end_column_index,
+                this.frame,
                 "replace",
                 null
             );
@@ -130,15 +126,12 @@ class Sheet extends Component {
         let x_value = Number(x.value);
         let y_value = Number(y.value);
         if (x.value !== "" && !isNaN(x_value) && y.value !== "" && !isNaN(y_value)){
-            this.current_start_row_index = x_value;
-            this.current_start_column_index = y_value;
-            this.current_end_row_index = this.current_start_row_index + this.max_num_rows + this.offset;
-            this.current_end_column_index = this.current_start_column_index + this.max_num_columns + this.offset;
+            // this.current_start_row_index = x_value;
+            // this.current_start_column_index = y_value;
+            // this.current_end_row_index = this.current_start_row_index + this.max_num_rows + this.offset;
+            // this.current_end_column_index = this.current_start_column_index + this.max_num_columns + this.offset;
             this.fetchData(
-                this.current_start_row_index,
-                this.current_end_row_index,
-                this.current_start_column_index,
-                this.current_end_column_index,
+                this.frame,
                 "replace",
                 null
             )
@@ -237,10 +230,7 @@ class Sheet extends Component {
                     this.current_start_row_index = Math.max(this.current_start_row_index - this.offset, 0)
                     this.current_end_row_index = Math.max(this.current_end_row_index - this.offset, 0)
                     this.fetchData(
-                        this.current_start_row_index,
-                        this.current_start_row_index + this.offset,
-                        this.current_start_column_index,
-                        this.current_end_column_index,
+                        this.frame,
                         "prepend",
                         "row"
                     )
@@ -251,10 +241,7 @@ class Sheet extends Component {
                     this.current_start_column_index = Math.max(this.current_start_column_index - this.offset, 0)
                     this.current_end_column_index = Math.max(this.current_end_column_index - this.offset, 0)
                     this.fetchData(
-                        this.current_start_row_index,
-                        this.current_end_row_index,
-                        this.current_start_column_index,
-                        this.current_start_column_index + this.offset,
+                        this.frame,
                         "prepend",
                         "column"
                     )
@@ -263,10 +250,7 @@ class Sheet extends Component {
         } else if (action === "append") {
             if (axis === "row") {
                 this.fetchData(
-                    this.current_end_row_index,
-                    this.current_end_row_index + this.offset,
-                    this.current_start_column_index,
-                    this.current_end_column_index,
+                    this.frame,
                     "append",
                     "row"
                 )
@@ -274,10 +258,7 @@ class Sheet extends Component {
                 this.current_start_row_index = this.current_start_row_index + this.offset
             } else if (axis === "column") {
                 this.fetchData(
-                    this.current_start_row_index,
-                    this.current_end_row_index,
-                    this.current_end_column_index,
-                    this.current_end_column_index + this.offset,
+                    this.frame,
                     "append",
                     "column"
                 )
@@ -288,14 +269,11 @@ class Sheet extends Component {
     }
 
     /* I make WS requests to the server */
-    fetchData(start_row, end_row, start_column, end_column, action, axis){
+    fetchData(frame, action, axis){
         let request = JSON.stringify({
             event: "sheet_needs_data",
             target_cell: this.props.id,
-            start_row: start_row,
-            end_row: end_row,
-            start_column: start_column,
-            end_column: end_column,
+            frame: frame,
             action: action,
             axis: axis
         });
@@ -319,20 +297,20 @@ class Sheet extends Component {
                 while(body.firstChild){
                     body.firstChild.remove()
                 }
-                while(head.firstChild){
-                    head.firstChild.remove()
-                }
+                //  while(head.firstChild){
+                //    head.firstChild.remove()
+                //}
                 // NOTE: we add one more column to account for the row index
-                projector.append(head, () => {
-                    // return this.make_header_item_zero();
-                    return h("th", {class: "header-item"}, ["??"])
-                })
+                // projector.append(head, () => {
+                //    // return this.make_header_item_zero();
+                //    return h("th", {class: "header-item"}, ["??"])
+                // })
                 this.generate_rows(dataInfo.data).map((row) => {
                     projector.append(body, () => {return row})
                 })
-                this.generate_header(dataInfo.column_names).map((col) => {
-                    projector.append(head, () => {return col})
-                })
+                // this.generate_header(dataInfo.column_names).map((col) => {
+                //     projector.append(head, () => {return col})
+                // })
 
             } else if (dataInfo.action === "prepend") {
                 this.__updateDataPrepend(body, head, dataInfo, projector)
@@ -393,13 +371,13 @@ class Sheet extends Component {
                 }
             }
             // now the columns
-            for (let i = 0; i < dataInfo.column_names.length; i++){
-                  head.lastChild.remove();
-            }
-            let first_column = head.children[1]; // NOTE: this first element is a placehold
-            this.generate_header(dataInfo.column_names).map((col) => {
-                projector.insertBefore(first_column, () => {return col})
-            })
+            // for (let i = 0; i < dataInfo.column_names.length; i++){
+            //       head.lastChild.remove();
+            // }
+            // let first_column = head.children[1]; // NOTE: this first element is a placehold
+            // this.generate_header(dataInfo.column_names).map((col) => {
+            //    projector.insertBefore(first_column, () => {return col})
+            // })
         }
     }
 
@@ -452,12 +430,12 @@ class Sheet extends Component {
                 }
             }
             // now update the header
-            for (let c_index = 1; c_index < dataInfo.column_names.length + 1; c_index++){
-                head.children[c_index].remove();
-            }
-            this.generate_header(dataInfo.column_names).map((col) => {
-                projector.append(head, () => {return col})
-            })
+            // for (let c_index = 1; c_index < dataInfo.column_names.length + 1; c_index++){
+            //     head.children[c_index].remove();
+            // }
+            // this.generate_header(dataInfo.column_names).map((col) => {
+            //     projector.append(head, () => {return col})
+            // })
         }
     }
 

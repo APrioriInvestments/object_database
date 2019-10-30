@@ -12,6 +12,7 @@ from object_database.web.cells.cells import (
     GeventPipe,
     Cells,
     Slot,
+    ComputedSlot,
     SessionState,
     Cell,
     Card,

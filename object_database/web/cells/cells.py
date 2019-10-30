@@ -225,6 +225,8 @@ class Cells:
 
         self._addCell(self._root, parent=None)
 
+        self._dirtyComputedSlots = set()
+
     def _processCallbacks(self):
         """Execute any callbacks that have been scheduled to run on the main UI thread."""
         try:
@@ -359,6 +361,9 @@ class Cells:
         assert not cell.garbageCollected, (cell, cell.text if isinstance(cell, Text) else "")
         self._dirtyNodes.add(cell)
 
+    def computedSlotDirty(self, slot):
+        self._dirtyComputedSlots.add(slot)
+
     def markToDiscard(self, cell):
         assert not cell.garbageCollected, (cell, cell.text if isinstance(cell, Text) else "")
 
@@ -471,6 +476,19 @@ class Cells:
             if node.wasDataUpdated:
                 self.markToDataUpdate(node)
 
+    def _recalculateComputedSlots(self):
+        t0 = time.time()
+
+        slotsComputed = 0
+        while self._dirtyComputedSlots:
+            slotsComputed += 1
+            slot = self._dirtyComputedSlots.pop()
+            slot.cells = self
+            slot.ensureCalculated()
+
+        if slotsComputed:
+            logging.info("Recomputed %s ComputedSlots in %s", slotsComputed, time.time() - t0)
+
     def _recalculateCells(self):
         # handle all the transactions so far
         old_queue = self._transactionQueue
@@ -481,6 +499,8 @@ class Cells:
                 self._handleTransaction(*old_queue.get_nowait())
         except queue.Empty:
             pass
+
+        self._recalculateComputedSlots()
 
         while self._dirtyNodes:
             cellsByLevel = {}
@@ -589,7 +609,6 @@ class Slot:
     def __init__(self, value=None):
         self._value = value
         self._subscribedCells = set()
-        self._lock = threading.Lock()
 
     def setter(self, val):
         return lambda: self.set(val)
@@ -599,14 +618,15 @@ class Slot:
 
     def get(self):
         """Get the value of the Slot, and register a dependency on the calling cell."""
-        with self._lock:
-            # we can only create a dependency if we're being read
-            # as part of a cell's state recalculation.
-            curCell = ComputingCellContext.get()
-            if curCell is not None and not ComputingCellContext.isProcessingMessage():
-                self._subscribedCells.add(curCell)
 
-            return self._value
+        # we can only create a dependency if we're being read
+        # as part of a cell's state recalculation.
+        curCell = ComputingCellContext.get()
+
+        if curCell is not None and not ComputingCellContext.isProcessingMessage():
+            self._subscribedCells.add(curCell)
+
+        return self._value
 
     def set(self, val):
         """Write to a slot.
@@ -615,20 +635,75 @@ class Slot:
         the primary value gets updated between Task cycles. Otherwise, the write
         is synchronous.
         """
-        with self._lock:
-            if val == self._value:
-                return
+        if val == self._value:
+            return
 
-            self._value = val
+        self._value = val
 
-            toTrigger = self._subscribedCells
-            self._subscribedCells = set()
+        self._triggerListeners()
 
-            for c in toTrigger:
-                c.subscribedSlotChanged(self)
+    def _triggerListeners(self):
+        toTrigger = self._subscribedCells
+        self._subscribedCells = set()
+
+        for c in toTrigger:
+            c.subscribedSlotChanged(self)
 
     def toggle(self):
         self.set(not self.get())
+
+
+class ComputedSlot(Slot):
+    def __init__(self, valueFunction, onSet=None):
+        self._valueFunction = valueFunction
+        self._onSet = onSet
+        self._value = None
+        self._valueUpToDate = False
+        self._subscribedCells = set()
+        self.cells = None
+
+    def getWithoutRegisteringDependency(self):
+        self.ensureCalculated()
+
+        return self._value
+
+    def get(self):
+        if self.cells is None and ComputingCellContext.get():
+            self.cells = ComputingCellContext.get().cells
+
+        self.ensureCalculated()
+        return super().get()
+
+    def set(self, val):
+        if not self._onSet:
+            raise Exception("This ComputedSlot is not settable.")
+
+        self._onSet(val)
+
+    def subscribedOdbValueChanged(self, key):
+        self._valueUpToDate = False
+
+        if self._subscribedCells:
+            self.cells.computedSlotDirty(self)
+
+    def subscribedSlotChanged(self, slot):
+        self._valueUpToDate = False
+
+        if self._subscribedCells:
+            self.cells.computedSlotDirty(self)
+
+    def ensureCalculated(self):
+        if self._valueUpToDate:
+            return
+
+        with ComputingCellContext(self):
+            oldValue = self._value
+
+            self._value = self._valueFunction()
+            self._valueUpToDate = True
+
+            if oldValue != self._value:
+                self._triggerListeners()
 
 
 class SessionState(object):

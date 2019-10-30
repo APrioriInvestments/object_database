@@ -18,8 +18,14 @@ class CodeEditor extends Component {
         this.setupEditor = this.setupEditor.bind(this);
         this.setupKeybindings = this.setupKeybindings.bind(this);
         this.installChangeHandlers = this.installChangeHandlers.bind(this);
-        this.setTextFromServer = this.setTextFromServer.bind(this)
-        this.lastSentText = null
+        this.setTextFromServer = this.setTextFromServer.bind(this);
+        this.lastSentText = null;
+
+        // A cached version of the created
+        // DOM node will be put here for
+        // later reference
+        this._cachedDOMNode = null;
+
         // Used to register and deregister
         // any global KeyListener instance
         this._onBlur = this._onBlur.bind(this);
@@ -80,17 +86,38 @@ class CodeEditor extends Component {
 
             this.installChangeHandlers();
         }
+
+        if(this.numRenders == 1){
+            this._cachedDOMNode = this.getDOMElement();
+        }
     }
 
-    componentDidUpdate(){
+    componentDidUpdate(projector){
         let newEditor = ace.edit(`editor${this.props.id}`);
         newEditor.setSession(this.editor.session);
         this.editor = newEditor;
+
+        // Replace the placeholder with the cached
+        // DOM element
+        let placeholder = document.getElementById(`placeholder-${this.props.id}`);
+        if(placeholder){
+            placeholder.replaceWith(this._cachedDOMNode);
+        } else {
+            throw new Error(`Could not find replacement node for ${this.name}[${this.props.id}]`);
+        }
     }
 
 
     build(){
-        return h('div',
+        if(this.hasRenderedBefore){
+            console.log(`Cached re-render of ${this.name}[${this.props.id}]`);
+            return h('div', {
+                class: "cell-placeholder",
+                id: `placeholder-${this.props.id}`
+            }, []);
+        } else {
+            console.log(`Initial render of ${this.name}[${this.props.id}]`);
+            return h('div',
             {
                 class: "cell code-editor",
                 id: this.props.id,
@@ -100,6 +127,7 @@ class CodeEditor extends Component {
             },
                  [h('div', { id: "editor" + this.props.id, class: "code-editor-inner" }, [])
         ]);
+        }
     }
 
     setupEditor(){

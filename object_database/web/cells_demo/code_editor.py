@@ -28,6 +28,22 @@ class CodeEditorDemo(CellsTestPage):
         return "You should see a button that lets you see a text editor."
 
 
+class CodeEditorStashedDemo(CellsTestPage):
+    def cell(self):
+        isShown = cells.Slot(False)
+        editor = cells.CodeEditor()
+
+        return cells.Button(
+            "Toggle the editor", lambda: isShown.set(not isShown.get())
+        ) + cells.Flex(cells.Subscribed(lambda: editor if isShown.get() else None))
+
+    def text(self):
+        return (
+            "You should be able to Toggle a text editor, enter some text,",
+            " and have the same text editor re-appear on toggling again",
+        )
+
+
 class CodeEditorInHorizSequence(CellsTestPage):
     def cell(self):
         editorShown = cells.Slot(False)

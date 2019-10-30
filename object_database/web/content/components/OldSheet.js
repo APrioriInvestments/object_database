@@ -25,13 +25,17 @@ class Sheet extends Component {
 
         this.currentTable = null;
 
+        // Cache the created DOM node
+        // for later reference and replacement
+        this._cachedDOMNode = null;
+
         // Bind context to methods
         this.initializeTable = this.initializeTable.bind(this);
         this.initializeHooks = this.initializeHooks.bind(this);
         this.dataChanged = this.dataChanged.bind(this);
         this.makeError = this.makeError.bind(this);
 
-        this.pendingDataRequests = 0
+        this.pendingDataRequests = 0;
 
         /**
          * WARNING: The Cell version of Sheet is still using certain
@@ -49,6 +53,17 @@ class Sheet extends Component {
         if(this.props.extraData['handlesDoubleClick']){
             this.initializeHooks();
         }
+
+        this._cachedDOMNode = this.getDOMElement();
+    }
+
+    componentDidUpdate(){
+        let placeholder = document.getElementById(`placeholder-${this.props.id}`);
+        if(placeholder){
+            placeholder.replaceWith(this._cachedDOMNode);
+        } else {
+            throw new Error(`Could not find placeholder for ${this.name}[${this.props.id}]`);
+        }
     }
 
     /***
@@ -56,19 +71,26 @@ class Sheet extends Component {
      ***/
 
     dataChanged() {
-        this.pendingDataRequests = this.pendingDataRequests - 1
+        this.pendingDataRequests = this.pendingDataRequests - 1;
 
         if (this.pendingDataRequests < 0) {
-            this.pendingDataRequests = 0
-            console.warn("Negative pendingDataRequests?" + this.pendingDataRequests)
+            this.pendingDataRequests = 0;
+            console.warn("Negative pendingDataRequests?" + this.pendingDataRequests);
         }
 
         if (this.pendingDataRequests == 0) {
-            this.currentTable.render()
+            this.currentTable.render();
         }
     }
 
     build(){
+        if(this.hasRenderedBefore){
+            console.log(`Re-attaching sheet ${this.props.id}`);
+            return h('div', {
+                class: 'cell-placeholder',
+                id: `placeholder-${this.props.id}`
+            }, []);
+        }
         console.log(`Rendering sheet ${this.props.id}`);
         return (
             h('div', {
@@ -123,6 +145,7 @@ class Sheet extends Component {
             colWidths: this.props.extraData.columnWidth,
             rowHeights: 23,
             readOnly: true,
+            renderAllRows: false,
             ManualRowMove: false
         });
         handsOnTables[this.props.id] = {

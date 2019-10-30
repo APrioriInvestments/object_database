@@ -15,6 +15,10 @@ class Plot extends Component {
     constructor(props, ...args){
         super(props, ...args);
 
+        // Cache the created DOM node
+        // for later use
+        this._cachedDOMNode = null;
+
         // Bind component methods
         this.setupPlot = this.setupPlot.bind(this);
         this.makeChartUpdater = this.makeChartUpdater.bind(this);
@@ -23,9 +27,27 @@ class Plot extends Component {
 
     componentDidLoad() {
         this.setupPlot();
+        this._cachedDOMNode = this.getDOMElement();
+    }
+
+    componentDidUpdate(){
+        let placeholder = document.getElementById(`placeholder-${this.props.id}`);
+        if(placeholder){
+            placeholder.replaceWith(this._cachedDOMNode);
+        } else {
+            throw new Error(`Could not find replacement element for ${this.name}[${this.props.id}]`);
+        }
     }
 
     build(){
+        if(this.hasRenderedBefore){
+            console.log(`Rewiring ${this.name}[${this.props.id}] from cached DOM node`);
+            return h('div', {
+                class: 'cell-placeholder',
+                id: `placeholder-${this.props.id}`
+            }, []);
+        }
+        console.log(`Initial render of ${this.name}[${this.props.id}]`);
         return (
             h('div', {
                 id: this.props.id,

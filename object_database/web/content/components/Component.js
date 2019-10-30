@@ -222,6 +222,15 @@ class Component {
     }
 
     /**
+     * Getter that will respond true if this
+     * the component has not yet been rendered
+     * even once
+     */
+    get hasRenderedBefore() {
+        return this.numRenders > 0;
+    }
+
+    /**
      * Override default string representation
      */
     toString(){

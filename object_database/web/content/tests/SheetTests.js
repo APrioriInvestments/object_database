@@ -9,6 +9,8 @@ const chai = require('chai');
 const assert = chai.assert;
 let projector = maquette.createProjector();
 const registry = require('../ComponentRegistry').ComponentRegistry;
+const Point = require('../components/util/SheetUtils.js').Point;
+const Frame = require('../components/util/SheetUtils.js').Frame;
 
 /* Example Messages and Structures */
 let simpleRoot = {
@@ -50,8 +52,39 @@ let makeDiscardedMessage = (compDescription) => {
     });
 };
 
+describe("Sheet util tests.", () => {
+    describe("Point class tests.", () => {
+        before(() => {
+        });
+        after(() => {
+        });
+        it("Getters", () => {
+            let p = new Point([10, 20]);
+            assert.equal(p.x, 10);
+            assert.equal(p.y, 20);
+        })
+        it("Setters", () => {
+            let p = new Point();
+            p.x = 0;
+            p.y = 1;
+            assert.equal(p.x, 0);
+            assert.equal(p.y, 1);
+        })
+    })
+    describe("Frame class tests.", () => {
+        before(() => {
+        });
+        after(() => {
+        });
+        it("Dimension", () => {
+            let frame = new Frame([0, 0], [10, 20]);
+            assert.equal(frame.dim[0], 10);
+            assert.equal(frame.dim[1], 20);
+        })
+    })
+})
 
-describe("Sheet and Update Data Tests", () => {
+describe.skip("Sheet and Update Data Tests", () => {
     var handler;
     before(() => {
         handler = new NewCellHandler(h, projector, registry);

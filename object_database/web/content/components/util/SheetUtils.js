@@ -31,10 +31,22 @@ class Point {
     }
 }
 
-
-class Rect {
+class Frame {
     constructor(origin, corner){
-        this.origin = origin;
-        this.corner = corner;
+        this.origin = new Point(origin);
+        this.corner = new Point(corner);
+
+
+        // Bind methods
     }
+
+    get dim(){
+        let x = this.corner.x - this.origin.x;
+        let y = this.corner.y - this.origin.y;
+        // TODO raise some errors if the any dim is negative
+        return [x, y]
+    }
+
 }
+
+export {Point, Frame}

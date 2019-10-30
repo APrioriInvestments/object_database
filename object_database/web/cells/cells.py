@@ -2705,6 +2705,9 @@ class Expands(Cell):
         if self.toWrite is not None:
             return self.toWrite
 
+        if self.cells is None:
+            return False
+
         return self.getContext(SessionState).get(self.identityPath + ("ExpandState",)) or False
 
     @isExpanded.setter

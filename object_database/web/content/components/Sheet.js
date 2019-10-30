@@ -32,10 +32,10 @@ class Sheet extends Component {
             top_left: {x: 0, y: 0},
             bottom_right: {x: null, y:null}
         }
-        this.current_start_row_index = null;
-        this.current_end_row_index = null;
-        this.current_start_column_index = null;
-        this.current_end_column_index = null;
+        // this.current_start_row_index = null;
+        // this.current_end_row_index = null;
+        // this.current_start_column_index = null;
+        // this.current_end_column_index = null;
 
         // scrolling attributes used to guage the direction of key scrolling and offset
         // then top/bottom appropriately
@@ -48,6 +48,7 @@ class Sheet extends Component {
         this.__updateDataAppend = this.__updateDataAppend.bind(this);
         this.__updateDataPrepend = this.__updateDataPrepend.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.handleClick = this.handleClick.bind(this);
         this._handleCoordInput = this._handleCoordInput.bind(this);
         this.paginate = this.paginate.bind(this);
         this.jump_to_cell = this.jump_to_cell.bind(this);
@@ -163,10 +164,9 @@ class Sheet extends Component {
                 new SheetRow(
                     {
                         id: this.props.id,
-                        row_data: item.slice(1),
+                        row_data: item,
                         colWidth: this.props.colWidth,
                         height: this.props.rowHeight,
-                        rowIndexName: item[0]
                     }
                 ).build()
             )
@@ -208,13 +208,27 @@ class Sheet extends Component {
     }
 
     /* I listen for clicks and trigger relevant pagination events.*/
-    handlClick(event){
+    handleClick(event){
         let target = event.target;
-        this.cursor_target_data = {
-            x: target.properties['data-x'],
-            y: target.properties['data-y'],
-            text: target.textContent
+        // if the user accidentally clicked on the tooltip or something else, don't do anything
+        if (target.nodeName !== "TD"){
+            return;
         }
+        console.log(target);
+        // unset the active class on the last table data element if there was one
+        if (this.cursor_target_data !== null) {
+            let last_target = this.cursor_target_data.element;
+            last_target.className.replace(" active", "");
+        }
+
+        this.cursor_target_data = {
+            x: parseInt(target.attributes.getNamedItem("data-x").value),
+            y: parseInt(target.attributes.getNamedItem("data-y").value),
+            text: target.firstChild.textContent,
+            element: target
+        }
+        target.className += " active";
+        console.log(this.cursor_target_data);
     }
 
     /* I handle row/column pagination by adding this.offset and removing
@@ -514,10 +528,12 @@ class SheetRow extends Component {
     build(){
         let row_data = this.props.row_data.map((item) => {
             return new SheetCell(
-                {id: this.props.id, data: item, width: this.props.colWidth}).build()
+                // TODO Figure out how to pass these coordinates in
+                {id: this.props.id + "cell", x: 10, y: 10, data: item, width: this.props.colWidth}).build()
         })
         // NOTE: we handle the row index name td cell seperately here
-        row_data.unshift(h("td", {class: "row-index-item"}, [this.props.rowIndexName.toString()]))
+        // row_data.unshift(h("td", {class: "row-index-item"}, [this.props.rowIndexName.toString()]))
+        // row_data.unshift(h("td", [this.props.rowIndexName.toString()]))
         return (
             h("tr",
                 {class: "sheet-row", style: this.style},
@@ -539,10 +555,6 @@ SheetRow.propTypes = {
     colWidth: {
         description: "Width of the column (and cell) in pixels.",
         type: PropTypes.oneOf([PropTypes.number])
-    },
-    rowIndexName: {
-        description: "String or number representing the row index.",
-        type: PropTypes.oneOf([PropTypes.number, PropTypes.string])
     }
 };
 
@@ -562,9 +574,14 @@ class SheetCell extends Component {
     build(){
         return (
             h("td",
-                {class: this.class, style: this.style},
+                {
+                    class: this.class,
+                    style: this.style,
+                    "data-x": this.props.x.toString(),
+                    "data-y": this.props.y.toString()
+                },
                 [
-                    h("span", {}, [this.props.data.toString()]),
+                    this.props.data.toString(),
                     h("span", {class: "tooltiptext"}, [this.props.data.toString()]),
 
                 ]
@@ -577,6 +594,14 @@ SheetCell.propTypes = {
     data: {
         description: "Text to display",
         type: PropTypes.oneOf([ PropTypes.string])
+    },
+    x: {
+        description: "X coordinate",
+        type: PropTypes.oneOf([ PropTypes.number])
+    },
+    y: {
+        description: "Y coordinate",
+        type: PropTypes.oneOf([ PropTypes.number])
     },
     width: {
         description: "Width of the cell in pixels.",

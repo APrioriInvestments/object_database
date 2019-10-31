@@ -70,6 +70,24 @@ describe("Sheet util tests.", () => {
             assert.equal(p.x, 0);
             assert.equal(p.y, 1);
         })
+        it("Quadrant", () => {
+            let p = new Point([1, 1]);
+            assert.equal(p.quadrant, 1);
+            p = new Point([1, -1]);
+            assert.equal(p.quadrant, 2);
+            p = new Point([-1, -1]);
+            assert.equal(p.quadrant, 3);
+            p = new Point([-1, 1]);
+            assert.equal(p.quadrant, 4);
+        })
+        it("Quadrant (edge cases)", () => {
+            let p = new Point([0, 0]);
+            assert.equal(p.quadrant, 1);
+            p = new Point([0, -1]);
+            assert.equal(p.quadrant, 2);
+            p = new Point([-1, 0]);
+            assert.equal(p.quadrant, 3);
+        })
     })
     describe("Frame class tests.", () => {
         before(() => {
@@ -77,9 +95,199 @@ describe("Sheet util tests.", () => {
         after(() => {
         });
         it("Dimension", () => {
-            let frame = new Frame([0, 0], [10, 20]);
-            assert.equal(frame.dim[0], 10);
-            assert.equal(frame.dim[1], 20);
+            let frame = new Frame([0, 0], [9, 19]);
+            assert.equal(frame.dim.x, 10);
+            assert.equal(frame.dim.y, 20);
+        })
+        it("Dimension of single point frame", () => {
+            let frame = new Frame([0, 0], [0, 0]);
+            assert.equal(frame.dim.x, 1);
+            assert.equal(frame.dim.y, 1);
+        })
+        it("Dimension of empty frame", () => {
+            let frame = new Frame([0, 0], [-1, -1]);
+            assert.equal(frame.dim.x, 0);
+            assert.equal(frame.dim.y, 0);
+            frame = new Frame([-10, -10], [-1, -1]);
+            assert.equal(frame.dim.x, 0);
+            assert.equal(frame.dim.y, 0);
+        })
+        it("Setting a new origin", () => {
+            let frame = new Frame([0, 0], [7, 9]);
+            assert.equal(frame.dim.x, 8);
+            assert.equal(frame.dim.y, 10);
+            frame.setOrigin = [5, 7];
+            assert.equal(frame.dim.x, 3);
+            assert.equal(frame.dim.y, 3);
+            let coords = [];
+            for (let x = 5; x <= 7; x++){
+                for (let y = 7; y <= 9; y++){
+                    coords.push(new Point([x, y]));
+                }
+            }
+            assert.equal(coords.length, frame.coords.length);
+            let coords_str = coords.map((item) => {return item.toString()});
+            let frame_coords_str = frame.coords.map((item) => {return item.toString()});
+            for (let i = 0; i < coords_str.length; i++){
+                assert.isTrue(frame_coords_str.includes(coords_str[i]));
+            }
+        })
+        it("Setting a new corner", () => {
+            let frame = new Frame([5, 7], [9, 9]);
+            assert.equal(frame.dim.x, 5);
+            assert.equal(frame.dim.y, 3);
+            frame.setCorner = [7, 9];
+            assert.equal(frame.dim.x, 3);
+            assert.equal(frame.dim.y, 3);
+            let coords = [];
+            for (let x = 5; x <= 7; x++){
+                for (let y = 7; y <= 9; y++){
+                    coords.push(new Point([x, y]));
+                }
+            }
+            assert.equal(coords.length, frame.coords.length);
+            let coords_str = coords.map((item) => {return item.toString()});
+            let frame_coords_str = frame.coords.map((item) => {return item.toString()});
+            for (let i = 0; i < coords_str.length; i++){
+                assert.isTrue(frame_coords_str.includes(coords_str[i]));
+            }
+        })
+        it("Coords", () => {
+            let frame = new Frame([5, 7], [7, 9]);
+            let coords = [];
+            for (let x = 5; x <= 7; x++){
+                for (let y = 7; y <= 9; y++){
+                    coords.push(new Point([x, y]));
+                }
+            }
+            assert.equal(coords.length, frame.coords.length);
+            let coords_str = coords.map((item) => {return item.toString()});
+            let frame_coords_str = frame.coords.map((item) => {return item.toString()});
+            for (let i = 0; i < coords_str.length; i++){
+                assert.isTrue(frame_coords_str.includes(coords_str[i]));
+            }
+        })
+        it("Coords of empty frame", () => {
+            let frame = new Frame([0, 0], [-1, -1]);
+            let coords = [];
+            assert.equal(coords.length, frame.coords.length);
+        })
+        it("Translate up right", () => {
+            let frame = new Frame([3, 4], [5, 6]);
+            assert.equal(frame.dim.x, 3);
+            assert.equal(frame.dim.y, 3);
+            let coords = [];
+            for (let x = 3; x <= 5; x++){
+              for (let y = 4; y <= 6; y++){
+                  coords.push(new Point([x, y]));
+              }
+            }
+            assert.equal(coords.length, frame.coords.length);
+            let coords_str = coords.map((item) => {return item.toString()});
+            let frame_coords_str = frame.coords.map((item) => {return item.toString()});
+            for (let i = 0; i < coords_str.length; i++){
+                assert.isTrue(frame_coords_str.includes(coords_str[i]));
+            }
+            // now translate
+            frame.translate([2, 3]);
+            assert.equal(frame.dim.x, 3);
+            assert.equal(frame.dim.y, 3);
+            coords = [];
+            for (let x = 5; x <= 7; x++){
+              for (let y = 7; y <= 9; y++){
+                  coords.push(new Point([x, y]));
+              }
+            }
+            assert.equal(coords.length, frame.coords.length);
+            coords_str = coords.map((item) => {return item.toString()});
+            frame_coords_str = frame.coords.map((item) => {return item.toString()});
+            for (let i = 0; i < coords_str.length; i++){
+                assert.isTrue(frame_coords_str.includes(coords_str[i]));
+            }
+        })
+        it("Translate none", () => {
+            let frame = new Frame([3, 4], [5, 6]);
+            assert.equal(frame.dim.x, 3);
+            assert.equal(frame.dim.y, 3);
+            let coords = [];
+            for (let x = 3; x <= 5; x++){
+              for (let y = 4; y <= 6; y++){
+                  coords.push(new Point([x, y]));
+              }
+            }
+            assert.equal(coords.length, frame.coords.length);
+            let coords_str = coords.map((item) => {return item.toString()});
+            let frame_coords_str = frame.coords.map((item) => {return item.toString()});
+            for (let i = 0; i < coords_str.length; i++){
+                assert.isTrue(frame_coords_str.includes(coords_str[i]));
+            }
+            // now translate
+            frame.translate([0, 0]);
+            assert.equal(frame.dim.x, 3);
+            assert.equal(frame.dim.y, 3);
+            assert.equal(coords.length, frame.coords.length);
+            coords_str = coords.map((item) => {return item.toString()});
+            frame_coords_str = frame.coords.map((item) => {return item.toString()});
+            for (let i = 0; i < coords_str.length; i++){
+                assert.isTrue(frame_coords_str.includes(coords_str[i]));
+            }
+        })
+        it("Translate down left", () => {
+            let frame = new Frame([3, 4], [5, 6]);
+            assert.equal(frame.dim.x, 3);
+            assert.equal(frame.dim.y, 3);
+            let coords = [];
+            for (let x = 3; x <= 5; x++){
+              for (let y = 4; y <= 6; y++){
+                  coords.push(new Point([x, y]));
+              }
+            }
+            assert.equal(coords.length, frame.coords.length);
+            let coords_str = coords.map((item) => {return item.toString()});
+            let frame_coords_str = frame.coords.map((item) => {return item.toString()});
+            for (let i = 0; i < coords_str.length; i++){
+                assert.isTrue(frame_coords_str.includes(coords_str[i]));
+            }
+            // now translate
+            frame.translate([-1, -1]);
+            coords = [];
+            for (let x = 2; x <= 4; x++){
+              for (let y = 3; y <= 5; y++){
+                  coords.push(new Point([x, y]));
+              }
+            }
+            assert.equal(frame.dim.x, 3);
+            assert.equal(frame.dim.y, 3);
+            assert.equal(coords.length, frame.coords.length);
+            coords_str = coords.map((item) => {return item.toString()});
+            frame_coords_str = frame.coords.map((item) => {return item.toString()});
+            for (let i = 0; i < coords_str.length; i++){
+                assert.isTrue(frame_coords_str.includes(coords_str[i]));
+            }
+        })
+        it("Translate out of quadrant 1", () => {
+            let frame = new Frame([3, 4], [5, 6]);
+            assert.equal(frame.dim.x, 3);
+            assert.equal(frame.dim.y, 3);
+            let coords = [];
+            for (let x = 3; x <= 5; x++){
+              for (let y = 4; y <= 6; y++){
+                  coords.push(new Point([x, y]));
+              }
+            }
+            assert.equal(coords.length, frame.coords.length);
+            let coords_str = coords.map((item) => {return item.toString()});
+            let frame_coords_str = frame.coords.map((item) => {return item.toString()});
+            for (let i = 0; i < coords_str.length; i++){
+                assert.isTrue(frame_coords_str.includes(coords_str[i]));
+            }
+            // now translate
+            frame.translate([-10, -1]);
+            console.log(frame.dim);
+            assert.equal(frame.dim.x, 0);
+            assert.equal(frame.dim.y, 0);
+            console.log(frame.coords);
+            assert.equal(0, frame.coords.length);
         })
     })
 })

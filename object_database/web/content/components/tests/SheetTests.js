@@ -112,6 +112,14 @@ describe("Sheet util tests.", () => {
             assert.equal(frame.dim.x, 0);
             assert.equal(frame.dim.y, 0);
         })
+        it("Is empty", () => {
+            let frame = new Frame([0, 0], [-1, -1]);
+            assert.isTrue(frame.empty);
+            frame = new Frame([-10, -10], [-1, -1]);
+            assert.isTrue(frame.empty);
+            frame = new Frame([10, 10], [20, 20]);
+            assert.isFalse(frame.empty);
+        })
         it("Setting a new origin", () => {
             let frame = new Frame([0, 0], [7, 9]);
             assert.equal(frame.dim.x, 8);
@@ -283,11 +291,24 @@ describe("Sheet util tests.", () => {
             }
             // now translate
             frame.translate([-10, -1]);
-            console.log(frame.dim);
             assert.equal(frame.dim.x, 0);
             assert.equal(frame.dim.y, 0);
-            console.log(frame.coords);
             assert.equal(0, frame.coords.length);
+        })
+        it("Intersect (arrangement A)", () => {
+            let frame = new Frame([0, 0], [10, 10]);
+            let another_frame = new Frame([5, 5], [15, 15]);
+            let intersection = frame.intersect(another_frame);
+        })
+        it("Intersect (empty frame)", () => {
+            let frame = new Frame([0, 0], [10, 10]);
+            let another_frame = new Frame();
+            let intersection = frame.intersect(another_frame);
+            assert.isTrue(intersection.empty);
+            frame = new Frame();
+            another_frame = new Frame([0, 0], [10, 10]);
+            intersection = frame.intersect(another_frame);
+            assert.isTrue(intersection.empty);
         })
     })
 })

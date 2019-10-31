@@ -412,20 +412,6 @@ class Cells:
             stableParent = self.findStableParent(node)
             updatedNodesToSend.add(stableParent)
 
-        def checkNode(n):
-            while n is not None:
-                if n in updatedNodesToSend:
-                    return True
-                n = n.parent
-            return False
-
-        toRemove = []
-        for u in updatedNodesToSend:
-            if checkNode(u.parent):
-                toRemove.append(u)
-        for u in toRemove:
-            updatedNodesToSend.discard(u)
-
         for nodeToSend in list(updatedNodesToSend):
             res.append(Messenger.cellUpdated(nodeToSend))
 

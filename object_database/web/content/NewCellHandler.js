@@ -435,7 +435,20 @@ class NewCellHandler {
                 return this._findOrCreateChild(item, parentComponent);
             });
         }
-        let childComponent = this._getUpdatedComponent(childDescription);
+        // Sometimes the childDescription is not a whole object,
+        // but merely an ID. This tells us the simply return the
+        // component with that id and not to update anything
+        // about it at all.
+        let childComponent;
+        if(typeof(childDescription) == 'string' || typeof(childDescription) == 'number'){
+            childComponent = this.activeComponents[childDescription.toString()];
+            childComponent.parent = parentComponent;
+            return childComponent;
+        }
+
+        // Otherwise we are either updating this child or
+        // freshly creating it. So we start the cycle over again
+        childComponent = this._getUpdatedComponent(childDescription);
         childComponent.parent = parentComponent;
         return childComponent;
     }

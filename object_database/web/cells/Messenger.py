@@ -6,7 +6,6 @@ should be formatted using functions in this module
 
 
 def cellUpdated(cell):
-    parent_id = None
     if cell.isMergedIntoParent():
         # check that we're not sending a merged cell over the wire. When we nest
         # two Sequences, for example, we don't actually render the inner one - we rely
@@ -15,10 +14,7 @@ def cellUpdated(cell):
             f"Cell {cell} was merged into its parent. and shouldn't be sent over the wire."
         )
 
-    if cell.parent is not None:
-        parent_id = cell.parent.identity
-
-    structure = getStructure(parent_id, cell, None, expand=True)
+    structure = getUpdateStructure(cell)
 
     envelope = {
         "channel": "#main",
@@ -191,3 +187,51 @@ def _resolveExpandedChild(parent_id, cell_or_list, name_in_parent):
             _resolveExpandedChild(parent_id, cell, name_in_parent) for cell in cell_or_list
         ]
     return _getExpandedStructure(parent_id, cell_or_list, name_in_parent)
+
+
+"""New shit down here"""
+
+
+def getUpdateStructure(cell):
+    children = cell.getDisplayChildren()
+    parent_id = None
+    name_in_parent = None
+    if cell.parent:
+        parent_id = cell.parent.identity
+        name_in_parent = cell.parent.children.findNameFor(cell)
+
+    own_children = {}
+    for child_name, child in children.items():
+        own_children[child_name] = _resolveUpdateChild(child_name, child, cell)
+
+    structure = {
+        "id": cell.identity,
+        "cellType": cell.__class__.__name__,
+        "nameInParent": name_in_parent,
+        "parentId": parent_id,
+        "namedChildren": own_children,
+        "extraData": cell.getDisplayExportData(),
+    }
+
+    return structure
+
+
+def _resolveUpdateChild(name_in_parent, child_or_list, parent_cell):
+    if isinstance(child_or_list, list):
+        return [
+            _resolveUpdateChild(name_in_parent, next_child, parent_cell)
+            for next_child in child_or_list
+        ]
+
+    # If the child was just created, recursively grab
+    # the whole subtree for it
+    if child_or_list.wasCreated:
+        return _getExpandedStructure(parent_cell.identity, child_or_list, name_in_parent)
+
+    # If the child was updated this same cycle,
+    # recursively add an abbreviated subtree for it
+    if child_or_list.wasUpdated:
+        return getUpdateStructure(child_or_list)
+
+    # Otherwise we just return an id
+    return child_or_list.identity

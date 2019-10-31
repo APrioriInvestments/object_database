@@ -68,7 +68,7 @@ class Frame {
 
     /* The dimension of the frame. */
     get dim(){
-        if (this.corner.quadrant !== 1 || this.corner.quadrant !== 1){
+        if (this.origin.quadrant !== 1 || this.corner.quadrant !== 1){
             return new Point([0, 0]);
         }
         let x = this.corner.x - this.origin.x + 1;
@@ -76,12 +76,20 @@ class Frame {
         return new Point([Math.max(0, x), Math.max(0, y)]);
     }
 
+    /* check if the frame is empty. */
+    get empty(){
+        if (this.dim.x === 0 && this.dim.y === 0){
+            return true;
+        }
+        return false;
+    }
+
     /* Set the origin */
     set setOrigin(xy){
         this.origin = new Point(xy);
     }
 
-    /* Set the corner */
+   /* Set the corner */
     set setCorner(xy){
         this.corner = new Point(xy);
     }
@@ -102,10 +110,24 @@ class Frame {
         return coords;
     }
 
+    /* I check whether the point (as Point of tuple of coordinates)
+     * or Frame is contained in this.
+     */
+    contains(other){
+        if (other instanceof Array){
+            other = Point(other);
+        }
+        // TODO
+        if (other instanceof Point) {
+            if (other.x >= this.origin.x && other.x <= this.corner.x
+                && other.y >= this.corner.y && other.y <= this.origin.y){
+                return true;
+            }
+        }
+    }
+
     /* I translate myself in the given [x, y] direction */
     translate(xy){
-        // this.setOrigin([this.origin.x + x, this.corner.x + x]);
-        // this.setCorner([this.origin.y + y, this.corner.y + y]);
         this.origin.x += xy[0];
         this.corner.x += xy[0];
         this.origin.y += xy[1];
@@ -114,7 +136,9 @@ class Frame {
 
     /* I return a frame that is the intersection of myself and another. */
     intersect(frame){
-        // TODO
+        if (this.empty || frame.empty){
+            return new Frame();
+        }
 
     }
 }

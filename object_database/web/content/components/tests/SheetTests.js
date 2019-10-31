@@ -4,13 +4,13 @@
 require('jsdom-global')();
 const maquette = require('maquette');
 const h = maquette.h;
-const NewCellHandler = require('../NewCellHandler.js').default;
+const NewCellHandler = require('../../NewCellHandler.js').default;
 const chai = require('chai');
 const assert = chai.assert;
 let projector = maquette.createProjector();
-const registry = require('../ComponentRegistry').ComponentRegistry;
-const Point = require('../components/util/SheetUtils.js').Point;
-const Frame = require('../components/util/SheetUtils.js').Frame;
+const registry = require('../../ComponentRegistry').ComponentRegistry;
+const Point = require('../util/SheetUtils.js').Point;
+const Frame = require('../util/SheetUtils.js').Frame;
 
 /* Example Messages and Structures */
 let simpleRoot = {

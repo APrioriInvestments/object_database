@@ -22,6 +22,13 @@ class Point {
         return this._values[1];
     }
 
+    get isNaN() {
+        if (this._values.length === 2){
+            return false;
+        }
+        return true;
+    }
+
     get quadrant(){
         if (this._values.length !== 2){
             return NaN;
@@ -54,21 +61,30 @@ class Frame {
     constructor(origin, corner){
         /* Origin and corner can be any points on the 2d cartensian grid.
          * However, only points in the first quadrant and those where
-         * corner.x >= origin.x AND corner.y >= origin.y will lead an non-empty
-         * non-zero dimensional frame.
+         * corner.x >= origin.x AND corner.y <= origin.y will lead an non-empty
+         * non-zero dimensional frame.IE we stick the basic bitmap conventions of
+         * origin as top-left and corner as bottom-right.
          */
         this.origin = new Point(origin);
         this.corner = new Point(corner);
-
+        if (origin && corner) {
+            if (this.origin.quadrant !== 1 || this.corner.quadrant !== 1){
+                throw "Both 'origin' and 'corner' must be of non-negative coordinates"
+            }
+            if (this.origin.x > this.corner.x || this.origin.y > this.corner.y){
+                throw "Origin must be top-left and corner bottom-right"
+            }
+        }
 
         // Bind methods
         this.intersect = this.intersect.bind(this);
         this.translate = this.translate.bind(this);
+        this._empty = this._empty.bind(this);
     }
 
     /* The dimension of the frame. */
     get dim(){
-        if (this.origin.quadrant !== 1 || this.corner.quadrant !== 1){
+        if (this._empty()){
             return new Point([0, 0]);
         }
         let x = this.corner.x - this.origin.x + 1;
@@ -78,7 +94,11 @@ class Frame {
 
     /* check if the frame is empty. */
     get empty(){
-        if (this.dim.x === 0 && this.dim.y === 0){
+        return this._empty();
+    }
+
+    _empty(){
+        if (this.origin.isNaN || this.corner.isNaN){
             return true;
         }
         return false;
@@ -132,6 +152,9 @@ class Frame {
         this.corner.x += xy[0];
         this.origin.y += xy[1];
         this.corner.y += xy[1];
+        if (this.origin.x > this.corner.x || this.origin.y > this.corner.y){
+            throw "Invalid translation: new origin must be top-left and corner bottom-right"
+        }
     }
 
     /* I return a frame that is the intersection of myself and another. */

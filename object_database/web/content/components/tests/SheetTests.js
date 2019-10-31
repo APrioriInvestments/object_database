@@ -70,6 +70,10 @@ describe("Sheet util tests.", () => {
             assert.equal(p.x, 0);
             assert.equal(p.y, 1);
         })
+        it("isNaN", () => {
+            let p = new Point();
+            assert.isTrue(p.isNaN);
+        })
         it("Quadrant", () => {
             let p = new Point([1, 1]);
             assert.equal(p.quadrant, 1);
@@ -96,6 +100,9 @@ describe("Sheet util tests.", () => {
         });
         it("Dimension", () => {
             let frame = new Frame([0, 0], [9, 19]);
+            console.log("dim");
+            console.log(frame.origin);
+            console.log(frame.corner);
             assert.equal(frame.dim.x, 10);
             assert.equal(frame.dim.y, 20);
         })
@@ -105,20 +112,32 @@ describe("Sheet util tests.", () => {
             assert.equal(frame.dim.y, 1);
         })
         it("Dimension of empty frame", () => {
-            let frame = new Frame([0, 0], [-1, -1]);
-            assert.equal(frame.dim.x, 0);
-            assert.equal(frame.dim.y, 0);
-            frame = new Frame([-10, -10], [-1, -1]);
+            frame = new Frame();
             assert.equal(frame.dim.x, 0);
             assert.equal(frame.dim.y, 0);
         })
+        it("Invalid dimension frame (negative coordinates)", () => {
+            try {
+                let frame = new Frame([0, 0], [-1, 0]);
+            } catch(e) {
+                assert.equal(e,"Both 'origin' and 'corner' must be of non-negative coordinates");
+            }
+            try {
+                let frame = new Frame([-1, 0], [1, 0]);
+            } catch(e) {
+                assert.equal(e,"Both 'origin' and 'corner' must be of non-negative coordinates");
+            }
+        })
+        it("Invalid dimension frame (reversed corner and origin)", () => {
+            try {
+                let frame = new Frame([1, 1], [0, 0]);
+            } catch(e) {
+                assert.equal(e,"Origin must be top-left and corner bottom-right");
+            }
+        })
         it("Is empty", () => {
-            let frame = new Frame([0, 0], [-1, -1]);
+            frame = new Frame();
             assert.isTrue(frame.empty);
-            frame = new Frame([-10, -10], [-1, -1]);
-            assert.isTrue(frame.empty);
-            frame = new Frame([10, 10], [20, 20]);
-            assert.isFalse(frame.empty);
         })
         it("Setting a new origin", () => {
             let frame = new Frame([0, 0], [7, 9]);
@@ -176,9 +195,8 @@ describe("Sheet util tests.", () => {
             }
         })
         it("Coords of empty frame", () => {
-            let frame = new Frame([0, 0], [-1, -1]);
-            let coords = [];
-            assert.equal(coords.length, frame.coords.length);
+            frame = new Frame();
+            assert.equal(0, frame.coords.length);
         })
         it("Translate up right", () => {
             let frame = new Frame([3, 4], [5, 6]);
@@ -290,10 +308,11 @@ describe("Sheet util tests.", () => {
                 assert.isTrue(frame_coords_str.includes(coords_str[i]));
             }
             // now translate
-            frame.translate([-10, -1]);
-            assert.equal(frame.dim.x, 0);
-            assert.equal(frame.dim.y, 0);
-            assert.equal(0, frame.coords.length);
+            try {
+                frame.translate([-10, -1]);
+            } catch(e){
+                assert.equal(e, "Invalid translation: new 'origin' and 'corner' must be of non-negative coordinates");
+            }
         })
         it("Intersect (arrangement A)", () => {
             let frame = new Frame([0, 0], [10, 10]);

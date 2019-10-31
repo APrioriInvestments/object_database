@@ -58,6 +58,7 @@ describe("Sheet util tests.", () => {
         });
         after(() => {
         });
+        // TODO add a multitype instantiation test
         it("Getters", () => {
             let p = new Point([10, 20]);
             assert.equal(p.x, 10);
@@ -318,7 +319,9 @@ describe("Sheet util tests.", () => {
             let frame = new Frame([0, 0], [10, 10]);
             let another_frame = new Frame([5, 5], [15, 15]);
             let intersection = frame.intersect(another_frame);
+            // TODO add frame equal methods
         })
+        // TODO finish intersection tests
         it("Intersect (empty frame)", () => {
             let frame = new Frame([0, 0], [10, 10]);
             let another_frame = new Frame();

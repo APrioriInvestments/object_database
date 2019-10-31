@@ -7,8 +7,13 @@ class Point {
     constructor(listOfTwo){
         this._values = [];
         if(listOfTwo){
-            this._values[0] = listOfTwo[0];
-            this._values[1] = listOfTwo[1];
+            if(listOfTwo instanceof Array){
+                this._values[0] = listOfTwo[0];
+                this._values[1] = listOfTwo[1];
+            } else if (listOfTwo instanceof Point){
+                this._values[0] = listOfTwo.x;
+                this._values[1] = listOfTwo.y;
+            }
         }
 
         // Bind methods
@@ -162,7 +167,19 @@ class Frame {
         if (this.empty || frame.empty){
             return new Frame();
         }
-
+        if (this.contains(frame.origin)){
+            if (this.contains(frame.corner)){
+                return frame;
+            } else {
+                return new Frame(frame.origin, this.corner);
+            }
+        } else if (frame.contains(this.origin)){
+            if (frame.contains(this.corner)){
+                return this;
+            } else {
+                return new Frame(this.origin, frame.corner);
+            }
+        }
     }
 }
 

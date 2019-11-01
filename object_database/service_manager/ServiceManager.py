@@ -81,6 +81,7 @@ class ServiceManager(object):
         isSingleton=None,
         coresUsed=None,
         gbRamUsed=None,
+        inferCodebase=True,
     ):
         service = service_schema.Service.lookupAny(name=serviceName)
 
@@ -90,7 +91,10 @@ class ServiceManager(object):
         service.service_module_name = serviceClass.__module__
         service.service_class_name = serviceClass.__qualname__
 
-        if not service.service_module_name.startswith("object_database."):
+        if service.service_module_name.startswith("object_database."):
+            inferCodebase = False
+
+        if inferCodebase is True:
             # find the root of the codebase
             module = sys.modules[serviceClass.__module__]
 

@@ -17,7 +17,6 @@ import tempfile
 
 from object_database.service_manager.ServiceManager import ServiceManager
 from object_database.service_manager.ServiceWorker import ServiceWorker
-from object_database.service_manager.Codebase import setCodebaseInstantiationDirectory
 
 
 class InProcessServiceManager(ServiceManager):
@@ -25,8 +24,6 @@ class InProcessServiceManager(ServiceManager):
         self.storageRoot = tempfile.TemporaryDirectory()
         self.sourceRoot = tempfile.TemporaryDirectory()
         self.auth_token = auth_token
-
-        setCodebaseInstantiationDirectory(self.sourceRoot.name)
 
         ServiceManager.__init__(
             self,
@@ -71,3 +68,25 @@ class InProcessServiceManager(ServiceManager):
     def cleanup(self):
         self.storageRoot.cleanup()
         self.sourceRoot.cleanup()
+
+    @staticmethod
+    def createOrUpdateService(
+        serviceClass,
+        serviceName,
+        target_count=None,
+        placement=None,
+        isSingleton=None,
+        coresUsed=None,
+        gbRamUsed=None,
+        inferCodebase=False,  # don't infer codebase by default
+    ):
+        ServiceManager.createOrUpdateService(
+            serviceClass,
+            serviceName,
+            target_count=target_count,
+            placement=placement,
+            isSingleton=isSingleton,
+            coresUsed=coresUsed,
+            gbRamUsed=gbRamUsed,
+            inferCodebase=inferCodebase,
+        )

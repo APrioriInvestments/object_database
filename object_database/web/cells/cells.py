@@ -1256,8 +1256,7 @@ class Octicon(Cell):
         return self.whichOcticon
 
     def recalculate(self):
-        octiconClasses = ["octicon", ("octicon-%s" % self.whichOcticon)]
-        self.exportData["octiconClasses"] = octiconClasses
+        self.exportData["octiconType"] = self.whichOcticon
         self.exportData["color"] = self.color
 
 
@@ -2369,13 +2368,20 @@ class SingleLineTextBox(Cell):
 
 class DisplayLineTextBox(Cell):
     def __init__(
-        self, slot, displayText="[default]", initialValue="", pattern=None, octicon=None
+        self,
+        slot,
+        displayText="[default]",
+        initialValue="",
+        pattern=None,
+        octicon=None,
+        clearOcticon=None,
     ):
         super().__init__()
         self.pattern = pattern
         self.slot = slot
         self.displayText = displayText
         self.octicon = octicon
+        self.clearOcticon = clearOcticon
         self.slot.set(initialValue)
 
     def recalculate(self):
@@ -2385,6 +2391,8 @@ class DisplayLineTextBox(Cell):
         self.exportData["displayText"] = self.displayText
         if self.octicon:
             self.children["octicon"] = Cell.makeCell(self.octicon)
+        if self.clearOcticon:
+            self.children["clearOcticon"] = Cell.makeCell(self.clearOcticon)
 
     def onMessage(self, msgFrame):
         self.slot.set(msgFrame["text"])
@@ -2502,10 +2510,12 @@ class Table(Cell):
 
         headerName = self.headerFun(col)
         resOcticon = Octicon("search", color="black")
+        clearOcticon = Octicon("x", color="red")
         displayLine = DisplayLineTextBox(
             self.columnFilters[col],
             displayText=headerName,
             octicon=resOcticon,
+            clearOcticon=clearOcticon,
             initialValue=self.columnFilters[col].get(),
         )
 

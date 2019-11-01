@@ -14,7 +14,7 @@
 
 from object_database.web import cells
 from object_database.web.CellsTestPage import CellsTestPage
-from object_database.web.cells.util import Flex
+from object_database.web.cells.modifiers import Flex
 
 
 class HorizontalSubscribedSequenceNotFlex(CellsTestPage):

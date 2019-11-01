@@ -39,6 +39,10 @@ class DisplayLineTextBox extends Component {
         this.handleKeyDown = this.handleKeyDown.bind(this);
     }
 
+    componentDidLoad(){
+        this.storedValue = this.props.initialValue;
+    }
+
     build(){
         return (
             h('div', {

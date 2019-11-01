@@ -26,6 +26,7 @@ import numpy
 
 from object_database.web.cells import Messenger
 from object_database.web.cells.children import Children
+from object_database.web.cells.modifiers import Flex
 
 from inspect import signature
 
@@ -2369,20 +2370,23 @@ class SingleLineTextBox(Cell):
 
 
 class DisplayLineTextBox(Cell):
-    def __init__(self, slot, displayText="[default]", pattern=None, octicon=None):
+    def __init__(
+        self, slot, displayText="[default]", initialValue="", pattern=None, octicon=None
+    ):
         super().__init__()
         self.pattern = pattern
         self.slot = slot
         self.displayText = displayText
         self.octicon = octicon
+        self.slot.set(initialValue)
 
     def recalculate(self):
         if self.pattern:
-            self.exportData['pattern'] = self.pattern
-        self.exportData['initialValue'] = self.slot.get()
-        self.exportData['displayText'] = self.displayText
+            self.exportData["pattern"] = self.pattern
+        self.exportData["initialValue"] = self.slot.get()
+        self.exportData["displayText"] = self.displayText
         if self.octicon:
-            self.children['octicon'] = Cell.makeCell(self.octicon)
+            self.children["octicon"] = Cell.makeCell(self.octicon)
 
     def onMessage(self, msgFrame):
         self.slot.set(msgFrame["text"])
@@ -2488,14 +2492,8 @@ class Table(Cell):
 
         def icon():
             if self.sortColumn.get() != col_ix:
-                return ""
+                return Octicon("arrow-down", color="gainsboro")
             return Octicon("arrow-up" if not self.sortColumnAscending.get() else "arrow-down")
-
-        cell = (
-            Cell.makeCell(self.headerFun(col)).nowrap()
-            >> Padding()
-            >> Subscribed(icon).nowrap()
-        )
 
         def onClick():
             if self.sortColumn.get() == col_ix:
@@ -2504,23 +2502,21 @@ class Table(Cell):
                 self.sortColumn.set(col_ix)
                 self.sortColumnAscending.set(False)
 
-        res = Clickable(cell, onClick, makeBold=True)
+        headerName = self.headerFun(col)
+        resOcticon = Octicon("search", color="black")
+        displayLine = DisplayLineTextBox(
+            self.columnFilters[col],
+            displayText=headerName,
+            octicon=resOcticon,
+            initialValue=self.columnFilters[col].get(),
+        )
 
-        if self.columnFilters[col].get() is None:
-            res = (
-                res.nowrap()
-                >> Clickable(
-                    Octicon("search"), lambda: self.columnFilters[col].set("")
-                ).nowrap()
-            )
-        else:
-            res = (
-                res
-                >> SingleLineTextBox(self.columnFilters[col]).nowrap()
-                >> Button(Octicon("x"), lambda: self.columnFilters[col].set(None), small=True)
-            )
+        sorterCell = Subscribed(icon)
+        sortButton = Clickable(sorterCell, onClick, makeBold=True)
 
-        return Card(res, padding=1)
+        res = sortButton >> Flex(displayLine)
+
+        return Panel(res)
 
     def recalculate(self):
         with self.view() as v:

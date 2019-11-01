@@ -17,6 +17,7 @@ class Point {
         }
 
         // Bind methods
+        this.equals = this.equals.bind(this);
     }
 
     get x(){
@@ -59,13 +60,19 @@ class Point {
     set y(val){
         this._values[1] = val;
     }
+
+    equals(point){
+        if (this._values[0] === point.x && this._values[1] === point.y){
+            return true;
+        }
+        return false;
+    }
 }
 
 
 class Frame {
     constructor(origin, corner){
-        /* Origin and corner can be any points on the 2d cartensian grid.
-         * However, only points in the first quadrant and those where
+        /* Origin and corner can be any points in the first quadrant. Only those where
          * corner.x >= origin.x AND corner.y <= origin.y will lead an non-empty
          * non-zero dimensional frame.IE we stick the basic bitmap conventions of
          * origin as top-left and corner as bottom-right.
@@ -140,15 +147,23 @@ class Frame {
      */
     contains(other){
         if (other instanceof Array){
-            other = Point(other);
+            other = new Point(other);
         }
-        // TODO
         if (other instanceof Point) {
-            if (other.x >= this.origin.x && other.x <= this.corner.x
-                && other.y >= this.corner.y && other.y <= this.origin.y){
-                return true;
-            }
+            return (other.x >= this.origin.x && other.x <= this.corner.x
+                && other.y <= this.corner.y && other.y >= this.origin.y)
+        } else if (other instanceof Frame) {
+            return this.contains(other.origin) && this.contains(other.corner)
         }
+        throw "You must pass a length 2 array, a Point, or a Frame"
+    }
+
+    /* I check whether this frame matches this. */
+    equals(frame){
+        if (this.origin.equals(frame.origin) && this.corner.equals(frame.corner)){
+            return true;
+        }
+        return false;
     }
 
     /* I translate myself in the given [x, y] direction */
@@ -180,6 +195,7 @@ class Frame {
                 return new Frame(this.origin, frame.corner);
             }
         }
+        return new Frame();
     }
 }
 

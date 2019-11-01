@@ -767,6 +767,18 @@ def sessionState():
     return context(SessionState)
 
 
+_coreSerializationContextCached = [None]
+
+
+def getCoreSerializationContext():
+    if _coreSerializationContextCached[0] is None:
+        _coreSerializationContextCached[
+            0
+        ] = TypedPythonCodebase.coreSerializationContext().withoutCompression()
+
+    return _coreSerializationContextCached[0]
+
+
 class Cell:
     def __init__(self):
         self.cells = None  # will get set when its added to a 'Cells' object
@@ -793,7 +805,7 @@ class Cell:
         self.garbageCollected = False
         self.subscriptions = set()
         self._style = {}
-        self.serializationContext = TypedPythonCodebase.coreSerializationContext()
+        self.serializationContext = getCoreSerializationContext()
         self.context = {}
 
         # lifecylce state attributes

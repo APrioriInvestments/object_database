@@ -731,4 +731,24 @@ describe('VElement Build Tests for All Components', () => {
         let result = comp[funcName]();
         assert.exists(result);
     });
+    it('DisplayLineTextBox can build', () => {
+        let openOct = new AllComponents.Octicon({
+            id: 'oct1',
+            octiconType: 'search'
+        });
+        let clearOct = new AllComponents.Octicon({
+            id: 'oct2',
+            octiconType: 'x'
+        });
+        let comp = new AllComponents.DisplayLineTextBox({
+            id: 'foo',
+            namedChildren: {
+                octicon: openOct,
+                clearOcticon: clearOct
+            }
+        });
+        expect(comp[funcName].bind(comp)).to.not.throw();
+        let result = comp[funcName]();
+        assert.exists(result);
+    });
 });

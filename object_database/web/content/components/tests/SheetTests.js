@@ -243,6 +243,44 @@ describe("Sheet util tests.", () => {
             frame = new Frame();
             assert.equal(0, frame.coords.length);
         })
+        it("Coords slice", () => {
+            // x-axis
+            let frame = new Frame([0, 0], [10, 10]);
+            let slice_x = [];
+            for (let x = 0; x <= 10; x++){
+                slice_x.push(new Point(x, 5))
+            }
+            let slice_x_str = slice_x.map((item) => {return item.toString()});
+            let frame_slice_x_str = frame.coords_slice(5, "x").map((item) => {return item.toString()});
+            assert.equal(slice_x.length, frame_slice_x_str.length);
+            for (let i = 0; i < slice_x_str.length; i++){
+                assert.isTrue(frame_slice_x_str.includes(slice_x_str[i]));
+            }
+            // y-axis
+            let slice_y = [];
+            for (let y = 0; y <= 10; y++){
+                slice_y.push(new Point(5, y))
+            }
+            assert.equal(slice_x.length, frame.coords_slice(5, "y").length);
+            let slice_y_str = slice_y.map((item) => {return item.toString()});
+            let frame_slice_y_str = frame.coords_slice(5, "y").map((item) => {return item.toString()});
+            for (let i = 0; i < slice_y_str.length; i++){
+                assert.isTrue(frame_slice_y_str.includes(slice_y_str[i]));
+            }
+        })
+        it("Coords slice (empty)", () => {
+            let frame = new Frame([0, 0], [10, 10]);
+            try {
+                frame.coords_slice(100, "x")
+            } catch(e){
+                assert.equal(e, "Index out of range");
+            }
+            try {
+                frame.coords_slice(100, "y")
+            } catch(e){
+                assert.equal(e, "Index out of range");
+            }
+        })
         it("Translate up right", () => {
             let frame = new Frame([3, 4], [5, 6]);
             assert.equal(frame.dim.x, 3);
@@ -409,6 +447,25 @@ describe("Sheet util tests.", () => {
             intersection = frame.intersect(another_frame);
             assert.isTrue(intersection.empty);
         })
+    })
+    describe("DataFrame class tests.", () => {
+        before(() => {
+        });
+        after(() => {
+        });
+        it.skip("Load data", () => {
+            let frame = new Frame([0, 0], [10, 10]);
+            // TODO finish test
+        })
+        it.skip("Load data (bad y-dim data)", () => {
+            let frame = new Frame([0, 0], [10, 10]);
+            // TODO finish test
+        })
+        it.skip("Load data (bad x-dim data)", () => {
+            let frame = new Frame([0, 0], [10, 10]);
+            // TODO finish test
+        })
+
     })
 })
 

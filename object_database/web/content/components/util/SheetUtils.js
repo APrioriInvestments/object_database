@@ -92,6 +92,7 @@ class Frame {
         this.intersect = this.intersect.bind(this);
         this.translate = this.translate.bind(this);
         this._empty = this._empty.bind(this);
+        this.coords_slice = this.coords_slice.bind(this);
     }
 
     /* The dimension of the frame. */
@@ -131,12 +132,30 @@ class Frame {
      */
     get coords() {
         let coords = [];
-        if (this.corner.quadrant !== 1 || this.corner.quadrant !== 1){
-            return coords;
-        }
         for (let x = this.origin.x; x <= this.corner.x; x++){
             for (let y = this.origin.y; y <= this.corner.y; y++){
                 coords.push(new Point([x, y]));
+            }
+        }
+        return coords;
+    }
+
+    /* I slice the frame along a given axis at a given rown and return
+     * corresponding coordinates. For example, Frame([0, 0], [10, 10]).slice(5, "y")
+     * will return a list [[5, 0], ... [5, 10]]
+     */
+    coords_slice(index, axis) {
+        let coords = [];
+        if (axis === "y"){
+            if (index > this.corner.x || index < this.origin.x){
+                throw "Index out of range"
+            }
+            for(let y = this.origin.y; y <= this.corner.y; y++){
+                coords.push(new Point(index, y));
+            }
+        } else if (axis === "x"){
+            for(let x = this.origin.x; x <= this.corner.x; x++){
+                coords.push(new Point(x, index));
             }
         }
         return coords;
@@ -199,4 +218,42 @@ class Frame {
     }
 }
 
-export {Point, Frame}
+
+class DataFrame extends Frame {
+    constructor(origin, corner){
+        /* Origin and corner can be any points in the first quadrant. Only those where
+         * corner.x >= origin.x AND corner.y <= origin.y will lead an non-empty
+         * non-zero dimensional frame. IE we stick the basic bitmap conventions of
+         * origin as top-left and corner as bottom-right.
+         */
+        super(origin, corner);
+
+        this.store = {};
+    }
+
+    /* I load an array of arrays of data. The top level array length needs to
+     * equal this.dim.y, the internal arrays lengths should match this.dim.x
+     */
+    set load(data){
+        if (data.length !== this.dim.y){
+            throw "Data array length does not match frame.dim.y"
+        }
+        // iterate over the data and update the store; make sure to offset the
+        // coordintates properly
+        for (let y = 0; y < data.length; y++){
+            let x_slice = data[y];
+            // additional consistency check
+            if (x_slice.length !== this.dim.x){
+                throw "At least one array length does not match frame.dim.x"
+            }
+            for (let x = 0; x < x_slice.length; x++){
+                let coord = [x + this.origin.x, y + this.origin.y];
+                coord = coord.toString();
+                this.store[coord] = x_slice[x];
+            }
+        }
+    }
+}
+
+
+export {Point, Frame, DataFrame}

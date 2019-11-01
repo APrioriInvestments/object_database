@@ -96,8 +96,7 @@ class Table extends Component {
         return [
             this.renderChildNamed('left'),
             this._getPageInfo(),
-            this.renderChildNamed('right'),
-            this.renderChildNamed('page')
+            this.renderChildNamed('right')
         ];
     }
 

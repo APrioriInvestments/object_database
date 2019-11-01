@@ -33,17 +33,16 @@ class Octicon extends Component {
 
     _getHTMLClasses(){
         let classes = ["cell", "octicon"];
-        this.props.octiconClasses.forEach(name => {
-            classes.push(name);
-        });
+        let octiconTypeClass = `octicon-${this.props.octiconType}`;
+        classes.push(octiconTypeClass);
         return classes.join(" ");
     }
 }
 
 Octicon.propTypes = {
-    octiconClasses: {
-        description: "Octicon css classes, such as 'shield,' 'alert' etc.",
-        type: PropTypes.oneOf([PropTypes.object])
+    octiconType: {
+        type: PropTypes.string,
+        description: "The name of the octicon to display"
     },
     color: {
         description: "Color of the Octicon",

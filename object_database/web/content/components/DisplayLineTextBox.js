@@ -18,6 +18,9 @@ import {h} from 'maquette';
  * ---------------------
  * `octicon` (single) - Optional octicon to display
  *    to the right of the input area.
+ * `clearOcticon (single) - Optional octicon to display
+ *    to the right of the input area only when
+ *    the input contains a current value.
  */
 class DisplayLineTextBox extends Component {
     constructor(props){
@@ -28,12 +31,14 @@ class DisplayLineTextBox extends Component {
         // store a custom one here, since
         // we always want to display the text
         // when the element isn't active.
-        this.storedValue = "";
+        this.storedValue = this.props.initialValue || "";
 
         // Bind methods
         this.onInput = this.onInput.bind(this);
         this.onChange = this.onChange.bind(this);
         this.onFocus = this.onFocus.bind(this);
+        this.forceFocus = this.forceFocus.bind(this);
+        this.forceBlur = this.forceBlur.bind(this);
         this.onBlur = this.onBlur.bind(this);
         this.onOcticonClick = this.onOcticonClick.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -44,6 +49,14 @@ class DisplayLineTextBox extends Component {
     }
 
     build(){
+        let fullDisplayText = this.props.displayText;
+        if(this.storedValue != ""){
+            fullDisplayText = `${fullDisplayText}[${this.storedValue}]`;
+        }
+        let octiconToDisplay = "octicon";
+        if(this.storedValue != ""){
+            octiconToDisplay = "clearOcticon";
+        }
         return (
             h('div', {
                 id: this.props.id,
@@ -58,14 +71,16 @@ class DisplayLineTextBox extends Component {
                     oninput: this.onInput,
                     onfocus: this.onFocus,
                     onblur: this.onBlur,
-                    value: this.props.displayText,
+                    value: fullDisplayText,
                     onkeydown: this.handleKeyDown
                 }, []),
                 h('span', {
+                    id: `display-line-secondary-${this.props.id}`,
                     class: 'display-line-textbox-secondary',
-                    onclick: this.onOcticonClick
+                    onclick: this.onOcticonClick,
+                    "data-to-display": octiconToDisplay
                 }, [
-                    this.renderChildNamed('octicon')
+                    this.renderChildNamed(octiconToDisplay)
                 ])
             ])
         );
@@ -96,12 +111,25 @@ class DisplayLineTextBox extends Component {
     }
 
     onOcticonClick(event){
-        let inputEl = document.getElementById(`display-line-input-${this.props.id}`);
-        if(document.activeElement == inputEl){
-            inputEl.blur();
+        let which = event.currentTarget.dataset.toDisplay;
+        if(which == "octicon"){
+            this.forceFocus();
+        } else if(which =="clearOcticon"){
+            this.storedValue = "";
+            this.onChange();
         } else {
-            inputEl.focus();
+            console.log(event.currentTarget.dataset);
         }
+    }
+
+    forceFocus(){
+        let input = document.getElementById(`display-line-input-${this.props.id}`);
+        input.focus();
+    }
+
+    forceBlur(){
+        let input = document.getElementById(`display-line-input-${this.props.id}`);
+        input.blur();
     }
 
     handleKeyDown(event){
@@ -112,6 +140,17 @@ class DisplayLineTextBox extends Component {
         }
     }
 }
+
+DisplayLineTextBox.propTypes = {
+    initialValue: {
+        type: PropTypes.string,
+        description: "An initial value for the input to store (only shown when in focus)"
+    },
+    displayText: {
+        type: PropTypes.string,
+        description: "The 'label' to dislpay when the input is blurred"
+    }
+};
 
 export {
     DisplayLineTextBox,

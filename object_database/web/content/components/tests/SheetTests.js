@@ -1,4 +1,4 @@
-/**
+/*
  * Tests for Message Handling in NewCellHandler
  */
 require('jsdom-global')();
@@ -58,7 +58,6 @@ describe("Sheet util tests.", () => {
         });
         after(() => {
         });
-        // TODO add a multitype instantiation test
         it("Getters", () => {
             let p = new Point([10, 20]);
             assert.equal(p.x, 10);
@@ -70,6 +69,14 @@ describe("Sheet util tests.", () => {
             p.y = 1;
             assert.equal(p.x, 0);
             assert.equal(p.y, 1);
+        })
+        it("Equals", () => {
+            let p = new Point([0, 0]);
+            assert.isTrue(p.equals(p));
+            let another_p = new Point([0, 0]);
+            assert.isTrue(p.equals(another_p));
+            another_p = new Point([1, 0]);
+            assert.isFalse(p.equals(another_p));
         })
         it("isNaN", () => {
             let p = new Point();
@@ -101,9 +108,6 @@ describe("Sheet util tests.", () => {
         });
         it("Dimension", () => {
             let frame = new Frame([0, 0], [9, 19]);
-            console.log("dim");
-            console.log(frame.origin);
-            console.log(frame.corner);
             assert.equal(frame.dim.x, 10);
             assert.equal(frame.dim.y, 20);
         })
@@ -116,6 +120,14 @@ describe("Sheet util tests.", () => {
             frame = new Frame();
             assert.equal(frame.dim.x, 0);
             assert.equal(frame.dim.y, 0);
+        })
+        it("Dimension", () => {
+            let frame = new Frame([0, 0], [1, 1]);
+            assert.isTrue(frame.equals(frame));
+            let another_frame = new Frame([0, 0], [1, 1]);
+            assert.isTrue(frame.equals(another_frame));
+            another_frame = new Frame([0, 0], [2, 2]);
+            assert.isFalse(frame.equals(another_frame));
         })
         it("Invalid dimension frame (negative coordinates)", () => {
             try {
@@ -193,6 +205,38 @@ describe("Sheet util tests.", () => {
             let frame_coords_str = frame.coords.map((item) => {return item.toString()});
             for (let i = 0; i < coords_str.length; i++){
                 assert.isTrue(frame_coords_str.includes(coords_str[i]));
+            }
+        })
+        it("Contaiment (array)", () => {
+            let frame = new Frame([0, 0], [10, 10]);
+            assert.isTrue(frame.contains([5, 5]));
+            assert.isFalse(frame.contains([15, 15]));
+            assert.isFalse(frame.contains([-5, 5]));
+        })
+        it("Contaiment (point)", () => {
+            let frame = new Frame([0, 0], [10, 10]);
+            let point = new Point([1, 1]);
+            assert.isTrue(frame.contains(point));
+            point = new Point([15, 15]);
+            assert.isFalse(frame.contains(point));
+        })
+        it("Contaiment (frame)", () => {
+            let frame = new Frame([0, 0], [10, 10]);
+            let another_frame = new Frame([1, 1], [9, 9]);
+            assert.isTrue(frame.contains(another_frame));
+            another_frame = new Frame([0, 0], [10, 10]);
+            assert.isTrue(frame.contains(another_frame));
+            another_frame = new Frame([1, 1], [19, 19]);
+            assert.isFalse(frame.contains(another_frame));
+            another_frame = new Frame([11, 11], [19, 19]);
+            assert.isFalse(frame.contains(another_frame));
+        })
+        it("Contaiment (exception)", () => {
+            let frame = new Frame([0, 0], [10, 10]);
+            try {
+                frame.contains("NOT A POINT")
+            } catch(e) {
+                assert.equal(e, "You must pass a length 2 array, a Point, or a Frame");
             }
         })
         it("Coords of empty frame", () => {
@@ -317,11 +361,44 @@ describe("Sheet util tests.", () => {
         })
         it("Intersect (arrangement A)", () => {
             let frame = new Frame([0, 0], [10, 10]);
+            // basic overlap
             let another_frame = new Frame([5, 5], [15, 15]);
             let intersection = frame.intersect(another_frame);
-            // TODO add frame equal methods
+            assert.exists(intersection);
+            let test_intersection = new Frame([5, 5], [10, 10]);
+            assert.isTrue(intersection.equals(test_intersection));
+            // contained
+            another_frame = new Frame([1, 1], [9, 9]);
+            intersection = frame.intersect(another_frame);
+            assert.exists(intersection);
+            test_intersection = new Frame([1, 1], [9, 9]);
+            assert.isTrue(intersection.equals(test_intersection));
+            // not contained
+            another_frame = new Frame([11, 11], [19, 19]);
+            intersection = frame.intersect(another_frame);
+            assert.exists(intersection);
+            assert.isTrue(intersection.empty);
         })
-        // TODO finish intersection tests
+        it("Intersect (arrangement B)", () => {
+            let frame = new Frame([10, 10], [20, 20]);
+            // basic overlap
+            let another_frame = new Frame([0, 0], [15, 15]);
+            let intersection = frame.intersect(another_frame);
+            assert.exists(intersection);
+            let test_intersection = new Frame([10, 10], [15, 15]);
+            assert.isTrue(intersection.equals(test_intersection));
+            // contained
+            another_frame = new Frame([11, 11], [19, 19]);
+            intersection = frame.intersect(another_frame);
+            assert.exists(intersection);
+            test_intersection = new Frame([11, 11], [19, 19]);
+            assert.isTrue(intersection.equals(test_intersection));
+            // not contained
+            another_frame = new Frame([0, 0], [5, 5]);
+            intersection = frame.intersect(another_frame);
+            assert.exists(intersection);
+            assert.isTrue(intersection.empty);
+        })
         it("Intersect (empty frame)", () => {
             let frame = new Frame([0, 0], [10, 10]);
             let another_frame = new Frame();

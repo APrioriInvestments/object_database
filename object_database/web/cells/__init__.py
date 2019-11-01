@@ -77,7 +77,7 @@ from object_database.web.cells.CellsTestMixin import CellsTestMixin
 
 from object_database.web.cells.util import waitForCellsCondition
 
-from object_database.web.cells.util import (
+from object_database.web.cells.modifiers import (
     Flex,
     ShrinkWrap,
     Padding,
@@ -87,6 +87,7 @@ from object_database.web.cells.util import (
     MarginSides,
     MarginRight,
     MarginLeft,
+    CellDecorator,
 )
 
 from object_database.web.cells.views.resizable_panel import ResizablePanel

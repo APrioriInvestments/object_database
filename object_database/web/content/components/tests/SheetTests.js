@@ -11,6 +11,7 @@ let projector = maquette.createProjector();
 const registry = require('../../ComponentRegistry').ComponentRegistry;
 const Point = require('../util/SheetUtils.js').Point;
 const Frame = require('../util/SheetUtils.js').Frame;
+const DataFrame = require('../util/SheetUtils.js').DataFrame;
 
 /* Example Messages and Structures */
 let simpleRoot = {
@@ -453,19 +454,101 @@ describe("Sheet util tests.", () => {
         });
         after(() => {
         });
-        it.skip("Load data", () => {
-            let frame = new Frame([0, 0], [10, 10]);
-            // TODO finish test
+        it("Load data (origin [0, 0])", () => {
+            let frame = new DataFrame([0, 0], [10, 10]);
+            let data = [
+                [0, 0], [0, 1], [1, 1]
+            ]
+            let origin = new Point([0, 0]);
+            frame.load(data, origin);
+            for (let y = 0; y < data.length; y++){
+                let x_slice = data[y];
+                for (let x = 0; x < x_slice.length; x++){
+                    let coord = [x + origin.x, y + origin.y];
+                    assert.equal(frame.store[coord.toString()], x_slice[x]);
+                }
+            }
         })
-        it.skip("Load data (bad y-dim data)", () => {
-            let frame = new Frame([0, 0], [10, 10]);
-            // TODO finish test
+        it("Load data (origin [0, 0] as array)", () => {
+            let frame = new DataFrame([0, 0], [10, 10]);
+            let data = [
+                [0, 0], [0, 1], [1, 1]
+            ]
+            let origin = [0, 0];
+            frame.load(data, origin);
+            for (let y = 0; y < data.length; y++){
+                let x_slice = data[y];
+                for (let x = 0; x < x_slice.length; x++){
+                    let coord = [x + origin[0], y + origin[1]];
+                    assert.equal(frame.store[coord.toString()], x_slice[x]);
+                }
+            }
         })
-        it.skip("Load data (bad x-dim data)", () => {
-            let frame = new Frame([0, 0], [10, 10]);
-            // TODO finish test
+        it("Load data (origin random)", () => {
+            let frame = new DataFrame([0, 0], [10, 10]);
+            let data = [
+                [0, 0], [0, 1], [1, 1]
+            ]
+            let origin = new Point([5, 5]);
+            frame.load(data, origin);
+            for (let y = 0; y < data.length; y++){
+                let x_slice = data[y];
+                for (let x = 0; x < x_slice.length; x++){
+                    let coord = [x + origin.x, y + origin.y];
+                    assert.equal(frame.store[coord.toString()], x_slice[x]);
+                }
+            }
         })
-
+        it("Load data (bad origin)", () => {
+            let frame = new DataFrame([0, 0], [10, 10]);
+            let data = [];
+            let origin = new Point([11, 11]);
+            try {
+                frame.load(data, origin);
+            } catch(e){
+                assert.equal(e, "Origin is outside of frame.");
+            }
+        })
+        it("Load data (bad y-dim origin)", () => {
+            let frame = new DataFrame([0, 0], [10, 10]);
+            let data = [
+                [0, 0], [0, 1], [1, 1]
+            ]
+            let origin = new Point([9, 9]);
+            try {
+                frame.load(data, origin);
+            } catch(e){
+                assert.equal(e, "Data + origin surpass frame y-dimension.");
+            }
+        })
+        it("Load data (bad y-dim data)", () => {
+            let frame = new DataFrame([0, 0], [10, 10]);
+            let data = [
+                [0, 0], [0, 1], [1, 1],
+                [0, 0], [0, 1], [1, 1],
+                [0, 0], [0, 1], [1, 1],
+                [0, 0], [0, 1], [1, 1],
+                [0, 0], [0, 1], [1, 1],
+            ]
+            let origin = new Point([0, 0]);
+            try {
+                frame.load(data, origin);
+            } catch(e){
+                assert.equal(e, "Data + origin surpass frame y-dimension.");
+            }
+        })
+        it("Load data (bad x-dim data)", () => {
+            let frame = new DataFrame([0, 0], [10, 10]);
+            let data = [
+                [0, 0], [0, 1], [1, 1, 1],
+            ]
+            let origin = new Point([9, 8]);
+            try {
+                frame.load(data, origin);
+            } catch(e){
+                assert.equal(e, "Data + origin surpass frame x-dimension.");
+            }
+        })
     })
 })
 

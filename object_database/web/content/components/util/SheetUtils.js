@@ -161,11 +161,14 @@ class Frame {
         return coords;
     }
 
-    /* I check whether the point (as Point of tuple of coordinates)
+    /* I check whether the point (as Point, tuple of coordinates, or
+     * string representaiton of tuple of coordinates)
      * or Frame is contained in this.
      */
     contains(other){
-        if (other instanceof Array){
+        if (other instanceof String || typeof(other) === "string") {
+            other = new Point(other.split(',').map((item) => {return parseInt(item)}));
+        } else if (other instanceof Array){
             other = new Point(other);
         }
         if (other instanceof Point) {
@@ -263,6 +266,17 @@ class DataFrame extends Frame {
                 this.store[coord] = x_slice[x];
             }
         }
+    }
+
+    /* I retrieve the corresponding frame.stroe value. */
+    get(coordinate){
+        if (!this.contains(coordinate)){
+            throw "Coordinate not in frame."
+        }
+        if (coordinate instanceof Array){
+            coordinate = coordinate.toString();
+        }
+        return this.store[coordinate];
     }
 }
 

@@ -214,6 +214,12 @@ describe("Sheet util tests.", () => {
             assert.isFalse(frame.contains([15, 15]));
             assert.isFalse(frame.contains([-5, 5]));
         })
+        it("Contaiment (string rep)", () => {
+            let frame = new Frame([0, 0], [10, 10]);
+            assert.isTrue(frame.contains("5,5"));
+            assert.isFalse(frame.contains("15, 15"));
+            assert.isFalse(frame.contains("-5, 5"));
+        })
         it("Contaiment (point)", () => {
             let frame = new Frame([0, 0], [10, 10]);
             let point = new Point([1, 1]);
@@ -547,6 +553,25 @@ describe("Sheet util tests.", () => {
                 frame.load(data, origin);
             } catch(e){
                 assert.equal(e, "Data + origin surpass frame x-dimension.");
+            }
+        })
+        it("Get frame.store value (valid coordinate)", () => {
+            let frame = new DataFrame([0, 0], [10, 10]);
+            let data = [
+                [0, 0], [0, 1], [1, 1]
+            ]
+            let origin = new Point([5, 5]);
+            frame.load(data, origin);
+            assert.equal(frame.get([5, 5].toString()), 0);
+            assert.equal(frame.get([6, 6].toString()), 1);
+            assert.equal(frame.get([9, 9].toString()), undefined);
+        })
+        it("Get frame.store value (invalid coordinate)", () => {
+            let frame = new DataFrame([0, 0], [10, 10]);
+            try {
+                frame.get([20, 20].toString());
+            } catch(e) {
+                assert.equal(e, "Coordinate not in frame.");
             }
         })
     })

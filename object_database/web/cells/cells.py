@@ -1080,13 +1080,10 @@ class Cell:
 
     def prepare(self):
         if (
-            self.serializationContext is TypedPythonCodebase.coreSerializationContext()
+            self.serializationContext is getCoreSerializationContext()
             and self.parent is not None
         ):
-            if (
-                self.parent.serializationContext
-                is TypedPythonCodebase.coreSerializationContext()
-            ):
+            if self.parent.serializationContext is getCoreSerializationContext():
                 self.parent.prepare()
             self.serializationContext = self.parent.serializationContext
 

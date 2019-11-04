@@ -229,25 +229,36 @@ class DataFrame extends Frame {
         super(origin, corner);
 
         this.store = {};
+
+        // bind context methods
+        this.load = this.load.bind(this);
     }
 
-    /* I load an array of arrays of data. The top level array length needs to
-     * equal this.dim.y, the internal arrays lengths should match this.dim.x
+    /* I load an array of arrays of data. Data coordinates (keys) are
+     * defined by the 'origin' point where data.length corresponds to
+     * the y axis (offset by origin.y) and data[N] corresponds to the
+     * x-axis (offset by origin.x)
      */
-    set load(data){
-        if (data.length !== this.dim.y){
-            throw "Data array length does not match frame.dim.y"
+    load(data, origin){
+        if (origin instanceof Array){
+            origin = new Point(origin);
+        }
+        if (origin.y > this.corner.y || origin.x > this.corner.x){
+            throw "Origin is outside of frame."
+        }
+        // check to make sure we are not out of the frame
+        if (data.length + origin.y - 1> this.corner.y){
+            throw "Data + origin surpass frame y-dimension."
         }
         // iterate over the data and update the store; make sure to offset the
         // coordintates properly
         for (let y = 0; y < data.length; y++){
             let x_slice = data[y];
-            // additional consistency check
-            if (x_slice.length !== this.dim.x){
-                throw "At least one array length does not match frame.dim.x"
-            }
             for (let x = 0; x < x_slice.length; x++){
-                let coord = [x + this.origin.x, y + this.origin.y];
+                if (x + origin.x > this.corner.x){
+                    throw "Data + origin surpass frame x-dimension."
+                }
+                let coord = [x + origin.x, y + origin.y];
                 coord = coord.toString();
                 this.store[coord] = x_slice[x];
             }

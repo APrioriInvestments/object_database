@@ -82,6 +82,18 @@ describe("Sheet util tests.", () => {
         it("isNaN", () => {
             let p = new Point();
             assert.isTrue(p.isNaN);
+            p = new Point(null);
+            assert.isTrue(p.isNaN);
+            p = new Point(undefined);
+            assert.isTrue(p.isNaN);
+            p = new Point([0, 0]);
+            assert.isFalse(p.isNaN);
+            p = new Point([1, 0]);
+            assert.isFalse(p.isNaN);
+            p = new Point([0, 1]);
+            assert.isFalse(p.isNaN);
+            p = new Point([1, 1]);
+            assert.isFalse(p.isNaN);
         })
         it("Quadrant", () => {
             let p = new Point([1, 1]);
@@ -119,6 +131,33 @@ describe("Sheet util tests.", () => {
         })
         it("Dimension of empty frame", () => {
             frame = new Frame();
+            assert.equal(frame.dim.x, 0);
+            assert.equal(frame.dim.y, 0);
+            frame = new Frame([0, 0], undefined);
+            assert.equal(frame.dim.x, 0);
+            assert.equal(frame.dim.y, 0);
+            frame = new Frame(undefined, [0, 0]);
+            assert.equal(frame.dim.x, 0);
+            assert.equal(frame.dim.y, 0);
+            frame = new Frame([0, 0], undefined);
+            assert.equal(frame.dim.x, 0);
+            assert.equal(frame.dim.y, 0);
+            frame = new Frame(undefined, [0, 1]);
+            assert.equal(frame.dim.x, 0);
+            assert.equal(frame.dim.y, 0);
+            frame = new Frame(undefined, [1, 0]);
+            assert.equal(frame.dim.x, 0);
+            assert.equal(frame.dim.y, 0);
+            frame = new Frame(undefined, [1, 1]);
+            assert.equal(frame.dim.x, 0);
+            assert.equal(frame.dim.y, 0);
+            frame = new Frame([1, 0], undefined);
+            assert.equal(frame.dim.x, 0);
+            assert.equal(frame.dim.y, 0);
+            frame = new Frame([0, 1], undefined);
+            assert.equal(frame.dim.x, 0);
+            assert.equal(frame.dim.y, 0);
+            frame = new Frame([1, 1], undefined);
             assert.equal(frame.dim.x, 0);
             assert.equal(frame.dim.y, 0);
         })

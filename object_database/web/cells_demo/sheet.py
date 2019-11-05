@@ -14,9 +14,75 @@
 
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
-import time
+
+# import time
 
 
+class BasicSheet(CellsTestPage):
+    def cell(self):
+        num_columns = 3
+        num_rows = 100
+
+        def rowFun(
+            start_row,
+            end_row,
+            start_column,
+            end_column,
+            num_rows=num_rows,
+            num_columns=num_columns,
+        ):
+            rows = []
+            if start_row >= num_rows or start_column > num_columns:
+                return rows
+            end_column = min(end_column, num_columns)
+            end_row = min(end_row, num_rows)
+            for i in range(start_row, end_row):
+                r = ["index_%s" % i] + [
+                    "entry_%s_%s" % (i, j) for j in range(start_column, end_column)
+                ]
+                rows.append(r)
+            return rows
+
+        return cells.Sheet(
+            rowFun, colWidth=70, rowHeight=25, totalColumns=num_columns, totalRows=num_rows
+        )
+
+    def text(self):
+        return "You should see a basic sheet."
+
+
+class BiggerSheet(CellsTestPage):
+    def cell(self):
+        num_columns = 300
+        num_rows = 10000
+
+        def rowFun(
+            start_row,
+            end_row,
+            start_column,
+            end_column,
+            num_rows=num_rows,
+            num_columns=num_columns,
+        ):
+            rows = []
+            if start_row >= num_rows or start_column > num_columns:
+                return rows
+            end_column = min(end_column, num_columns)
+            end_row = min(end_row, num_rows)
+            for i in range(start_row, end_row):
+                r = ["index_%s" % i] + [
+                    "entry_%s_%s" % (i, j) for j in range(start_column, end_column)
+                ]
+                rows.append(r)
+            return rows
+
+        return cells.Sheet(rowFun, colWidth=80, totalColumns=num_columns, totalRows=num_rows)
+
+    def text(self):
+        return "You should see a bigger sheet."
+
+
+"""
 class NewBasicSheet(CellsTestPage):
     def cell(self):
         # Create the datasource
@@ -62,59 +128,4 @@ class NewBasicSheetWithDelay(CellsTestPage):
 
     def text(self):
         return "Basic demo on 10x100 datasource, with a 0.2s delay"
-
-
-class BasicSheet(CellsTestPage):
-    def cell(self):
-        num_columns = 3
-
-        def rowFun(
-            start_row, end_row, start_column, end_column, num_rows=100, num_columns=num_columns
-        ):
-            rows = []
-            if start_row >= num_rows or start_column > num_columns:
-                return rows
-            end_column = min(end_column, num_columns)
-            end_row = min(end_row, num_rows)
-            for i in range(start_row, end_row):
-                r = ["index_%s" % i] + [
-                    "entry_%s_%s" % (i, j) for j in range(start_column, end_column)
-                ]
-                rows.append(r)
-            return rows
-
-        return cells.Sheet(rowFun, colWidth=70, rowHeight=25)
-
-    def text(self):
-        return "You should see a basic sheet."
-
-
-class BiggerSheet(CellsTestPage):
-    def cell(self):
-        num_columns = 300
-        num_rows = 10000
-
-        def rowFun(
-            start_row,
-            end_row,
-            start_column,
-            end_column,
-            num_rows=num_rows,
-            num_columns=num_columns,
-        ):
-            rows = []
-            if start_row >= num_rows or start_column > num_columns:
-                return rows
-            end_column = min(end_column, num_columns)
-            end_row = min(end_row, num_rows)
-            for i in range(start_row, end_row):
-                r = ["index_%s" % i] + [
-                    "entry_%s_%s" % (i, j) for j in range(start_column, end_column)
-                ]
-                rows.append(r)
-            return rows
-
-        return cells.Sheet(rowFun, colWidth=80)
-
-    def text(self):
-        return "You should see a bigger sheet."
+"""

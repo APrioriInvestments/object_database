@@ -6,6 +6,7 @@
 import {h} from 'maquette';
 import {Component} from './Component';
 import {PropTypes} from './util/PropertyValidator';
+import {Frame, DataFrame} from './util/SheetUtils';
 
 /**
  * About Named Children
@@ -27,15 +28,22 @@ class Sheet extends Component {
         this.max_num_columns = null;
         this.cursor_target_data = null;
         this.offset = 1;
-        // this.frame defines the coordinates of the current data view frame
-        this.frame = {
-            top_left: {x: 0, y: 0},
-            bottom_right: {x: null, y:null}
-        }
-        // this.current_start_row_index = null;
-        // this.current_end_row_index = null;
-        // this.current_start_column_index = null;
-        // this.current_end_column_index = null;
+
+        // frames
+        // these frames are fixed on scrolling
+        this.fixed_column_frame = null;
+        this.fixed_row_frame = null;
+        // action_frame defines the user's currently selected cells
+        this.action_frame = null;
+        // full_view_frame defines the coordinates of the current data including the fixed
+        // rows/columns view frame
+        this.full_view_frame = null;
+        // view_frame defines the coordinates of the current data **not** including the fixed
+        // rows/columns view frame
+        this.view_frame = null;
+        // this is our core data frame, containing all table data values
+        // NOTE: since we start at row 0 and column 0 we need to subtract 1 from the frame corner coords
+        this.data_frame = new DataFrame([0, 0], [this.props.totalColumns - 1, this.props.totalRows - 1]);
 
         // scrolling attributes used to guage the direction of key scrolling and offset
         // then top/bottom appropriately
@@ -43,7 +51,8 @@ class Sheet extends Component {
         // this.scrollLeft = 0;
 
         // Bind context to methods
-        this.generate_rows = this.generate_rows.bind(this);
+        this.initializeSheet  = this.initializeSheet.bind(this);
+        // this.generate_rows = this.generate_rows.bind(this);
         // this.generate_header = this.generate_header.bind(this);
         this.__updateDataAppend = this.__updateDataAppend.bind(this);
         this.__updateDataPrepend = this.__updateDataPrepend.bind(this);
@@ -61,19 +70,63 @@ class Sheet extends Component {
         this.container = document.getElementById(this.props.id).parentNode;
         this.max_num_columns = this._calc_max_num_columns(this.container.offsetWidth);
         this.max_num_rows = this._calc_max_num_rows(this.container.offsetHeight);
-        this.frame.bottom_right = {x: this.max_num_columns, y: this.max_num_rows};
-        console.log(this.frame);
-        // this.current_start_row_index = 0;
-        // this.current_start_column_index = 0;
-        // this.current_end_row_index = this.max_num_rows + this.offset;
-        // this.current_end_column_index = this.max_num_columns + this.offset;
+        // recall columns are on the x-axis and rows on the y-axis
+        // We instantiate all frames, even if they are of dim = [0, 0]; this allows us to update
+        // the coordinates later as needed (recall a Frame where either origin or corner are null
+        // or undefined is of dim [0, 0]).
+        if (this.props.numLockColumns > 0){
+            this.fixed_column_frame = new Frame([0, 0], [this.props.numLockColumns, this.max_num_rows - 1]);
+        } else {
+            this.fixed_column_frame = new Frame([0, 0], undefined);
+        }
+        if (this.props.numLockRows > 0){
+            this.fixed_row_frame = new Frame([0, 0], [this.max_num_columns - 1, this.props.numLockRows]);
+        } else {
+            this.fixed_row_frame = new Frame([0, 0], undefined);
+        }
+        // TODO update to account for fixed frames
+        this.view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
+        this.full_view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
         if (this.props.dontFetch != true){
             this.fetchData(
-                this.frame,
+                this.full_view_frame,
                 "replace",
                 null
             );
         }
+    }
+
+    /* I initialize the sheet from coordintate [0, 0] to [corner.x, corner.y] (corner isinstanceof Point)
+     * generating 'td' elements with id = this.props.id_x_y
+     */
+    initializeSheet(projector, body){
+        let rows = [];
+        let origin = this.full_view_frame.origin;
+        let corner = this.full_view_frame.corner;
+        for (let y = origin.y; y <= corner.y; y++){
+            var row_data = [];
+            for (let x = origin.x; x <= corner.x; x++){
+                // even if on initialization we get values from the data_frame; this sets up our general
+                // flow but also allows for data_frame to be populated with default or cached values
+                row_data.push({id: `td_${this.props.id}_${x}_${y}`, value: this.data_frame.get([x, y])});
+            }
+            rows.push(
+                new SheetRow(
+                    {
+                        id: `tr_${this.props.id}_${y}`,
+                        row_data: row_data,
+                        colWidth: this.props.colWidth,
+                        height: this.props.rowHeight,
+                    }
+                ).build()
+            )
+        }
+        while(body.firstChild){
+            body.firstChild.remove();
+        }
+        rows.map((r) => {
+            projector.append(body, () => {return r});
+        })
     }
 
     build(){
@@ -92,8 +145,8 @@ class Sheet extends Component {
                     class: "sheet",
                     style: "table-layout:fixed",
                     tabindex: "-1",
-                    onkeydown: this.handleKeyDown,
-                    onclick: this.handleClick
+                    // onkeydown: this.handleKeyDown,
+                    // onclick: this.handleClick
                 }, [
                     // h("thead", {}, [
                     //     h("tr", {id: `sheet-${this.props.id}-head`}, [
@@ -287,7 +340,10 @@ class Sheet extends Component {
         let request = JSON.stringify({
             event: "sheet_needs_data",
             target_cell: this.props.id,
-            frame: frame,
+            frame: {
+                origin: {x: frame.origin.x, y: frame.origin.y},
+                corner: {x: frame.corner.x, y: frame.corner.y},
+            },
             action: action,
             axis: axis
         });
@@ -308,23 +364,13 @@ class Sheet extends Component {
         let head = document.getElementById(`sheet-${this.props.id}-head`);
         if (dataInfo.data && dataInfo.data.length){
             if (dataInfo.action === "replace") {
-                while(body.firstChild){
-                    body.firstChild.remove()
-                }
-                //  while(head.firstChild){
-                //    head.firstChild.remove()
-                //}
-                // NOTE: we add one more column to account for the row index
-                // projector.append(head, () => {
-                //    // return this.make_header_item_zero();
-                //    return h("th", {class: "header-item"}, ["??"])
-                // })
-                this.generate_rows(dataInfo.data).map((row) => {
-                    projector.append(body, () => {return row})
-                })
-                // this.generate_header(dataInfo.column_names).map((col) => {
-                //     projector.append(head, () => {return col})
-                // })
+                // we update the Sheet with (potentially empty) values
+                // creating 'td' elements with ids corresponding to the frame coordinates (and the sheet id);
+                // this will set up our updateData flow which continually retrieves values from data_frame regadless
+                // if the server has returned the request
+                // NOTE: we use frame origin and corner as much as possible, utilizing properties of Point and avoiding
+                // potential confusion of axes vs columns/rows
+                this.initializeSheet(projector, body);
 
             } else if (dataInfo.action === "prepend") {
                 this.__updateDataPrepend(body, head, dataInfo, projector)
@@ -474,11 +520,11 @@ class Sheet extends Component {
      * rows, columns, respecitively and then add a bit more for lazy loading.
      */
     _calc_max_num_rows(max_height){
-        return Math.ceil(max_height/this.props.rowHeight + this.offset);
+        return Math.min(this.props.totalRows, Math.ceil(max_height/this.props.rowHeight));
     }
 
     _calc_max_num_columns(max_width){
-        return Math.ceil(max_width/this.props.colWidth + this.offset);
+        return Math.min(this.props.totalColumns, Math.ceil(max_width/this.props.colWidth));
     }
 
 }
@@ -526,17 +572,13 @@ class SheetRow extends Component {
     }
 
     build(){
-        let row_data = this.props.row_data.map((item) => {
+        var row_data = this.props.row_data.map((item) => {
             return new SheetCell(
-                // TODO Figure out how to pass these coordinates in
-                {id: this.props.id + "cell", x: 10, y: 10, data: item, width: this.props.colWidth}).build()
+                {id: item.id, value: item.value, width: this.props.colWidth}).build()
         })
-        // NOTE: we handle the row index name td cell seperately here
-        // row_data.unshift(h("td", {class: "row-index-item"}, [this.props.rowIndexName.toString()]))
-        // row_data.unshift(h("td", [this.props.rowIndexName.toString()]))
         return (
             h("tr",
-                {class: "sheet-row", style: this.style},
+                {id: this.props.id, class: "sheet-row", style: this.style},
                 row_data
             )
         );
@@ -563,6 +605,11 @@ class SheetCell extends Component {
         super(props, ...args);
         this.style = `max-width: ${this.props.width}px; width: ${this.props.width}px`;
         this.class = "sheet-cell custom-tooltip";
+        if (this.props.value){
+            this.value = this.props.value.toString();
+        } else {
+            this.value = undefined;
+        }
 
         // Bind component methods
     }
@@ -572,26 +619,28 @@ class SheetCell extends Component {
     }
 
     build(){
+        // we don't show a tooltip span element if there is nothing to show
+        let child = [this.value];
+        if (this.value){
+            child.push(h("span", {class: "tooltiptext"}, [this.value]));
+        }
         return (
             h("td",
                 {
+                    id: this.props.id,
                     class: this.class,
                     style: this.style,
-                    "data-x": this.props.x.toString(),
-                    "data-y": this.props.y.toString()
+                    // "data-x": this.props.x.toString(),
+                    // "data-y": this.props.y.toString()
                 },
-                [
-                    this.props.data.toString(),
-                    h("span", {class: "tooltiptext"}, [this.props.data.toString()]),
-
-                ]
+                child
             )
         );
     }
 }
 
 SheetCell.propTypes = {
-    data: {
+    value: {
         description: "Text to display",
         type: PropTypes.oneOf([ PropTypes.string])
     },

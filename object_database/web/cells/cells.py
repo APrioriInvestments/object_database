@@ -3059,18 +3059,24 @@ class OldSheet(Cell):
 class Sheet(Cell):
     """A spreadsheet viewer. The dataset must be static."""
 
-    def __init__(self, rowFun, colWidth=50, rowHeight=30, onCellDblClick=None):
+    def __init__(
+        self, rowFun, totalColumns, totalRows, colWidth=50, rowHeight=30, onCellDblClick=None
+    ):
         """
-        rowFun:
+        rowFun: func
             function taking integer 'start_row' and 'end_row' row indexes and
             'start_column' and 'end_column' that
             returns a list of rows, themselves list of values, to populate the
             table; Note the first value, i.e. row[0], of each row is the named index
-        colWidth:
+        totalColumns: int
+            total number of columns
+        totalRows: int
+            total number of rows
+        colWidth: int
             height of columns in pixels
-        rowHeight:
+        rowHeight: int
             height of row in pixels
-        onCellDblClick:
+        onCellDblClick: str
             function to run after user double clicks a cell. It takes as keyword
             arguments row, col, and sheet where row and col represent the row and
             column clicked and sheet is the Sheet object. Clicks on row(col)
@@ -3079,6 +3085,8 @@ class Sheet(Cell):
         super().__init__()
 
         self.rowFun = rowFun
+        self.totalColumns = totalColumns
+        self.totalRows = totalRows
         self.colWidth = colWidth
         self.rowHeight = rowHeight
         self.error = Slot(None)
@@ -3112,6 +3120,8 @@ class Sheet(Cell):
 
         self.exportData["colWidth"] = self.colWidth
         self.exportData["rowHeight"] = self.rowHeight
+        self.exportData["totalColumns"] = self.totalColumns
+        self.exportData["totalRows"] = self.totalRows
         # self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
 
     def onMessage(self, msgFrame):
@@ -3127,10 +3137,10 @@ class Sheet(Cell):
 
         if msgFrame["event"] == "sheet_needs_data":
             frame = msgFrame["frame"]
-            start_row = frame["top_left"]["y"]
-            end_row = frame["bottom_right"]["y"]
-            start_column = frame["top_left"]["x"]
-            end_column = frame["bottom_right"]["x"]
+            start_row = frame["origin"]["y"]
+            end_row = frame["corner"]["y"]
+            start_column = frame["origin"]["x"]
+            end_column = frame["corner"]["x"]
             rowsToSend = self.rowFun(start_row, end_row, start_column, end_column)
             dataInfo = {
                 "data": rowsToSend,

@@ -29,7 +29,12 @@ class Point {
     }
 
     get isNaN() {
-        if (this._values.length === 2){
+        let condition = [this._values.length === 2,
+            this._values[0] !== null,
+            this._values[0] !== undefined,
+            this._values[1] !== null,
+            this._values[1] !== undefined];
+        if (condition.every((item) => {return item === true})){
             return false;
         }
         return true;
@@ -79,7 +84,7 @@ class Frame {
          */
         this.origin = new Point(origin);
         this.corner = new Point(corner);
-        if (origin && corner) {
+        if (!this.origin.isNaN && !this.corner.isNaN) {
             if (this.origin.quadrant !== 1 || this.corner.quadrant !== 1){
                 throw "Both 'origin' and 'corner' must be of non-negative coordinates"
             }

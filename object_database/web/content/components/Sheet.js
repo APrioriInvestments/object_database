@@ -47,11 +47,13 @@ class Sheet extends Component {
         // Bind context to methods
         this.initializeSheet  = this.initializeSheet.bind(this);
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
+        this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         // this.generate_rows = this.generate_rows.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleClick = this.handleClick.bind(this);
         this.paginate = this.paginate.bind(this);
         this._updateActiveElement = this._updateActiveElement.bind(this);
+        this._createActiveElement = this._createActiveElement.bind(this);
         this._idToCoord = this._idToCoord.bind(this);
         this._coordToId = this._coordToId.bind(this);
     }
@@ -134,7 +136,7 @@ class Sheet extends Component {
                     class: "sheet",
                     style: "table-layout:fixed",
                     tabindex: "-1",
-                    // onkeydown: this.handleKeyDown,
+                    onkeydown: this.handleKeyDown,
                     onclick: this.handleClick
                 }, [
                     // h("thead", {}, [
@@ -169,32 +171,26 @@ class Sheet extends Component {
 
     /* I listen for arrow keys and call this.paginate when I see one. */
     handleKeyDown(event){
+        // TODO eventually pass this as an argument or set as an attrubute on the class
+        let body = document.getElementById(`sheet-${this.props.id}-body`);
         // make sure that we have an active cursor target
         // otherwise there is no root for naviation
         if (this.cursor_target_data !== null){
             if (event.key === "ArrowUp"){
                 event.preventDefault();
-                if (this.cursor_target_data.y > 0){
-                    this.cursor_target_data.y -= 1;
-                }
+                this._updateActiveElement(body, [0, -1]);
                 // this.paginate("row", "prepend")
             } else if (event.key === "ArrowDown"){
                 event.preventDefault();
-                if (this.cursor_target_data.y < this.props.totalRows - 1){
-                    this.cursor_target_data.y += 1;
-                }
+                this._updateActiveElement(body, [0, 1]);
                 // this.paginate("row", "append")
             } else if (event.key === "ArrowLeft"){
                 event.preventDefault();
-                if (this.cursor_target_data.x > 0){
-                    this.cursor_target_data.x -= 1;
-                }
+                this._updateActiveElement(body, [-1, 0]);
                 // this.paginate("column", "prepend")
             } else if (event.key === "ArrowRight"){
                 event.preventDefault();
-                if (this.cursor_target_data.x < this.props.totalColumns - 1){
-                    this.cursor_target_data.x += 1;
-                }
+                this._updateActiveElement(body, [1, 0]);
                 // this.paginate("column", "append")
             }
         }
@@ -209,14 +205,14 @@ class Sheet extends Component {
         if (target.nodeName !== "TD"){
             return;
         }
-        this._updateActiveElement(body, target);
+        this._createActiveElement(body, target);
 
     }
 
-    /* I update the active element css classes, removing the old adding the new.
+    /* I create the active element css classes, removing the old adding the new.
      * I interact with this.active_frame directly
      */
-    _updateActiveElement(body, target){
+    _createActiveElement(body, target){
         let target_coord = this._idToCoord(target.id);
         target.className += " active";
         if (!this.action_frame){
@@ -232,6 +228,23 @@ class Sheet extends Component {
             this.action_frame.setOrigin = target_coord;
             this.action_frame.setCorner = target_coord;
         }
+    }
+
+    /* I update the active element css classes, shifting the frame, removing the old adding the new.
+     * I interact with this.active_frame directly
+     */
+    _updateActiveElement(body, shift){
+        // we need to unset previsously selected classes
+        this.action_frame.coords.map((p) => {
+            let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
+            td.className = td.className.replace(" active", "");
+        })
+        // now translate the frame by shift and update the classes
+        this.action_frame.translate(shift);
+        this.action_frame.coords.map((p) => {
+            let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
+            td.className = td.className += " active";
+        })
     }
 
     /* I covert a string of the form `nodeName_id_x_y` to [x, y] */

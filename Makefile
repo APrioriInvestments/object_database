@@ -52,12 +52,16 @@ TESTTYPES2 = $(DT_SRC_PATH)/ClientToServer0.hpp
 #  MAIN RULES
 
 .PHONY: install
-install: $(VIRTUAL_ENV) testcert.cert testcert.key pre-commit-install
+install: $(VIRTUAL_ENV) testcert.cert testcert.key install-dependencies pre-commit-install
+
+
+.PHONY: install-dependencies
+install-dependencies: $(VIRTUAL_ENV)
 	. $(VIRTUAL_ENV)/bin/activate; \
-		pip3 install pipenv==2018.11.26; \
-		pip3 install black; \
+		pip install pipenv==2018.11.26; \
+		pip install black; \
 		pipenv install --dev --deploy; \
-		pip3 install -e .; \
+		pip install -e .; \
 		nodeenv --python-virtualenv --prebuilt --node=10.15.3 $(NODE_ENV); \
 		npm install --global webpack webpack-cli; \
 		cd object_database/web/content; \

@@ -5,6 +5,7 @@ require('jsdom-global')();
 const maquette = require('maquette');
 const h = maquette.h;
 const NewCellHandler = require('../NewCellHandler.js').default;
+const AllComponents = require('../ComponentRegistry').default;
 const chai = require('chai');
 const assert = chai.assert;
 let projector = maquette.createProjector();

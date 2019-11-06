@@ -436,13 +436,22 @@ class NewCellHandler {
             });
         }
         // Sometimes the childDescription is not a whole object,
-        // but merely an ID. This tells us the simply return the
+        // but merely an ID. This tells us to simply return the
         // component with that id and not to update anything
         // about it at all.
         let childComponent;
         if(typeof(childDescription) == 'string' || typeof(childDescription) == 'number'){
             childComponent = this.activeComponents[childDescription.toString()];
             childComponent.parent = parentComponent;
+            this._updatedComponents.push(childComponent);
+
+            // Wrapping components (like Subscribed) will mask
+            // the call to componentDidUpdate for their contents
+            // under these circumstances. So we add the content
+            // children to the update list here.
+            if(childComponent.isWrappingComponent || childComponent.isSubscribed){
+                this._updatedComponents.push(childComponent.props.namedChildren.content);
+            }
             return childComponent;
         }
 

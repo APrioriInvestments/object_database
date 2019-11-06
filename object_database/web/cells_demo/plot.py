@@ -14,6 +14,8 @@
 
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
+from object_database.web.cells.util import Flex
+import random
 
 
 class BasicPlot(CellsTestPage):
@@ -35,7 +37,7 @@ class BasicPlot(CellsTestPage):
 
         button = cells.Button("Increment", updateData)
 
-        return button >> cells.Flex(cells.Plot(getData))
+        return button >> Flex(cells.Plot(getData))
 
     def text(self):
         return (
@@ -76,3 +78,58 @@ class TogglePlot(CellsTestPage):
 
     def text(self):
         return ("You should be able to toggle the Plot and ", "have the Plot re-appear")
+
+
+class InSubscribedSequence(CellsTestPage):
+    def cell(self):
+        def getRandomPlotData():
+            x = [random.randint(0, 100) for i in range(20)]
+            y = [random.randint(0, 100) for i in range(20)]
+            coords = {"x": x, "y": y}
+            return {"data": coords}
+
+        first_slot = cells.Slot(getRandomPlotData())
+        second_slot = cells.Slot(getRandomPlotData())
+        third_slot = cells.Slot(getRandomPlotData())
+
+        first_plot = cells.Plot(lambda: first_slot.get())
+        second_plot = cells.Plot(lambda: second_slot.get())
+        third_plot = cells.Plot(lambda: third_slot.get())
+
+        show_first = cells.Slot(True)
+        show_second = cells.Slot(True)
+        show_third = cells.Slot(True)
+
+        toggle_buttons = [
+            cells.Button("Toggle First", lambda: show_first.set(not show_first.get())),
+            cells.Button("Toggle Second", lambda: show_second.set(not show_second.get())),
+            cells.Button("Toggle Third", lambda: show_third.set(not show_third.get())),
+        ]
+
+        update_buttons = [
+            cells.Button("Update First", lambda: first_slot.set(getRandomPlotData())),
+            cells.Button("Update Second", lambda: second_slot.set(getRandomPlotData())),
+            cells.Button("Update Third", lambda: third_slot.set(getRandomPlotData())),
+        ]
+
+        def itemsFun():
+            plots = []
+            if show_first.get():
+                plots.append(first_plot)
+            if show_second.get():
+                plots.append(second_plot)
+            if show_third.get():
+                plots.append(third_plot)
+            return tuple(plots)
+
+        sub_seq = cells.SubscribedSequence(
+            itemsFun, lambda c: Flex(c), orientation="horizontal"
+        )
+
+        togglers = [Flex(c) for c in toggle_buttons]
+        updaters = [Flex(c) for c in update_buttons]
+        panel_seqs = cells.Panel(cells.Sequence(togglers) + cells.Sequence(updaters))
+        return panel_seqs >> Flex(sub_seq)
+
+    def text(self):
+        pass

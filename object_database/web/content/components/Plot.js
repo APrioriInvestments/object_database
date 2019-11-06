@@ -41,13 +41,11 @@ class Plot extends Component {
 
     build(){
         if(this.hasRenderedBefore){
-            console.log(`Rewiring ${this.name}[${this.props.id}] from cached DOM node`);
             return h('div', {
                 class: 'cell-placeholder',
                 id: `placeholder-${this.props.id}`
             }, []);
         }
-        console.log(`Initial render of ${this.name}[${this.props.id}]`);
         return (
             h('div', {
                 id: this.props.id,
@@ -71,7 +69,6 @@ class Plot extends Component {
     }
 
     setupPlot(){
-        console.log("Setting up a new plotly chart.");
         // TODO These are global var defined in page.html
         // we should do something about this.
         var plotDiv = document.getElementById('plot' + this.props.id);

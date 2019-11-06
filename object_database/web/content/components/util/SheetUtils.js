@@ -18,6 +18,7 @@ class Point {
 
         // Bind methods
         this.equals = this.equals.bind(this);
+        this.toString = this.toString.bind(this);
     }
 
     get x(){
@@ -71,6 +72,13 @@ class Point {
             return true;
         }
         return false;
+    }
+
+    toString(){
+        if (this.isNaN){
+            return "NaN";
+        }
+        return `${this._values[0]},${this._values[1]}`;
     }
 }
 
@@ -273,12 +281,12 @@ class DataFrame extends Frame {
         }
     }
 
-    /* I retrieve the corresponding frame.stroe value. */
+    /* I retrieve the corresponding frame.store value. */
     get(coordinate){
         if (!this.contains(coordinate)){
             throw "Coordinate not in frame."
         }
-        if (coordinate instanceof Array){
+        if (coordinate instanceof Array || coordinate instanceof Point){
             coordinate = coordinate.toString();
         }
         return this.store[coordinate];

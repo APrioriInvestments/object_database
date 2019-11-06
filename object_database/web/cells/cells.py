@@ -3147,6 +3147,8 @@ class Sheet(Cell):
             dataInfo = {
                 "data": rowsToSend,
                 "action": msgFrame["action"],
+                "origin": frame["origin"],
+                "corner": frame["corner"],
                 "axis": msgFrame["axis"],
             }
             self.exportData["dataInfo"] = dataInfo

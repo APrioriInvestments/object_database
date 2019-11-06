@@ -79,6 +79,12 @@ describe("Sheet util tests.", () => {
             another_p = new Point([1, 0]);
             assert.isFalse(p.equals(another_p));
         })
+        it("String representation", () => {
+            let p = new Point([10, 20]);
+            assert.equal(p.toString(), "10,20");
+            p = new Point();
+            assert.equal(p.toString(), "NaN");
+        })
         it("isNaN", () => {
             let p = new Point();
             assert.isTrue(p.isNaN);
@@ -594,7 +600,7 @@ describe("Sheet util tests.", () => {
                 assert.equal(e, "Data + origin surpass frame x-dimension.");
             }
         })
-        it("Get frame.store value (valid coordinate)", () => {
+        it("Get frame.store value (valid coordinate string)", () => {
             let frame = new DataFrame([0, 0], [10, 10]);
             let data = [
                 [0, 0], [0, 1], [1, 1]
@@ -605,10 +611,42 @@ describe("Sheet util tests.", () => {
             assert.equal(frame.get([6, 6].toString()), 1);
             assert.equal(frame.get([9, 9].toString()), undefined);
         })
+        it("Get frame.store value (valid coordinate Array)", () => {
+            let frame = new DataFrame([0, 0], [10, 10]);
+            let data = [
+                [0, 0], [0, 1], [1, 1]
+            ]
+            let origin = new Point([5, 5]);
+            frame.load(data, origin);
+            assert.equal(frame.get([5, 5]), 0);
+            assert.equal(frame.get([6, 6]), 1);
+            assert.equal(frame.get([9, 9]), undefined);
+        })
+        it("Get frame.store value (valid coordinate Point)", () => {
+            let frame = new DataFrame([0, 0], [10, 10]);
+            let data = [
+                [0, 0], [0, 1], [1, 1]
+            ]
+            let origin = new Point([5, 5]);
+            frame.load(data, origin);
+            assert.equal(frame.get(new Point([5, 5])), 0);
+            assert.equal(frame.get(new Point([6, 6])), 1);
+            assert.equal(frame.get(new Point([9, 9])), undefined);
+        })
         it("Get frame.store value (invalid coordinate)", () => {
             let frame = new DataFrame([0, 0], [10, 10]);
             try {
                 frame.get([20, 20].toString());
+            } catch(e) {
+                assert.equal(e, "Coordinate not in frame.");
+            }
+            try {
+                frame.get([20, 20]);
+            } catch(e) {
+                assert.equal(e, "Coordinate not in frame.");
+            }
+            try {
+                frame.get(new Point([20, 20]));
             } catch(e) {
                 assert.equal(e, "Coordinate not in frame.");
             }

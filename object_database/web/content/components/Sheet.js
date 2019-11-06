@@ -52,6 +52,7 @@ class Sheet extends Component {
 
         // Bind context to methods
         this.initializeSheet  = this.initializeSheet.bind(this);
+        this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         // this.generate_rows = this.generate_rows.bind(this);
         // this.generate_header = this.generate_header.bind(this);
         this.__updateDataAppend = this.__updateDataAppend.bind(this);
@@ -363,6 +364,7 @@ class Sheet extends Component {
         let body = document.getElementById(`sheet-${this.props.id}-body`);
         let head = document.getElementById(`sheet-${this.props.id}-head`);
         if (dataInfo.data && dataInfo.data.length){
+            console.log(dataInfo);
             if (dataInfo.action === "replace") {
                 // we update the Sheet with (potentially empty) values
                 // creating 'td' elements with ids corresponding to the frame coordinates (and the sheet id);
@@ -370,8 +372,13 @@ class Sheet extends Component {
                 // if the server has returned the request
                 // NOTE: we use frame origin and corner as much as possible, utilizing properties of Point and avoiding
                 // potential confusion of axes vs columns/rows
+                // TODO: this.initializeSheet should be under componentDidUpdate() but for that the Sheet needs
+                // to have access to the projector
                 this.initializeSheet(projector, body);
-
+                // load the data into the data with origin [0, 0]
+                this.data_frame.load(dataInfo.data, [0, 0]);
+                // TODO perhaps we should update fixed rows, fixed columns and the view frame independtly
+                this._updatedDisplayValues(body, this.full_view_frame);
             } else if (dataInfo.action === "prepend") {
                 this.__updateDataPrepend(body, head, dataInfo, projector)
             } else if (dataInfo.action === "append") {
@@ -381,6 +388,14 @@ class Sheet extends Component {
     }
 
     /* Update data helpers */
+    /* I update the values displayed in the sheet for the provided frame */
+    _updatedDisplayValues(body, frame){
+        frame.coords.map((p) => {
+            let td = body.querySelector(`#td_${this.props.id}_${p.x}_${p.y}`);
+            td.textContent = this.data_frame.get(p);
+        })
+    }
+
     __updateDataPrepend(body, head, dataInfo, projector){
         if (dataInfo.axis === "row") {
             // note we pop off from the end the same number of rows as we prepend

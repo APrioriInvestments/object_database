@@ -36,10 +36,8 @@ class BasicSheet(CellsTestPage):
                 return rows
             end_column = min(end_column, num_columns)
             end_row = min(end_row, num_rows)
-            for i in range(start_row, end_row):
-                r = ["index_%s" % i] + [
-                    "entry_%s_%s" % (i, j) for j in range(start_column, end_column)
-                ]
+            for i in range(start_row, end_row + 1):
+                r = ["entry_%s_%s" % (j, i) for j in range(start_column, end_column + 1)]
                 rows.append(r)
             return rows
 
@@ -69,10 +67,8 @@ class BiggerSheet(CellsTestPage):
                 return rows
             end_column = min(end_column, num_columns)
             end_row = min(end_row, num_rows)
-            for i in range(start_row, end_row):
-                r = ["index_%s" % i] + [
-                    "entry_%s_%s" % (i, j) for j in range(start_column, end_column)
-                ]
+            for i in range(start_row, end_row + 1):
+                r = ["entry_%s_%s" % (j, i) for j in range(start_column, end_column + 1)]
                 rows.append(r)
             return rows
 

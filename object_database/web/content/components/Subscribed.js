@@ -16,6 +16,7 @@ class Subscribed extends Component {
 
         // Responds true
         this.isSubscribed = true;
+        this.isWrappingComponent = true;
         this.previoudChildId = null;
 
         // Bind component methods

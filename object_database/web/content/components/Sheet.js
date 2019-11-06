@@ -26,7 +26,6 @@ class Sheet extends Component {
         // columns/rows
         this.max_num_rows = null;
         this.max_num_columns = null;
-        this.cursor_target_data = null;
         this.offset = 1;
 
         // frames
@@ -45,11 +44,6 @@ class Sheet extends Component {
         // NOTE: since we start at row 0 and column 0 we need to subtract 1 from the frame corner coords
         this.data_frame = new DataFrame([0, 0], [this.props.totalColumns - 1, this.props.totalRows - 1]);
 
-        // scrolling attributes used to guage the direction of key scrolling and offset
-        // then top/bottom appropriately
-        // this.scrollTop = 0;
-        // this.scrollLeft = 0;
-
         // Bind context to methods
         this.initializeSheet  = this.initializeSheet.bind(this);
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
@@ -57,6 +51,9 @@ class Sheet extends Component {
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleClick = this.handleClick.bind(this);
         this.paginate = this.paginate.bind(this);
+        this._updateActiveElement = this._updateActiveElement.bind(this);
+        this._idToCoord = this._idToCoord.bind(this);
+        this._coordToId = this._coordToId.bind(this);
     }
 
     componentDidLoad(){
@@ -102,7 +99,7 @@ class Sheet extends Component {
             for (let x = origin.x; x <= corner.x; x++){
                 // even if on initialization we get values from the data_frame; this sets up our general
                 // flow but also allows for data_frame to be populated with default or cached values
-                row_data.push({id: `td_${this.props.id}_${x}_${y}`, value: this.data_frame.get([x, y])});
+                row_data.push({id: this._coordToId("td", [x, y]), value: this.data_frame.get([x, y])});
             }
             rows.push(
                 new SheetRow(
@@ -132,15 +129,13 @@ class Sheet extends Component {
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Sheet",
                 class: "cell sheet-wrapper",
-                // scrollTop: this.scrollTop,
-                // scrollLeft: this.scrollLeft
             }, [
                 h("table", {
                     class: "sheet",
                     style: "table-layout:fixed",
                     tabindex: "-1",
                     // onkeydown: this.handleKeyDown,
-                    // onclick: this.handleClick
+                    onclick: this.handleClick
                 }, [
                     // h("thead", {}, [
                     //     h("tr", {id: `sheet-${this.props.id}-head`}, [
@@ -189,7 +184,6 @@ class Sheet extends Component {
                     this.cursor_target_data.y += 1;
                 }
                 // this.paginate("row", "append")
-                this.scrollTop = this.props.rowHeight;
             } else if (event.key === "ArrowLeft"){
                 event.preventDefault();
                 if (this.cursor_target_data.x > 0){
@@ -208,26 +202,51 @@ class Sheet extends Component {
 
     /* I listen for clicks and trigger relevant pagination events.*/
     handleClick(event){
+        // TODO eventually pass this as an argument or set as an attrubute on the class
+        let body = document.getElementById(`sheet-${this.props.id}-body`);
         let target = event.target;
         // if the user accidentally clicked on the tooltip or something else, don't do anything
         if (target.nodeName !== "TD"){
             return;
         }
-        console.log(target);
-        // unset the active class on the last table data element if there was one
-        if (this.cursor_target_data !== null) {
-            let last_target = this.cursor_target_data.element;
-            last_target.className.replace(" active", "");
-        }
+        this._updateActiveElement(body, target);
 
-        this.cursor_target_data = {
-            x: parseInt(target.attributes.getNamedItem("data-x").value),
-            y: parseInt(target.attributes.getNamedItem("data-y").value),
-            text: target.firstChild.textContent,
-            element: target
-        }
+    }
+
+    /* I update the active element css classes, removing the old adding the new.
+     * I interact with this.active_frame directly
+     */
+    _updateActiveElement(body, target){
+        let target_coord = this._idToCoord(target.id);
         target.className += " active";
-        console.log(this.cursor_target_data);
+        if (!this.action_frame){
+            // NOTE: this is a [1, 1] dim frame, we'll expand this for more flexible selection UX later
+            this.action_frame = new Frame(target_coord, target_coord);
+        } else {
+            // we need to unset previsously selected classes
+            this.action_frame.coords.map((p) => {
+                let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
+                td.className = td.className.replace(" active", "");
+            })
+            // NOTE: this is a [1, 1] dim frame, we'll expand this for more flexible selection UX later
+            this.action_frame.setOrigin = target_coord;
+            this.action_frame.setCorner = target_coord;
+        }
+    }
+
+    /* I covert a string of the form `nodeName_id_x_y` to [x, y] */
+    _idToCoord(s){
+        let s_list = s.split("_");
+        try {
+            return [parseInt(s_list[2]), parseInt(s_list[3])]
+        } catch(e) {
+            throw "unable to covert id " + s + " to coordinate, with error: " + e;
+        }
+    }
+
+    /* I covert a coord [x, y] array to a string of the form `nodeName_id_x_y`*/
+    _coordToId(nodeName, xy){
+        return `${nodeName}_${this.props.id}_${xy[0]}_${xy[1]}`;
     }
 
     /* I handle row/column pagination by adding this.offset and removing
@@ -309,7 +328,6 @@ class Sheet extends Component {
         let body = document.getElementById(`sheet-${this.props.id}-body`);
         let head = document.getElementById(`sheet-${this.props.id}-head`);
         if (dataInfo.data && dataInfo.data.length){
-            console.log(dataInfo);
             if (dataInfo.action === "replace") {
                 // we update the Sheet with (potentially empty) values
                 // creating 'td' elements with ids corresponding to the frame coordinates (and the sheet id);
@@ -336,7 +354,7 @@ class Sheet extends Component {
     /* I update the values displayed in the sheet for the provided frame */
     _updatedDisplayValues(body, frame){
         frame.coords.map((p) => {
-            let td = body.querySelector(`#td_${this.props.id}_${p.x}_${p.y}`);
+            let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
             td.textContent = this.data_frame.get(p);
         })
     }

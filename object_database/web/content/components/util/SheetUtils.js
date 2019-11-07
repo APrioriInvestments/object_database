@@ -108,14 +108,22 @@ class Frame {
         this.coords_slice = this.coords_slice.bind(this);
     }
 
-    /* The dimension of the frame. */
+    /* The "dimension" of the frame.
+        * Note: this is really the min dimension of a plan this frame
+        * can be embedded in.
+        */
     get dim(){
         if (this._empty()){
-            return new Point([0, 0]);
+            return NaN;
         }
-        let x = this.corner.x - this.origin.x + 1;
-        let y = this.corner.y - this.origin.y + 1;
-        return new Point([Math.max(0, x), Math.max(0, y)]);
+        let dim = 0;
+        if (this.corner.x - this.origin.x > 0){
+            dim += 1;
+        }
+        if (this.corner.y - this.origin.y > 0){
+            dim += 1;
+        }
+        return dim;
     }
 
     /* check if the frame is empty. */

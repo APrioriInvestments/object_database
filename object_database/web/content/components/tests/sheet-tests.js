@@ -127,47 +127,23 @@ describe("Sheet util tests.", () => {
         });
         it("Dimension", () => {
             let frame = new Frame([0, 0], [9, 19]);
-            assert.equal(frame.dim.x, 10);
-            assert.equal(frame.dim.y, 20);
+            assert.equal(frame.dim, 2);
+            assert.isFalse(isNaN(frame.dim));
         })
         it("Dimension of single point frame", () => {
             let frame = new Frame([0, 0], [0, 0]);
-            assert.equal(frame.dim.x, 1);
-            assert.equal(frame.dim.y, 1);
+            assert.equal(frame.dim, 0);
+            assert.isFalse(isNaN(frame.dim));
         })
         it("Dimension of empty frame", () => {
             frame = new Frame();
-            assert.equal(frame.dim.x, 0);
-            assert.equal(frame.dim.y, 0);
+            assert.isTrue(isNaN(frame.dim));
             frame = new Frame([0, 0], undefined);
-            assert.equal(frame.dim.x, 0);
-            assert.equal(frame.dim.y, 0);
+            assert.isTrue(isNaN(frame.dim));
             frame = new Frame(undefined, [0, 0]);
-            assert.equal(frame.dim.x, 0);
-            assert.equal(frame.dim.y, 0);
-            frame = new Frame([0, 0], undefined);
-            assert.equal(frame.dim.x, 0);
-            assert.equal(frame.dim.y, 0);
-            frame = new Frame(undefined, [0, 1]);
-            assert.equal(frame.dim.x, 0);
-            assert.equal(frame.dim.y, 0);
-            frame = new Frame(undefined, [1, 0]);
-            assert.equal(frame.dim.x, 0);
-            assert.equal(frame.dim.y, 0);
-            frame = new Frame(undefined, [1, 1]);
-            assert.equal(frame.dim.x, 0);
-            assert.equal(frame.dim.y, 0);
-            frame = new Frame([1, 0], undefined);
-            assert.equal(frame.dim.x, 0);
-            assert.equal(frame.dim.y, 0);
-            frame = new Frame([0, 1], undefined);
-            assert.equal(frame.dim.x, 0);
-            assert.equal(frame.dim.y, 0);
-            frame = new Frame([1, 1], undefined);
-            assert.equal(frame.dim.x, 0);
-            assert.equal(frame.dim.y, 0);
+            assert.isTrue(isNaN(frame.dim));
         })
-        it("Dimension", () => {
+        it("Equality", () => {
             let frame = new Frame([0, 0], [1, 1]);
             assert.isTrue(frame.equals(frame));
             let another_frame = new Frame([0, 0], [1, 1]);
@@ -200,11 +176,11 @@ describe("Sheet util tests.", () => {
         })
         it("Setting a new origin", () => {
             let frame = new Frame([0, 0], [7, 9]);
-            assert.equal(frame.dim.x, 8);
-            assert.equal(frame.dim.y, 10);
+            assert.equal(frame.origin.x, 0);
+            assert.equal(frame.origin.y, 0);
             frame.setOrigin = [5, 7];
-            assert.equal(frame.dim.x, 3);
-            assert.equal(frame.dim.y, 3);
+            assert.equal(frame.origin.x, 5);
+            assert.equal(frame.origin.y, 7);
             let coords = [];
             for (let x = 5; x <= 7; x++){
                 for (let y = 7; y <= 9; y++){
@@ -220,11 +196,11 @@ describe("Sheet util tests.", () => {
         })
         it("Setting a new corner", () => {
             let frame = new Frame([5, 7], [9, 9]);
-            assert.equal(frame.dim.x, 5);
-            assert.equal(frame.dim.y, 3);
+            assert.equal(frame.corner.x, 9);
+            assert.equal(frame.corner.y, 9);
             frame.setCorner = [7, 9];
-            assert.equal(frame.dim.x, 3);
-            assert.equal(frame.dim.y, 3);
+            assert.equal(frame.corner.x, 7);
+            assert.equal(frame.corner.y, 9);
             let coords = [];
             for (let x = 5; x <= 7; x++){
                 for (let y = 7; y <= 9; y++){
@@ -335,8 +311,7 @@ describe("Sheet util tests.", () => {
         })
         it("Translate up right", () => {
             let frame = new Frame([3, 4], [5, 6]);
-            assert.equal(frame.dim.x, 3);
-            assert.equal(frame.dim.y, 3);
+            assert.equal(frame.dim, 2);
             let coords = [];
             for (let x = 3; x <= 5; x++){
               for (let y = 4; y <= 6; y++){
@@ -351,8 +326,7 @@ describe("Sheet util tests.", () => {
             }
             // now translate
             frame.translate([2, 3]);
-            assert.equal(frame.dim.x, 3);
-            assert.equal(frame.dim.y, 3);
+            assert.equal(frame.dim, 2);
             coords = [];
             for (let x = 5; x <= 7; x++){
               for (let y = 7; y <= 9; y++){
@@ -368,8 +342,7 @@ describe("Sheet util tests.", () => {
         })
         it("Translate none", () => {
             let frame = new Frame([3, 4], [5, 6]);
-            assert.equal(frame.dim.x, 3);
-            assert.equal(frame.dim.y, 3);
+            assert.equal(frame.dim, 2);
             let coords = [];
             for (let x = 3; x <= 5; x++){
               for (let y = 4; y <= 6; y++){
@@ -384,8 +357,7 @@ describe("Sheet util tests.", () => {
             }
             // now translate
             frame.translate([0, 0]);
-            assert.equal(frame.dim.x, 3);
-            assert.equal(frame.dim.y, 3);
+            assert.equal(frame.dim, 2);
             assert.equal(coords.length, frame.coords.length);
             coords_str = coords.map((item) => {return item.toString()});
             frame_coords_str = frame.coords.map((item) => {return item.toString()});
@@ -395,8 +367,7 @@ describe("Sheet util tests.", () => {
         })
         it("Translate down left", () => {
             let frame = new Frame([3, 4], [5, 6]);
-            assert.equal(frame.dim.x, 3);
-            assert.equal(frame.dim.y, 3);
+            assert.equal(frame.dim, 2);
             let coords = [];
             for (let x = 3; x <= 5; x++){
               for (let y = 4; y <= 6; y++){
@@ -417,8 +388,7 @@ describe("Sheet util tests.", () => {
                   coords.push(new Point([x, y]));
               }
             }
-            assert.equal(frame.dim.x, 3);
-            assert.equal(frame.dim.y, 3);
+            assert.equal(frame.dim, 2);
             assert.equal(coords.length, frame.coords.length);
             coords_str = coords.map((item) => {return item.toString()});
             frame_coords_str = frame.coords.map((item) => {return item.toString()});
@@ -428,8 +398,7 @@ describe("Sheet util tests.", () => {
         })
         it("Translate out of quadrant 1", () => {
             let frame = new Frame([3, 4], [5, 6]);
-            assert.equal(frame.dim.x, 3);
-            assert.equal(frame.dim.y, 3);
+            assert.equal(frame.dim, 2);
             let coords = [];
             for (let x = 3; x <= 5; x++){
               for (let y = 4; y <= 6; y++){

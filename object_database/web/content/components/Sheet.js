@@ -42,6 +42,7 @@ class Sheet extends Component {
         this.active_frame = null;
         // this is our core data frame, containing all table data values
         // NOTE: since we start at row 0 and column 0 we need to subtract 1 from the frame corner coords
+        // TODO: we need some cleanup/garbage-collection of data_frame
         this.data_frame = new DataFrame([0, 0], [this.props.totalColumns - 1, this.props.totalRows - 1]);
 
         // Bind context to methods
@@ -51,7 +52,6 @@ class Sheet extends Component {
         // this.generate_rows = this.generate_rows.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleClick = this.handleClick.bind(this);
-        this.paginate = this.paginate.bind(this);
         this._updateActiveElement = this._updateActiveElement.bind(this);
         this._createActiveElement = this._createActiveElement.bind(this);
         this._idToCoord = this._idToCoord.bind(this);
@@ -85,7 +85,6 @@ class Sheet extends Component {
             this.fetchData(
                 this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
                 "replace",
-                null
             );
         }
     }
@@ -140,10 +139,6 @@ class Sheet extends Component {
                     onkeydown: this.handleKeyDown,
                     onclick: this.handleClick
                 }, [
-                    // h("thead", {}, [
-                    //     h("tr", {id: `sheet-${this.props.id}-head`}, [
-                    //     ])
-                    // ]),
                     h("tbody", {id: `sheet-${this.props.id}-body`}, rows)
                 ])
             ])
@@ -170,7 +165,7 @@ class Sheet extends Component {
         })
     }
 
-    /* I listen for arrow keys and call this.paginate when I see one. */
+    /* I listen for arrow keys and paginate if necessary. */
     handleKeyDown(event){
         // TODO eventually pass this as an argument or set as an attrubute on the class
         let body = document.getElementById(`sheet-${this.props.id}-body`);
@@ -183,12 +178,16 @@ class Sheet extends Component {
                 if (this.active_frame.origin.y > 0 || this.view_frame.origin.y > 0){
                     let shift = [0, -1] // y-axis is rows
                     // if the top of this.active_frame is at the top of this.view_frame
-                    // we need to shift the view frame first
+                    // we need to shift the view frame only and fetch more data
                     if (this.active_frame.origin.y === this.fixed_view_frame.origin.y){
                         // we update the values before the make a server and after
                         this.view_frame.translate(shift);
                         this._updatedDisplayValues(body, this.view_frame);
                         // no need to shift the active_frame, already at the top
+                        this.fetchData(
+                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
+                            "update",
+                        );
                     } else {
                         this._updateActiveElement(body, shift);
                     }
@@ -205,6 +204,10 @@ class Sheet extends Component {
                         this.view_frame.translate(shift);
                         this._updatedDisplayValues(body, this.view_frame);
                         // no need to shift the active_frame, already at the bottom
+                        this.fetchData(
+                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
+                            "update",
+                        );
                     } else {
                         this._updateActiveElement(body, shift);
                     }
@@ -221,6 +224,10 @@ class Sheet extends Component {
                         this.view_frame.translate(shift);
                         this._updatedDisplayValues(body, this.view_frame);
                         // no need to shift the active_frame, already at the top
+                        this.fetchData(
+                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
+                            "update",
+                        );
                     } else {
                         this._updateActiveElement(body, shift);
                     }
@@ -237,6 +244,10 @@ class Sheet extends Component {
                         this.view_frame.translate(shift);
                         this._updatedDisplayValues(body, this.view_frame);
                         // no need to shift the active_frame, already at the bottom
+                        this.fetchData(
+                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
+                            "update",
+                        );
                     } else {
                         this._updateActiveElement(body, shift);
                     }
@@ -245,7 +256,7 @@ class Sheet extends Component {
         }
     }
 
-    /* I listen for clicks and trigger relevant pagination events.*/
+    /* I listen for clicks and and set up this.active_frame as necessary.*/
     handleClick(event){
         // TODO eventually pass this as an argument or set as an attrubute on the class
         let body = document.getElementById(`sheet-${this.props.id}-body`);
@@ -289,22 +300,15 @@ class Sheet extends Component {
     _updateActiveElement(body, shift){
         // we need to unset previsously selected classes
         this.active_frame.coords.map((p) => {
-            // we need to offset by the view_frame to get the proper fixed_view_frame coords
-            let x = p.x;
-            let y = p.y;
-            let td = body.querySelector(`#${this._coordToId("td", [x, y])}`);
+            let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
             td.className = td.className.replace(" active", "");
         })
         // now translate the frame by shift and update the classes
         this.active_frame.translate(shift);
         this.active_frame.coords.map((p) => {
-            // we need to offset by the view_frame to get the proper fixed_view_frame coords
-            let x = p.x - this.view_frame.origin.x;
-            let y = p.y - this.view_frame.origin.y;
             let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
             td.className = td.className += " active";
         })
-        console.log(this.active_frame);
     }
 
     /* I covert a string of the form `nodeName_id_x_y` to [x, y] */
@@ -322,59 +326,8 @@ class Sheet extends Component {
         return `${nodeName}_${this.props.id}_${xy[0]}_${xy[1]}`;
     }
 
-    /* I handle row/column pagination by adding this.offset and removing
-     * rows/columns as needed.
-     */
-    paginate(axis, active){
-        // TODO: this should be handled with http calls to the server
-        // let handler = window._cellHandler;
-        if (action === "prepend") {
-            if (axis === "row") {
-                // no need to do anything if we are already at row 0
-                if (this.current_start_row_index > 0){
-                    this.current_start_row_index = Math.max(this.current_start_row_index - this.offset, 0)
-                    this.current_end_row_index = Math.max(this.current_end_row_index - this.offset, 0)
-                    this.fetchData(
-                        this.frame,
-                        "prepend",
-                        "row"
-                    )
-                }
-            } else if (axis === "column") {
-                // no need to do anything if we are at column 0
-                if (this.current_start_column_index > 0){
-                    this.current_start_column_index = Math.max(this.current_start_column_index - this.offset, 0)
-                    this.current_end_column_index = Math.max(this.current_end_column_index - this.offset, 0)
-                    this.fetchData(
-                        this.frame,
-                        "prepend",
-                        "column"
-                    )
-                }
-            }
-        } else if (action === "append") {
-            if (axis === "row") {
-                this.fetchData(
-                    this.frame,
-                    "append",
-                    "row"
-                )
-                this.current_end_row_index = this.current_end_row_index + this.offset
-                this.current_start_row_index = this.current_start_row_index + this.offset
-            } else if (axis === "column") {
-                this.fetchData(
-                    this.frame,
-                    "append",
-                    "column"
-                )
-                this.current_start_column_index = this.current_start_column_index + this.offset
-                this.current_end_column_index = this.current_end_column_index + this.offset
-            }
-        }
-    }
-
     /* I make WS requests to the server */
-    fetchData(frame, action, axis){
+    fetchData(frame, action){
         let request = JSON.stringify({
             event: "sheet_needs_data",
             target_cell: this.props.id,
@@ -383,9 +336,7 @@ class Sheet extends Component {
                 corner: {x: frame.corner.x, y: frame.corner.y},
             },
             action: action,
-            axis: axis
         });
-        // console.log(request);
         cellSocket.sendString(request);
     }
 
@@ -396,10 +347,8 @@ class Sheet extends Component {
      */
     _updateData(dataInfo, projector) {
         console.log("updating data for sheet: " + this.props.id)
-        // console.log(dataInfo.data);
         // make sure the data is not empty
         let body = document.getElementById(`sheet-${this.props.id}-body`);
-        let head = document.getElementById(`sheet-${this.props.id}-head`);
         if (dataInfo.data && dataInfo.data.length){
             if (dataInfo.action === "replace") {
                 // we update the Sheet with (potentially empty) values
@@ -410,13 +359,13 @@ class Sheet extends Component {
                 // potential confusion of axes vs columns/rows
                 // TODO: this.initializeSheet should be under componentDidUpdate() but for that the Sheet needs
                 // to have access to the projector
+                // then we can remove the `action` arg to fetch
                 this.initializeSheet(projector, body);
-                // load the data into the data with origin [0, 0]
-                this.data_frame.load(dataInfo.data, [0, 0]);
-                // TODO perhaps we should update fixed rows, fixed columns and the view frame independtly
-                this._updatedDisplayValues(body, this.fixed_view_frame);
-            } else {
             }
+            // load the data into the data with the provided origin
+            let origin = dataInfo.origin;
+            this.data_frame.load(dataInfo.data, [origin.x, origin.y]);
+            this._updatedDisplayValues(body, this.view_frame);
         }
     }
 
@@ -425,7 +374,7 @@ class Sheet extends Component {
     _updatedDisplayValues(body, frame){
         // the fixed_view_frame coordinates never change and we use the passed frame.origin
         // as the offset, i.e. we are effectively shifting the passed frame to match the
-        // view but keeping the proper coordintaes to retrieve the data
+        // fixed view but keeping the 'true' coordintaes to retrieve the data
         frame.coords.map((p) => {
             let x = p.x - frame.origin.x;
             let y = p.y - frame.origin.y;

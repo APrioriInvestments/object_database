@@ -3149,7 +3149,6 @@ class Sheet(Cell):
                 "action": msgFrame["action"],
                 "origin": frame["origin"],
                 "corner": frame["corner"],
-                "axis": msgFrame["axis"],
             }
             self.exportData["dataInfo"] = dataInfo
             self.wasDataUpdated = True

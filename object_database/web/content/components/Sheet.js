@@ -6,7 +6,7 @@
 import {h} from 'maquette';
 import {Component} from './Component';
 import {PropTypes} from './util/PropertyValidator';
-import {Frame, DataFrame} from './util/SheetUtils';
+import {Point, Frame, DataFrame} from './util/SheetUtils';
 
 /**
  * About Named Children
@@ -34,13 +34,17 @@ class Sheet extends Component {
         // frames
         // these frames are fixed on scrolling
         this.locked_column_frame = null;
+        this.locked_column_offset = new Point([0, 0]);
         this.locked_row_frame = null;
+        this.locked_row_offset = new Point([0, 0]);
         // fixed_view_frame defines the coordinates of the Sheet view; it never changes and is defined
         // by the max number of columns and rows which fit into the alloted DOM element
         this.fixed_view_frame = null;
         // view_frame defines the coordinates of the current data **not** including the fixed
         // rows/columns view frame
         this.view_frame = null;
+        // with fixed rows/columns we need to offset the view frame
+        this.view_frame_offset = new Point([0, 0]);
         // active_frame defines the user's currently selected cells. It lives exclusively inside the view_frame
         this.active_frame = null;
         // this is our core data frame, containing all table data values
@@ -52,11 +56,12 @@ class Sheet extends Component {
         this.initializeSheet  = this.initializeSheet.bind(this);
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
-        // this.generate_rows = this.generate_rows.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleClick = this.handleClick.bind(this);
         this._updateActiveElement = this._updateActiveElement.bind(this);
         this._createActiveElement = this._createActiveElement.bind(this);
+        this._addLockedElements = this._addLockedElements.bind(this);
+        this._removeLockedElements = this._removeLockedElements.bind(this);
         this._idToCoord = this._idToCoord.bind(this);
         this._coordToId = this._coordToId.bind(this);
     }
@@ -67,29 +72,32 @@ class Sheet extends Component {
         this.max_num_columns = this._calc_max_num_columns(this.container.offsetWidth);
         this.max_num_rows = this._calc_max_num_rows(this.container.offsetHeight);
         // recall columns are on the x-axis and rows on the y-axis
-        // We instantiate all frames, even if they are of dim = [0, 0]; this allows us to update
+        // We instantiate all frames, even if they are of dim = 0; this allows us to update
         // the coordinates later as needed (recall a Frame where either origin or corner are null
-        // or undefined is of dim [0, 0]).
+        // or undefined is of dim 0).
         if (this.props.numLockColumns > 0){
-            this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns, this.max_num_rows - 1]);
+            this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1]);
+            this.view_frame_offset.x = this.props.numLockColumns;
         } else {
-            this.locked_column_frame = new Frame([0, 0], undefined);
+            this.locked_column_frame = new Frame([0, 0], [0, 0]);
         }
         if (this.props.numLockRows > 0){
-            this.locked_row_frame = new Frame([0, 0], [this.max_num_columns - 1, this.props.numLockRows]);
+            this.locked_row_frame = new Frame([0, 0], [this.max_num_columns - 1, this.props.numLockRows - 1]);
+            this.view_frame_offset.y = this.props.numLockRows;
         } else {
-            this.locked_row_frame = new Frame([0, 0], undefined);
+            this.locked_row_frame = new Frame([0, 0], [0, 0]);
         }
-        this.view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
         this.fixed_view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
-        // TODO update to account for locked column/row frames
-        this.view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
+        // view frame accounts for locked column/row frames
+        this.view_frame = new Frame(this.view_frame_offset, [this.max_num_columns - 1, this.max_num_rows - 1]);
         if (this.props.dontFetch != true){
             this.fetchData(
-                this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
+                this.fixed_view_frame, // we get all the data we need for now
                 "replace",
             );
         }
+        console.log(this.locked_column_frame);
+        console.log(this.locked_row_frame);
     }
 
     /* I initialize the sheet from coordintate [0, 0] to [corner.x, corner.y] (corner isinstanceof Point)
@@ -123,6 +131,12 @@ class Sheet extends Component {
         rows.map((r) => {
             projector.append(body, () => {return r});
         })
+        if (this.locked_column_frame.corner.x){
+            this._addLockedElements(body, this.locked_column_frame);
+        }
+        if (this.locked_column_frame.corner.y){
+            this._addLockedElements(body, this.locked_row_frame);
+        }
     }
 
     build(){
@@ -149,25 +163,6 @@ class Sheet extends Component {
     }
 
 
-    /* I generate the rows, including the passing in row indexes (which are
-     * assumed to be element row[0])
-     */
-    generate_rows(data){
-        // TODO figure out how to deal with fixed rows/columns
-        return data.map((item, counter) => {
-            return (
-                new SheetRow(
-                    {
-                        id: this.props.id,
-                        row_data: item,
-                        colWidth: this.props.colWidth,
-                        height: this.props.rowHeight,
-                    }
-                ).build()
-            )
-        })
-    }
-
     /* I listen for arrow keys and paginate if necessary. */
     handleKeyDown(event){
         // TODO eventually pass this as an argument or set as an attrubute on the class
@@ -180,12 +175,12 @@ class Sheet extends Component {
                 let shift = [0, -1] // y-axis is rows
                 // if the top of this.active_frame is at the top of this.view_frame
                 // we need to shift the view frame only and fetch more data
-                if (this.active_frame.origin.y === this.fixed_view_frame.origin.y){
+                if (this.active_frame.origin.y === this.locked_row_frame.corner.y + 1){
                     // no reason to do anything if already at the top
                     if (this.active_frame.origin.y > 0 || this.view_frame.origin.y > 0){
                         // we update the values before the make a server and after
                         this.view_frame.translate(shift);
-                        this._updatedDisplayValues(body, this.view_frame);
+                        this._updatedDisplayValues(body, this.view_frame, this.locked_column_frame.corner.x + 1, this.locked_row_frame.corner.y + 1);
                         // no need to shift the active_frame, already at the top
                         this.fetchData(
                             this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
@@ -205,7 +200,7 @@ class Sheet extends Component {
                     if (this.view_frame.corner.y < this.totalRows - 1){
                         // we update the values before the make a server and after
                         this.view_frame.translate(shift);
-                        this._updatedDisplayValues(body, this.view_frame);
+                        this._updatedDisplayValues(body, this.view_frame, this.locked_column_frame.corner.x + 1, this.locked_row_frame.corner.y + 1);
                         // no need to shift the active_frame, already at the bottom
                         this.fetchData(
                             this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
@@ -220,12 +215,12 @@ class Sheet extends Component {
                 let shift = [-1, 0] // x-axis is columns
                 // if the left of this.active_frame is at the left of this.view_frame
                 // we need to shift the view frame first
-                if (this.active_frame.origin.x === this.fixed_view_frame.origin.x){
+                if (this.active_frame.origin.x === this.locked_column_frame.corner.x + 1){
                     // no reason to do anything if already on the left border
                     if (this.active_frame.origin.x > 0 || this.view_frame.origin.x > 0){
                         // we update the values before the make a server and after
                         this.view_frame.translate(shift);
-                        this._updatedDisplayValues(body, this.view_frame);
+                        this._updatedDisplayValues(body, this.view_frame, this.locked_column_frame.corner.x + 1, this.locked_row_frame.corner.y + 1);
                         // no need to shift the active_frame, already at the top
                         this.fetchData(
                             this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
@@ -245,7 +240,7 @@ class Sheet extends Component {
                     if (this.view_frame.corner.x < this.totalColumns - 1){
                         // we update the values before the make a server and after
                         this.view_frame.translate(shift);
-                        this._updatedDisplayValues(body, this.view_frame);
+                        this._updatedDisplayValues(body, this.view_frame, this.locked_column_frame.corner.x + 1, this.locked_row_frame.corner.y + 1);
                         // no need to shift the active_frame, already at the bottom
                         this.fetchData(
                             this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
@@ -279,7 +274,7 @@ class Sheet extends Component {
         let target_coord = this._idToCoord(target.id);
         target.className += " active";
         if (!this.active_frame){
-            // NOTE: this is a [1, 1] dim frame, we'll expand this for more flexible selection UX later
+            // NOTE: this is a 0 dim frame, we'll expand this for more flexible selection UX later
             this.active_frame = new Frame(target_coord, target_coord);
         } else {
             // we need to unset previsously selected classes
@@ -287,7 +282,7 @@ class Sheet extends Component {
                 let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
                 td.className = td.className.replace(" active", "");
             })
-            // NOTE: this is a [1, 1] dim frame, we'll expand this for more flexible selection UX later
+            // NOTE: this is a 0 dim frame, we'll expand this for more flexible selection UX later
             this.active_frame.setOrigin = target_coord;
             this.active_frame.setCorner = target_coord;
         }
@@ -318,6 +313,26 @@ class Sheet extends Component {
         } catch(e) {
             throw "unable to covert id " + s + " to coordinate, with error: " + e;
         }
+    }
+
+    /* I take all coordinates in provided frame and style the corresponding 'td' DOM
+     * elements with a "locked" css class.
+     */
+    _addLockedElements(body, frame){
+        frame.coords.map((p) => {
+            let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
+            td.className += " locked";
+        })
+    }
+
+    /* I take all coordinates in provided frame and style the corresponding 'td' DOM
+     * elements with a "locked" css class.
+     */
+    _removeLockedElements(body, frame){
+        frame.coords.map((p) => {
+            let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
+            td.className += td.className.replace(" locked", "");
+        })
     }
 
     /* I covert a coord [x, y] array to a string of the form `nodeName_id_x_y`*/
@@ -364,19 +379,25 @@ class Sheet extends Component {
             // load the data into the data with the provided origin
             let origin = dataInfo.origin;
             this.data_frame.load(dataInfo.data, [origin.x, origin.y]);
-            this._updatedDisplayValues(body, this.view_frame);
+            if (this.locked_column_frame.dim > 0){
+                this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
+            }
+            if (this.locked_row_frame.dim > 0){
+                this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
+            }
+            this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
         }
     }
 
     /* Update data helpers */
     /* I update the values displayed in the sheet for the provided frame */
-    _updatedDisplayValues(body, frame){
+    _updatedDisplayValues(body, frame, offset){
         // the fixed_view_frame coordinates never change and we use the passed frame.origin
         // as the offset, i.e. we are effectively shifting the passed frame to match the
         // fixed view but keeping the 'true' coordintaes to retrieve the data
         frame.coords.map((p) => {
-            let x = p.x - frame.origin.x;
-            let y = p.y - frame.origin.y;
+            let x = p.x - frame.origin.x + offset.x;
+            let y = p.y - frame.origin.y + offset.y;
             let td = body.querySelector(`#${this._coordToId("td", [x, y])}`);
             td.textContent = this.data_frame.get(p);
         })

@@ -3062,7 +3062,15 @@ class Sheet(Cell):
     """A spreadsheet viewer. The dataset must be static."""
 
     def __init__(
-        self, rowFun, totalColumns, totalRows, colWidth=50, rowHeight=30, onCellDblClick=None
+        self,
+        rowFun,
+        totalColumns,
+        totalRows,
+        colWidth=50,
+        rowHeight=30,
+        numLockRows=0,
+        numLockColumns=0,
+        onCellDblClick=None,
     ):
         """
         rowFun: func
@@ -3091,6 +3099,8 @@ class Sheet(Cell):
         self.totalRows = totalRows
         self.colWidth = colWidth
         self.rowHeight = rowHeight
+        self.numLockRows = numLockRows
+        self.numLockColumns = numLockColumns
         self.error = Slot(None)
         self._overflow = "auto"
 
@@ -3124,6 +3134,8 @@ class Sheet(Cell):
         self.exportData["rowHeight"] = self.rowHeight
         self.exportData["totalColumns"] = self.totalColumns
         self.exportData["totalRows"] = self.totalRows
+        self.exportData["numLockRows"] = self.numLockRows
+        self.exportData["numLockColumns"] = self.numLockColumns
         # self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
 
     def onMessage(self, msgFrame):

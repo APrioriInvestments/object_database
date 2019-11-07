@@ -142,6 +142,10 @@ td.active {
     border: solid 2px red;
 }
 
+td.locked {
+    background-color: lightgray;
+}
+
 .sheet-wrapper {
     width: 100%;
     max-height: 100%!important;

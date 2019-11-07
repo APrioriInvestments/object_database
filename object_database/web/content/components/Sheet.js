@@ -21,6 +21,9 @@ import {Frame, DataFrame} from './util/SheetUtils';
 class Sheet extends Component {
     constructor(props, ...args){
         super(props, ...args);
+        // props
+        this.totalColumns = this.props.totalColumns;
+        this.totalRows = this.props.totalRows;
 
         // offset is used as a buffer for lazy loading, i.e. we have this many extra
         // columns/rows
@@ -43,7 +46,7 @@ class Sheet extends Component {
         // this is our core data frame, containing all table data values
         // NOTE: since we start at row 0 and column 0 we need to subtract 1 from the frame corner coords
         // TODO: we need some cleanup/garbage-collection of data_frame
-        this.data_frame = new DataFrame([0, 0], [this.props.totalColumns - 1, this.props.totalRows - 1]);
+        this.data_frame = new DataFrame([0, 0], [this.totalColumns - 1, this.totalRows - 1]);
 
         // Bind context to methods
         this.initializeSheet  = this.initializeSheet.bind(this);
@@ -79,7 +82,7 @@ class Sheet extends Component {
         }
         this.view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
         this.fixed_view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
-        // TODO update to account for cocked column/row frames
+        // TODO update to account for locked column/row frames
         this.view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
         if (this.props.dontFetch != true){
             this.fetchData(
@@ -174,12 +177,12 @@ class Sheet extends Component {
         if (this.active_frame){
             if (event.key === "ArrowUp"){
                 event.preventDefault();
-                // no reason to do anything if already at the top
-                if (this.active_frame.origin.y > 0 || this.view_frame.origin.y > 0){
-                    let shift = [0, -1] // y-axis is rows
-                    // if the top of this.active_frame is at the top of this.view_frame
-                    // we need to shift the view frame only and fetch more data
-                    if (this.active_frame.origin.y === this.fixed_view_frame.origin.y){
+                let shift = [0, -1] // y-axis is rows
+                // if the top of this.active_frame is at the top of this.view_frame
+                // we need to shift the view frame only and fetch more data
+                if (this.active_frame.origin.y === this.fixed_view_frame.origin.y){
+                    // no reason to do anything if already at the top
+                    if (this.active_frame.origin.y > 0 || this.view_frame.origin.y > 0){
                         // we update the values before the make a server and after
                         this.view_frame.translate(shift);
                         this._updatedDisplayValues(body, this.view_frame);
@@ -188,18 +191,18 @@ class Sheet extends Component {
                             this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
                             "update",
                         );
-                    } else {
-                        this._updateActiveElement(body, shift);
                     }
+                } else {
+                    this._updateActiveElement(body, shift);
                 }
             } else if (event.key === "ArrowDown"){
                 event.preventDefault();
-                // no reason to do anything if already at the bottom
-                if (this.view_frame.corner.y < this.props.totalRows - 1){
-                    let shift = [0, 1] // y-axis is rows
-                    // if the bottom of this.active_frame is at the bottom of this.fixed_view_frame
-                    //  and we have not exceeded the number of rows we need to shift the view frame only
-                    if (this.active_frame.corner.y === this.fixed_view_frame.corner.y){
+                let shift = [0, 1] // y-axis is rows
+                // if the bottom of this.active_frame is at the bottom of this.fixed_view_frame
+                //  and we have not exceeded the number of rows we need to shift the view frame only
+                if (this.active_frame.corner.y === this.fixed_view_frame.corner.y){
+                    // no reason to do anything if already at the bottom
+                    if (this.view_frame.corner.y < this.totalRows - 1){
                         // we update the values before the make a server and after
                         this.view_frame.translate(shift);
                         this._updatedDisplayValues(body, this.view_frame);
@@ -208,18 +211,18 @@ class Sheet extends Component {
                             this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
                             "update",
                         );
-                    } else {
-                        this._updateActiveElement(body, shift);
                     }
+                } else {
+                    this._updateActiveElement(body, shift);
                 }
             } else if (event.key === "ArrowLeft"){
                 event.preventDefault();
-                // no reason to do anything if already on the left border
-                if (this.active_frame.origin.x > 0 || this.view_frame.origin.x > 0){
-                    let shift = [-1, 0] // x-axis is columns
-                    // if the left of this.active_frame is at the left of this.view_frame
-                    // we need to shift the view frame first
-                    if (this.active_frame.origin.x === this.fixed_view_frame.origin.x){
+                let shift = [-1, 0] // x-axis is columns
+                // if the left of this.active_frame is at the left of this.view_frame
+                // we need to shift the view frame first
+                if (this.active_frame.origin.x === this.fixed_view_frame.origin.x){
+                    // no reason to do anything if already on the left border
+                    if (this.active_frame.origin.x > 0 || this.view_frame.origin.x > 0){
                         // we update the values before the make a server and after
                         this.view_frame.translate(shift);
                         this._updatedDisplayValues(body, this.view_frame);
@@ -228,18 +231,18 @@ class Sheet extends Component {
                             this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
                             "update",
                         );
-                    } else {
-                        this._updateActiveElement(body, shift);
                     }
+                } else {
+                    this._updateActiveElement(body, shift);
                 }
             } else if (event.key === "ArrowRight"){
                 event.preventDefault();
-                // no reason to do anything if already at max number of columns
-                if (this.view_frame.corner.x < this.props.totalColumns - 1){
-                    let shift = [1, 0] // x-axis is rows
-                    // if the right of this.active_frame is at the right of this.fixed_view_frame
-                    //  and we have not exceeded the number of columns we need to shift the view frame only
-                    if (this.active_frame.corner.x === this.fixed_view_frame.corner.x){
+                let shift = [1, 0] // x-axis is rows
+                // if the right of this.active_frame is at the right of this.fixed_view_frame
+                //  and we have not exceeded the number of columns we need to shift the view frame only
+                if (this.active_frame.corner.x === this.fixed_view_frame.corner.x){
+                    // no reason to do anything if already at max number of columns
+                    if (this.view_frame.corner.x < this.totalColumns - 1){
                         // we update the values before the make a server and after
                         this.view_frame.translate(shift);
                         this._updatedDisplayValues(body, this.view_frame);
@@ -248,9 +251,9 @@ class Sheet extends Component {
                             this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
                             "update",
                         );
-                    } else {
-                        this._updateActiveElement(body, shift);
                     }
+                } else {
+                    this._updateActiveElement(body, shift);
                 }
             }
         }
@@ -266,7 +269,6 @@ class Sheet extends Component {
             return;
         }
         this._createActiveElement(body, target);
-
     }
 
     /* I create the active element css classes, removing the old adding the new.
@@ -282,10 +284,7 @@ class Sheet extends Component {
         } else {
             // we need to unset previsously selected classes
             this.active_frame.coords.map((p) => {
-                // we need to offset by the view_frame to get the proper fixed_view_frame coords
-                let x = p.x;
-                let y = p.y;
-                let td = body.querySelector(`#${this._coordToId("td", [x, y])}`);
+                let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
                 td.className = td.className.replace(" active", "");
             })
             // NOTE: this is a [1, 1] dim frame, we'll expand this for more flexible selection UX later
@@ -389,11 +388,11 @@ class Sheet extends Component {
      * rows, columns, respecitively and then add a bit more for lazy loading.
      */
     _calc_max_num_rows(max_height){
-        return Math.min(this.props.totalRows, Math.ceil(max_height/this.props.rowHeight));
+        return Math.min(this.totalRows, Math.ceil(max_height/this.props.rowHeight));
     }
 
     _calc_max_num_columns(max_width){
-        return Math.min(this.props.totalColumns, Math.ceil(max_width/this.props.colWidth));
+        return Math.min(this.totalColumns, Math.ceil(max_width/this.props.colWidth));
     }
 
 }

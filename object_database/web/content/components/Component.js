@@ -98,6 +98,12 @@ class Component {
             addCustomStyles(this.props.customStyle, velement);
         }
 
+        // If the element has a subscribed for a parent
+        // add the Subscribed's id as data-* attribute
+        if(this.parent && this.parent.isSubscribed){
+            velement.properties['data-subscribed-to'] = this.parent.props.id;
+        }
+
         return velement;
     }
 

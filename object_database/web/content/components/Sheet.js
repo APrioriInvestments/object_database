@@ -30,16 +30,16 @@ class Sheet extends Component {
 
         // frames
         // these frames are fixed on scrolling
-        this.fixed_column_frame = null;
-        this.fixed_row_frame = null;
-        // action_frame defines the user's currently selected cells
-        this.action_frame = null;
-        // full_view_frame defines the coordinates of the current data including the fixed
-        // rows/columns view frame
-        this.full_view_frame = null;
+        this.locked_column_frame = null;
+        this.locked_row_frame = null;
+        // fixed_view_frame defines the coordinates of the Sheet view; it never changes and is defined
+        // by the max number of columns and rows which fit into the alloted DOM element
+        this.fixed_view_frame = null;
         // view_frame defines the coordinates of the current data **not** including the fixed
         // rows/columns view frame
         this.view_frame = null;
+        // active_frame defines the user's currently selected cells. It lives exclusively inside the view_frame
+        this.active_frame = null;
         // this is our core data frame, containing all table data values
         // NOTE: since we start at row 0 and column 0 we need to subtract 1 from the frame corner coords
         this.data_frame = new DataFrame([0, 0], [this.props.totalColumns - 1, this.props.totalRows - 1]);
@@ -68,21 +68,22 @@ class Sheet extends Component {
         // the coordinates later as needed (recall a Frame where either origin or corner are null
         // or undefined is of dim [0, 0]).
         if (this.props.numLockColumns > 0){
-            this.fixed_column_frame = new Frame([0, 0], [this.props.numLockColumns, this.max_num_rows - 1]);
+            this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns, this.max_num_rows - 1]);
         } else {
-            this.fixed_column_frame = new Frame([0, 0], undefined);
+            this.locked_column_frame = new Frame([0, 0], undefined);
         }
         if (this.props.numLockRows > 0){
-            this.fixed_row_frame = new Frame([0, 0], [this.max_num_columns - 1, this.props.numLockRows]);
+            this.locked_row_frame = new Frame([0, 0], [this.max_num_columns - 1, this.props.numLockRows]);
         } else {
-            this.fixed_row_frame = new Frame([0, 0], undefined);
+            this.locked_row_frame = new Frame([0, 0], undefined);
         }
-        // TODO update to account for fixed frames
         this.view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
-        this.full_view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
+        this.fixed_view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
+        // TODO update to account for cocked column/row frames
+        this.view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
         if (this.props.dontFetch != true){
             this.fetchData(
-                this.full_view_frame,
+                this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
                 "replace",
                 null
             );
@@ -94,8 +95,8 @@ class Sheet extends Component {
      */
     initializeSheet(projector, body){
         let rows = [];
-        let origin = this.full_view_frame.origin;
-        let corner = this.full_view_frame.corner;
+        let origin = this.fixed_view_frame.origin;
+        let corner = this.fixed_view_frame.corner;
         for (let y = origin.y; y <= corner.y; y++){
             var row_data = [];
             for (let x = origin.x; x <= corner.x; x++){
@@ -173,25 +174,73 @@ class Sheet extends Component {
     handleKeyDown(event){
         // TODO eventually pass this as an argument or set as an attrubute on the class
         let body = document.getElementById(`sheet-${this.props.id}-body`);
-        // make sure that we have an active cursor target
+        // make sure that we have an active target
         // otherwise there is no root for naviation
-        if (this.cursor_target_data !== null){
+        if (this.active_frame){
             if (event.key === "ArrowUp"){
                 event.preventDefault();
-                this._updateActiveElement(body, [0, -1]);
-                // this.paginate("row", "prepend")
+                // no reason to do anything if already at the top
+                if (this.active_frame.origin.y > 0 || this.view_frame.origin.y > 0){
+                    let shift = [0, -1] // y-axis is rows
+                    // if the top of this.active_frame is at the top of this.view_frame
+                    // we need to shift the view frame first
+                    if (this.active_frame.origin.y === this.fixed_view_frame.origin.y){
+                        // we update the values before the make a server and after
+                        this.view_frame.translate(shift);
+                        this._updatedDisplayValues(body, this.view_frame);
+                        // no need to shift the active_frame, already at the top
+                    } else {
+                        this._updateActiveElement(body, shift);
+                    }
+                }
             } else if (event.key === "ArrowDown"){
                 event.preventDefault();
-                this._updateActiveElement(body, [0, 1]);
-                // this.paginate("row", "append")
+                // no reason to do anything if already at the bottom
+                if (this.view_frame.corner.y < this.props.totalRows - 1){
+                    let shift = [0, 1] // y-axis is rows
+                    // if the bottom of this.active_frame is at the bottom of this.fixed_view_frame
+                    //  and we have not exceeded the number of rows we need to shift the view frame only
+                    if (this.active_frame.corner.y === this.fixed_view_frame.corner.y){
+                        // we update the values before the make a server and after
+                        this.view_frame.translate(shift);
+                        this._updatedDisplayValues(body, this.view_frame);
+                        // no need to shift the active_frame, already at the bottom
+                    } else {
+                        this._updateActiveElement(body, shift);
+                    }
+                }
             } else if (event.key === "ArrowLeft"){
                 event.preventDefault();
-                this._updateActiveElement(body, [-1, 0]);
-                // this.paginate("column", "prepend")
+                // no reason to do anything if already on the left border
+                if (this.active_frame.origin.x > 0 || this.view_frame.origin.x > 0){
+                    let shift = [-1, 0] // x-axis is columns
+                    // if the left of this.active_frame is at the left of this.view_frame
+                    // we need to shift the view frame first
+                    if (this.active_frame.origin.x === this.fixed_view_frame.origin.x){
+                        // we update the values before the make a server and after
+                        this.view_frame.translate(shift);
+                        this._updatedDisplayValues(body, this.view_frame);
+                        // no need to shift the active_frame, already at the top
+                    } else {
+                        this._updateActiveElement(body, shift);
+                    }
+                }
             } else if (event.key === "ArrowRight"){
                 event.preventDefault();
-                this._updateActiveElement(body, [1, 0]);
-                // this.paginate("column", "append")
+                // no reason to do anything if already at max number of columns
+                if (this.view_frame.corner.x < this.props.totalColumns - 1){
+                    let shift = [1, 0] // x-axis is rows
+                    // if the right of this.active_frame is at the right of this.fixed_view_frame
+                    //  and we have not exceeded the number of columns we need to shift the view frame only
+                    if (this.active_frame.corner.x === this.fixed_view_frame.corner.x){
+                        // we update the values before the make a server and after
+                        this.view_frame.translate(shift);
+                        this._updatedDisplayValues(body, this.view_frame);
+                        // no need to shift the active_frame, already at the bottom
+                    } else {
+                        this._updateActiveElement(body, shift);
+                    }
+                }
             }
         }
     }
@@ -213,20 +262,24 @@ class Sheet extends Component {
      * I interact with this.active_frame directly
      */
     _createActiveElement(body, target){
+        console.log("creating active: " + target);
         let target_coord = this._idToCoord(target.id);
         target.className += " active";
-        if (!this.action_frame){
+        if (!this.active_frame){
             // NOTE: this is a [1, 1] dim frame, we'll expand this for more flexible selection UX later
-            this.action_frame = new Frame(target_coord, target_coord);
+            this.active_frame = new Frame(target_coord, target_coord);
         } else {
             // we need to unset previsously selected classes
-            this.action_frame.coords.map((p) => {
-                let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
+            this.active_frame.coords.map((p) => {
+                // we need to offset by the view_frame to get the proper fixed_view_frame coords
+                let x = p.x;
+                let y = p.y;
+                let td = body.querySelector(`#${this._coordToId("td", [x, y])}`);
                 td.className = td.className.replace(" active", "");
             })
             // NOTE: this is a [1, 1] dim frame, we'll expand this for more flexible selection UX later
-            this.action_frame.setOrigin = target_coord;
-            this.action_frame.setCorner = target_coord;
+            this.active_frame.setOrigin = target_coord;
+            this.active_frame.setCorner = target_coord;
         }
     }
 
@@ -235,16 +288,23 @@ class Sheet extends Component {
      */
     _updateActiveElement(body, shift){
         // we need to unset previsously selected classes
-        this.action_frame.coords.map((p) => {
-            let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
+        this.active_frame.coords.map((p) => {
+            // we need to offset by the view_frame to get the proper fixed_view_frame coords
+            let x = p.x;
+            let y = p.y;
+            let td = body.querySelector(`#${this._coordToId("td", [x, y])}`);
             td.className = td.className.replace(" active", "");
         })
         // now translate the frame by shift and update the classes
-        this.action_frame.translate(shift);
-        this.action_frame.coords.map((p) => {
+        this.active_frame.translate(shift);
+        this.active_frame.coords.map((p) => {
+            // we need to offset by the view_frame to get the proper fixed_view_frame coords
+            let x = p.x - this.view_frame.origin.x;
+            let y = p.y - this.view_frame.origin.y;
             let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
             td.className = td.className += " active";
         })
+        console.log(this.active_frame);
     }
 
     /* I covert a string of the form `nodeName_id_x_y` to [x, y] */
@@ -265,7 +325,7 @@ class Sheet extends Component {
     /* I handle row/column pagination by adding this.offset and removing
      * rows/columns as needed.
      */
-    paginate(axis, action){
+    paginate(axis, active){
         // TODO: this should be handled with http calls to the server
         // let handler = window._cellHandler;
         if (action === "prepend") {
@@ -354,11 +414,8 @@ class Sheet extends Component {
                 // load the data into the data with origin [0, 0]
                 this.data_frame.load(dataInfo.data, [0, 0]);
                 // TODO perhaps we should update fixed rows, fixed columns and the view frame independtly
-                this._updatedDisplayValues(body, this.full_view_frame);
-            } else if (dataInfo.action === "prepend") {
-                this.__updateDataPrepend(body, head, dataInfo, projector)
-            } else if (dataInfo.action === "append") {
-                this.__updateDataAppend(body, head, dataInfo, projector)
+                this._updatedDisplayValues(body, this.fixed_view_frame);
+            } else {
             }
         }
     }
@@ -366,8 +423,13 @@ class Sheet extends Component {
     /* Update data helpers */
     /* I update the values displayed in the sheet for the provided frame */
     _updatedDisplayValues(body, frame){
+        // the fixed_view_frame coordinates never change and we use the passed frame.origin
+        // as the offset, i.e. we are effectively shifting the passed frame to match the
+        // view but keeping the proper coordintaes to retrieve the data
         frame.coords.map((p) => {
-            let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
+            let x = p.x - frame.origin.x;
+            let y = p.y - frame.origin.y;
+            let td = body.querySelector(`#${this._coordToId("td", [x, y])}`);
             td.textContent = this.data_frame.get(p);
         })
     }

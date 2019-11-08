@@ -55,15 +55,18 @@ class InProcessServiceManager(ServiceManager):
         worker.start()
 
     def stop(self):
+        allExitedGracefully = True
         self.stopAllServices(10.0)
 
         for instanceId, workers in self.serviceWorkers.items():
             for worker in workers:
-                worker.stop()
+                exitedGracefully = worker.stop()
+                allExitedGracefully = allExitedGracefully and exitedGracefully
 
         self.serviceWorkers = {}
 
         ServiceManager.stop(self)
+        return allExitedGracefully
 
     def cleanup(self):
         self.storageRoot.cleanup()

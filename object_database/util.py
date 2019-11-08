@@ -82,9 +82,9 @@ def setupLogging(
     else:
         logging.info("Failed to configure logging from file. Falling back to basicConfig")
         level = default_level or logging.INFO
-        frmt = (
-            default_format
-            or "[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s | %(message)s"
+        frmt = default_format or (
+            "[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s"
+            " | %(threadName)10s | %(message)s"
         )
         logging.basicConfig(level=level, format=frmt)
 
@@ -93,7 +93,7 @@ def configureLogging(preamble="", level=logging.INFO):
     frmt = (
         "[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s | "
         + (preamble + " | " if preamble else "")
-        + "%(message)s"
+        + "%(threadName)10s | %(message)s"
     )
 
     ownDir = os.path.dirname(os.path.abspath(__file__))

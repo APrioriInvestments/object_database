@@ -24,6 +24,12 @@ class Component {
         // for its children and we check it
         // in NewCellHandler.
         this.isSubscribed = false;
+        this.isWrappingComponent = false;
+
+        // Lifecycle handlers used by the
+        // CellHandler
+        this._wasUpdated = false;
+        this._wasCreated = true;
 
         // Setup parent relationship, if
         // any. In this abstract class

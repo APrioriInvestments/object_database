@@ -34,8 +34,6 @@ class NewCellHandler {
 
         // Private properties
         this._sessionId = null;
-        this._newComponents = [];
-        this._updatedComponents = [];
 
         // Bind component methods
         this.updatePopovers = this.updatePopovers.bind(this);
@@ -53,6 +51,7 @@ class NewCellHandler {
         this._updateComponentProps = this._updateComponentProps.bind(this);
         this._updateNamedChildren = this._updateNamedChildren.bind(this);
         this._findOrCreateChild = this._findOrCreateChild.bind(this);
+        this._eachChildDo = this._eachChildDo.bind(this);
         this._callDidLoadForNew = this._callDidLoadForNew.bind(this);
         this._callDidUpdate = this._callDidUpdate.bind(this);
     }
@@ -310,7 +309,8 @@ class NewCellHandler {
         let component = this.activeComponents[description.id];
         this._updateComponentProps(component, description);
         this._updateNamedChildren(component, description);
-        this._updatedComponents.push(component);
+        //this._updatedComponents.push(component);
+        component._wasUpdated = true;
         return component;
     }
 
@@ -334,11 +334,11 @@ class NewCellHandler {
     _getDataUpdatedComponent(description){
         if(!Object.keys(this.activeComponents).includes(description.id.toString())){
             // something went wrong; can't find the component
-            console.error("data update fail; no component with id: " + description.id)
+            console.error("data update fail; no component with id: " + description.id);
         }
         let component = this.activeComponents[description.id];
         component._updateData(description.dataInfo, this.projector);
-        this._updatedComponents.push(component);
+        component._wasUpdated = true;
         return component;
     }
     /**
@@ -364,7 +364,6 @@ class NewCellHandler {
         let newComponent = new componentClass(componentProps);
         this._updateNamedChildren(newComponent, message);
         this.activeComponents[newComponent.props.id] = newComponent;
-        this._newComponents.push(newComponent);
         return newComponent;
 
     }
@@ -444,16 +443,10 @@ class NewCellHandler {
         if(typeof(childDescription) == 'string' || typeof(childDescription) == 'number'){
             childComponent = this.activeComponents[childDescription.toString()];
             childComponent.parent = parentComponent;
-            this._updatedComponents.push(childComponent);
-
-            // Wrapping components (like Subscribed) will mask
-            // the call to componentDidUpdate for their contents
-            // under these circumstances. So we add the content
-            // children to the update list here.
-            if(childComponent.isWrappingComponent || childComponent.isSubscribed){
-                this._updatedComponents.push(childComponent.props.namedChildren.content);
-                this._markAllChildrenForUpdate(childComponent);
-            }
+            childComponent._wasUpdated = true;
+            this._eachChildDo(childComponent, comp => {
+                comp._wasUpdated = true;
+            });
             return childComponent;
         }
 
@@ -474,10 +467,18 @@ class NewCellHandler {
         // Goes through the stored list of
         // new components created during a message handle
         // and calls componentDidLoad()
-        this._newComponents.forEach(component => {
+        /**this._newComponents.forEach(component => {
             component.componentDidLoad();
         });
-        this._newComponents = [];
+        this._newComponents = [];*/
+        Object.keys(this.activeComponents).map(key => {
+            return this.activeComponents[key];
+        }).filter(component => {
+            return component._wasCreated;
+        }).forEach(component => {
+            component.componentDidLoad();
+            component._wasCreated = false;
+        });
     }
 
     /**
@@ -513,10 +514,38 @@ class NewCellHandler {
         // that were updated during a
         // message handle and calls
         // componenDidUpdate()
-        this._updatedComponents.forEach(component => {
+        /*this._updatedComponents.forEach(component => {
             component.componentDidUpdate();
         });
-        this._updatedComponents = [];
+        this._updatedComponents = [];*/
+        Object.keys(this.activeComponents).map(key => {
+            return this.activeComponents[key];
+        }).filter(component => {
+            return component._wasUpdated;
+        }).forEach(component => {
+            component.componentDidUpdate();
+            component._wasUpdated = false;
+        });
+    }
+
+    /**
+     * Convenience method that will call the
+     * passed in callback on each resolved
+     * child of the given component.
+     * Can be used recursively where needed.
+     */
+    _eachChildDo(aComponent, callback){
+        if(Array.isArray(aComponent)){
+            aComponent.forEach(item => {
+                this._eachChildDo(item, callback);
+            });
+            return;
+        }
+        Object.keys(aComponent.props.namedChildren).forEach(key => {
+            let childComponent = aComponent.props.namedChildren[key];
+            this._eachChildDo(childComponent, callback);
+        });
+        return callback(aComponent);
     }
 }
 

@@ -87,9 +87,10 @@ def main(argv):
         signal.signal(signal.SIGINT, shutdownCleanly)
         signal.signal(signal.SIGTERM, shutdownCleanly)
 
-        manager.runAndWaitForShutdown()
+        exitedGracefully = manager.runAndWaitForShutdown()
+        retval = 0 if exitedGracefully else 1
+        return retval
 
-        return 0
     except Exception:
         logger.error(
             "service_entrypoint failed with an exception:\n%s", traceback.format_exc()

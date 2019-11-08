@@ -68,6 +68,7 @@ class ServiceWorker:
         self.serviceWorkerThread = threading.Thread(target=self.synchronouslyRunService)
         self.serviceWorkerThread.daemon = True
         self.shouldStop = threading.Event()
+        self.exitedGracefully = threading.Event()
 
         self.shutdownPollReactor = Reactor(self.db, self.checkForShutdown)
 
@@ -90,10 +91,8 @@ class ServiceWorker:
             try:
                 self.serviceObject = self._instantiateServiceObject()
             except Exception:
-                self._logger.error(
-                    "Service thread for %s failed:\n%s",
-                    self.instance._identity,
-                    traceback.format_exc(),
+                self._logger.exception(
+                    "Service thread for %s failed:", self.instance._identity
                 )
                 self.instance.markFailedToStart(traceback.format_exc())
                 return
@@ -101,11 +100,7 @@ class ServiceWorker:
             self._logger.info("Initializing service object for %s", self.instance._identity)
             self.serviceObject.initialize()
         except Exception:
-            self._logger.error(
-                "Service thread for %s failed:\n%s",
-                self.instance._identity,
-                traceback.format_exc(),
-            )
+            self._logger.exception("Service thread for %s failed:", self.instance._identity)
 
             self.serviceObject = None
 
@@ -134,11 +129,8 @@ class ServiceWorker:
             )
             self.serviceObject.doWork(self.shouldStop)
         except Exception:
-            self._logger.error(
-                "Service %s/%s failed: %s",
-                self.serviceName,
-                self.instance._identity,
-                traceback.format_exc(),
+            self._logger.exception(
+                "Service %s/%s failed:", self.serviceName, self.instance._identity
             )
 
             with self.db.transaction():
@@ -156,6 +148,7 @@ class ServiceWorker:
 
                 self.instance.state = "Stopped"
                 self.instance.end_timestamp = time.time()
+                self.exitedGracefully.set()
 
     def start(self):
         self.serviceWorkerThread.start()
@@ -164,6 +157,7 @@ class ServiceWorker:
     def runAndWaitForShutdown(self):
         self.start()
         self.serviceWorkerThread.join()
+        return self.exitedGracefully.is_set()
 
     def stop(self):
         self.shouldStop.set()
@@ -171,6 +165,7 @@ class ServiceWorker:
             self.serviceWorkerThread.join()
 
         self.shutdownPollReactor.stop()
+        return self.exitedGracefully.is_set()
 
     def _instantiateServiceObject(self):
         service_type = self.instance.service.instantiateServiceType()

@@ -237,9 +237,7 @@ class ServiceManager(object):
                 self.startServiceWorker(service, i._identity)
 
             except Exception:
-                self._logger.error(
-                    "Failed to start a worker for instance %s:\n%s", i, traceback.format_exc()
-                )
+                self._logger.exception("Failed to start a worker for instance %s:", i)
                 bad_instances[i] = traceback.format_exc()
 
         if bad_instances:
@@ -413,6 +411,14 @@ class ServiceManager(object):
         return res
 
     def startServiceWorker(self, service, instanceIdentity):
+        """
+        Args:
+            service (service_schema.Service): The service for which to start a worker
+            instanceIdentity (int): The identity of the instance we want to start.
+                The worker gets handed this identifier and calls `service_schema.
+                ServiceInstance.fromIdentity(instanceIdentity)` to recover the
+                relevant ServiceInstance from the object_database.
+        """
         raise NotImplementedError()
 
     def cleanup(self):

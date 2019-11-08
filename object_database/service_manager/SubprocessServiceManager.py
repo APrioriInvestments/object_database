@@ -67,6 +67,8 @@ class SubprocessServiceManager(ServiceManager):
         logLevelName="INFO",
         metricUpdateInterval=2.0,
         start_new_session=False,
+        capture=True,
+        subprocessCheckTimeout=0.0,
     ):
         self.cleanupLock = threading.Lock()
         self.host = host
@@ -76,6 +78,8 @@ class SubprocessServiceManager(ServiceManager):
         self.logfileDirectory = logfileDirectory
         self.logLevelName = validateLogLevel(logLevelName, fallback="INFO")
         self.start_new_session = start_new_session
+        self.capture = capture
+        self.subprocessCheckTimeout = subprocessCheckTimeout
 
         self.lock = threading.Lock()
 
@@ -116,9 +120,22 @@ class SubprocessServiceManager(ServiceManager):
             with self.lock:
                 logfileName = service.name + "-" + str(instanceIdentity) + ".log.txt"
                 if self.logfileDirectory is not None:
-                    output_file = open(os.path.join(self.logfileDirectory, logfileName), "w")
+                    output_file_path = os.path.join(self.logfileDirectory, logfileName)
+                    output_file_descr = open(output_file_path, "w")
                 else:
-                    output_file = None
+                    output_file_path = None
+                    output_file_descr = None
+
+                kwargs = dict(cwd=self.storageDir, start_new_session=self.start_new_session)
+                if self.capture:
+                    kwargs.update(
+                        dict(
+                            stdin=subprocess.DEVNULL,
+                            stdout=output_file_descr,
+                            stderr=subprocess.STDOUT,
+                        )
+                    )
+
                 process = subprocess.Popen(
                     [
                         sys.executable,
@@ -133,25 +150,42 @@ class SubprocessServiceManager(ServiceManager):
                         "--log-level",
                         self.logLevelName,
                     ],
-                    cwd=self.storageDir,
-                    stdin=subprocess.DEVNULL,
-                    stdout=output_file,
-                    stderr=subprocess.STDOUT,
-                    start_new_session=self.start_new_session,
+                    **kwargs,
                 )
+                try:
+                    # this should throw a subprocess.TimeoutExpired exception
+                    # if the service did not crash
+                    process.wait(self.subprocessCheckTimeout)
+                except subprocess.TimeoutExpired:
+                    pass
+                else:
+                    if process.returncode:
+                        msg = (
+                            f"Failed to start service_entrypoint.py "
+                            f"for service '{service.name}'"
+                            f" (retcode:{process.returncode})"
+                        )
+                        if not self.capture and process.stderr:
+                            error = b"".join(process.stderr.readlines())
+                            msg += "\n" + error.decode("utf-8")
+
+                        process.terminate()
+                        process.wait()
+                        raise Exception(msg)
+
                 self._logger.info(
                     f"Started service_entrypoint.py subprocess with PID={process.pid}"
                 )
 
                 self.serviceProcesses[instanceIdentity] = process
 
-                if output_file:
-                    output_file.close()
+                if output_file_descr:
+                    output_file_descr.close()
 
-            if self.logfileDirectory:
+            if output_file_path:
                 self._logger.info(
                     "Started a service logging to %s with pid %s",
-                    os.path.join(self.logfileDirectory, logfileName),
+                    output_file_path,
                     process.pid,
                 )
             else:
@@ -200,7 +234,8 @@ class SubprocessServiceManager(ServiceManager):
                         instanceIdentity, workerProcess, updateServiceProcesses=False
                     )
 
-        self.serviceProcesses = {}
+            self.serviceProcesses = {}
+
         self.moveCoverageFiles()
 
     def _dropServiceProcess(self, identity):
@@ -293,7 +328,7 @@ class SubprocessServiceManager(ServiceManager):
                 for file in os.listdir(self.logfileDirectory):
                     instanceId = parseLogfileToInstanceid(file)
 
-                    if instanceId is not None and not self.isLiveService(instanceId):
+                    if instanceId is not None and not self._isLiveService(instanceId):
                         if not os.path.exists(os.path.join(self.logfileDirectory, "old")):
                             os.makedirs(os.path.join(self.logfileDirectory, "old"))
                         shutil.move(
@@ -306,7 +341,7 @@ class SubprocessServiceManager(ServiceManager):
                 if os.path.exists(self.storageDir):
                     for stringifiedInstanceId in os.listdir(self.storageDir):
                         path = os.path.join(self.storageDir, stringifiedInstanceId)
-                        if os.path.isdir(path) and not self.isLiveService(
+                        if os.path.isdir(path) and not self._isLiveService(
                             stringifiedInstanceId
                         ):
                             try:
@@ -326,7 +361,7 @@ class SubprocessServiceManager(ServiceManager):
             with self.lock:
                 if os.path.exists(self.sourceDir):
                     for stringifiedInstanceId in os.listdir(self.sourceDir):
-                        if not self.isLiveService(stringifiedInstanceId):
+                        if not self._isLiveService(stringifiedInstanceId):
                             try:
                                 path = os.path.join(self.sourceDir, stringifiedInstanceId)
                                 self._logger.info(
@@ -341,7 +376,7 @@ class SubprocessServiceManager(ServiceManager):
                                     traceback.format_exc(),
                                 )
 
-    def isLiveService(self, instanceId):
+    def _isLiveService(self, instanceId):
         if isinstance(instanceId, str):
             try:
                 instanceId = int(instanceId)

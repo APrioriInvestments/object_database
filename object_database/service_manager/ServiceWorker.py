@@ -39,6 +39,7 @@ class ServiceWorker:
         self.db.subscribeToType(service_schema.File, lazySubscription=True)
 
         self.instance = service_schema.ServiceInstance.fromIdentity(instance_id)
+        self.instanceId = instance_id
 
         self.runtimeConfig = ServiceRuntimeConfig(
             dbConnectionFactory, storageRoot, authToken, ownIpAddress, self.instance
@@ -77,7 +78,7 @@ class ServiceWorker:
 
         with self.db.transaction():
             assert self.instance.exists(), (
-                "Service Instance object %s doesn't exist" % self.instance._identity
+                "Service Instance object %s doesn't exist" % self.instanceId
             )
             assert self.instance.service.exists(), (
                 "Service object %s doesn't exist" % self.instance.service._identity
@@ -91,16 +92,14 @@ class ServiceWorker:
             try:
                 self.serviceObject = self._instantiateServiceObject()
             except Exception:
-                self._logger.exception(
-                    "Service thread for %s failed:", self.instance._identity
-                )
+                self._logger.exception("Service thread for %s failed:", self.instanceId)
                 self.instance.markFailedToStart(traceback.format_exc())
                 return
         try:
-            self._logger.info("Initializing service object for %s", self.instance._identity)
+            self._logger.info("Initializing service object for %s", self.instanceId)
             self.serviceObject.initialize()
         except Exception:
-            self._logger.exception("Service thread for %s failed:", self.instance._identity)
+            self._logger.exception("Service thread for %s failed:", self.instanceId)
 
             self.serviceObject = None
 
@@ -124,14 +123,10 @@ class ServiceWorker:
             self.instance.state = "Running"
 
         try:
-            self._logger.info(
-                "Starting runloop for service object %s", self.instance._identity
-            )
+            self._logger.info("Starting runloop for service object %s", self.instanceId)
             self.serviceObject.doWork(self.shouldStop)
         except Exception:
-            self._logger.exception(
-                "Service %s/%s failed:", self.serviceName, self.instance._identity
-            )
+            self._logger.exception("Service %s/%s failed:", self.serviceName, self.instanceId)
 
             with self.db.transaction():
                 self.instance.state = "Crashed"
@@ -143,7 +138,7 @@ class ServiceWorker:
                 self._logger.info(
                     "Service %s/%s exited gracefully. Setting stopped flag.",
                     self.serviceName,
-                    self.instance._identity,
+                    self.instanceId,
                 )
 
                 self.instance.state = "Stopped"

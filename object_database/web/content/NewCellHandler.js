@@ -45,7 +45,6 @@ class NewCellHandler {
         this.cellUpdated = this.cellUpdated.bind(this);
         this.cellDiscarded = this.cellDiscarded.bind(this);
         this.doesNotUnderstand = this.doesNotUnderstand.bind(this);
-        this._markAllChildrenForUpdate = this._markAllChildrenForUpdate.bind(this);
         this._getUpdatedComponent = this._getUpdatedComponent.bind(this);
         this._createAndUpdate = this._createAndUpdate.bind(this);
         this._updateComponentProps = this._updateComponentProps.bind(this);
@@ -205,7 +204,7 @@ class NewCellHandler {
     cellDiscarded(message){
         let found = this.activeComponents[message.id];
         if(found){
-            found.componentWillUnload();
+            found.componentWillUnload()
 
             delete this.activeComponents[message.id];
         }
@@ -479,26 +478,6 @@ class NewCellHandler {
             component.componentDidLoad();
             component._wasCreated = false;
         });
-    }
-
-    /**
-     * For the passed-in component, we recursively
-     * descend the children tree and add all children
-     * to the update list (so that componentDidUpdate
-     * will be called for each of them).
-     */
-    _markAllChildrenForUpdate(aComponent){
-        if(Array.isArray(aComponent)){
-            aComponent.forEach(item => {
-                this._markAllChildrenForUpdate(item);
-            });
-        } else {
-            this._updatedComponents.push(aComponent);
-            Object.keys(aComponent.props.namedChildren).forEach(key => {
-                let child = aComponent.props.namedChildren[key];
-                this._markAllChildrenForUpdate(child);
-            });
-        }
     }
 
     /**

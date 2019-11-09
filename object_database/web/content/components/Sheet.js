@@ -66,6 +66,7 @@ class Sheet extends Component {
         this._removeLockedElements = this._removeLockedElements.bind(this);
         this._idToCoord = this._idToCoord.bind(this);
         this._coordToId = this._coordToId.bind(this);
+        this._padFrame = this._padFrame.bind(this);
     }
 
     componentDidLoad(){
@@ -179,14 +180,6 @@ class Sheet extends Component {
                 if (this.active_frame.origin.y === this.view_frame_offset.y){
                     // no reason to do anything if already at the top
                     if (this.view_frame.origin.y > this.view_frame_offset.y){
-                        // we update the values before the make a server and after
-                        this.view_frame.translate(shift);
-                        this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
-                        // no need to shift the active_frame, already at the top
-                        this.fetchData(
-                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
-                            "update",
-                        );
                         // now for the locked column frame
                         if (this.locked_column_frame.dim){
                             this.locked_column_frame.translate(shift);
@@ -196,6 +189,14 @@ class Sheet extends Component {
                                 "update",
                             );
                         }
+                        // we update the values before the make a server and after
+                        this.view_frame.translate(shift);
+                        this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
+                        // no need to shift the active_frame, already at the top
+                        this.fetchData(
+                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
+                            "update",
+                        );
                     }
                 } else {
                     this._updateActiveElement(body, shift);
@@ -208,14 +209,6 @@ class Sheet extends Component {
                 if (this.active_frame.corner.y === this.fixed_view_frame.corner.y){
                     // no reason to do anything if already at the bottom
                     if (this.view_frame.corner.y < this.totalRows - 1){
-                        // we update the values before the make a server and after
-                        this.view_frame.translate(shift);
-                        this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
-                        // no need to shift the active_frame, already at the bottom
-                        this.fetchData(
-                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
-                            "update",
-                        );
                         // now for the locked column frame
                         if (this.locked_column_frame.dim){
                             this.locked_column_frame.translate(shift);
@@ -225,6 +218,14 @@ class Sheet extends Component {
                                 "update",
                             );
                         }
+                        // we update the values before the make a server and after
+                        this.view_frame.translate(shift);
+                        this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
+                        // no need to shift the active_frame, already at the bottom
+                        this.fetchData(
+                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
+                            "update",
+                        );
                     }
                 } else {
                     this._updateActiveElement(body, shift);
@@ -237,14 +238,6 @@ class Sheet extends Component {
                 if (this.active_frame.origin.x === this.view_frame_offset.x){
                     // no reason to do anything if already on the left border
                     if (this.view_frame.origin.x > this.view_frame_offset.x){
-                        // we update the values before the make a server and after
-                        this.view_frame.translate(shift);
-                        this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
-                        // no need to shift the active_frame, already at the top
-                        this.fetchData(
-                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
-                            "update",
-                        );
                         // now for the locked row frame
                         if (this.locked_row_frame.dim){
                             this.locked_row_frame.translate(shift);
@@ -254,6 +247,14 @@ class Sheet extends Component {
                                 "update",
                             );
                         }
+                        // we update the values before the make a server and after
+                        this.view_frame.translate(shift);
+                        this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
+                        // no need to shift the active_frame, already at the top
+                        this.fetchData(
+                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
+                            "update",
+                        );
                     }
                 } else {
                     this._updateActiveElement(body, shift);
@@ -266,14 +267,6 @@ class Sheet extends Component {
                 if (this.active_frame.corner.x === this.fixed_view_frame.corner.x){
                     // no reason to do anything if already at max number of columns
                     if (this.view_frame.corner.x < this.totalColumns - 1){
-                        // we update the values before the make a server and after
-                        this.view_frame.translate(shift);
-                        this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
-                        // no need to shift the active_frame, already at the bottom
-                        this.fetchData(
-                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
-                            "update",
-                        );
                         // now for the locked row frame
                         if (this.locked_row_frame.dim){
                             this.locked_row_frame.translate(shift);
@@ -283,6 +276,14 @@ class Sheet extends Component {
                                 "update",
                             );
                         }
+                        // we update the values before the make a server and after
+                        this.view_frame.translate(shift);
+                        this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
+                        // no need to shift the active_frame, already at the bottom
+                        this.fetchData(
+                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
+                            "update",
+                        );
                     }
                 } else {
                     this._updateActiveElement(body, shift);
@@ -379,6 +380,8 @@ class Sheet extends Component {
 
     /* I make WS requests to the server */
     fetchData(frame, action){
+        // we ask for a bit more data than we need for the view to prevent flickering
+        // frame = this._padFrame(frame, new Point([2, 2]));
         let request = JSON.stringify({
             event: "sheet_needs_data",
             target_cell: this.props.id,
@@ -389,6 +392,28 @@ class Sheet extends Component {
             action: action,
         });
         cellSocket.sendString(request);
+    }
+
+    /* I take a frame and return a new frame with the orign and corner offset by the
+     * padding Point. I take into account whether the frame.origin and frame.corner don't
+     * exceed alloted data dimensions
+     */
+    _padFrame(frame, padding){
+        let origin = frame.origin;
+        let corner = frame.corner;
+        if (origin.x > padding.x){
+            origin.x -= padding.x;
+        }
+        if (origin.y > padding.y){
+            origin.y -= padding.y;
+        }
+        if (corner.x < this.totalColumns - padding.x){
+            corner.x += padding.x;
+        }
+        if (corner.y < this.totalRows - padding.y){
+            corner.y += padding.y;
+        }
+        return new Frame(origin, corner);
     }
 
     /* I handle data updating for the Sheet. I need to know whether

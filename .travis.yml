@@ -42,7 +42,7 @@ jobs:
 
     - name: "black check"
       install:
-        - pip install black
+        - pip install black==19.3b0
       script:
         - make black-check-local
 

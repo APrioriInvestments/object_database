@@ -59,7 +59,7 @@ install: $(VIRTUAL_ENV) testcert.cert testcert.key install-dependencies pre-comm
 install-dependencies: $(VIRTUAL_ENV)
 	. $(VIRTUAL_ENV)/bin/activate; \
 		pip install pipenv==2018.11.26; \
-		pip install black; \
+		pip install black==19.3b0; \
 		pipenv install --dev --deploy; \
 		pip install -e .; \
 		nodeenv --python-virtualenv --prebuilt --node=10.15.3 $(NODE_ENV); \

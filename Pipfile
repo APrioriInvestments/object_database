@@ -32,7 +32,7 @@ redis = "*"
 requests = "*"
 websockets = "*"
 nodeenv = "*"
-typed_python = {git = "https://github.com/APrioriInvestments/typed_python.git",ref = "b118d0de45dfe89836afb0af45a1b23d081261fa"}
+typed_python = {editable = true,path = "./../typed_python"}
 gevent-websocket = "*"
 
 [requires]

@@ -186,12 +186,38 @@ class Sheet extends Component {
         event.preventDefault();
         // TODO figure out how to deal with checking for alt
         let page = this.fixed_view_frame.corner;
+        let shift = [0, 0];
         // offset by fixed rows/columns
         page.x += this.view_frame_offset.x;
         page.y += this.view_frame_offset.y;
         if (event.key === "PageDown"){
+            if (this.view_frame.corner.y > this.totalRows - page.y){
+                page.y = this.view_frame.corner.y + page.y - this.totalRows;
+            }
+            shift = [0, page.y];
         } else {
+            if (this.view_frame.origin.y < this.view_frame_offset.y + page.y){
+                page.y = page.y + this.view_frame_offset.y - this.view_frame.origin.y ;
+            }
+            shift = [0, -1 * page.y];
         }
+        // now for the locked column frame
+        if (this.locked_column_frame.dim){
+            this.locked_column_frame.translate(shift);
+            this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
+            this.fetchData(
+                this.locked_column_frame,
+                "update",
+            );
+        }
+        // we update the values before the make a server and after
+        this.view_frame.translate(shift);
+        this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
+        // no need to shift the active_frame, already at the bottom
+        this.fetchData(
+            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
+            "update",
+        );
     }
 
     /* I handle navigation of the active_frame and related views */

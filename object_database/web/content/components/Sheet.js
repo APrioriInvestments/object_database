@@ -60,6 +60,8 @@ class Sheet extends Component {
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleClick = this.handleClick.bind(this);
+        this.navActiveFrame = this.navActiveFrame.bind(this);
+        this.pageUpDown = this.pageUpDown.bind(this);
         this._updateActiveElement = this._updateActiveElement.bind(this);
         this._createActiveElement = this._createActiveElement.bind(this);
         this._addLockedElements = this._addLockedElements.bind(this);
@@ -171,6 +173,29 @@ class Sheet extends Component {
         let body = document.getElementById(`sheet-${this.props.id}-body`);
         // make sure that we have an active target
         // otherwise there is no root for navigation
+        console.log(event.key);
+        if (["PageUp", "PageDown"].indexOf(event.key) > -1){
+            this.pageUpDown(body, event);
+        } else if(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(event.key) > -1) {
+            this.navActiveFrame(body, event);
+        }
+    }
+
+    /* I handle page Up/Down of the view */
+    pageUpDown(body, event){
+        event.preventDefault();
+        // TODO figure out how to deal with checking for alt
+        let page = this.fixed_view_frame.corner;
+        // offset by fixed rows/columns
+        page.x += this.view_frame_offset.x;
+        page.y += this.view_frame_offset.y;
+        if (event.key === "PageDown"){
+        } else {
+        }
+    }
+
+    /* I handle navigation of the active_frame and related views */
+    navActiveFrame(body, event){
         if (this.active_frame){
             if (event.key === "ArrowUp"){
                 event.preventDefault();

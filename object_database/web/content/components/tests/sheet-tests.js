@@ -143,6 +143,19 @@ describe("Sheet util tests.", () => {
             frame = new Frame(undefined, [0, 0]);
             assert.isTrue(isNaN(frame.dim));
         })
+        it("Size", () => {
+            frame = new Frame([1, 5], [5, 7]);
+            assert.equal(frame.size.x, 5);
+            assert.equal(frame.size.y, 3);
+        })
+        it("Size of empty frame", () => {
+            frame = new Frame();
+            assert.isTrue(isNaN(frame.size));
+            frame = new Frame([0, 0], undefined);
+            assert.isTrue(isNaN(frame.size));
+            frame = new Frame(undefined, [0, 0]);
+            assert.isTrue(isNaN(frame.size));
+        })
         it("Equality", () => {
             let frame = new Frame([0, 0], [1, 1]);
             assert.isTrue(frame.equals(frame));

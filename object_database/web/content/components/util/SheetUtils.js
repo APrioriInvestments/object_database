@@ -126,6 +126,16 @@ class Frame {
         return dim;
     }
 
+    /* I return the size, a Point, of the frame */
+    get size(){
+        if (!this._empty()){
+            let x = this.corner.x - this.origin.x + 1;
+            let y = this.corner.y - this.origin.y + 1;
+            return new Point([x, y]);
+        }
+        return NaN;
+    }
+
     /* check if the frame is empty. */
     get empty(){
         return this._empty();

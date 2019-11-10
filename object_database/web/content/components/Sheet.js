@@ -61,7 +61,7 @@ class Sheet extends Component {
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleClick = this.handleClick.bind(this);
-        this.navActiveFrame = this.navActiveFrame.bind(this);
+        this.arrowUpDownLeftRight = this.arrowUpDownLeftRight.bind(this);
         this.pageUpDown = this.pageUpDown.bind(this);
         this._updateActiveElement = this._updateActiveElement.bind(this);
         this._createActiveElement = this._createActiveElement.bind(this);
@@ -81,20 +81,20 @@ class Sheet extends Component {
         // We instantiate all frames, even if they are of dim = 0; this allows us to update
         // the coordinates later as needed (recall a Frame where either origin or corner are null
         // or undefined is of dim 0).
+        this.locked_column_frame = new Frame([0, 0], [0, 0]);
+        this.locked_row_frame = new Frame([0, 0], [0, 0]);
         if (this.props.numLockColumns > 0){
             this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1]);
+            // this.locked_row_offset.y = this.;
             this.view_frame_offset.x = this.props.numLockColumns;
             // this.locked_column_offset.x = this.props.numLockColumns;
-        } else {
-            this.locked_column_frame = new Frame([0, 0], [0, 0]);
         }
         if (this.props.numLockRows > 0){
             this.locked_row_frame = new Frame([0, 0], [this.max_num_columns - 1, this.props.numLockRows - 1]);
             this.view_frame_offset.y = this.props.numLockRows;
-            // this.locked_row_offset.y = this.props.numLockRows;
-        } else {
-            this.locked_row_frame = new Frame([0, 0], [0, 0]);
         }
+        // this.locked_row_frame.origin.x = this.locked_column_frame.size.x;
+        // this.locked_column_frame.origin.y = this.locked_row_frame.size.y;
         this.fixed_view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
         // view frame accounts for locked column/row frames
         this.view_frame = new Frame(this.view_frame_offset, [this.max_num_columns - 1, this.max_num_rows - 1]);
@@ -104,7 +104,6 @@ class Sheet extends Component {
                 "replace",
             );
         }
-        console.log(this.view_frame);
     }
 
     /* I initialize the sheet from coordintate [0, 0] to [corner.x, corner.y] (corner isinstanceof Point)
@@ -176,11 +175,11 @@ class Sheet extends Component {
         let body = document.getElementById(`sheet-${this.props.id}-body`);
         // make sure that we have an active target
         // otherwise there is no root for navigation
-        console.log(event.key + event.altKey);
+        // console.log(event.key + event.altKey);
         if (["PageUp", "PageDown"].indexOf(event.key) > -1){
             this.pageUpDown(body, event);
         } else if(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(event.key) > -1) {
-            this.navActiveFrame(body, event);
+            this.arrowUpDownLeftRight(body, event);
         }
     }
 
@@ -195,11 +194,10 @@ class Sheet extends Component {
             if (event.key === "PageDown"){
                 // make sure we don't run out of data at the right of the page
                 if (this.view_frame.corner.x + page.x > this.totalColumns){
-                    page.x = this.totalRows - this.view_frame.corner.x - 1;
+                    page.x = this.totalColumns - this.view_frame.corner.x - 1;
                 }
                 shift = [page.x, 0];
             } else {
-                console.log("here");
                 // make sure we don't run out of data at the left
                 if (this.view_frame.origin.x - page.x < this.view_frame_offset.x){
                     page.x = this.view_frame.origin.x - this.view_frame_offset.x;
@@ -241,7 +239,6 @@ class Sheet extends Component {
             }
         }
         // we update the values before the make a server and after
-        console.log(shift);
         this.view_frame.translate(shift);
         this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
         // no need to shift the active_frame, already at the bottom
@@ -251,11 +248,66 @@ class Sheet extends Component {
         );
     }
 
-    /* I handle navigation of the active_frame and related views */
-    navActiveFrame(body, event){
-        if (this.active_frame){
+    /* I handle arrow triggered navigation of the active_frame and related views */
+    arrowUpDownLeftRight(body, event){
+        event.preventDefault();
+        if (event.ctrlKey){
             if (event.key === "ArrowUp"){
-                event.preventDefault();
+                this.view_frame.origin.y = this.view_frame_offset.y;
+                this.view_frame.corner.y = this.max_num_rows - 1;
+                if (this.locked_column_frame.dim){
+                    this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1]);
+                    this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
+                    this.fetchData(
+                        this.locked_column_frame,
+                        "update",
+                    );
+                }
+            } else if (event.key === "ArrowDown"){
+                this.view_frame.origin.y = this.totalRows - this.view_frame.size.y;
+                this.view_frame.corner.y = this.totalRows - 1;
+                if (this.locked_column_frame.dim){
+                    this.locked_column_frame = new Frame(
+                        [0, this.totalRows - this.locked_column_frame.size.y],
+                        [this.props.numLockColumns - 1, this.totalRows - 1]);
+                    this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
+                    this.fetchData(
+                        this.locked_column_frame,
+                        "update",
+                    );
+                }
+            } else if (event.key === "ArrowRight"){
+                this.view_frame.origin.x = this.totalColumns - this.view_frame.size.x;
+                this.view_frame.corner.x = this.totalColumns - 1;
+                if (this.locked_row_frame.dim){
+                    this.locked_row_frame = new Frame(
+                        [this.totalColumns - this.locked_row_frame.size.x, 0],
+                        [this.totalColumns - 1, this.props.numLockRows - 1]);
+                    this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
+                    this.fetchData(
+                        this.locked_row_frame,
+                        "update",
+                    );
+                }
+            } else if (event.key === "ArrowLeft"){
+                this.view_frame.origin.x = this.view_frame_offset.x;
+                this.view_frame.corner.x = this.max_num_columns - 1;
+                if (this.locked_row_frame.dim){
+                    this.locked_row_frame = new Frame([0, 0], [this.max_num_columns - 1, this.props.numLockRows - 1]);
+                    this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
+                    this.fetchData(
+                        this.locked_row_frame,
+                        "update",
+                    );
+                }
+            }
+            this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
+            this.fetchData(
+                this.view_frame,
+                "update",
+            );
+        } else if (this.active_frame){
+            if (event.key === "ArrowUp"){
                 let shift = [0, -1] // y-axis is rows
                 // if the top of this.active_frame is at the top of this.view_frame
                 // we need to shift the view frame only and fetch more data

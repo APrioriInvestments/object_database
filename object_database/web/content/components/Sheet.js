@@ -1,4 +1,5 @@
-/**
+/*
+ *
  * Sheet Cell Component
  * NOTE: This is in part a wrapper
  * for handsontables.
@@ -601,7 +602,11 @@ class Sheet extends Component {
             let x = p.x - frame.origin.x + offset.x;
             let y = p.y - frame.origin.y + offset.y;
             let td = body.querySelector(`#${this._coordToId("td", [x, y])}`);
-            td.textContent = this.data_frame.get(p);
+            let d = this.data_frame.get(p);
+            // TODO: this should be more robust
+            td.children[0].textContent = d;
+            // the tooltip
+            td.children[1].textContent = d;
         })
     }
 
@@ -711,18 +716,14 @@ class SheetCell extends Component {
 
     build(){
         // we don't show a tooltip span element if there is nothing to show
-        let child = [this.value];
-        if (this.value){
-            child.push(h("span", {class: "tooltiptext"}, [this.value]));
-        }
+        let child = [h("span", {}, [this.value])];
+        child.push(h("span", {class: "tooltiptext"}, ["TOOLTIP"]));
         return (
             h("td",
                 {
                     id: this.props.id,
                     class: this.class,
                     style: this.style,
-                    // "data-x": this.props.x.toString(),
-                    // "data-y": this.props.y.toString()
                 },
                 child
             )

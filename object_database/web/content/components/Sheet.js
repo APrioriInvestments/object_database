@@ -176,7 +176,7 @@ class Sheet extends Component {
         let body = document.getElementById(`sheet-${this.props.id}-body`);
         // make sure that we have an active target
         // otherwise there is no root for navigation
-        console.log(event.key);
+        console.log(event.key + event.altKey);
         if (["PageUp", "PageDown"].indexOf(event.key) > -1){
             this.pageUpDown(body, event);
         } else if(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(event.key) > -1) {
@@ -190,30 +190,58 @@ class Sheet extends Component {
         // TODO figure out how to deal with checking for alt
         let page = this.view_frame.size;
         let shift = [0, 0];
-        // offset by fixed rows/columns
-        if (event.key === "PageDown"){
-            // make sure we don't run out of data at the bottom of the page
-            if (this.view_frame.corner.y + page.y > this.totalRows){
-                page.y = this.totalRows - this.view_frame.corner.y - 1;
+        if (event.altKey){
+            // offset by fixed rows/columns
+            if (event.key === "PageDown"){
+                // make sure we don't run out of data at the right of the page
+                if (this.view_frame.corner.x + page.x > this.totalColumns){
+                    page.x = this.totalRows - this.view_frame.corner.x - 1;
+                }
+                shift = [page.x, 0];
+            } else {
+                console.log("here");
+                // make sure we don't run out of data at the left
+                if (this.view_frame.origin.x - page.x < this.view_frame_offset.x){
+                    page.x = this.view_frame.origin.x - this.view_frame_offset.x;
+                }
+                shift = [-1 * page.x, 0];
             }
-            shift = [0, page.y];
+            // now for the locked row frame
+            if (this.locked_row_frame.dim){
+                this.locked_row_frame.translate(shift);
+                this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
+                this.fetchData(
+                    this.locked_row_frame,
+                    "update",
+                );
+            }
         } else {
-            // make sure we don't run out of data at the top
-            if (this.view_frame.origin.y - page.y < this.view_frame_offset.y){
-                page.y = this.view_frame.origin.y - this.view_frame_offset.y;
+            // offset by fixed rows/columns
+            if (event.key === "PageDown"){
+                // make sure we don't run out of data at the bottom of the page
+                if (this.view_frame.corner.y + page.y > this.totalRows){
+                    page.y = this.totalRows - this.view_frame.corner.y - 1;
+                }
+                shift = [0, page.y];
+            } else {
+                // make sure we don't run out of data at the top
+                if (this.view_frame.origin.y - page.y < this.view_frame_offset.y){
+                    page.y = this.view_frame.origin.y - this.view_frame_offset.y;
+                }
+                shift = [0, -1 * page.y];
             }
-            shift = [0, -1 * page.y];
-        }
-        // now for the locked column frame
-        if (this.locked_column_frame.dim){
-            this.locked_column_frame.translate(shift);
-            this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
-            this.fetchData(
-                this.locked_column_frame,
-                "update",
-            );
+            // now for the locked column frame
+            if (this.locked_column_frame.dim){
+                this.locked_column_frame.translate(shift);
+                this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
+                this.fetchData(
+                    this.locked_column_frame,
+                    "update",
+                );
+            }
         }
         // we update the values before the make a server and after
+        console.log(shift);
         this.view_frame.translate(shift);
         this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
         // no need to shift the active_frame, already at the bottom

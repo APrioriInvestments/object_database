@@ -432,6 +432,7 @@ class Cells:
         # make messages for data updated nodes
         for node in self._nodesToDataUpdate:
             res.append(Messenger.cellDataUpdated(node))
+            node.updateLifecycleState()
 
         # make messages for discarding
         for n in self._nodesToDiscard:
@@ -949,6 +950,10 @@ class Cell:
             self.wasUpdated = False
         if self.wasDataUpdated:
             self.wasDataUpdated = False
+
+            # clear the data info. We're using this to send messages, not as 'state'.
+            self.exportData["dataInfo"] = None
+
         # NOTE: self.wasRemoved is set to False for self.prepareForReuse
         if self.wasRemoved:
             self.wasRemoved = False
@@ -3101,6 +3106,8 @@ class Sheet(Cell):
         self.rowHeight = rowHeight
         self.numLockRows = numLockRows
         self.numLockColumns = numLockColumns
+        self.dataInfosToSend = []
+
         self.error = Slot(None)
         self._overflow = "auto"
 
@@ -3136,6 +3143,8 @@ class Sheet(Cell):
         self.exportData["totalRows"] = self.totalRows
         self.exportData["numLockRows"] = self.numLockRows
         self.exportData["numLockColumns"] = self.numLockColumns
+        self.dataInfosToSend = []
+
         # self.exportData['handlesDoubleClick'] = ("onCellDblClick" in self._hookfns)
 
     def onMessage(self, msgFrame):
@@ -3150,6 +3159,7 @@ class Sheet(Cell):
         # ROW_LEN_OFFSET = 0
 
         if msgFrame["event"] == "sheet_needs_data":
+            print("RECEIVE request#", msgFrame["request_index"])
             frame = msgFrame["frame"]
             start_row = frame["origin"]["y"]
             end_row = frame["corner"]["y"]
@@ -3161,8 +3171,14 @@ class Sheet(Cell):
                 "action": msgFrame["action"],
                 "origin": frame["origin"],
                 "corner": frame["corner"],
+                "response_id": msgFrame["request_index"],
             }
-            self.exportData["dataInfo"] = dataInfo
+            # stage this piece of data to be sent when we recalculate
+            if self.exportData.get("dataInfo") is None:
+                self.exportData["dataInfo"] = [dataInfo]
+            else:
+                self.exportData["dataInfo"].append(dataInfo)
+
             self.wasDataUpdated = True
             self.markDirty()
         else:

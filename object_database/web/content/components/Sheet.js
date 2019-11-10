@@ -30,6 +30,7 @@ class Sheet extends Component {
         this.max_num_rows = null;
         this.max_num_columns = null;
         this.offset = 1;
+        this.requestIndex = 0;
 
         // frames
         // these frames are fixed on scrolling
@@ -433,8 +434,10 @@ class Sheet extends Component {
     fetchData(frame, action){
         // we ask for a bit more data than we need for the view to prevent flickering
         // frame = this._padFrame(frame, new Point([2, 2]));
+        this.requestIndex += 1;
         let request = JSON.stringify({
             event: "sheet_needs_data",
+            request_index: this.requestIndex,
             target_cell: this.props.id,
             frame: {
                 origin: {x: frame.origin.x, y: frame.origin.y},
@@ -472,34 +475,36 @@ class Sheet extends Component {
      * If it is `row` or `column` I need to know the direction `prepend`
      * or `append`.
      */
-    _updateData(dataInfo, projector) {
-        console.log("updating data for sheet: " + this.props.id)
-        // make sure the data is not empty
-        let body = document.getElementById(`sheet-${this.props.id}-body`);
-        if (dataInfo.data && dataInfo.data.length){
-            if (dataInfo.action === "replace") {
-                // we update the Sheet with (potentially empty) values
-                // creating 'td' elements with ids corresponding to the frame coordinates (and the sheet id);
-                // this will set up our updateData flow which continually retrieves values from data_frame regadless
-                // if the server has returned the request
-                // NOTE: we use frame origin and corner as much as possible, utilizing properties of Point and avoiding
-                // potential confusion of axes vs columns/rows
-                // TODO: this.initializeSheet should be under componentDidUpdate() but for that the Sheet needs
-                // to have access to the projector
-                // then we can remove the `action` arg to fetch
-                this.initializeSheet(projector, body);
+    _updateData(dataInfos, projector) {
+        dataInfos.map((dataInfo) => {
+            console.log("updating data for sheet: " + this.props.id + " with response id " + dataInfo.response_id)
+            // make sure the data is not empty
+            let body = document.getElementById(`sheet-${this.props.id}-body`);
+            if (dataInfo.data && dataInfo.data.length){
+                if (dataInfo.action === "replace") {
+                    // we update the Sheet with (potentially empty) values
+                    // creating 'td' elements with ids corresponding to the frame coordinates (and the sheet id);
+                    // this will set up our updateData flow which continually retrieves values from data_frame regadless
+                    // if the server has returned the request
+                    // NOTE: we use frame origin and corner as much as possible, utilizing properties of Point and avoiding
+                    // potential confusion of axes vs columns/rows
+                    // TODO: this.initializeSheet should be under componentDidUpdate() but for that the Sheet needs
+                    // to have access to the projector
+                    // then we can remove the `action` arg to fetch
+                    this.initializeSheet(projector, body);
+                }
+                // load the data into the data with the provided origin
+                let origin = dataInfo.origin;
+                this.data_frame.load(dataInfo.data, [origin.x, origin.y]);
+                if (this.locked_column_frame.dim > 0){
+                    this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
+                }
+                if (this.locked_row_frame.dim > 0){
+                    this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
+                }
+                this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
             }
-            // load the data into the data with the provided origin
-            let origin = dataInfo.origin;
-            this.data_frame.load(dataInfo.data, [origin.x, origin.y]);
-            if (this.locked_column_frame.dim > 0){
-                this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
-            }
-            if (this.locked_row_frame.dim > 0){
-                this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
-            }
-            this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
-        }
+        })
     }
 
     /* Update data helpers */

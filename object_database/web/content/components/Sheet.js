@@ -84,12 +84,14 @@ class Sheet extends Component {
         if (this.props.numLockColumns > 0){
             this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1]);
             this.view_frame_offset.x = this.props.numLockColumns;
+            // this.locked_column_offset.x = this.props.numLockColumns;
         } else {
             this.locked_column_frame = new Frame([0, 0], [0, 0]);
         }
         if (this.props.numLockRows > 0){
             this.locked_row_frame = new Frame([0, 0], [this.max_num_columns - 1, this.props.numLockRows - 1]);
             this.view_frame_offset.y = this.props.numLockRows;
+            // this.locked_row_offset.y = this.props.numLockRows;
         } else {
             this.locked_row_frame = new Frame([0, 0], [0, 0]);
         }
@@ -186,19 +188,19 @@ class Sheet extends Component {
     pageUpDown(body, event){
         event.preventDefault();
         // TODO figure out how to deal with checking for alt
-        let page = this.fixed_view_frame.corner;
+        let page = this.view_frame.size;
         let shift = [0, 0];
         // offset by fixed rows/columns
-        page.x += this.view_frame_offset.x;
-        page.y += this.view_frame_offset.y;
         if (event.key === "PageDown"){
-            if (this.view_frame.corner.y > this.totalRows - page.y){
-                page.y = this.view_frame.corner.y + page.y - this.totalRows;
+            // make sure we don't run out of data at the bottom of the page
+            if (this.view_frame.corner.y + page.y > this.totalRows){
+                page.y = this.totalRows - this.view_frame.corner.y - 1;
             }
             shift = [0, page.y];
         } else {
-            if (this.view_frame.origin.y < this.view_frame_offset.y + page.y){
-                page.y = page.y + this.view_frame_offset.y - this.view_frame.origin.y ;
+            // make sure we don't run out of data at the top
+            if (this.view_frame.origin.y - page.y < this.view_frame_offset.y){
+                page.y = this.view_frame.origin.y - this.view_frame_offset.y;
             }
             shift = [0, -1 * page.y];
         }

@@ -325,9 +325,7 @@ class TaskService(ServiceBase):
                     taskStatus.wakeup_timestamp = execResult.wakeup_timestamp
 
         except Exception:
-            self.logger.error(
-                "Task %s failed with exception:\n%s", task, traceback.format_exc()
-            )
+            self.logger.exception("Task %s failed with exception:", task)
             taskStatus.finish(
                 self.db,
                 TaskResult.Error(error=traceback.format_exc()),
@@ -384,10 +382,7 @@ class TaskDispatchService(ServiceBase):
                 except DisconnectedException:
                     return
                 except Exception:
-                    self.logger.error(
-                        "Unexpected exception in TaskDispatchService: %s",
-                        traceback.format_exc(),
-                    )
+                    self.logger.exception("Unexpected exception in TaskDispatchService:")
 
         def assignLoop():
             while not shouldStop.is_set():
@@ -397,10 +392,7 @@ class TaskDispatchService(ServiceBase):
                 except DisconnectedException:
                     return
                 except Exception:
-                    self.logger.error(
-                        "Unexpected exception in TaskDispatchService: %s",
-                        traceback.format_exc(),
-                    )
+                    self.logger.exception("Unexpected exception in TaskDispatchService:")
 
         def collectLoop():
             while not shouldStop.is_set():
@@ -410,10 +402,7 @@ class TaskDispatchService(ServiceBase):
                 except DisconnectedException:
                     return
                 except Exception:
-                    self.logger.error(
-                        "Unexpected exception in TaskDispatchService: %s",
-                        traceback.format_exc(),
-                    )
+                    self.logger.exception("Unexpected exception in TaskDispatchService:")
 
         threads = [
             threading.Thread(target=t)

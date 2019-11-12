@@ -11,7 +11,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 import json
-import traceback
 
 from itertools import chain
 
@@ -462,7 +461,7 @@ def readThread(ws, cells, largeMessageAck, logger):
                     if cell is not None:
                         cell.onMessageWithTransaction(jsonMsg)
             except Exception:
-                logger.error("Exception in inbound message: %s", traceback.format_exc())
+                logger.exception("Exception in inbound message:")
 
             cells.triggerIfHasDirty()
 

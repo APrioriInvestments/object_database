@@ -33,7 +33,6 @@ import queue
 import time
 import logging
 import threading
-import traceback
 
 DEFAULT_GC_INTERVAL = 900.0
 
@@ -241,10 +240,7 @@ class Server:
                 except queue.Empty:
                     pass
             except Exception:
-                self._logger.error(
-                    "Unexpected error in serviceSubscription thread:\n%s",
-                    traceback.format_exc(),
-                )
+                self._logger.exception("Unexpected error in serviceSubscription thread:")
 
     def _removeOldDeadConnections(self):
         fieldId = self._currentTypeMap().fieldIdFor("core", "Connection", " exists")
@@ -364,10 +360,7 @@ class Server:
 
                 connectedChannel.sendInitializationMessage()
         except Exception:
-            self._logger.error(
-                "Failed during addConnection which should never happen:\n%s",
-                traceback.format_exc(),
-            )
+            self._logger.exception("Failed during addConnection which should never happen:")
 
     def _handleSubscriptionInForeground(self, channel, msg):
         # first see if this would be an easy subscription to handle
@@ -843,9 +836,7 @@ class Server:
                         msg.as_of_version,
                     )
             except Exception:
-                self._logger.error(
-                    "Unknown error committing transaction: %s", traceback.format_exc()
-                )
+                self._logger.exception("Unknown error committing transaction:")
                 isOK = False
                 badKey = "<NONE>"
 

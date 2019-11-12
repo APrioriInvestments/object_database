@@ -24,7 +24,6 @@ import ssl
 import time
 import threading
 import socket
-import traceback
 
 
 class ServerToClientProtocol(AlgebraicProtocol):
@@ -40,9 +39,7 @@ class ServerToClientProtocol(AlgebraicProtocol):
             try:
                 return handler(*args)
             except Exception:
-                self._logger.error(
-                    "Unexpected exception in %s:\n%s", handler.__name__, traceback.format_exc()
-                )
+                self._logger.exception("Unexpected exception in %s:", handler.__name__)
 
         self.handler = callHandler
 
@@ -91,11 +88,7 @@ class ClientToServerProtocol(AlgebraicProtocol):
                 try:
                     return handler(*args)
                 except Exception:
-                    self._logger.error(
-                        "Unexpected exception in %s:\n%s",
-                        handler.__name__,
-                        traceback.format_exc(),
-                    )
+                    self._logger.exception("Unexpected exception in %s:", handler.__name__)
 
             self.handler = callHandler
             for m in self.msgs:
@@ -247,9 +240,7 @@ class TcpServer(Server):
             try:
                 self.checkForDeadConnections()
             except Exception:
-                logging.error(
-                    "Caught exception in checkForDeadConnections:\n%s", traceback.format_exc()
-                )
+                logging.exception("Caught exception in checkForDeadConnections:")
 
     def stop(self):
         Server.stop(self)

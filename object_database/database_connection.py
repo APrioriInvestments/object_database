@@ -27,7 +27,6 @@ from typed_python import Alternative, Dict, OneOf
 
 import threading
 import logging
-import traceback
 import time
 
 from object_database.view import DisconnectedException
@@ -446,9 +445,8 @@ class DatabaseConnection:
                     try:
                         q(TransactionResult.Disconnected())
                     except Exception:
-                        self._logger.error(
-                            "Transaction commit callback threw an exception:\n%s",
-                            traceback.format_exc(),
+                        self._logger.exception(
+                            "Transaction commit callback threw an exception:"
                         )
 
                 self._transaction_callbacks = {}
@@ -475,10 +473,7 @@ class DatabaseConnection:
                         else TransactionResult.RevisionConflict(key=msg.badKey)
                     )
                 except Exception:
-                    self._logger.error(
-                        "Transaction commit callback threw an exception:\n%s",
-                        traceback.format_exc(),
-                    )
+                    self._logger.exception("Transaction commit callback threw an exception:")
         elif msg.matches.Transaction:
             with self._lock:
                 self._markSchemaAndTypeMaxTids(
@@ -495,10 +490,8 @@ class DatabaseConnection:
                 try:
                     handler(msg.writes, msg.set_adds, msg.set_removes, msg.transaction_id)
                 except Exception:
-                    self._logger.error(
-                        "_onTransaction handler %s threw an exception:\n%s",
-                        handler,
-                        traceback.format_exc(),
+                    self._logger.exception(
+                        "_onTransaction handler %s threw an exception:", handler
                     )
 
         elif msg.matches.SchemaMapping:

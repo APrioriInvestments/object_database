@@ -236,10 +236,8 @@ class Cells:
                 try:
                     callback()
                 except Exception:
-                    self._logger.error(
-                        "Callback %s threw an unexpected exception:\n%s",
-                        callback,
-                        traceback.format_exc(),
+                    self._logger.exception(
+                        "Callback %s threw an unexpected exception:", callback
                     )
         except queue.Empty:
             return
@@ -557,14 +555,8 @@ class Cells:
                         child_cell.wasRemoved = False
 
             except Exception:
-                self._logger.error(
-                    "Node %s had exception during recalculation:\n%s",
-                    node,
-                    traceback.format_exc(),
-                )
-                self._logger.error(
-                    "Subscribed cell threw an exception:\n%s", traceback.format_exc()
-                )
+                self._logger.exception("Node %s had exception during recalculation:", node)
+                self._logger.exception("Subscribed cell threw an exception:")
                 tracebackCell = Traceback(traceback.format_exc())
                 node.children["content"] = tracebackCell
 
@@ -1042,11 +1034,8 @@ class Cell:
                         self._logger.error("OnMessage timed out. This should really fail.")
                         return
                 except Exception:
-                    self._logger.error(
-                        "Exception processing message %s to cell %s logic:\n%s",
-                        args,
-                        self,
-                        traceback.format_exc(),
+                    self._logger.exception(
+                        "Exception processing message %s to cell %s logic:", args, self
                     )
                     return
 
@@ -2010,9 +1999,7 @@ class Subscribed(Cell):
             except Exception:
                 tracebackCell = Traceback(traceback.format_exc())
                 self.children["content"] = tracebackCell
-                self._logger.error(
-                    "Subscribed inner function threw exception:\n%s", traceback.format_exc()
-                )
+                self._logger.exception("Subscribed inner function threw exception:")
 
             self._resetSubscriptionsToViewReads(v)
 
@@ -2188,9 +2175,7 @@ class SubscribedSequence(Cell):
         except SubscribeAndRetry:
             raise
         except Exception:
-            self._logger.error(
-                "SubscribedSequence itemsFun threw exception:\n%s", traceback.format_exc()
-            )
+            self._logger.exception("SubscribedSequence itemsFun threw exception:")
             self.items = []
 
     def _updateExistingItems(self):
@@ -2270,18 +2255,14 @@ class Grid(Cell):
             except SubscribeAndRetry:
                 raise
             except Exception:
-                self._logger.error(
-                    "Row fun calc threw an exception:\n%s", traceback.format_exc()
-                )
+                self._logger.exception("Row fun calc threw an exception:")
                 self.rows = []
             try:
                 self.cols = augmentToBeUnique(self.colFun())
             except SubscribeAndRetry:
                 raise
             except Exception:
-                self._logger.error(
-                    "Col fun calc threw an exception:\n%s", traceback.format_exc()
-                )
+                self._logger.exception("Col fun calc threw an exception:")
                 self.cols = []
 
             self._resetSubscriptionsToViewReads(v)
@@ -2471,7 +2452,7 @@ class Table(Cell):
                         r = self.cachedRenderFun(row, col)
                         keymemo[row] = SortWrapper(r.sortsAs())
                     except Exception:
-                        self._logger.error(traceback.format_exc())
+                        self._logger.exception("Exception in sortRows:")
                         keymemo[row] = SortWrapper(None)
 
                 return keymemo[row]
@@ -2486,7 +2467,7 @@ class Table(Cell):
             page = max(0, int(self.curPage.get()) - 1)
             page = min(page, (len(rows) - 1) // self.maxRowsPerPage)
         except Exception:
-            self._logger.error("Failed to parse current page: %s", traceback.format_exc())
+            self._logger.exception("Failed to parse current page: %s")
 
         return rows[page * self.maxRowsPerPage : (page + 1) * self.maxRowsPerPage]
 
@@ -2539,9 +2520,7 @@ class Table(Cell):
             except SubscribeAndRetry:
                 raise
             except Exception:
-                self._logger.error(
-                    "Col fun calc threw an exception:\n%s", traceback.format_exc()
-                )
+                self._logger.exception("Col fun calc threw an exception:")
                 self.cols = []
 
             try:
@@ -2552,9 +2531,7 @@ class Table(Cell):
             except SubscribeAndRetry:
                 raise
             except Exception:
-                self._logger.error(
-                    "Row fun calc threw an exception:\n%s", traceback.format_exc()
-                )
+                self._logger.exception("Row fun calc threw an exception:")
                 self.rows = []
 
             self._resetSubscriptionsToViewReads(v)
@@ -3328,7 +3305,7 @@ class _PlotUpdater(Cell):
                 # temporary js WS refactoring data
                 self.exportData["exceptionOccured"] = True
 
-                self._logger.error(traceback.format_exc())
+                self._logger.exception("Exception in recalculate")
                 self.linePlot.error.set(traceback.format_exc())
 
             self._resetSubscriptionsToViewReads(v)

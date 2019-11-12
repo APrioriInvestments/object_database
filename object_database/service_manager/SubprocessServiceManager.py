@@ -19,7 +19,6 @@ import sys
 import logging
 import threading
 import time
-import traceback
 
 from object_database.service_manager.ServiceManager import ServiceManager
 from object_database.service_manager.ServiceSchema import service_schema
@@ -350,11 +349,9 @@ class SubprocessServiceManager(ServiceManager):
                                 )
                                 shutil.rmtree(path)
                             except Exception:
-                                self._logger.error(
-                                    "Failed to remove storage at path %s "
-                                    "for dead service:\n%s",
+                                self._logger.exception(
+                                    "Failed to remove storage at path %s for dead service:",
                                     path,
-                                    traceback.format_exc(),
                                 )
 
         if self.sourceDir:
@@ -369,11 +366,10 @@ class SubprocessServiceManager(ServiceManager):
                                 )
                                 shutil.rmtree(path)
                             except Exception:
-                                self._logger.error(
+                                self._logger.exception(
                                     "Failed to remove source cache at path %s "
-                                    "for dead service:\n%s",
+                                    "for dead service:",
                                     path,
-                                    traceback.format_exc(),
                                 )
 
     def _isLiveService(self, instanceId):

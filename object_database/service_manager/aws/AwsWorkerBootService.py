@@ -17,7 +17,6 @@ import datetime
 import logging
 import os
 import time
-import traceback
 import uuid
 
 from typed_python import OneOf, ConstDict
@@ -517,7 +516,7 @@ class AwsWorkerBootService(ServiceBase):
                 if not self.pushTaskLoopForward():
                     time.sleep(1.0)
             except Exception:
-                self._logger.error("Failed: %s", traceback.format_exc())
+                self._logger.exception("Failed:")
                 time.sleep(5.0)
 
     @staticmethod
@@ -726,9 +725,7 @@ class AwsWorkerBootService(ServiceBase):
                             state.observedLimit = maxCount
                             state.desired = min(state.desired, maxCount)
                         else:
-                            self._logger.error(
-                                "Failed to boot a worker:\n%s", traceback.format_exc()
-                            )
+                            self._logger.exception("Failed to boot a worker:")
                             time.sleep(self.SLEEP_INTERVAL)
                             break
 
@@ -768,9 +765,7 @@ class AwsWorkerBootService(ServiceBase):
                             state.observedLimit = maxCount
                             state.desired = min(state.desired, maxCount)
                         else:
-                            self._logger.error(
-                                "Failed to boot a worker:\n%s", traceback.format_exc()
-                            )
+                            self._logger.exception("Failed to boot a worker:")
                             break
 
         time.sleep(self.SLEEP_INTERVAL)

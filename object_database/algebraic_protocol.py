@@ -16,7 +16,6 @@ import asyncio
 import struct
 import threading
 import logging
-import traceback
 
 from typed_python import serialize, deserialize
 
@@ -55,7 +54,7 @@ class AlgebraicProtocol(asyncio.Protocol):
             with self.writelock:
                 self.transport.write(dataToSend)
         except Exception:
-            self._logger.error("Error in AlgebraicProtocol: %s", traceback.format_exc())
+            self._logger.exception("Error in AlgebraicProtocol:")
             self.transport.close()
 
     def messageReceived(self, msg):
@@ -84,9 +83,7 @@ class AlgebraicProtocol(asyncio.Protocol):
                     try:
                         self.messageReceived(deserialize(self.receiveType, bytes(toConsume)))
                     except Exception:
-                        self._logger.error(
-                            "Error in AlgebraicProtocol: %s", traceback.format_exc()
-                        )
+                        self._logger.exception("Error in AlgebraicProtocol:")
                         self.transport.close()
             else:
                 return

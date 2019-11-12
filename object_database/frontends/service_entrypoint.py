@@ -18,7 +18,6 @@ import argparse
 import logging
 import signal
 import sys
-import traceback
 
 from object_database import connect
 from object_database.util import validateLogLevel, configureLogging
@@ -92,9 +91,7 @@ def main(argv):
         return retval
 
     except Exception:
-        logger.error(
-            "service_entrypoint failed with an exception:\n%s", traceback.format_exc()
-        )
+        logger.exception("service_entrypoint failed with an exception:")
         return 1
 
 

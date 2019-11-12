@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import traceback
 import threading
 import queue
 import logging
@@ -216,11 +215,10 @@ class Reactor:
                         and exceptionsInARow % 10 == 0
                         or exceptionsInARow % 100 == 0
                     ):
-                        logging.error(
+                        logging.exception(
                             "Unexpected exception in Reactor user code "
-                            "(%s occurrences in a row):\n%s",
+                            "(%s occurrences in a row):",
                             exceptionsInARow,
-                            traceback.format_exc(),
                         )
                     time.sleep(0.001 * exceptionsInARow)
 
@@ -228,7 +226,7 @@ class Reactor:
                     self._blockUntilRecalculate(readKeys, nextWakeup, self.maxSleepTime)
 
         except Exception:
-            logging.error("Unexpected exception in Reactor loop:\n%s", traceback.format_exc())
+            logging.exception("Unexpected exception in Reactor loop:")
 
     def _blockUntilRecalculate(self, readKeys, nextWakeup, timeout):
         """Wait until we're triggered, or hit a timeout.

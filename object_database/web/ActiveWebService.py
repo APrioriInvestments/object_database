@@ -15,7 +15,6 @@ import logging
 import time
 import argparse
 import functools
-import traceback
 import os
 import sys
 import gevent.socket
@@ -402,7 +401,7 @@ class ActiveWebService(ServiceBase):
                 cells.wait()
 
         except Exception:
-            self._logger.error("Websocket handler error: %s", traceback.format_exc())
+            self._logger.exception("Websocket handler error:")
 
         finally:
             self.sessionStates[sessionId].append(sessionState)

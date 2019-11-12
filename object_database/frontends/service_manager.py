@@ -27,7 +27,6 @@ import sys
 import tempfile
 import threading
 import time
-import traceback
 
 from object_database.util import (
     configureLogging,
@@ -316,9 +315,7 @@ def main(argv=None):
                         serviceManager.stop(gracefully=False)
                         serviceManager = None
                     except Exception:
-                        logger.error(
-                            "Service manager cleanup failed:\n%s", traceback.format_exc()
-                        )
+                        logger.exception("Service manager cleanup failed:")
         except KeyboardInterrupt:
             logger.warning("Exiting due to KeyboardInterrupt")
             return 0
@@ -329,13 +326,13 @@ def main(argv=None):
             try:
                 serviceManager.stop(gracefully=True)
             except Exception:
-                logger.error("Failed to stop the service manager:\n%s", traceback.format_exc())
+                logger.exception("Failed to stop the service manager:")
 
         if databaseServer is not None:
             try:
                 databaseServer.stop()
             except Exception:
-                logger.error("Failed to stop the database server:\n%s", traceback.format_exc())
+                logger.exception("Failed to stop the database server:")
 
 
 if __name__ == "__main__":

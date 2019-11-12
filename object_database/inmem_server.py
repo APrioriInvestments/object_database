@@ -7,7 +7,6 @@ import time
 import queue
 import logging
 import threading
-import traceback
 
 
 class InMemoryChannel:
@@ -47,9 +46,7 @@ class InMemoryChannel:
                 try:
                     self._clientCallback(e)
                 except Exception:
-                    self._logger.error(
-                        "Pump thread failed for %s: %s", self, traceback.format_exc()
-                    )
+                    self._logger.exception("Pump thread failed for %s:", self)
                     return
 
     def pumpMessagesFromClient(self):
@@ -71,8 +68,7 @@ class InMemoryChannel:
                 try:
                     self._serverCallback(e)
                 except Exception:
-                    traceback.print_exc()
-                    self._logger.error("Pump thread failed: %s", traceback.format_exc())
+                    self._logger.exception("Pump thread failed:")
                     return
 
         self._server.dropConnection(self)

@@ -37,9 +37,9 @@ import object_database.messages as messages
 import queue
 import unittest
 import tempfile
+import logging
 import numpy
 import os
-import traceback
 import threading
 import random
 import time
@@ -2041,7 +2041,7 @@ class ObjectDatabaseTests:
 
                 isOK[0] = True
             except BaseException:
-                print("READ THREAD FAILED: ", traceback.format_exc())
+                logging.exception("READ THREAD FAILED:")
 
         r = threading.Thread(target=readerthread)
         r.daemon = True

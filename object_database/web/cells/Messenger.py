@@ -189,7 +189,7 @@ def _resolveExpandedChild(parent_id, cell_or_list, name_in_parent):
     return _getExpandedStructure(parent_id, cell_or_list, name_in_parent)
 
 
-"""New shit down here"""
+"""New Update Structure Helpers"""
 
 
 def getUpdateStructure(cell):

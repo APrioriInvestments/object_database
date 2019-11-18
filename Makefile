@@ -62,7 +62,7 @@ install-dependencies: $(VIRTUAL_ENV)
 		pip install black==19.3b0; \
 		pipenv install --dev --deploy; \
 		pip install -e .; \
-		nodeenv --python-virtualenv --prebuilt --node=10.15.3 $(NODE_ENV); \
+		nodeenv --python-virtualenv --prebuilt --node=12.13.0 $(NODE_ENV); \
 		npm install --global webpack webpack-cli; \
 		cd object_database/web/content; \
 		npm install; \

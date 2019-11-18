@@ -547,6 +547,8 @@ class Cells:
                 node.children["content"] = tracebackCell
 
         self.markToBroadcast(node.rootMergeNode())
+        nodeToBroadCast = node.rootMergeNode()
+        nodeToBroadCast.wasUpdated = True
 
         newChildren = set(node.children.allChildren)
 

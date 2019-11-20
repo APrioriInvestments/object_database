@@ -604,9 +604,10 @@ class Sheet extends Component {
             let td = body.querySelector(`#${this._coordToId("td", [x, y])}`);
             let d = this.data_frame.get(p);
             // TODO: this should be more robust
-            td.children[0].textContent = d;
+            // td.children[0].textContent = d;
+            td.textContent = d;
             // the tooltip
-            td.children[1].textContent = d;
+            // td.children[1].textContent = d;
         })
     }
 
@@ -725,7 +726,8 @@ class SheetCell extends Component {
                     class: this.class,
                     style: this.style,
                 },
-                child
+                // child
+                [this.value]
             )
         );
     }

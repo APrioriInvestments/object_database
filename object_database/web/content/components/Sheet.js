@@ -118,6 +118,9 @@ class Sheet extends Component {
         // window.addEventListener('resize', this.componentDidLoad);
     }
 
+    /* I resize the sheet by recalculating the number of columns and rows using the
+     * current container size.
+     */
     resize(){
         // TODO eventually pass this as an argument or set as an attrubute on the class
         let body = document.getElementById(`sheet-${this.props.id}-body`);
@@ -130,6 +133,9 @@ class Sheet extends Component {
         // we'll use this to shift the appropriate frame corners
         let max_columns_diff = max_num_columns - this.max_num_columns;
         let max_rows_diff = max_num_rows - this.max_num_rows;
+        if (!max_columns_diff && !max_rows_diff){
+            return;
+        }
         // now set the max column/row attributes
         this.max_num_columns = max_num_columns;
         this.max_num_rows = max_num_rows;

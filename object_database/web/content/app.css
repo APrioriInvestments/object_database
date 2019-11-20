@@ -140,10 +140,12 @@
     padding-left: 2px;
     padding-top: 1px;
     padding-bottom: 1px;
+    font-size: .8rem;
 }
 
 td.active {
-    border: solid 2px red;
+    border: solid 2px #568eca;
+    background-color: #c1daf5;
 }
 
 td.locked {
@@ -158,13 +160,13 @@ td.locked {
 }
 
 .sheet-wrapper > table {
-    opacity: 0.5;
-    border: 2px solid rgba(0, 0, 0, 0.3);
+    opacity: 0.9;
+    border: 2px solid #568eca;
 }
 
 .sheet-wrapper > table:focus {
     opacity: 1.0;
-    border: 2px solid rgba(50, 50, 255, 0.8);
+    border: 2px solid #2869D9;
 }
 
 th.header-item {

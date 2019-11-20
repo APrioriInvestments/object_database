@@ -58,6 +58,7 @@ class Sheet extends Component {
 
         // Bind context to methods
         this.initializeSheet  = this.initializeSheet.bind(this);
+        this.resize = this.resize.bind(this);
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -103,6 +104,60 @@ class Sheet extends Component {
             this.fetchData(
                 this.fixed_view_frame, // we get all the data we need for now
                 "replace",
+            );
+        }
+        const ro = new ResizeObserver(entries => {
+            console.log("new resize");
+            this.resize();
+            for (let entry of entries) {
+                //entry.target.style.borderRadius = Math.max(0, 250 - entry.contentRect.width) + 'px';
+                // console.log(entry);
+            }
+        });
+        ro.observe(this.container);
+        // window.addEventListener('resize', this.componentDidLoad);
+    }
+
+    resize(){
+        // TODO eventually pass this as an argument or set as an attrubute on the class
+        let body = document.getElementById(`sheet-${this.props.id}-body`);
+        if (!body.childElementCount){
+            return;
+        }
+        let max_num_columns = this._calc_max_num_columns(this.container.offsetWidth);
+        let max_num_rows = this._calc_max_num_rows(this.container.offsetHeight);
+        // first figure out how much we changed in size (wrt to rows/columns)
+        // we'll use this to shift the appropriate frame corners
+        let max_columns_diff = max_num_columns - this.max_num_columns;
+        let max_rows_diff = max_num_rows - this.max_num_rows;
+        // now set the max column/row attributes
+        this.max_num_columns = max_num_columns;
+        this.max_num_rows = max_num_rows;
+        this.fixed_view_frame.setCorner = [this.max_num_columns - 1, this.max_num_rows - 1];
+        this.view_frame.corner.x += max_columns_diff;
+        this.view_frame.corner.y += max_rows_diff;
+        this.fetchData(
+            this.view_frame,
+            "replace",
+        );
+        // now for the locked row frame
+        if (this.locked_row_frame.dim){
+            this.locked_row_frame.corner.x += max_columns_diff;
+            // this.locked_row_frame.corner.y += max_rows_diff;
+            this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
+            this.fetchData(
+                this.locked_row_frame,
+                "update",
+            );
+        }
+        // now for the locked column frame
+        if (this.locked_column_frame.dim){
+            // this.locked_column_frame.corner.x += max_columns_diff;
+            this.locked_column_frame.corner.y += max_columns_diff;
+            this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
+            this.fetchData(
+                this.locked_column_frame,
+                "update",
             );
         }
     }

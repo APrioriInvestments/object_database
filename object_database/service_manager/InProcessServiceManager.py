@@ -29,7 +29,7 @@ class InProcessServiceManager(ServiceManager):
             self,
             dbConnectionFactory,
             self.sourceRoot.name,
-            isMaster=True,
+            placementGroup="Master",
             ownHostname="localhost",
         )
 

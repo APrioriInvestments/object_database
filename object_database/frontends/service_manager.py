@@ -71,6 +71,7 @@ def startServiceManagerProcess(
         ownHostname,
         dbHostname,
         str(port),
+        "Master" if runDb else "Worker",
         "--service-token",
         authToken,
         "--shutdownTimeout",
@@ -166,6 +167,7 @@ def main(argv=None):
     parser.add_argument("own_hostname")
     parser.add_argument("db_hostname")
     parser.add_argument("port", type=int)
+    parser.add_argument("placement_group", type=str)
     parser.add_argument(
         "--source", help="path for the source trees used by services", required=True
     )
@@ -270,7 +272,7 @@ def main(argv=None):
                             parsedArgs.source,
                             parsedArgs.storage,
                             parsedArgs.service_token,
-                            isMaster=parsedArgs.run_db,
+                            placementGroup=parsedArgs.placement_group,
                             maxGbRam=parsedArgs.max_gb_ram
                             or int(
                                 psutil.virtual_memory().total / 1024.0 / 1024.0 / 1024.0 + 0.1

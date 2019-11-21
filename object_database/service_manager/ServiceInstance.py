@@ -22,7 +22,7 @@ import object_database
 from object_database.service_manager.ServiceSchema import service_schema
 from object_database import Schema, Indexed, core_schema
 from typed_python.Codebase import Codebase as TypedPythonCodebase
-from typed_python import OneOf
+from typed_python import OneOf, TupleOf
 
 MAX_BAD_BOOTS = 5
 
@@ -30,7 +30,7 @@ MAX_BAD_BOOTS = 5
 @service_schema.define
 class ServiceHost:
     connection = Indexed(core_schema.Connection)
-    isMaster = bool
+    placementGroup = str
     hostname = str
     maxGbRam = float
     maxCores = int
@@ -61,7 +61,7 @@ class Service:
     # per service, how many do we use?
     gbRamUsed = int
     coresUsed = int
-    placement = OneOf("Master", "Worker", "Any")
+    validPlacementGroups = TupleOf(str)
     isSingleton = bool
 
     # how many do we want?

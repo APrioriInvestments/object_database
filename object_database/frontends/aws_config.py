@@ -74,6 +74,7 @@ def main(argv):
     boot_parser = subparsers.add_parser("boot", help="set the number of desired boxes")
     boot_parser.set_defaults(command="boot")
     boot_parser.add_argument("instance_type")
+    boot_parser.add_argument("placementGroup")
     boot_parser.add_argument("count", type=int)
 
     killall_parser = subparsers.add_parser("killall", help="kill everything")
@@ -122,49 +123,55 @@ def main(argv):
         print()
         print()
 
-        with db.view():
-            api = AwsApi()
-            booted = AwsWorkerBootService.currentBooted()
-            targets = AwsWorkerBootService.currentTargets()
+        if False:
+            with db.view():
+                api = AwsApi()
+                booted = AwsWorkerBootService.currentBooted()
+                targets = AwsWorkerBootService.currentTargets()
 
-            table = [["Instance Type", "Booted", "Desired"]]
+                table = [["Instance Type", "Booted", "Desired"]]
 
-            for instance_type in sorted(set(list(booted) + list(targets))):
-                table.append(
-                    [
-                        instance_type,
-                        booted.get(instance_type, 0),
-                        targets.get(instance_type, 0),
-                    ]
-                )
+                for instance_type in sorted(set(list(booted) + list(targets))):
+                    table.append(
+                        [
+                            instance_type,
+                            booted.get(instance_type, 0),
+                            targets.get(instance_type, 0),
+                        ]
+                    )
 
-            print(formatTable(table))
+                print(formatTable(table))
 
         print()
         print()
 
         with db.view():
             api = AwsApi()
-            table = [["InstanceID", "InstanceType", "IP", "Uptime"]]
-            for instanceId, instance in api.allRunningInstances(spot=None).items():
-                table.append(
-                    [
-                        instance["InstanceId"],
-                        instance["InstanceType"],
-                        instance["PrivateIpAddress"],
-                        secondsToHumanReadable(
-                            time.time() - instance["LaunchTime"].timestamp()
-                        ),
-                    ]
-                )
-            print(formatTable(table))
+            print(api.allSpotRequests())
+            for spot in [False, True]:
+                table = [["InstanceID", "InstanceType", "IP", "Uptime", "SPOT"]]
+                for instanceId, instance in api.allRunningInstances(spot=spot).items():
+                    table.append(
+                        [
+                            instance["InstanceId"],
+                            instance["InstanceType"],
+                            instance["PrivateIpAddress"],
+                            secondsToHumanReadable(
+                                time.time() - instance["LaunchTime"].timestamp()
+                            ),
+                            spot,
+                        ]
+                    )
+                print(formatTable(table))
 
         print()
         print()
 
     if parsedArgs.command == "boot":
         with db.transaction():
-            AwsWorkerBootService.setBootState(parsedArgs.instance_type, parsedArgs.count)
+            AwsWorkerBootService.setBootState(
+                parsedArgs.instance_type, parsedArgs.count, parsedArgs.placementGroup
+            )
 
     if parsedArgs.command == "killall":
         with db.transaction():

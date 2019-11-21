@@ -33,7 +33,7 @@ class ServiceManager(object):
         self,
         dbConnectionFactory,
         sourceDir,
-        isMaster,
+        placementGroup,
         ownHostname,
         maxGbRam=4,
         maxCores=4,
@@ -44,7 +44,8 @@ class ServiceManager(object):
         self.shutdownTimeout = shutdownTimeout or ServiceManager.DEFAULT_SHUTDOWN_TIMEOUT
         self.ownHostname = ownHostname
         self.sourceDir = sourceDir
-        self.isMaster = isMaster
+        self.isMaster = placementGroup == "Master"
+        self.placementGroup = placementGroup
         self.maxGbRam = maxGbRam
         self.maxCores = maxCores
         self.serviceHostObject = None
@@ -61,7 +62,7 @@ class ServiceManager(object):
         with self.db.transaction():
             self.serviceHostObject = service_schema.ServiceHost(
                 connection=self.db.connectionObject,
-                isMaster=self.isMaster,
+                placementGroup=self.placementGroup,
                 maxGbRam=self.maxGbRam,
                 maxCores=self.maxCores,
             )
@@ -86,7 +87,10 @@ class ServiceManager(object):
         service = service_schema.Service.lookupAny(name=serviceName)
 
         if not service:
-            service = service_schema.Service(name=serviceName, placement=placement or "Any")
+            service = service_schema.Service(
+                name=serviceName,
+                validPlacementGroups=(placement,) if placement else ("Master",),
+            )
 
         service.service_module_name = serviceClass.__module__
         service.service_class_name = serviceClass.__qualname__
@@ -108,7 +112,7 @@ class ServiceManager(object):
             service.target_count = target_count
 
         if placement is not None:
-            service.placement = placement
+            service.validPlacementGroups = (placement,)
 
         if coresUsed is not None:
             service.coresUsed = coresUsed
@@ -141,7 +145,10 @@ class ServiceManager(object):
         service = service_schema.Service.lookupAny(name=serviceName)
 
         if not service:
-            service = service_schema.Service(name=serviceName, placement="Any")
+            service = service_schema.Service(
+                name=serviceName,
+                validPlacementGroups=(placement,) if placement is not None else ("Master",),
+            )
 
         service.setCodebase(
             codebase, ".".join(className.split(".")[:-1]), className.split(".")[-1]
@@ -160,7 +167,7 @@ class ServiceManager(object):
             service.target_count = targetCount
 
         if placement is not None:
-            service.placement = placement
+            service.validPlacementGroups = (placement,)
 
         return service
 
@@ -362,10 +369,7 @@ class ServiceManager(object):
     def _pickHost(self, service):
         for h in service_schema.ServiceHost.lookupAll():
             if h.connection.exists():
-                if h.isMaster:
-                    canPlace = service.placement in ("Master", "Any")
-                else:
-                    canPlace = service.placement in ("Worker", "Any")
+                canPlace = h.placementGroup in service.validPlacementGroups
 
                 if (
                     canPlace

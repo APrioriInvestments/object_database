@@ -18,14 +18,14 @@ import logging
 import os
 import time
 import uuid
-
 from typed_python import OneOf, ConstDict
-from object_database import ServiceBase, Schema, Indexed
+from object_database import ServiceBase, Schema, Indexed, Index
 from object_database.web import cells
 from object_database.util import closest_N_in
-
+from object_database.service_manager.ServiceSchema import service_schema
 
 schema = Schema("core.AwsWorkerBootService")
+
 
 valid_instance_types = {
     "m1.small": {"RAM": 1.7, "CPU": 1, "COST": 0.044},
@@ -165,6 +165,15 @@ instance_types_to_show = set(
 )
 
 
+def instanceTagValue(instance, tag):
+    """Given an instance dict (from boto, see comment on 'allRunningInstances'), what's the
+    value of tag 'tag', or None if not provided."""
+    for tagDict in instance["Tags"]:
+        if tagDict["Key"] == tag:
+            return tagDict["Value"]
+    return None
+
+
 @schema.define
 class Configuration:
     db_hostname = str  # hostname to connect back to
@@ -184,6 +193,9 @@ class Configuration:
 @schema.define
 class State:
     instance_type = Indexed(str)
+    placementGroup = str
+
+    instance_type_and_pg = Index("instance_type", "placementGroup")
 
     booted = int
     desired = int
@@ -192,6 +204,8 @@ class State:
     observedLimit = OneOf(None, int)  # maximum observed limit count
     capacityConstrained = bool
     spotPrices = ConstDict(str, float)
+
+    storageSizeOverride = OneOf(None, int)
 
 
 ownDir = os.path.dirname(os.path.abspath(__file__))
@@ -214,6 +228,83 @@ class AwsApi:
         self.s3_client = boto3.client("s3", region_name=self.config.region)
 
     def allRunningInstances(self, includePending=True, spot=False):
+        """Get a list of all running instances.
+
+        Returns:
+            a dict from instanceId -> instance, where an 'instance' looks something like
+
+
+
+            { 'AmiLaunchIndex': 0,
+              'Architecture': 'x86_64',
+              'BlockDeviceMappings': [ { 'DeviceName': '/dev/sda1',
+                                         'Ebs': { 'AttachTime': datetime.datetime(...),
+                                                  'DeleteOnTermination': True,
+                                                  'Status': 'attached',
+                                                  'VolumeId': 'vol-XXX'}},
+                                       { 'DeviceName': '/dev/xvdb',
+                                         'Ebs': { 'AttachTime': datetime.datetime(...),
+                                                  'DeleteOnTermination': True,
+                                                  'Status': 'attached',
+                                                  'VolumeId': 'vol-XXX'}}],
+              'CapacityReservationSpecification': {'CapacityReservationPreference': 'open'},
+              'ClientToken': '...',
+              'CpuOptions': {'CoreCount': 32, 'ThreadsPerCore': 2},
+              'EbsOptimized': False,
+              'EnaSupport': True,
+              'HibernationOptions': {'Configured': False},
+              'Hypervisor': 'xen',
+              'IamInstanceProfile': { 'Arn': 'arn:aws:iam::...:instance-profile/...,
+                                      'Id': '...'},
+              'ImageId': 'ami-XXX',
+              'InstanceId': 'i-XXX',
+              'InstanceLifecycle': 'spot',
+              'InstanceType': 'r4.16xlarge',
+              'KeyName': 'XXX',
+              'LaunchTime': datetime.datetime(...),
+              'Monitoring': {'State': 'disabled'},
+              'NetworkInterfaces': [ { 'Attachment': { 'AttachTime': datetime.datetime(...),
+                                                       'AttachmentId': 'eni-attach-XXX',
+                                                       'DeleteOnTermination': True,
+                                                       'DeviceIndex': 0,
+                                                       'Status': 'attached'},
+                                       'Description': '',
+                                       'Groups': [ { 'GroupId': 'sg-CCC',
+                                                     'GroupName': '...'}],
+                                       'InterfaceType': 'interface',
+                                       'Ipv6Addresses': [],
+                                       'MacAddress': '...',
+                                       'NetworkInterfaceId': 'eni-XXX',
+                                       'OwnerId': '...',
+                                       'PrivateIpAddress': '...',
+                                       'PrivateIpAddresses': [ { 'Primary': True,
+                                                                 'PrivateIpAddress': '...'}],
+                                       'SourceDestCheck': True,
+                                       'Status': 'in-use',
+                                       'SubnetId': 'subnet-XXX',
+                                       'VpcId': 'vpc-XXX'}],
+              'Placement': { 'AvailabilityZone': 'us-east-1a',
+                             'GroupName': '',
+                             'Tenancy': 'default'},
+              'PrivateDnsName': 'ip-XXX.ec2.internal',
+              'PrivateIpAddress': '...',
+              'ProductCodes': [],
+              'PublicDnsName': '',
+              'RootDeviceName': '/dev/sda1',
+              'RootDeviceType': 'ebs',
+              'SecurityGroups': [ { 'GroupId': 'sg-XXX',
+                                    'GroupName': '...'}],
+              'SourceDestCheck': True,
+              'SpotInstanceRequestId': 'sir-XXX',
+              'State': {'Code': 16, 'Name': 'running'},
+              'StateTransitionReason': '',
+              'SubnetId': 'subnet-XXX',
+              'Tags': [{'Key': 'Name', 'Value': '...'},
+                       {'Key': 'PlacementGroup', 'Value': '...'}],
+              'VirtualizationType': 'hvm',
+              'VpcId': 'vpc-XXX'}
+
+        """
         filters = [{"Name": "tag:Name", "Values": [self.config.worker_name]}]
 
         res = {}
@@ -236,32 +327,6 @@ class AwsApi:
                         res[str(instance["InstanceId"])] = instance
 
         return res
-
-    def allSpotRequests(self, allRequests=False):
-        filters = [{"Name": "tag:Name", "Values": [self.config.worker_name]}]
-
-        res = {}
-
-        for spot_request in self.ec2_client.describe_spot_instance_requests(Filters=filters)[
-            "SpotInstanceRequests"
-        ]:
-            if spot_request["State"] in ("open", "active") or allRequests:
-                res[str(spot_request["SpotInstanceRequestId"])] = spot_request
-
-        return res
-
-    def tagSpotRequest(self, instanceId):
-        srs = self.allSpotRequests(allRequests=True)
-        for srId, srVal in srs.items():
-            if srVal["InstanceId"] == instanceId:
-                self.ec2_client.create_tags(
-                    Resources=[srId], Tags=[{"Key": "Name", "Value": self.config.worker_name}]
-                )
-                return True
-            else:
-                self._logger.info("srVal %s doesn't match %s", srVal, instanceId)
-
-        return False
 
     def isInstanceWeOwn(self, instance):
         # make sure this instance is definitely one we booted.
@@ -333,12 +398,14 @@ class AwsApi:
         extraTags=None,
         wantsTerminateOnShutdown=True,
         spotPrice=None,
+        placementGroup="Worker",
     ):
         boot_script = linux_bootstrap_script.format(
             db_hostname=self.config.db_hostname,
             db_port=self.config.db_port,
-            image=self.config.docker_image or "nativepython/cloud:latest",
+            image=self.config.docker_image,
             worker_token=authToken,
+            placement_group=placementGroup,
         )
 
         if clientToken is None:
@@ -389,7 +456,10 @@ class AwsApi:
             TagSpecifications=[
                 {
                     "ResourceType": "instance",
-                    "Tags": [{"Key": "Name", "Value": nameValue}]
+                    "Tags": [
+                        {"Key": "Name", "Value": nameValue},
+                        {"Key": "PlacementGroup", "Value": placementGroup},
+                    ]
                     + [{"Key": k, "Value": v} for (k, v) in (extraTags or {}).items()],
                 }
             ],
@@ -421,16 +491,16 @@ class AwsWorkerBootService(ServiceBase):
         return {s.instance_type: s.booted for s in State.lookupAll()}
 
     @staticmethod
-    def setBootState(instance_type, target):
+    def setBootState(instance_type, target, placementGroup):
         if instance_type not in valid_instance_types:
             raise Exception(
                 "Instance type %s is not a valid instance type. Did you mean one of %s?"
                 % (instance_type, closest_N_in(instance_type, valid_instance_types, 3))
             )
 
-        s = State.lookupAny(instance_type=instance_type)
+        s = State.lookupAny(instance_type_and_pg=(instance_type, placementGroup))
         if not s:
-            s = State(instance_type=instance_type)
+            s = State(instance_type=instance_type, placementGroup=placementGroup)
         s.desired = target
 
     @staticmethod
@@ -439,11 +509,12 @@ class AwsWorkerBootService(ServiceBase):
             s.desired = 0
 
     @staticmethod
-    def shutOneDown(instance_type):
+    def shutOneDown(instance_type, placementGroup):
         i = [
             x
             for x in AwsApi.allRunningInstances().values()
             if x["InstanceType"] == instance_type
+            and instanceTagValue(x, "PlacementGroup") == placementGroup
         ]
         if not i:
             raise Exception("No instances of type %s are booted." % instance_type)
@@ -496,16 +567,17 @@ class AwsWorkerBootService(ServiceBase):
         if max_to_boot is not None:
             c.max_to_boot = max_to_boot
 
-    def setBootCount(self, instance_type, count):
-        state = State.lookupAny(instance_type=instance_type)
+    def setBootCount(self, instance_type, count, placementGroup):
+        state = State.lookupAny(instance_type_and_pg=(instance_type, placementGroup))
 
         if not state:
-            state = State(instance_type=instance_type)
+            state = State(instance_type=instance_type, placementGroup=placementGroup)
 
         state.desired = count
 
     def initialize(self):
         self.db.subscribeToSchema(schema)
+        self.db.subscribeToType(service_schema.Service)
 
         with self.db.transaction():
             self.api = AwsApi()
@@ -544,6 +616,7 @@ class AwsWorkerBootService(ServiceBase):
         return cells.Grid(
             colFun=lambda: [
                 "Instance Type",
+                "PlacementGroup",
                 "COST",
                 "RAM",
                 "CPU",
@@ -570,6 +643,8 @@ class AwsWorkerBootService(ServiceBase):
             rendererFun=lambda s, field: cells.Subscribed(
                 lambda: s.instance_type
                 if field == "Instance Type"
+                else s.placementGroup
+                if field == "PlacementGroup"
                 else s.booted
                 if field == "Booted"
                 else cells.Dropdown(
@@ -620,54 +695,103 @@ class AwsWorkerBootService(ServiceBase):
         )
 
     def pushTaskLoopForward(self):
+        placementGroups = set()
+
+        with self.db.transaction():
+            for service in service_schema.Service.lookupAll():
+                placementGroups.update(service.validPlacementGroups)
+
         if time.time() - self.lastSpotPriceRequest > 60.0:
             with self.db.transaction():
+                placementGroups = set()
+                for service in service_schema.Service.lookupAll():
+                    placementGroups.update(service.validPlacementGroups)
+
                 for instance_type, availability_zone, price in self.api.getSpotPrices():
-                    state = State.lookupAny(instance_type=instance_type)
-                    if not state:
-                        state = State(instance_type=instance_type)
-                    if state:
-                        state.spotPrices = state.spotPrices + {availability_zone: price}
+                    for placementGroup in sorted(placementGroups):
+                        if placementGroup != "Master":
+                            state = State.lookupAny(
+                                instance_type_and_pg=(instance_type, placementGroup)
+                            )
+                            if not state:
+                                state = State(
+                                    instance_type=instance_type, placementGroup=placementGroup
+                                )
+
+                            if state:
+                                state.spotPrices = state.spotPrices + {
+                                    availability_zone: price
+                                }
+
             self.lastSpotPriceRequest = time.time()
 
         with self.db.view():
             onDemandInstances = self.api.allRunningInstances(spot=False)
             spotInstances = self.api.allRunningInstances(spot=True)
 
+        def instanceKey(instance):
+            return (instance["InstanceType"], instanceTagValue(instance, "PlacementGroup"))
+
+        def stateKey(state):
+            return (state.instance_type, state.placementGroup)
+
         instancesByType = {}
         spotInstancesByType = {}
 
         for machineId, instance in onDemandInstances.items():
-            instancesByType.setdefault(instance["InstanceType"], []).append(instance)
+            instancesByType.setdefault(instanceKey(instance), []).append(instance)
 
         for machineId, instance in spotInstances.items():
-            spotInstancesByType.setdefault(instance["InstanceType"], []).append(instance)
+            spotInstancesByType.setdefault(instanceKey(instance), []).append(instance)
 
         with self.db.transaction():
             for state in State.lookupAll():
-                if state.instance_type not in instancesByType:
+                if stateKey(state) not in instancesByType:
                     state.booted = 0
 
-                if state.instance_type not in spotInstancesByType:
+                if stateKey(state) not in spotInstancesByType:
                     state.spot_booted = 0
 
-            for type in valid_instance_types:
-                if not State.lookupAny(instance_type=type):
-                    State(instance_type=type)
+            for instance_type in valid_instance_types:
+                for placementGroup in placementGroups:
+                    if placementGroup != "Master":
+                        if not State.lookupAny(
+                            instance_type_and_pg=(instance_type, placementGroup)
+                        ):
+                            State(instance_type=instance_type, placementGroup=placementGroup)
 
-            for instType, instances in instancesByType.items():
-                state = State.lookupAny(instance_type=instType)
-                if not state:
-                    state = State(instance_type=instType)
-                state.booted = len(instances)
+            for (instance_type, placementGroup), instances in instancesByType.items():
+                if placementGroup is not None:
+                    state = State.lookupAny(
+                        instance_type_and_pg=(instance_type, placementGroup)
+                    )
+                    if not state:
+                        state = State(
+                            instance_type=instance_type, placementGroup=placementGroup
+                        )
+                    state.booted = len(instances)
+                else:
+                    for instance in instances:
+                        self.api.terminateInstanceById(instance["InstanceId"])
 
-            for instType, instances in spotInstancesByType.items():
-                state = State.lookupAny(instance_type=instType)
-                if not state:
-                    state = State(instance_type=instType)
-                state.spot_booted = len(instances)
+            for (instance_type, placementGroup), instances in spotInstancesByType.items():
+                if placementGroup is not None:
+                    state = State.lookupAny(
+                        instance_type_and_pg=(instance_type, placementGroup)
+                    )
+                    if not state:
+                        state = State(
+                            instance_type=instance_type, placementGroup=placementGroup
+                        )
+                    state.spot_booted = len(instances)
+                else:
+                    for instance in instances:
+                        self.api.terminateInstanceById(instance["InstanceId"])
 
             for state in State.lookupAll():
+                if state.placementGroup == "Master":
+                    continue
+
                 while state.booted > state.desired:
                     self._logger.info(
                         "We have %s instances of type %s booted "
@@ -677,7 +801,7 @@ class AwsWorkerBootService(ServiceBase):
                         state.desired,
                     )
 
-                    instance = instancesByType[state.instance_type].pop()
+                    instance = instancesByType[stateKey(state)].pop()
                     self.api.terminateInstanceById(instance["InstanceId"])
                     state.booted -= 1
 
@@ -690,7 +814,7 @@ class AwsWorkerBootService(ServiceBase):
                         state.spot_desired,
                     )
 
-                    instance = spotInstancesByType[state.instance_type].pop()
+                    instance = spotInstancesByType[stateKey(state)].pop()
                     self.api.terminateInstanceById(instance["InstanceId"])
                     state.spot_booted -= 1
 
@@ -703,7 +827,11 @@ class AwsWorkerBootService(ServiceBase):
                     )
 
                     try:
-                        self.api.bootWorker(state.instance_type, self.runtimeConfig.authToken)
+                        self.api.bootWorker(
+                            state.instance_type,
+                            self.runtimeConfig.authToken,
+                            placementGroup=state.placementGroup,
+                        )
 
                         state.booted += 1
                         state.capacityConstrained = False
@@ -732,23 +860,20 @@ class AwsWorkerBootService(ServiceBase):
                 while state.spot_booted < state.spot_desired:
                     self._logger.info(
                         "We have %s spot instances of type %s booted "
-                        "vs %s desired. Booting one.",
+                        "for group %s, vs %s desired. Booting one.",
                         state.spot_booted,
                         state.instance_type,
+                        state.placementGroup,
                         state.spot_desired,
                     )
 
                     try:
-                        instanceId = self.api.bootWorker(
+                        self.api.bootWorker(
                             state.instance_type,
                             self.runtimeConfig.authToken,
                             spotPrice=valid_instance_types[state.instance_type]["COST"],
+                            placementGroup=state.placementGroup,
                         )
-                        if not self.api.tagSpotRequest(instanceId):
-                            self._logger.error(
-                                "Failed to tag spot-request associated with instance %s",
-                                instanceId,
-                            )
                         state.spot_booted += 1
                     except Exception as e:
                         if "You have requested more instances " in str(e):

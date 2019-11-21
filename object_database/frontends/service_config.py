@@ -235,7 +235,7 @@ def _main(argv):
                 table.append(
                     [
                         s.connection._identity,
-                        str(s.isMaster),
+                        str(s.placementGroup),
                         s.hostname,
                         "%.1f / %.1f" % (s.gbRamUsed, s.maxGbRam),
                         "%s / %s" % (s.coresUsed, s.maxCores),

@@ -90,7 +90,7 @@ def hostsTable():
     hosts = Table(
         colFun=lambda: [
             "Connection",
-            "IsMaster",
+            "PlacementGroup",
             "Hostname",
             "RAM ALLOCATION",
             "CORE ALLOCATION",
@@ -117,8 +117,8 @@ def hostsTableDataPrep(s, field):
     """
     if field == "Connection":
         data = s.connection._identity
-    elif field == "IsMaster":
-        data = str(s.isMaster)
+    elif field == "PlacementGroup":
+        data = str(s.placementGroup)
     elif field == "Hostname":
         data = s.hostname
     elif field == "RAM ALLOCATION":
@@ -211,7 +211,7 @@ def servicesTableDataPrep(s, field, serviceCounts):
     elif field == "Class":
         data = s.service_class_name
     elif field == "Placement":
-        data = s.placement
+        data = ",".join(s.validPlacementGroups)
     elif field == "Active":
         data = Subscribed(lambda: len(service_schema.ServiceInstance.lookupAll(service=s)))
     elif field == "TargetCount":

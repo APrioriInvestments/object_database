@@ -108,10 +108,12 @@ class Sheet extends Component {
         }
         const ro = new ResizeObserver(entries => {
             console.log("new resize");
-            this.resize();
             for (let entry of entries) {
+                if (entry.target.firstElementChild && entry.target.firstElementChild.id  === this.props.id){
+                    this.resize();
+                }
                 //entry.target.style.borderRadius = Math.max(0, 250 - entry.contentRect.width) + 'px';
-                // console.log(entry);
+                console.log(entry);
             }
         });
         ro.observe(this.container);
@@ -124,9 +126,6 @@ class Sheet extends Component {
     resize(){
         // TODO eventually pass this as an argument or set as an attrubute on the class
         let body = document.getElementById(`sheet-${this.props.id}-body`);
-        if (!body.childElementCount){
-            return;
-        }
         let max_num_columns = this._calc_max_num_columns(this.container.offsetWidth);
         let max_num_rows = this._calc_max_num_rows(this.container.offsetHeight);
         // first figure out how much we changed in size (wrt to rows/columns)

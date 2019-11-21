@@ -108,15 +108,15 @@ class Sheet extends Component {
         }
         const ro = new ResizeObserver(entries => {
             console.log("new resize");
+            this.resize();
             for (let entry of entries) {
                 if (entry.target.firstElementChild && entry.target.firstElementChild.id  === this.props.id){
-                    this.resize();
                 }
                 //entry.target.style.borderRadius = Math.max(0, 250 - entry.contentRect.width) + 'px';
                 console.log(entry);
             }
         });
-        ro.observe(this.container);
+        ro.observe(this.container.parentNode);
         // window.addEventListener('resize', this.componentDidLoad);
     }
 
@@ -236,7 +236,7 @@ class Sheet extends Component {
         let body = document.getElementById(`sheet-${this.props.id}-body`);
         // make sure that we have an active target
         // otherwise there is no root for navigation
-        // console.log(event.key + event.altKey);
+        console.log(event.key + event.altKey);
         if (["PageUp", "PageDown"].indexOf(event.key) > -1){
             this.pageUpDown(body, event);
         } else if(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(event.key) > -1) {

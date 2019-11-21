@@ -25,7 +25,9 @@ class BasicDisplayTextBox(CellsTestPage):
         return textinput + result
 
     def text(self):
-        return ("You should see an input that displays ",
-                "'HELLO!' until clicked on, and typing and ",
-                "then hitting Enter should update slot. Input ",
-                "should return to saying 'HELLO!' when blurred")
+        return (
+            "You should see an input that displays ",
+            "'HELLO!' until clicked on, and typing and ",
+            "then hitting Enter should update slot. Input ",
+            "should return to saying 'HELLO!' when blurred",
+        )

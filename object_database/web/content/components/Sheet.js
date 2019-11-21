@@ -258,12 +258,22 @@ class Sheet extends Component {
                     page.x = this.totalColumns - this.view_frame.corner.x - 1;
                 }
                 shift = [page.x, 0];
+                // if there is a selected element move it to the rightmost column
+                if (this.active_frame){
+                    let shift_x = this.fixed_view_frame.corner.x - this.active_frame.corner.x;
+                    this._updateActiveElement(body, [shift_x, 0]);
+                }
             } else {
                 // make sure we don't run out of data at the left
                 if (this.view_frame.origin.x - page.x < this.view_frame_offset.x){
                     page.x = this.view_frame.origin.x - this.view_frame_offset.x;
                 }
                 shift = [-1 * page.x, 0];
+                // if there is a selected element move it to the leftmost column
+                if (this.active_frame){
+                    let shift_x = this.fixed_view_frame.origin.x - this.active_frame.origin.x;
+                    this._updateActiveElement(body, [shift_x, 0]);
+                }
             }
             // now for the locked row frame
             if (this.locked_row_frame.dim){

@@ -63,6 +63,7 @@ class Sheet extends Component {
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleClick = this.handleClick.bind(this);
+        this.handleMouseover = this.handleMouseover.bind(this);
         this.arrowUpDownLeftRight = this.arrowUpDownLeftRight.bind(this);
         this.pageUpDown = this.pageUpDown.bind(this);
         this._updateActiveElement = this._updateActiveElement.bind(this);
@@ -107,13 +108,11 @@ class Sheet extends Component {
             );
         }
         const ro = new ResizeObserver(entries => {
-            console.log("new resize");
             this.resize();
             for (let entry of entries) {
                 if (entry.target.firstElementChild && entry.target.firstElementChild.id  === this.props.id){
                 }
                 //entry.target.style.borderRadius = Math.max(0, 250 - entry.contentRect.width) + 'px';
-                console.log(entry);
             }
         });
         ro.observe(this.container.parentNode);
@@ -170,7 +169,10 @@ class Sheet extends Component {
     /* I initialize the sheet from coordintate [0, 0] to [corner.x, corner.y] (corner isinstanceof Point)
      * generating 'td' elements with id = this.props.id_x_y
      */
-    initializeSheet(projector, body){
+    initializeSheet(projector, body, head){
+        // make sure the header spans the entire width
+        head.firstChild.firstChild.colSpan = this.max_num_columns;
+
         let rows = [];
         let origin = this.fixed_view_frame.origin;
         let corner = this.fixed_view_frame.corner;
@@ -209,6 +211,11 @@ class Sheet extends Component {
     build(){
         console.log(`Rendering custom sheet ${this.props.id}`);
         let rows = ["Just a sec..."];
+        let header = [
+            h("tr", {style: `height: ${this.props.rowHeight}px`}, [
+                h("th", {}, [])
+            ])
+        ]
         return (
             h("div", {
                 id: this.props.id,
@@ -221,8 +228,10 @@ class Sheet extends Component {
                     style: "table-layout:fixed",
                     tabindex: "-1",
                     onkeydown: this.handleKeyDown,
-                    onclick: this.handleClick
+                    onclick: this.handleClick,
+                    onmouseover: this.handleMouseover,
                 }, [
+                    h("thead", {id: `sheet-${this.props.id}-head`}, header),
                     h("tbody", {id: `sheet-${this.props.id}-body`}, rows)
                 ])
             ])
@@ -236,7 +245,7 @@ class Sheet extends Component {
         let body = document.getElementById(`sheet-${this.props.id}-body`);
         // make sure that we have an active target
         // otherwise there is no root for navigation
-        console.log(event.key + event.altKey);
+        // console.log(event.key + event.altKey);
         if (["PageUp", "PageDown"].indexOf(event.key) > -1){
             this.pageUpDown(body, event);
         } else if(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(event.key) > -1) {
@@ -509,6 +518,18 @@ class Sheet extends Component {
         this._createActiveElement(body, target);
     }
 
+    /* I listen for a mouseover event on a table element and and display the element textContent in the header row.*/
+    handleMouseover(event){
+        // TODO eventually pass this as an argument or set as an attrubute on the class
+        let head = document.getElementById(`sheet-${this.props.id}-head`);
+        let target = event.target;
+        if (target.nodeName !== "TD"){
+            return;
+        }
+        let th = head.firstChild.firstChild;
+        th.textContent = target.textContent;
+    }
+
     /* I create the active element css classes, removing the old adding the new.
      * I interact with this.active_frame directly
      */
@@ -633,6 +654,7 @@ class Sheet extends Component {
             console.log("updating data for sheet: " + this.props.id + " with response id " + dataInfo.response_id)
             // make sure the data is not empty
             let body = document.getElementById(`sheet-${this.props.id}-body`);
+            let head = document.getElementById(`sheet-${this.props.id}-head`);
             if (dataInfo.data && dataInfo.data.length){
                 if (dataInfo.action === "replace") {
                     // we update the Sheet with (potentially empty) values
@@ -644,7 +666,7 @@ class Sheet extends Component {
                     // TODO: this.initializeSheet should be under componentDidUpdate() but for that the Sheet needs
                     // to have access to the projector
                     // then we can remove the `action` arg to fetch
-                    this.initializeSheet(projector, body);
+                    this.initializeSheet(projector, body, head);
                 }
                 // load the data into the data with the provided origin
                 let origin = dataInfo.origin;

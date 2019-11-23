@@ -87,7 +87,7 @@ class Sheet extends Component {
         this.locked_column_frame = new Frame([0, 0], [0, 0]);
         this.locked_row_frame = new Frame([0, 0], [0, 0]);
         if (this.props.numLockColumns > 0){
-            this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1]);
+            this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 2]);
             // this.locked_row_offset.y = this.;
             this.view_frame_offset.x = this.props.numLockColumns;
             // this.locked_column_offset.x = this.props.numLockColumns;
@@ -98,9 +98,9 @@ class Sheet extends Component {
         }
         // this.locked_row_frame.origin.x = this.locked_column_frame.size.x;
         // this.locked_column_frame.origin.y = this.locked_row_frame.size.y;
-        this.fixed_view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
+        this.fixed_view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 2]);
         // view frame accounts for locked column/row frames
-        this.view_frame = new Frame(this.view_frame_offset, [this.max_num_columns - 1, this.max_num_rows - 1]);
+        this.view_frame = new Frame(this.view_frame_offset, [this.max_num_columns - 1, this.max_num_rows - 2]);
         if (this.props.dontFetch != true){
             this.fetchData(
                 this.fixed_view_frame, // we get all the data we need for now
@@ -137,7 +137,7 @@ class Sheet extends Component {
         // now set the max column/row attributes
         this.max_num_columns = max_num_columns;
         this.max_num_rows = max_num_rows;
-        this.fixed_view_frame.setCorner = [this.max_num_columns - 1, this.max_num_rows - 1];
+        this.fixed_view_frame.setCorner = [this.max_num_columns - 1, this.max_num_rows - 2];
         this.view_frame.corner.x += max_columns_diff;
         this.view_frame.corner.y += max_rows_diff;
         this.fetchData(
@@ -148,7 +148,6 @@ class Sheet extends Component {
         if (this.locked_row_frame.dim){
             this.locked_row_frame.corner.x += max_columns_diff;
             // this.locked_row_frame.corner.y += max_rows_diff;
-            this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
             this.fetchData(
                 this.locked_row_frame,
                 "update",
@@ -157,8 +156,7 @@ class Sheet extends Component {
         // now for the locked column frame
         if (this.locked_column_frame.dim){
             // this.locked_column_frame.corner.x += max_columns_diff;
-            this.locked_column_frame.corner.y += max_columns_diff;
-            this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
+            this.locked_column_frame.corner.y += max_rows_diff;
             this.fetchData(
                 this.locked_column_frame,
                 "update",
@@ -281,6 +279,10 @@ class Sheet extends Component {
                 // if there is a selected element move it to the leftmost column
                 if (this.active_frame){
                     let shift_x = this.fixed_view_frame.origin.x - this.active_frame.origin.x;
+                    // TODO rethink the notion of dim and size here!
+                    if (this.locked_column_frame.dim){
+                        shift_x += this.locked_column_frame.size.x;
+                    }
                     this._updateActiveElement(body, [shift_x, 0]);
                 }
             }
@@ -334,9 +336,9 @@ class Sheet extends Component {
         if (event.ctrlKey){
             if (event.key === "ArrowUp"){
                 this.view_frame.origin.y = this.view_frame_offset.y;
-                this.view_frame.corner.y = this.max_num_rows - 1;
+                this.view_frame.corner.y = this.max_num_rows - 2;
                 if (this.locked_column_frame.dim){
-                    this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1]);
+                    this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 2]);
                     this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
                     this.fetchData(
                         this.locked_column_frame,
@@ -344,11 +346,11 @@ class Sheet extends Component {
                     );
                 }
             } else if (event.key === "ArrowDown"){
-                this.view_frame.origin.y = this.totalRows - this.view_frame.size.y;
+                this.view_frame.origin.y = this.totalRows - this.view_frame.size.y + 1;
                 this.view_frame.corner.y = this.totalRows - 1;
                 if (this.locked_column_frame.dim){
                     this.locked_column_frame = new Frame(
-                        [0, this.totalRows - this.locked_column_frame.size.y],
+                        [0, this.totalRows - this.locked_column_frame.size.y + 1],
                         [this.props.numLockColumns - 1, this.totalRows - 1]);
                     this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
                     this.fetchData(

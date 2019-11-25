@@ -142,6 +142,9 @@
     padding-bottom: 1px;
     font-size: .8rem;
     cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
 }
 
 td.active {

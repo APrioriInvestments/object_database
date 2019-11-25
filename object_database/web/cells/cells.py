@@ -793,7 +793,6 @@ class Cell:
         self._height = None
         self._width = None
         self._overflow = None
-        self._color = None
         self.postscript = None
         self.garbageCollected = False
         self.subscriptions = set()
@@ -1106,9 +1105,6 @@ class Cell:
             else:
                 res.append("height:%s" % self._height)
 
-        if self._color is not None:
-            res.append("color:%s" % self._color)
-
         if self._background_color is not None:
             res.append("background-color:%s" % self._background_color)
 
@@ -1134,10 +1130,6 @@ class Cell:
 
     def height(self, height):
         self._height = height
-        return self
-
-    def color(self, color):
-        self._color = color
         return self
 
     def background_color(self, color):

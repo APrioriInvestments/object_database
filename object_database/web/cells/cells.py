@@ -789,7 +789,6 @@ class Cell:
         self._identity = None
         self._tag = None
         self._nowrap = None
-        self._background_color = None
         self._height = None
         self._width = None
         self._overflow = None
@@ -1105,9 +1104,6 @@ class Cell:
             else:
                 res.append("height:%s" % self._height)
 
-        if self._background_color is not None:
-            res.append("background-color:%s" % self._background_color)
-
         if self._overflow is not None:
             res.append("overflow:%s" % self._overflow)
 
@@ -1130,10 +1126,6 @@ class Cell:
 
     def height(self, height):
         self._height = height
-        return self
-
-    def background_color(self, color):
-        self._background_color = color
         return self
 
     def isActive(self):

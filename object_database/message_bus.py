@@ -213,7 +213,7 @@ class MessageBus(object):
         self.messageType = messageType
         self.eventType = MessageBusEvent(messageType)
         self._authToken = authToken
-        self._listeningEndpoint = Endpoint(endpoint)
+        self._listeningEndpoint = Endpoint(endpoint) if endpoint is not None else None
         self._lock = threading.RLock()
         self.started = False
         self._acceptSocket = None
@@ -297,10 +297,9 @@ class MessageBus(object):
             self.started = False
 
         self._logger.debug(
-            "Stopping MessageBus (%s) on endpoint %s%s",
+            "Stopping MessageBus (%s) on endpoint %s",
             self.busIdentity,
-            self._listeningEndpoint[0],
-            self._listeningEndpoint[1],
+            self._listeningEndpoint,
         )
 
         self._messagesToSendQueue.put(Disconnected)

@@ -63,11 +63,12 @@ class Sheet extends Component {
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleClick = this.handleClick.bind(this);
-        this.handleMouseover = this.handleMouseover.bind(this);
+        // this.handleMouseover = this.handleMouseover.bind(this);
         this.arrowUpDownLeftRight = this.arrowUpDownLeftRight.bind(this);
         this.pageUpDown = this.pageUpDown.bind(this);
         this._updateActiveElement = this._updateActiveElement.bind(this);
         this._createActiveElement = this._createActiveElement.bind(this);
+        this._updateHeader = this._updateHeader.bind(this);
         this._addLockedElements = this._addLockedElements.bind(this);
         this._removeLockedElements = this._removeLockedElements.bind(this);
         this._idToCoord = this._idToCoord.bind(this);
@@ -227,7 +228,7 @@ class Sheet extends Component {
                     tabindex: "-1",
                     onkeydown: this.handleKeyDown,
                     onclick: this.handleClick,
-                    onmouseover: this.handleMouseover,
+                    // onmouseover: this.handleMouseover,
                 }, [
                     h("thead", {id: `sheet-${this.props.id}-head`}, header),
                     h("tbody", {id: `sheet-${this.props.id}-body`}, rows)
@@ -241,6 +242,7 @@ class Sheet extends Component {
     handleKeyDown(event){
         // TODO eventually pass this as an argument or set as an attrubute on the class
         let body = document.getElementById(`sheet-${this.props.id}-body`);
+        let head = document.getElementById(`sheet-${this.props.id}-head`);
         // make sure that we have an active target
         // otherwise there is no root for navigation
         // console.log(event.key + event.altKey);
@@ -249,6 +251,8 @@ class Sheet extends Component {
         } else if(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(event.key) > -1) {
             this.arrowUpDownLeftRight(body, event);
         }
+        // display the contents in the top header line
+        this._updateHeader(body, head);
     }
 
     /* I handle page Up/Down of the view */
@@ -512,17 +516,30 @@ class Sheet extends Component {
     handleClick(event){
         // TODO eventually pass this as an argument or set as an attrubute on the class
         let body = document.getElementById(`sheet-${this.props.id}-body`);
+        let head = document.getElementById(`sheet-${this.props.id}-head`);
         let target = event.target;
         // if the user accidentally clicked on the tooltip or something else, don't do anything
         if (target.nodeName !== "TD"){
             return;
         }
         this._createActiveElement(body, target);
+        // display the contents in the top header line
+        this._updateHeader(body, head);
     }
 
-    /* I listen for a mouseover event on a table element and and display the element textContent in the header row.*/
+    /* I handle updates to the display header */
+    _updateHeader(body, head){
+        let origin = this.active_frame.origin;
+        let td = body.querySelector(`#${this._coordToId("td", [origin.x, origin.y])}`);
+        let th = head.firstChild.firstChild;
+        th.textContent = td.textContent;
+    }
+
+    /* I listen for a mouseover event on a table element and and display the element
+    * textContent in the header row.
+    **/
+    /* No longer used but leaving for later as useful pattern
     handleMouseover(event){
-        // TODO eventually pass this as an argument or set as an attrubute on the class
         let head = document.getElementById(`sheet-${this.props.id}-head`);
         let target = event.target;
         if (target.nodeName !== "TD"){
@@ -531,6 +548,7 @@ class Sheet extends Component {
         let th = head.firstChild.firstChild;
         th.textContent = target.textContent;
     }
+    **/
 
     /* I create the active element css classes, removing the old adding the new.
      * I interact with this.active_frame directly
@@ -717,7 +735,6 @@ class Sheet extends Component {
     _calc_max_num_columns(max_width){
         return Math.min(this.totalColumns, Math.ceil(max_width/this.props.colWidth));
     }
-
 }
 
 Sheet.propTypes = {

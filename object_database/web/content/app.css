@@ -134,8 +134,8 @@
     text-overflow: ellipsis;
     padding-right: 2px;
     padding-left: 2px;
-    padding-top: 1px;
-    padding-bottom: 1px;
+    padding-top: 2px;
+    padding-bottom: 2px;
     font-size: .8rem;
     cursor: default;
     user-select: none;
@@ -146,6 +146,7 @@
 td.active {
     border: solid 2px #568eca;
     background-color: #c1daf5;
+    padding: 1px;
 }
 
 td.active-selection {
@@ -154,18 +155,22 @@ td.active-selection {
 
 td.active-selection-top {
     border-top: 2px solid red;
+    padding: 1px;
 }
 
 td.active-selection-left {
     border-left: 2px solid red;
+    padding: 1px;
 }
 
 td.active-selection-right {
     border-right: 2px solid red;
+    padding: 1px;
 }
 
 td.active-selection-bottom {
     border-bottom: 2px solid red;
+    padding: 1px;
 }
 
 td.locked {

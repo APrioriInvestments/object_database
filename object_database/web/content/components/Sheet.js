@@ -7,7 +7,12 @@
 import {h} from 'maquette';
 import {Component} from './Component';
 import {PropTypes} from './util/PropertyValidator';
-import {Point, Frame, DataFrame} from './util/SheetUtils';
+import {
+    Point,
+    Frame,
+    SelectionFrame,
+    DataFrame
+} from './util/SheetUtils';
 
 /**
  * About Named Children
@@ -56,6 +61,10 @@ class Sheet extends Component {
         // TODO: we need some cleanup/garbage-collection of data_frame
         this.data_frame = new DataFrame([0, 0], [this.totalColumns - 1, this.totalRows - 1]);
 
+        // Whether or not the user is currently 'selecting'
+        // a region of the sheet
+        this.is_selecting = false;
+
         // Bind context to methods
         this.initializeSheet  = this.initializeSheet.bind(this);
         this.resize = this.resize.bind(this);
@@ -63,7 +72,11 @@ class Sheet extends Component {
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleClick = this.handleClick.bind(this);
-        // this.handleMouseover = this.handleMouseover.bind(this);
+        this.handleMouseover = this.handleMouseover.bind(this);
+        this.handleTableMouseleave = this.handleTableMouseleave.bind(this);
+        this.handleCellMousedown = this.handleCellMousedown.bind(this);
+        this.handleCellMouseup = this.handleCellMouseup.bind(this);
+        this.handleCellMouseover = this.handleCellMouseover.bind(this);
         this.arrowUpDownLeftRight = this.arrowUpDownLeftRight.bind(this);
         this.pageUpDown = this.pageUpDown.bind(this);
         this._updateActiveElement = this._updateActiveElement.bind(this);
@@ -194,17 +207,17 @@ class Sheet extends Component {
                         id: `tr_${this.props.id}_${y}`,
                         row_data: row_data,
                         colWidth: this.props.colWidth,
-                        height: this.props.rowHeight,
+                        height: this.props.rowHeight
                     }
                 ).build()
-            )
+            );
         }
         while(body.firstChild){
             body.firstChild.remove();
         }
         rows.map((r) => {
-            projector.append(body, () => {return r});
-        })
+            projector.append(body, () => {return r;});
+        });
         if (this.locked_column_frame.dim){
             this._addLockedElements(body, this.locked_column_frame);
         }
@@ -225,13 +238,14 @@ class Sheet extends Component {
                 h("th", {id: `sheet-${this.props.id}-head-current`}, []),
                 h("th", {id: `sheet-${this.props.id}-head-info`, class: "header-info"}, [])
             ])
-        ]
+        ];
         return (
             h("div", {
                 id: this.props.id,
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Sheet",
                 class: "cell sheet-wrapper",
+                afterCreate: this.afterCreate
             }, [
                 h("table", {
                     class: "sheet",
@@ -239,7 +253,10 @@ class Sheet extends Component {
                     tabindex: "-1",
                     onkeydown: this.handleKeyDown,
                     onclick: this.handleClick,
-                    // onmouseover: this.handleMouseover,
+                    onmouseover: this.handleMouseover,
+                    onmousedown: this.handleCellMousedown,
+                    onmouseup: this.handleCellMouseup,
+                    onmouseleave: this.handleTableMouseleave
                 }, [
                     h("thead", {id: `sheet-${this.props.id}-head`}, header),
                     h("tbody", {id: `sheet-${this.props.id}-body`}, rows)
@@ -247,7 +264,6 @@ class Sheet extends Component {
             ])
         );
     }
-
 
     /* I listen for arrow keys and paginate if necessary. */
     handleKeyDown(event){
@@ -533,6 +549,88 @@ class Sheet extends Component {
         }
     }
 
+    handleCellMouseup(event){
+        this.is_selecting = false;
+    }
+
+    handleCellMousedown(event){
+        if(event.target.nodeName !== "TD"){
+            return;
+        }
+        this.is_selecting = true;
+        let body = this.getDOMElement();
+        this._createActiveElement(body, event.target);
+    }
+
+    handleCellMouseover(event){
+        console.log('MouseEnter on');
+        console.log(event.target);
+        if(event.target.nodeName !== "TD"){
+            return;
+        }
+        // Here is where we update the selection
+        // information.
+        if(this.is_selecting){
+            let target_coord = this._idToCoord(event.target.id);
+            if(!this.active_frame.cursor){
+                this.active_frame.cursor = this.active_frame.origin;
+            } // TODO: Make the active frame *always* a SelectionFrame
+            let next_frame = new SelectionFrame(this.active_frame.origin, this.active_frame.corner);
+            next_frame.fromPointToPoint(this.active_frame.cursor, target_coord);
+            console.log(next_frame);
+            let thisId = this._coordToId("td", [next_frame.corner.x, next_frame.corner.y]);
+            let thisTd = document.getElementById(thisId);
+            console.log(thisTd);
+            // Clear the current active frame
+            this.active_frame.coords.map(point => {
+                let id = this._coordToId("td", [point.x, point.y]);
+                let td = document.getElementById(id);
+                td.classList.remove('active-selection');
+                td.classList.remove('active-selection-left');
+                td.classList.remove('active-selection-right');
+                td.classList.remove('active-selection-top');
+                td.classList.remove('active-selection-bottom');
+            });
+            next_frame.coords.map(point => {
+                if(!point.equals(next_frame.cursor)){
+                    let id = this._coordToId("td", [point.x, point.y]);
+                    let td = document.getElementById(id);
+                    td.classList.add('active-selection');
+                }
+            });
+            // Draw border around new selection
+            next_frame.leftPoints.forEach(point => {
+                if(!point.equals(next_frame.cursor)){
+                    let id = this._coordToId("td", [point.x, point.y]);
+                    let td = document.getElementById(id);
+                    td.classList.add('active-selection-left');
+                }
+            });
+            next_frame.rightPoints.forEach(point => {
+                if(!point.equals(next_frame.cursor)){
+                    let id = this._coordToId("td", [point.x, point.y]);
+                    let td = document.getElementById(id);
+                    td.classList.add('active-selection-right');
+                }
+            });
+            next_frame.topPoints.forEach(point => {
+                if(!point.equals(next_frame.cursor)){
+                    let id = this._coordToId("td", [point.x, point.y]);
+                    let td = document.getElementById(id);
+                    td.classList.add('active-selection-top');
+                }
+            });
+            next_frame.bottomPoints.forEach(point => {
+                if(!point.equals(next_frame.cursor)){
+                    let id = this._coordToId("td", [point.x, point.y]);
+                    let td = document.getElementById(id);
+                    td.classList.add('active-selection-bottom');
+                }
+            });
+            this.active_frame = next_frame;
+        }
+    }
+
     /* I listen for clicks and and set up this.active_frame as necessary.*/
     handleClick(event){
         // TODO eventually pass this as an argument or set as an attrubute on the class
@@ -543,6 +641,7 @@ class Sheet extends Component {
         if (target.nodeName !== "TD"){
             return;
         }
+
         this._createActiveElement(body, target);
         // display the contents in the top header line
         this._updateHeader(body, head);
@@ -570,6 +669,15 @@ class Sheet extends Component {
         }
         let th = head.firstChild.firstChild;
         th.textContent = target.textContent;
+        this.handleCellMouseover(event);
+    }
+
+    /* Simply resets the `is_selecting` to false, in the
+     * event that the user clicked and dragged out of the
+     * element
+     */
+    handleTableMouseleave(event){
+        this.is_selecting = false;
     }
     **/
 
@@ -577,7 +685,7 @@ class Sheet extends Component {
      * I interact with this.active_frame directly
      */
     _createActiveElement(body, target){
-        console.log("creating active: " + target);
+        /*console.log("creating active: " + target);
         let target_coord = this._idToCoord(target.id);
         target.className += " active";
         if (!this.active_frame){
@@ -588,12 +696,35 @@ class Sheet extends Component {
             this.active_frame.coords.map((p) => {
                 let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
                 td.className = td.className.replace(" active", "");
-            })
+            });
             // NOTE: this is a 0 dim frame, we'll expand this for more flexible selection UX later
             this.active_frame.setOrigin = target_coord;
             this.active_frame.setCorner = target_coord;
+            }*/
+        let target_coord = this._idToCoord(target.id);
+        if(!this.active_frame){
+            target.classList.add('active');
+            this.active_frame = new SelectionFrame(target_coord, target_coord);
+        } else {
+            // Remove old active frame selection styling
+            this.active_frame.coords.map(point => {
+                let td = body.querySelector(`#${this._coordToId("td", [point.x, point.y])}`);
+                td.classList.remove('active');
+                td.classList.remove('active-selection');
+                td.classList.remove('active-selection-left');
+                td.classList.remove('active-selection-right');
+                td.classList.remove('active-selection-bottom');
+                td.classList.remove('active-selection-top');
+            });
+
+            // Set new active frame cursor and styling
+            this.active_frame.setOrigin = target_coord;
+            this.active_frame.setCorner = target_coord;
+            this.active_frame.cursor = target_coord;
+            target.classList.add('active');
         }
     }
+
 
     /* I update the active element css classes, shifting the frame, removing the old adding the new.
      * I interact with this.active_frame directly
@@ -729,7 +860,7 @@ class Sheet extends Component {
                 this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
                 this._updateHeader(body, head);
             }
-        })
+        });
     }
 
     /* Update data helpers */
@@ -748,7 +879,7 @@ class Sheet extends Component {
             td.textContent = d;
             td.dataset.x = p.x;
             td.dataset.y = p.y;
-        })
+        });
     }
 
     /* Helper functions to determine a 'reasonable' number of columns and rows
@@ -800,7 +931,7 @@ Sheet.propTypes = {
 class SheetRow extends Component {
     constructor(props, ...args){
         super(props, ...args);
-        this.style = `max-height: ${this.props.height}px; height: ${this.props.height}px`
+        this.style = `max-height: ${this.props.height}px; height: ${this.props.height}px`;
 
         // Bind component methods
     }
@@ -810,9 +941,16 @@ class SheetRow extends Component {
 
     build(){
         var row_data = this.props.row_data.map((item) => {
-            return new SheetCell(
-                {id: item.id, value: item.value, width: this.props.colWidth}).build()
-        })
+            return new SheetCell({
+                id: item.id,
+                value: item.value,
+                width: this.props.colWidth,
+                /*
+                onMousedown: this.props.onMousedown,
+                onMouseup: this.props.onMouseup,
+                onMouseenter: this.props.onMouseenter*/
+            }).build();
+        });
         return (
             h("tr",
                 {id: this.props.id, class: "sheet-row", style: this.style},
@@ -849,6 +987,10 @@ class SheetCell extends Component {
         }
 
         // Bind component methods
+        this.handleMouseenter = this.handleMouseenter.bind(this);
+        this.handleMouseleave = this.handleMouseleave.bind(this);
+        this.handleMousedown = this.handleMousedown.bind(this);
+        this.handleMouseup = this.handleMouseup.bind(this);
     }
 
     componentDidLoad(){
@@ -865,11 +1007,44 @@ class SheetCell extends Component {
                     id: this.props.id,
                     class: this.class,
                     style: this.style,
+                    /*
+                    onmousedown: this.handleMousedown,
+                    onmouseup: this.handleMouseup,
+                    onmouseenter: this.handleMouseenter,
+                    onmouseleave: this.handleMouseleave
+                    */
                 },
                 // child
                 [this.value]
             )
         );
+    }
+
+    handleMouseup(event){
+        if(this.props.onMouseup){
+            this.props.onMouseup(event);
+        }
+    }
+
+    handleMousedown(event){
+        if(this.props.onMousedown){
+            this.props.onMousedown(event);
+        }
+    }
+
+    handleMouseenter(event){
+        console.log('Cell received MouseEnter!');
+        console.log(this);
+        console.log(this.props.onMouseenter);
+        if(this.props.onMouseenter){
+            this.props.onMouseenter(event);
+        }
+    }
+
+    handleMouseleave(event){
+        if(this.props.onMouseleave){
+            this.props.onMouseleave(event);
+        }
     }
 }
 

@@ -80,7 +80,17 @@ class Point {
         }
         return `${this._values[0]},${this._values[1]}`;
     }
+
+    toPoint(){
+        return this;
+    }
 }
+
+Array.prototype.toPoint = function(){
+    if(this.length !== 2){
+        throw new Error("toPoint requires an Array of length 2 [x, y]!");
+    }
+};
 
 
 class Frame {
@@ -156,6 +166,50 @@ class Frame {
    /* Set the corner */
     set setCorner(xy){
         this.corner = new Point(xy);
+    }
+
+    /**
+     * Returns the Point in the top right
+     * corner
+     */
+    get topRight(){
+        return new Point([
+            this.corner.x,
+            this.origin.y
+        ]);
+    }
+
+    /**
+     * Returns the Point in the bottom
+     * left corner
+     */
+    get bottomLeft(){
+        return new Point([
+            this.origin.x,
+            this.corner.y
+        ]);
+    }
+
+    /**
+     * Returns the Point in the bottom
+     * right corner
+     */
+    get bottomRight(){
+        return new Point([
+            this.corner.x,
+            this.corner.y
+        ]);
+    }
+
+    /**
+     * Returns the point at the top
+     * left corner
+     */
+    get topLeft(){
+        return new Point([
+            this.origin.x,
+            this.origin.y
+        ]);
     }
 
     /* Returns an array of relative (to the frame's origin and corner)
@@ -300,6 +354,12 @@ class SelectionFrame extends Frame {
         this.cursor = from;
     }
 
+    translate(xy){
+        super.translate(xy);
+        this.cursor.x += xy[0];
+        this.cursor.y += xy[1];
+    }
+
     get leftPoints(){
         let result = [];
         for(let y = this.origin.y; y <= this.corner.y; y++){
@@ -332,7 +392,6 @@ class SelectionFrame extends Frame {
         return result;
     }
 }
-
 
 class DataFrame extends Frame {
     constructor(origin, corner){
@@ -383,7 +442,7 @@ class DataFrame extends Frame {
     /* I retrieve the corresponding frame.store value. */
     get(coordinate){
         if (!this.contains(coordinate)){
-            throw "Coordinate not in frame."
+            throw "Coordinate not in frame.";
         }
         if (coordinate instanceof Array || coordinate instanceof Point){
             coordinate = coordinate.toString();
@@ -392,10 +451,234 @@ class DataFrame extends Frame {
     }
 }
 
+class Selector {
+    constructor(sheet){
+        this.sheet = sheet;
+        this.selectionFrame = new SelectionFrame([0,0], [0,0]);
+        this.onNeedsUpdate = null;
+
+        // Bind methods
+        this.elementAtPoint = this.elementAtPoint.bind(this);
+        this.clearStyling = this.clearStyling.bind(this);
+        this.addStyling = this.addStyling.bind(this);
+        this.fromPointToPoint = this.fromPointToPoint.bind(this);
+        this.shrinkToCursor = this.shrinkToCursor.bind(this);
+        this.triggerNeedsUpdate = this.triggerNeedsUpdate.bind(this);
+        this.isAtViewTop = this.isAtViewTop.bind(this);
+        this.isAtViewRight = this.isAtViewRight.bind(this);
+        this.isAtViewLeft = this.isAtViewLeft.bind(this);
+        this.isAtViewBottom = this.isAtViewBottom.bind(this);
+        this.shiftUp = this.shiftUp.bind(this);
+        this.shiftRight = this.shiftRight.bind(this);
+        this.shiftDown = this.shiftDown.bind(this);
+        this.shiftLeft = this.shiftLeft.bind(this);
+        this.cursorTo = this.cursorTo.bind(this);
+        this.cursorUp = this.cursorUp.bind(this);
+        this.cursorRight = this.cursorRight.bind(this);
+        this.cursorDown = this.cursorDown.bind(this);
+        this.cursorLeft = this.cursorLeft.bind(this);
+
+    }
+
+
+
+    clearStyling(clearCursor = false){
+        // Clears all styling on the
+        // current selectionFrame and
+        // cursor.
+        this.selectionFrame.coords.forEach(point => {
+            if(clearCursor && point.equals(this.selectionFrame.cursor)){
+                let id = this.sheet._coordToId("td", [point.x, point.y]);
+                let td = document.getElementById(id);
+                td.classList.remove(
+                    'active',
+                    'active-selection',
+                    'active-selection-left',
+                    'active-selection-right',
+                    'active-selection-top',
+                    'active-selection-bottom'
+                );
+            } else if(!point.equals(this.selectionFrame.cursor)) {
+                let id = this.sheet._coordToId("td", [point.x, point.y]);
+                let td = document.getElementById(id);
+                td.classList.remove(
+                    'active-selection',
+                    'active-selection-left',
+                    'active-selection-right',
+                    'active-selection-top',
+                    'active-selection-bottom'
+                );
+            }
+        });
+    }
+
+    elementAtPoint(point){
+        let id = this.sheet._coordToId("td", [point.x, point.y]);
+        return document.getElementById(id);
+    }
+
+    addStyling(){
+        // Adds the correct styling to the
+        // selection area and cursor.
+        let cursorEl = this.elementAtPoint(this.selectionFrame.cursor);
+        cursorEl.classList.add('active');
+
+        if(this.selectionFrame.dim > 0){
+            this.selectionFrame.coords.forEach(point => {
+                if(!point.equals(this.selectionFrame.cursor)){
+                    let el = this.elementAtPoint(point);
+                    el.classList.add('active-selection');
+                }
+            });
+            this.selectionFrame.leftPoints.forEach(point => {
+                if(!point.equals(this.selectionFrame.cursor)){
+                    let el = this.elementAtPoint(point);
+                    el.classList.add('active-selection-left');
+                }
+            });
+            this.selectionFrame.topPoints.forEach(point => {
+                if(!point.equals(this.selectionFrame.cursor)){
+                    let el = this.elementAtPoint(point);
+                    el.classList.add('active-selection-top');
+                }
+            });
+            this.selectionFrame.rightPoints.forEach(point => {
+                if(!point.equals(this.selectionFrame.cursor)){
+                    let el = this.elementAtPoint(point);
+                    el.classList.add('active-selection-right');
+                }
+            });
+            this.selectionFrame.bottomPoints.forEach(point => {
+                if(!point.equals(this.selectionFrame.cursor)){
+                    let el = this.elementAtPoint(point);
+                    el.classList.add('active-selection-bottom');
+                }
+            });
+        }
+    }
+
+    shrinkToCursor(){
+        this.selectionFrame.setOrigin = this.selectionFrame.cursor;
+        this.selectionFrame.setCorner = this.selectionFrame.cursor;
+    }
+
+    cursorTo(aPoint){
+        this.clearStyling(true);
+        this.shrinkToCursor();
+        this.selectionFrame.fromPointToPoint(
+            aPoint,
+            aPoint
+        );
+        this.addStyling();
+    }
+
+    cursorUp(){
+        this.shiftUp(1, true);
+    }
+
+    cursorRight(){
+        this.shiftRight(1, true);
+    }
+
+    cursorDown(){
+        this.shiftDown(1, true);
+    }
+
+    cursorLeft(){
+        this.shiftLeft(1, true);
+    }
+
+    shiftUp(amount = 1, shrinkToCursor = false){
+        let shift = [0, (amount * -1)];
+        if(this.isAtViewTop()){
+            this.triggerNeedsUpdate('up', shift);
+        } else {
+            this.clearStyling(true);
+            this.selectionFrame.translate(shift);
+        }
+        if(shrinkToCursor){
+            this.shrinkToCursor();
+        }
+        this.addStyling();
+    }
+
+    shiftRight(amount = 1, shrinkToCursor = false){
+        let shift = [amount * 1, 0];
+        if(this.isAtViewRight()){
+            this.triggerNeedsUpdate('right', shift);
+        } else {
+            this.clearStyling(true);
+            this.selectionFrame.translate(shift);
+        }
+        if(shrinkToCursor){
+            this.shrinkToCursor();
+        }
+        this.addStyling();
+    }
+
+    shiftDown(amount = 1, shrinkToCursor = false){
+        let shift = [0, amount * 1];
+        if(this.isAtViewBottom()){
+            this.triggerNeedsUpdate('down', shift);
+        } else {
+            this.clearStyling(true);
+            this.selectionFrame.translate(shift);
+        }
+        if(shrinkToCursor){
+            this.shrinkToCursor();
+        }
+        this.addStyling();
+    }
+
+    shiftLeft(amount = 1, shrinkToCursor = false){
+        let shift = [amount * -1, 0];
+        if(this.isAtViewLeft()){
+            this.triggerNeedsUpdate('left', shift);
+        } else {
+            this.clearStyling(true);
+            this.selectionFrame.translate(shift);
+        }
+        if(shrinkToCursor){
+            this.shrinkToCursor();
+        }
+        this.addStyling();
+
+    }
+
+    triggerNeedsUpdate(direction, shift){
+        if(this.onNeedsUpdate){
+            this.onNeedsUpdate(direction, shift);
+        }
+    }
+
+    fromPointToPoint(from, to){
+        this.clearStyling();
+        this.selectionFrame.fromPointToPoint(from, to);
+        this.addStyling();
+    }
+
+    isAtViewTop(){
+        return this.selectionFrame.origin.y === this.sheet.view_frame_offset.y;
+    }
+
+    isAtViewBottom(){
+        return this.selectionFrame.corner.y === this.sheet.fixed_view_frame.corner.y;
+    }
+
+    isAtViewLeft(){
+        return this.selectionFrame.origin.x === this.sheet.view_frame_offset.x;
+    }
+
+    isAtViewRight(){
+        return this.selectionFrame.corner.x === this.sheet.fixed_view_frame.corner.x;
+    }
+}
+
 
 export {
     Point,
     Frame,
     SelectionFrame,
+    Selector,
     DataFrame
 }

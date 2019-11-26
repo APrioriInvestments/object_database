@@ -79,6 +79,7 @@ class Sheet extends Component {
         this.handleCellMouseover = this.handleCellMouseover.bind(this);
         this.arrowUpDownLeftRight = this.arrowUpDownLeftRight.bind(this);
         this.pageUpDown = this.pageUpDown.bind(this);
+        this.resetSelection = this.resetSelection.bind(this);
         this._updateActiveElement = this._updateActiveElement.bind(this);
         this._createActiveElement = this._createActiveElement.bind(this);
         this._updateHeader = this._updateHeader.bind(this);
@@ -361,6 +362,31 @@ class Sheet extends Component {
         );
     }
 
+    resetSelection(shrink_to_cursor = false){
+        // Resets the active_frame to be a single
+        // point at the current frame's cursor
+        // point. Also clears all selection styling.
+        this.active_frame.coords.forEach(point => {
+            if(!point.equals(this.active_frame.cursor)){
+                let id = this._coordToId("td", [point.x, point.y]);
+                let td = document.getElementById(id);
+                td.classList.remove(
+                    'active-selection',
+                    'active-selection-left',
+                    'active-selection-right',
+                    'active-selection-top',
+                    'active-selection-bottom'
+                );
+            }
+        });
+        if(shrink_to_cursor){
+            this.active_frame.fromPointToPoint(
+                this.active_frame.cursor,
+                this.active_frame.cursor
+            );
+        }
+    }
+
     /* I handle arrow triggered navigation of the active_frame and related views */
     arrowUpDownLeftRight(body, event){
         event.preventDefault();
@@ -582,15 +608,7 @@ class Sheet extends Component {
             let thisTd = document.getElementById(thisId);
             console.log(thisTd);
             // Clear the current active frame
-            this.active_frame.coords.map(point => {
-                let id = this._coordToId("td", [point.x, point.y]);
-                let td = document.getElementById(id);
-                td.classList.remove('active-selection');
-                td.classList.remove('active-selection-left');
-                td.classList.remove('active-selection-right');
-                td.classList.remove('active-selection-top');
-                td.classList.remove('active-selection-bottom');
-            });
+            this.resetSelection();
             next_frame.coords.map(point => {
                 if(!point.equals(next_frame.cursor)){
                     let id = this._coordToId("td", [point.x, point.y]);

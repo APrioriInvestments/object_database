@@ -83,7 +83,6 @@ class Sheet extends Component {
         this.handleSelectorUpdate = this.handleSelectorUpdate.bind(this);
         this.arrowUpDownLeftRight = this.arrowUpDownLeftRight.bind(this);
         this.pageUpDown = this.pageUpDown.bind(this);
-        this.resetSelection = this.resetSelection.bind(this);
         this._updateActiveElement = this._updateActiveElement.bind(this);
         this._createActiveElement = this._createActiveElement.bind(this);
         this._updateHeader = this._updateHeader.bind(this);
@@ -429,26 +428,12 @@ class Sheet extends Component {
                     page.x = this.totalColumns - this.view_frame.corner.x - 1;
                 }
                 shift = [page.x, 0];
-                // if there is a selected element move it to the rightmost column
-                if (this.active_frame){
-                    let shift_x = this.fixed_view_frame.corner.x - this.active_frame.corner.x;
-                    this._updateActiveElement(body, [shift_x, 0]);
-                }
             } else {
                 // make sure we don't run out of data at the left
                 if (this.view_frame.origin.x - page.x < this.view_frame_offset.x){
                     page.x = this.view_frame.origin.x - this.view_frame_offset.x;
                 }
                 shift = [-1 * page.x, 0];
-                // if there is a selected element move it to the leftmost column
-                if (this.active_frame){
-                    let shift_x = this.fixed_view_frame.origin.x - this.active_frame.origin.x;
-                    // TODO rethink the notion of dim and size here!
-                    if (this.locked_column_frame.dim){
-                        shift_x += this.locked_column_frame.size.x;
-                    }
-                    this._updateActiveElement(body, [shift_x, 0]);
-                }
             }
             // now for the locked row frame
             if (this.locked_row_frame.dim){
@@ -492,31 +477,6 @@ class Sheet extends Component {
             this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
             "update",
         );
-    }
-
-    resetSelection(shrink_to_cursor = false){
-        // Resets the active_frame to be a single
-        // point at the current frame's cursor
-        // point. Also clears all selection styling.
-        this.active_frame.coords.forEach(point => {
-            if(!point.equals(this.active_frame.cursor)){
-                let id = this._coordToId("td", [point.x, point.y]);
-                let td = document.getElementById(id);
-                td.classList.remove(
-                    'active-selection',
-                    'active-selection-left',
-                    'active-selection-right',
-                    'active-selection-top',
-                    'active-selection-bottom'
-                );
-            }
-        });
-        if(shrink_to_cursor){
-            this.active_frame.fromPointToPoint(
-                this.active_frame.cursor,
-                this.active_frame.cursor
-            );
-        }
     }
 
     /* I handle arrow triggered navigation of the active_frame and related views */
@@ -609,7 +569,7 @@ class Sheet extends Component {
             return;
         }
         this.is_selecting = true;
-        let target_coord = this._idToCoord(target.id);
+        let target_coord = this._idToCoord(event.target.id);
         this.selector.cursorTo(target_coord);
     }
 
@@ -677,23 +637,6 @@ class Sheet extends Component {
         this.is_selecting = false;
     }
     **/
-
-    /* I update the active element css classes, shifting the frame, removing the old adding the new.
-     * I interact with this.active_frame directly
-     */
-    _updateActiveElement(body, shift){
-        // we need to unset previsously selected classes
-        this.active_frame.coords.map((p) => {
-            let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
-            td.className = td.className.replace(" active", "");
-        })
-        // now translate the frame by shift and update the classes
-        this.active_frame.translate(shift);
-        this.active_frame.coords.map((p) => {
-            let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
-            td.className = td.className += " active";
-        })
-    }
 
     /* I covert a string of the form `nodeName_id_x_y` to [x, y] */
     _idToCoord(s){

@@ -10,6 +10,7 @@ import {PropTypes} from './util/PropertyValidator';
 import {
     Point,
     Frame,
+    Selector,
     SelectionFrame,
     DataFrame
 } from './util/SheetUtils';
@@ -56,6 +57,8 @@ class Sheet extends Component {
         this.view_frame_offset = new Point([0, 0]);
         // active_frame defines the user's currently selected cells. It lives exclusively inside the view_frame
         this.active_frame = null;
+        this.selector = new Selector(this);
+        this.selector.onNeedsUpdate = this.handleSelectorUpdate.bind(this);
         // this is our core data frame, containing all table data values
         // NOTE: since we start at row 0 and column 0 we need to subtract 1 from the frame corner coords
         // TODO: we need some cleanup/garbage-collection of data_frame
@@ -77,6 +80,7 @@ class Sheet extends Component {
         this.handleCellMousedown = this.handleCellMousedown.bind(this);
         this.handleCellMouseup = this.handleCellMouseup.bind(this);
         this.handleCellMouseover = this.handleCellMouseover.bind(this);
+        this.handleSelectorUpdate = this.handleSelectorUpdate.bind(this);
         this.arrowUpDownLeftRight = this.arrowUpDownLeftRight.bind(this);
         this.pageUpDown = this.pageUpDown.bind(this);
         this.resetSelection = this.resetSelection.bind(this);
@@ -266,6 +270,134 @@ class Sheet extends Component {
         );
     }
 
+    handleSelectorUpdate(direction, shift){
+        console.log('onNeedsUpdate:');
+        console.log(direction);
+        console.log(shift);
+        let body = document.getElementById(`sheet-${this.props.id}-body`);
+        switch(direction){
+        case 'up':
+            if (this.view_frame.origin.y > this.view_frame_offset.y){
+                // now for the locked column frame
+                if (this.locked_column_frame.dim){
+                    this.locked_column_frame.translate(shift);
+                    this._updatedDisplayValues(
+                        body,
+                        this.locked_column_frame,
+                        this.locked_column_offset
+                    );
+                    this.fetchData(
+                        this.locked_column_frame,
+                        "update",
+                    );
+                }
+                // we update the values before the make a server and after
+                this.view_frame.translate(shift);
+                this._updatedDisplayValues(
+                    body,
+                    this.view_frame,
+                    this.view_frame_offset
+                );
+                // no need to shift the active_frame, already at the top
+                this.fetchData(
+                    this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
+                    "update",
+                );
+            }
+            break;
+
+        case 'down':
+            if (this.view_frame.corner.y < this.totalRows - 1){
+                // now for the locked column frame
+                if (this.locked_column_frame.dim){
+                    this.locked_column_frame.translate(shift);
+                    this._updatedDisplayValues(
+                        body,
+                        this.locked_column_frame,
+                        this.locked_column_offset
+                    );
+                    this.fetchData(
+                        this.locked_column_frame,
+                        "update",
+                    );
+                }
+                // we update the values before the make a server and after
+                this.view_frame.translate(shift);
+                this._updatedDisplayValues(
+                    body,
+                    this.view_frame,
+                    this.view_frame_offset
+                );
+                // no need to shift the active_frame, already at the bottom
+                this.fetchData(
+                    this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
+                    "update",
+                );
+            }
+            break;
+
+        case 'left':
+            if (this.view_frame.origin.x > this.view_frame_offset.x){
+                // now for the locked row frame
+                if (this.locked_row_frame.dim){
+                    this.locked_row_frame.translate(shift);
+                    this._updatedDisplayValues(
+                        body,
+                        this.locked_row_frame,
+                        this.locked_row_offset
+                    );
+                    this.fetchData(
+                        this.locked_row_frame,
+                        "update",
+                    );
+                }
+                // we update the values before the make a server and after
+                this.view_frame.translate(shift);
+                this._updatedDisplayValues(
+                    body,
+                    this.view_frame,
+                    this.view_frame_offset
+                );
+                // no need to shift the active_frame, already at the top
+                this.fetchData(
+                    this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
+                    "update",
+                );
+            }
+            break;
+
+        case 'right':
+            if (this.view_frame.corner.x < this.totalColumns - 1){
+                // now for the locked row frame
+                if (this.locked_row_frame.dim){
+                    this.locked_row_frame.translate(shift);
+                    this._updatedDisplayValues(
+                        body,
+                        this.locked_row_frame,
+                        this.locked_row_offset
+                    );
+                    this.fetchData(
+                        this.locked_row_frame,
+                        "update",
+                    );
+                }
+                // we update the values before the make a server and after
+                this.view_frame.translate(shift);
+                this._updatedDisplayValues(
+                    body,
+                    this.view_frame,
+                    this.view_frame_offset
+                );
+                // no need to shift the active_frame, already at the bottom
+                this.fetchData(
+                    this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
+                    "update",
+                );
+            }
+            break;
+        }
+    }
+
     /* I listen for arrow keys and paginate if necessary. */
     handleKeyDown(event){
         // TODO eventually pass this as an argument or set as an attrubute on the class
@@ -452,125 +584,18 @@ class Sheet extends Component {
                 this.view_frame,
                 "update",
             );
-            // console.log(this.view_frame.size);
-            // console.log(this.view_frame);
-        } else if (this.active_frame){
-            // Navigation of the active_frame
+        } else if (this.selector){
             if (event.key === "ArrowUp"){
-                let shift = [0, -1] // y-axis is rows
-                // if the top of this.active_frame is at the top of this.view_frame
-                // we need to shift the view frame only and fetch more data
-                if (this.active_frame.origin.y === this.view_frame_offset.y){
-                    // no reason to do anything if already at the top
-                    if (this.view_frame.origin.y > this.view_frame_offset.y){
-                        // now for the locked column frame
-                        if (this.locked_column_frame.dim){
-                            this.locked_column_frame.translate(shift);
-                            this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
-                            this.fetchData(
-                                this.locked_column_frame,
-                                "update",
-                            );
-                        }
-                        // we update the values before the make a server and after
-                        this.view_frame.translate(shift);
-                        this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
-                        // no need to shift the active_frame, already at the top
-                        this.fetchData(
-                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
-                            "update",
-                        );
-                    }
-                } else {
-                    this._updateActiveElement(body, shift);
-                }
+                this.selector.cursorUp();
             } else if (event.key === "ArrowDown"){
                 event.preventDefault();
-                let shift = [0, 1] // y-axis is rows
-                // if the bottom of this.active_frame is at the bottom of this.fixed_view_frame
-                //  and we have not exceeded the number of rows we need to shift the view frame only
-                if (this.active_frame.corner.y === this.fixed_view_frame.corner.y){
-                    // no reason to do anything if already at the bottom
-                    if (this.view_frame.corner.y < this.totalRows - 1){
-                        // now for the locked column frame
-                        if (this.locked_column_frame.dim){
-                            this.locked_column_frame.translate(shift);
-                            this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
-                            this.fetchData(
-                                this.locked_column_frame,
-                                "update",
-                            );
-                        }
-                        // we update the values before the make a server and after
-                        this.view_frame.translate(shift);
-                        this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
-                        // no need to shift the active_frame, already at the bottom
-                        this.fetchData(
-                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
-                            "update",
-                        );
-                    }
-                } else {
-                    this._updateActiveElement(body, shift);
-                }
+                this.selector.cursorDown();
             } else if (event.key === "ArrowLeft"){
                 event.preventDefault();
-                let shift = [-1, 0] // x-axis is columns
-                // if the left of this.active_frame is at the left of this.view_frame
-                // we need to shift the view frame first
-                if (this.active_frame.origin.x === this.view_frame_offset.x){
-                    // no reason to do anything if already on the left border
-                    if (this.view_frame.origin.x > this.view_frame_offset.x){
-                        // now for the locked row frame
-                        if (this.locked_row_frame.dim){
-                            this.locked_row_frame.translate(shift);
-                            this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
-                            this.fetchData(
-                                this.locked_row_frame,
-                                "update",
-                            );
-                        }
-                        // we update the values before the make a server and after
-                        this.view_frame.translate(shift);
-                        this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
-                        // no need to shift the active_frame, already at the top
-                        this.fetchData(
-                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
-                            "update",
-                        );
-                    }
-                } else {
-                    this._updateActiveElement(body, shift);
-                }
+                this.selector.cursorLeft();
             } else if (event.key === "ArrowRight"){
                 event.preventDefault();
-                let shift = [1, 0] // x-axis is rows
-                // if the right of this.active_frame is at the right of this.fixed_view_frame
-                //  and we have not exceeded the number of columns we need to shift the view frame only
-                if (this.active_frame.corner.x === this.fixed_view_frame.corner.x){
-                    // no reason to do anything if already at max number of columns
-                    if (this.view_frame.corner.x < this.totalColumns - 1){
-                        // now for the locked row frame
-                        if (this.locked_row_frame.dim){
-                            this.locked_row_frame.translate(shift);
-                            this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
-                            this.fetchData(
-                                this.locked_row_frame,
-                                "update",
-                            );
-                        }
-                        // we update the values before the make a server and after
-                        this.view_frame.translate(shift);
-                        this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
-                        // no need to shift the active_frame, already at the bottom
-                        this.fetchData(
-                            this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
-                            "update",
-                        );
-                    }
-                } else {
-                    this._updateActiveElement(body, shift);
-                }
+                this.selector.cursorRight();
             }
         }
     }
@@ -584,13 +609,11 @@ class Sheet extends Component {
             return;
         }
         this.is_selecting = true;
-        let body = this.getDOMElement();
-        this._createActiveElement(body, event.target);
+        let target_coord = this._idToCoord(target.id);
+        this.selector.cursorTo(target_coord);
     }
 
     handleCellMouseover(event){
-        console.log('MouseEnter on');
-        console.log(event.target);
         if(event.target.nodeName !== "TD"){
             return;
         }
@@ -598,54 +621,10 @@ class Sheet extends Component {
         // information.
         if(this.is_selecting){
             let target_coord = this._idToCoord(event.target.id);
-            if(!this.active_frame.cursor){
-                this.active_frame.cursor = this.active_frame.origin;
-            } // TODO: Make the active frame *always* a SelectionFrame
-            let next_frame = new SelectionFrame(this.active_frame.origin, this.active_frame.corner);
-            next_frame.fromPointToPoint(this.active_frame.cursor, target_coord);
-            console.log(next_frame);
-            let thisId = this._coordToId("td", [next_frame.corner.x, next_frame.corner.y]);
-            let thisTd = document.getElementById(thisId);
-            console.log(thisTd);
-            // Clear the current active frame
-            this.resetSelection();
-            next_frame.coords.map(point => {
-                if(!point.equals(next_frame.cursor)){
-                    let id = this._coordToId("td", [point.x, point.y]);
-                    let td = document.getElementById(id);
-                    td.classList.add('active-selection');
-                }
-            });
-            // Draw border around new selection
-            next_frame.leftPoints.forEach(point => {
-                if(!point.equals(next_frame.cursor)){
-                    let id = this._coordToId("td", [point.x, point.y]);
-                    let td = document.getElementById(id);
-                    td.classList.add('active-selection-left');
-                }
-            });
-            next_frame.rightPoints.forEach(point => {
-                if(!point.equals(next_frame.cursor)){
-                    let id = this._coordToId("td", [point.x, point.y]);
-                    let td = document.getElementById(id);
-                    td.classList.add('active-selection-right');
-                }
-            });
-            next_frame.topPoints.forEach(point => {
-                if(!point.equals(next_frame.cursor)){
-                    let id = this._coordToId("td", [point.x, point.y]);
-                    let td = document.getElementById(id);
-                    td.classList.add('active-selection-top');
-                }
-            });
-            next_frame.bottomPoints.forEach(point => {
-                if(!point.equals(next_frame.cursor)){
-                    let id = this._coordToId("td", [point.x, point.y]);
-                    let td = document.getElementById(id);
-                    td.classList.add('active-selection-bottom');
-                }
-            });
-            this.active_frame = next_frame;
+            this.selector.fromPointToPoint(
+                this.selector.selectionFrame.cursor,
+                target_coord
+            );
         }
     }
 
@@ -698,51 +677,6 @@ class Sheet extends Component {
         this.is_selecting = false;
     }
     **/
-
-    /* I create the active element css classes, removing the old adding the new.
-     * I interact with this.active_frame directly
-     */
-    _createActiveElement(body, target){
-        /*console.log("creating active: " + target);
-        let target_coord = this._idToCoord(target.id);
-        target.className += " active";
-        if (!this.active_frame){
-            // NOTE: this is a 0 dim frame, we'll expand this for more flexible selection UX later
-            this.active_frame = new Frame(target_coord, target_coord);
-        } else {
-            // we need to unset previsously selected classes
-            this.active_frame.coords.map((p) => {
-                let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
-                td.className = td.className.replace(" active", "");
-            });
-            // NOTE: this is a 0 dim frame, we'll expand this for more flexible selection UX later
-            this.active_frame.setOrigin = target_coord;
-            this.active_frame.setCorner = target_coord;
-            }*/
-        let target_coord = this._idToCoord(target.id);
-        if(!this.active_frame){
-            target.classList.add('active');
-            this.active_frame = new SelectionFrame(target_coord, target_coord);
-        } else {
-            // Remove old active frame selection styling
-            this.active_frame.coords.map(point => {
-                let td = body.querySelector(`#${this._coordToId("td", [point.x, point.y])}`);
-                td.classList.remove('active');
-                td.classList.remove('active-selection');
-                td.classList.remove('active-selection-left');
-                td.classList.remove('active-selection-right');
-                td.classList.remove('active-selection-bottom');
-                td.classList.remove('active-selection-top');
-            });
-
-            // Set new active frame cursor and styling
-            this.active_frame.setOrigin = target_coord;
-            this.active_frame.setCorner = target_coord;
-            this.active_frame.cursor = target_coord;
-            target.classList.add('active');
-        }
-    }
-
 
     /* I update the active element css classes, shifting the frame, removing the old adding the new.
      * I interact with this.active_frame directly

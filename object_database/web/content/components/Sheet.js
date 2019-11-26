@@ -170,7 +170,11 @@ class Sheet extends Component {
      */
     initializeSheet(projector, body, head){
         // make sure the header spans the entire width
-        head.firstChild.firstChild.colSpan = this.max_num_columns;
+        let header_current = head.querySelector(`#sheet-${this.props.id}-head-current`);
+        header_current.colSpan = this.max_num_columns - 1;
+        let header_info = head.querySelector(`#sheet-${this.props.id}-head-info`);
+        header_info.colSpan = 1;
+        header_info.textContent = `${this.totalColumns}x${this.totalRows}`;
 
         let rows = [];
         let origin = this.fixed_view_frame.origin;
@@ -212,7 +216,8 @@ class Sheet extends Component {
         let rows = ["Just a sec..."];
         let header = [
             h("tr", {style: `height: ${this.props.rowHeight}px`}, [
-                h("th", {}, [])
+                h("th", {id: `sheet-${this.props.id}-head-current`}, []),
+                h("th", {id: `sheet-${this.props.id}-head-info`, class: "header-info"}, [])
             ])
         ]
         return (
@@ -531,8 +536,8 @@ class Sheet extends Component {
     _updateHeader(body, head){
         let origin = this.active_frame.origin;
         let td = body.querySelector(`#${this._coordToId("td", [origin.x, origin.y])}`);
-        let th = head.firstChild.firstChild;
-        th.textContent = td.textContent;
+        let th = head.querySelector(`#sheet-${this.props.id}-head-current`);
+        th.textContent = `(${td.dataset.x}x${td.dataset.y}): ${td.textContent}`;
     }
 
     /* I listen for a mouseover event on a table element and and display the element
@@ -715,11 +720,9 @@ class Sheet extends Component {
             let y = p.y - frame.origin.y + offset.y;
             let td = body.querySelector(`#${this._coordToId("td", [x, y])}`);
             let d = this.data_frame.get(p);
-            // TODO: this should be more robust
-            // td.children[0].textContent = d;
             td.textContent = d;
-            // the tooltip
-            // td.children[1].textContent = d;
+            td.dataset.x = p.x;
+            td.dataset.y = p.y;
         })
     }
 

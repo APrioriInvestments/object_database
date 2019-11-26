@@ -148,6 +148,26 @@ td.active {
     background-color: #c1daf5;
 }
 
+td.active-selection {
+    background-color: rgba(150,150, 150, 0.3);
+}
+
+td.active-selection-top {
+    border-top: 2px solid red;
+}
+
+td.active-selection-left {
+    border-left: 2px solid red;
+}
+
+td.active-selection-right {
+    border-right: 2px solid red;
+}
+
+td.active-selection-bottom {
+    border-bottom: 2px solid red;
+}
+
 td.locked {
     background-color: lightgray;
 }

@@ -252,6 +252,87 @@ class Frame {
     }
 }
 
+class SelectionFrame extends Frame {
+    constructor(origin, corner){
+        super(origin, corner);
+
+        // This is what used to be the
+        // single-cell "active" cell.
+        this.cursor = this.origin;
+
+        // Bind methods
+        this.fromPointToPoint = this.fromPointToPoint.bind(this);
+    }
+
+    fromPointToPoint(from, to){
+        // If the destination point is behind
+        // the from point in some way, then we calc
+        // new values for origin.
+        if(Array.isArray(from)){
+            from = new Point(from);
+        }
+        if(Array.isArray(to)){
+            to = new Point(to);
+        }
+
+        // Above and left
+        if(to.y <= from.y && to.x < from.x){
+            this.setOrigin = to;
+            this.setCorner = from;
+
+        // Above and possibly right
+        } else if(to.y < from.y && to.x >= from.x){
+            this.setOrigin = new Point([from.x, to.y]);
+            this.setCorner = new Point([to.x, from.y]);
+
+        // Below and possibly left
+        } else if(to.y > from.y && to.x <= from.x){
+            this.setOrigin = new Point([to.x, from.y]);
+            this.setCorner = new Point([from.x, to.y]);
+
+        // Otherwise this is normal
+        } else {
+            this.setOrigin = new Point([from.x, from.y]);
+            this.setCorner = new Point([to.x, to.y]);
+        }
+
+        // Update cursor
+        this.cursor = from;
+    }
+
+    get leftPoints(){
+        let result = [];
+        for(let y = this.origin.y; y <= this.corner.y; y++){
+            result.push(new Point([this.origin.x, y]));
+        }
+        return result;
+    }
+
+    get rightPoints(){
+        let result = [];
+        for(let y = this.origin.y; y <= this.corner.y; y++){
+            result.push(new Point([this.corner.x, y]));
+        }
+        return result;
+    }
+
+    get topPoints(){
+        let result = [];
+        for(let x = this.origin.x; x <= this.corner.x; x++){
+            result.push(new Point([x, this.origin.y]));
+        }
+        return result;
+    }
+
+    get bottomPoints(){
+        let result = [];
+        for(let x = this.origin.x; x <= this.corner.x; x++){
+            result.push(new Point([x, this.corner.y]));
+        }
+        return result;
+    }
+}
+
 
 class DataFrame extends Frame {
     constructor(origin, corner){
@@ -312,4 +393,9 @@ class DataFrame extends Frame {
 }
 
 
-export {Point, Frame, DataFrame}
+export {
+    Point,
+    Frame,
+    SelectionFrame,
+    DataFrame
+}

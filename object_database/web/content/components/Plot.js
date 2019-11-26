@@ -71,6 +71,8 @@ class Plot extends Component {
     setupPlot(){
         // TODO These are global var defined in page.html
         // we should do something about this.
+        var ownId = this.props.id;
+
         var plotDiv = document.getElementById('plot' + this.props.id);
         Plotly.plot(
             plotDiv,
@@ -97,7 +99,7 @@ class Plot extends Component {
 
                 let responseData = {
                     'event':'plot_layout',
-                    'target_cell': '__identity__',
+                    'target_cell': ownId,
                     'data': eventdata
                 };
                 cellSocket.sendString(JSON.stringify(responseData));

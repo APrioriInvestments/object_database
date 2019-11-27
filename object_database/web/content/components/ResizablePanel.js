@@ -57,11 +57,9 @@ class ResizablePanel extends Component {
 
     makeFirstChild(){
         let inner = this.renderChildNamed('first');
-        let flexStyle = `flex: ${this.props.ratio};flex-basis:fill;`;
         return (
             h('div', {
                 class: 'resizable-panel-item',
-                style: flexStyle,
                 'data-resizable-panel-item-id': `panel-item-${this.props.id}`
             }, [inner])
         );
@@ -69,13 +67,11 @@ class ResizablePanel extends Component {
 
     makeSecondChild(){
         let inner = this.renderChildNamed('second');
-        let flexStyle = `flex: ${1 - this.props.ratio};flex-basis:fill;`;
         // Our panel items must be uniquely identifiable in order to properly insert
         // the resize splitter. See the .afterCreate().
         return (
             h('div', {
                 class: 'resizable-panel-item',
-                style: flexStyle,
                 'data-resizable-panel-item-id': `panel-item-${this.props.id}`
             }, [inner])
         );
@@ -95,6 +91,10 @@ class ResizablePanel extends Component {
         // required by the Splitjs library, so we need
         // to case them out and provide the opposite as
         // a Splitjs constructor option
+        let sizes = [
+            (this.props.ratio * 100),
+            ((1 - this.props.ratio) * 100)
+        ];
         let reverseDirection = 'horizontal';
         if(this.props.split == 'horizontal'){
             reverseDirection = 'vertical';
@@ -102,7 +102,8 @@ class ResizablePanel extends Component {
         element._splitter = new Split(
             element.querySelectorAll(`div[data-resizable-panel-item-id=panel-item-${this.props.id}]`),
             {
-                direction: reverseDirection
+                direction: reverseDirection,
+                sizes: sizes
             }
         );
     }

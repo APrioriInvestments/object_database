@@ -36,3 +36,25 @@ class BasicVResizePanel(CellsTestPage):
 
     def text(self):
         return "You should see a horizontally-plit resizable panel of two cards"
+
+
+class InVertSequence(CellsTestPage):
+    def cell(self):
+        return cells.ResizablePanel(
+            cells.Card(cells.Text("First")), cells.Card(cells.Text("Second"))
+        ) + cells.Text("boo")
+
+    def text(self):
+        return "Should see ResizablePanel in a Sequence with text at bottom"
+
+
+class InVertSequenceFlexed(CellsTestPage):
+    def cell(self):
+        return cells.Flex(
+            cells.ResizablePanel(
+                cells.Card(cells.Text("First")), cells.Card(cells.Text("Second"))
+            )
+        ) + cells.Text("boo")
+
+    def text(self):
+        return "Should see ResizablePanel flexed in Sequence with text"

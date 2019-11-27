@@ -88,7 +88,7 @@ class Sheet extends Component {
         this.locked_column_frame = new Frame([0, 0], [0, 0]);
         this.locked_row_frame = new Frame([0, 0], [0, 0]);
         if (this.props.numLockColumns > 0){
-            this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 2]);
+            this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1]);
             // this.locked_row_offset.y = this.;
             this.view_frame_offset.x = this.props.numLockColumns;
             // this.locked_column_offset.x = this.props.numLockColumns;
@@ -99,9 +99,9 @@ class Sheet extends Component {
         }
         // this.locked_row_frame.origin.x = this.locked_column_frame.size.x;
         // this.locked_column_frame.origin.y = this.locked_row_frame.size.y;
-        this.fixed_view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 2]);
+        this.fixed_view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
         // view frame accounts for locked column/row frames
-        this.view_frame = new Frame(this.view_frame_offset, [this.max_num_columns - 1, this.max_num_rows - 2]);
+        this.view_frame = new Frame(this.view_frame_offset, [this.max_num_columns - 1, this.max_num_rows - 1]);
         if (this.props.dontFetch != true){
             this.fetchData(
                 this.fixed_view_frame, // we get all the data we need for now
@@ -138,7 +138,7 @@ class Sheet extends Component {
         // now set the max column/row attributes
         this.max_num_columns = max_num_columns;
         this.max_num_rows = max_num_rows;
-        this.fixed_view_frame.setCorner = [this.max_num_columns - 1, this.max_num_rows - 2];
+        this.fixed_view_frame.setCorner = [this.max_num_columns - 1, this.max_num_rows - 1];
         this.view_frame.corner.x += max_columns_diff;
         this.view_frame.corner.y += max_rows_diff;
         this.fetchData(
@@ -248,8 +248,6 @@ class Sheet extends Component {
         // TODO eventually pass this as an argument or set as an attrubute on the class
         let body = document.getElementById(`sheet-${this.props.id}-body`);
         let head = document.getElementById(`sheet-${this.props.id}-head`);
-        // make sure that we have an active target
-        // otherwise there is no root for navigation
         // console.log(event.key + event.altKey);
         if (["PageUp", "PageDown"].indexOf(event.key) > -1){
             this.pageUpDown(body, event);
@@ -343,19 +341,23 @@ class Sheet extends Component {
     arrowUpDownLeftRight(body, event){
         event.preventDefault();
         if (event.ctrlKey){
+            // This is sheet level navigation
+            // Go to top of the sheet
             if (event.key === "ArrowUp"){
                 this.view_frame.origin.y = this.view_frame_offset.y;
-                this.view_frame.corner.y = this.max_num_rows - 2;
+                this.view_frame.corner.y = this.max_num_rows - 1;
                 if (this.locked_column_frame.dim){
-                    this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 2]);
+                    this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1]);
                     this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
                     this.fetchData(
                         this.locked_column_frame,
                         "update",
                     );
                 }
+            // Go to bottom of the sheet
             } else if (event.key === "ArrowDown"){
-                this.view_frame.origin.y = this.totalRows - this.view_frame.size.y + 1;
+                console.log(this.totalRows);
+                this.view_frame.origin.y = this.totalRows - this.max_num_rows + 1;
                 this.view_frame.corner.y = this.totalRows - 1;
                 if (this.locked_column_frame.dim){
                     this.locked_column_frame = new Frame(
@@ -367,6 +369,7 @@ class Sheet extends Component {
                         "update",
                     );
                 }
+            // Go to the right of the sheet
             } else if (event.key === "ArrowRight"){
                 this.view_frame.origin.x = this.totalColumns - this.view_frame.size.x;
                 this.view_frame.corner.x = this.totalColumns - 1;
@@ -380,6 +383,7 @@ class Sheet extends Component {
                         "update",
                     );
                 }
+            // Go to the left of the sheet
             } else if (event.key === "ArrowLeft"){
                 this.view_frame.origin.x = this.view_frame_offset.x;
                 this.view_frame.corner.x = this.max_num_columns - 1;
@@ -397,7 +401,10 @@ class Sheet extends Component {
                 this.view_frame,
                 "update",
             );
+            // console.log(this.view_frame.size);
+            // console.log(this.view_frame);
         } else if (this.active_frame){
+            // Navigation of the active_frame
             if (event.key === "ArrowUp"){
                 let shift = [0, -1] // y-axis is rows
                 // if the top of this.active_frame is at the top of this.view_frame
@@ -732,7 +739,8 @@ class Sheet extends Component {
      * rows, columns, respecitively and then add a bit more for lazy loading.
      */
     _calc_max_num_rows(max_height){
-        return Math.min(this.totalRows, Math.ceil(max_height/this.props.rowHeight));
+        // NOTE: we account for the header row
+        return Math.min(this.totalRows, Math.ceil(max_height/this.props.rowHeight)) - 1;
     }
 
     _calc_max_num_columns(max_width){

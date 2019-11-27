@@ -357,7 +357,7 @@ class Sheet extends Component {
             // Go to bottom of the sheet
             } else if (event.key === "ArrowDown"){
                 console.log(this.totalRows);
-                this.view_frame.origin.y = this.totalRows - this.max_num_rows + 1;
+                this.view_frame.origin.y = this.view_frame_offset.y + this.totalRows - this.max_num_rows + 1;
                 this.view_frame.corner.y = this.totalRows - 1;
                 if (this.locked_column_frame.dim){
                     this.locked_column_frame = new Frame(

@@ -12,6 +12,7 @@
  * with resizing and dragging items.
  */
 import {Component} from './Component';
+import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 import Split from 'split.js';
 
@@ -56,9 +57,11 @@ class ResizablePanel extends Component {
 
     makeFirstChild(){
         let inner = this.renderChildNamed('first');
+        let flexStyle = `flex: ${this.props.ratio};flex-basis:fill;`;
         return (
             h('div', {
                 class: 'resizable-panel-item',
+                style: flexStyle,
                 'data-resizable-panel-item-id': `panel-item-${this.props.id}`
             }, [inner])
         );
@@ -66,11 +69,13 @@ class ResizablePanel extends Component {
 
     makeSecondChild(){
         let inner = this.renderChildNamed('second');
+        let flexStyle = `flex: ${1 - this.props.ratio};flex-basis:fill;`;
         // Our panel items must be uniquely identifiable in order to properly insert
         // the resize splitter. See the .afterCreate().
         return (
             h('div', {
                 class: 'resizable-panel-item',
+                style: flexStyle,
                 'data-resizable-panel-item-id': `panel-item-${this.props.id}`
             }, [inner])
         );
@@ -108,5 +113,16 @@ class ResizablePanel extends Component {
         }
     }
 }
+
+ResizablePanel.propTypes = {
+    split: {
+        type: PropTypes.oneOf(["horizontal", "vertical"]),
+        description: "Axis along with the panel is split"
+    },
+    ratio: {
+        type: PropTypes.number,
+        description: "Flex ratio for first child item"
+    }
+};
 
 export {ResizablePanel, ResizablePanel as default};

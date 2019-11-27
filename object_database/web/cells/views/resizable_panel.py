@@ -8,7 +8,7 @@ from ..cells import Cell
 
 
 class ResizablePanel(Cell):
-    def __init__(self, first, second, split="vertical"):
+    def __init__(self, first, second, split="vertical", ratio=0.5):
         """
         Parameters
         ----------
@@ -18,17 +18,22 @@ class ResizablePanel(Cell):
                 display, right or bottom dep. on axis
         split - Along which axis to split the view.
                 defaults to vertical
+        ratio - The ratio for the *first* child item.
+                Note that the ratio for the second item
+                will be calc(1 - ratio)
         """
         super().__init__()
         self.first = first
         self.second = second
         self.split = split
+        self.ratio = ratio
         self.exportData["split"] = split
         self.updateNamedChildren()
 
     def recalculate(self):
         self.updateNamedChildren()
         self.exportData["split"] = self.split
+        self.exportData["ratio"] = self.ratio
 
     def updateNamedChildren(self):
         self.children.addFromDict(

@@ -318,7 +318,7 @@ class SelectionFrame extends Frame {
         this.fromPointToPoint = this.fromPointToPoint.bind(this);
     }
 
-    fromPointToPoint(from, to){
+    fromPointToPoint(from, to, updateCursor = true){
         // If the destination point is behind
         // the from point in some way, then we calc
         // new values for origin.
@@ -351,7 +351,9 @@ class SelectionFrame extends Frame {
         }
 
         // Update cursor
-        this.cursor = from;
+        if(updateCursor){
+            this.cursor = from;
+        }
     }
 
     translate(xy){
@@ -462,6 +464,7 @@ class Selector {
         this.clearStyling = this.clearStyling.bind(this);
         this.addStyling = this.addStyling.bind(this);
         this.fromPointToPoint = this.fromPointToPoint.bind(this);
+        this.applyToOppositeCorner = this.applyToOppositeCorner.bind(this);
         this.shrinkToCursor = this.shrinkToCursor.bind(this);
         this.triggerNeedsUpdate = this.triggerNeedsUpdate.bind(this);
         this.isAtViewTop = this.isAtViewTop.bind(this);
@@ -472,6 +475,10 @@ class Selector {
         this.shiftRight = this.shiftRight.bind(this);
         this.shiftDown = this.shiftDown.bind(this);
         this.shiftLeft = this.shiftLeft.bind(this);
+        this.growUp = this.growUp.bind(this);
+        this.growRight = this.growRight.bind(this);
+        this.growDown = this.growDown.bind(this);
+        this.growLeft = this.growLeft.bind(this);
         this.cursorTo = this.cursorTo.bind(this);
         this.cursorUp = this.cursorUp.bind(this);
         this.cursorRight = this.cursorRight.bind(this);
@@ -572,6 +579,80 @@ class Selector {
         this.addStyling();
     }
 
+    applyToOppositeCorner(diffCoord){
+        if(this.selectionFrame.cursor.equals(this.selectionFrame.origin)){
+            return new Point([
+                this.selectionFrame.corner.x + diffCoord[0],
+                this.selectionFrame.corner.y + diffCoord[1]
+            ]);
+        } else if(this.selectionFrame.cursor.equals(this.selectionFrame.corner)){
+            return new Point([
+                this.selectionFrame.origin.x + diffCoord[0],
+                this.selectionFrame.origin.y + diffCoord[1]
+            ]);
+        } else if(this.selectionFrame.cursor.equals(this.selectionFrame.bottomLeft)){
+            return new Point([
+                this.selectionFrame.topRight.x + diffCoord[0],
+                this.selectionFrame.topRight.y + diffCoord[1]
+            ]);
+        } else if(this.selectionFrame.cursor.equals(this.selectionFrame.topRight)){
+            return new Point([
+                this.selectionFrame.bottomLeft.x + diffCoord[0],
+                this.selectionFrame.bottomLeft.y + diffCoord[1]
+            ]);
+        } else {
+            throw new Error('Selection cursor not in a valid selection corner:', this.selectionFrame);
+        }
+    }
+
+    growUp(){
+        if(!this.isAtViewTop()){
+            let diff = [0, -1];
+            let toPoint = this.applyToOppositeCorner(diff);
+            this.fromPointToPoint(
+                this.selectionFrame.cursor,
+                toPoint,
+                false
+            );
+        }
+    }
+
+    growRight(){
+        if(!this.isAtViewRight()){
+            let diff = [1, 0];
+            let toPoint = this.applyToOppositeCorner(diff);
+            this.fromPointToPoint(
+                this.selectionFrame.cursor,
+                toPoint,
+                false
+            );
+        }
+    }
+
+    growDown(){
+        if(!this.isAtViewBottom()){
+            let diff = [0, 1];
+            let toPoint = this.applyToOppositeCorner(diff);
+            this.fromPointToPoint(
+                this.selectionFrame.cursor,
+                toPoint,
+                false
+            );
+        }
+    }
+
+    growLeft(){
+        if(!this.isAtViewLeft()){
+            let diff = [-1, 0];
+            let toPoint = this.applyToOppositeCorner(diff);
+            this.fromPointToPoint(
+                this.selectionFrame.cursor,
+                toPoint,
+                false
+            );
+        }
+    }
+
     cursorUp(){
         this.shiftUp(1, true);
     }
@@ -651,9 +732,9 @@ class Selector {
         }
     }
 
-    fromPointToPoint(from, to){
+    fromPointToPoint(from, to, updateCursor = true){
         this.clearStyling();
-        this.selectionFrame.fromPointToPoint(from, to);
+        this.selectionFrame.fromPointToPoint(from, to, updateCursor);
         this.addStyling();
     }
 

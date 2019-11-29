@@ -56,7 +56,6 @@ class Sheet extends Component {
         // Point
         this.view_frame_offset = new Point([0, 0]);
         // active_frame defines the user's currently selected cells. It lives exclusively inside the view_frame
-        this.active_frame = null;
         this.selector = new Selector(this);
         this.selector.onNeedsUpdate = this.handleSelectorUpdate.bind(this);
         // this is our core data frame, containing all table data values
@@ -75,7 +74,6 @@ class Sheet extends Component {
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleClick = this.handleClick.bind(this);
-        this.handleMouseover = this.handleMouseover.bind(this);
         this.handleTableMouseleave = this.handleTableMouseleave.bind(this);
         this.handleCellMousedown = this.handleCellMousedown.bind(this);
         this.handleCellMouseup = this.handleCellMouseup.bind(this);
@@ -83,8 +81,6 @@ class Sheet extends Component {
         this.handleSelectorUpdate = this.handleSelectorUpdate.bind(this);
         this.arrowUpDownLeftRight = this.arrowUpDownLeftRight.bind(this);
         this.pageUpDown = this.pageUpDown.bind(this);
-        this._updateActiveElement = this._updateActiveElement.bind(this);
-        this._createActiveElement = this._createActiveElement.bind(this);
         this._updateHeader = this._updateHeader.bind(this);
         this._addLockedElements = this._addLockedElements.bind(this);
         this._removeLockedElements = this._removeLockedElements.bind(this);
@@ -257,7 +253,7 @@ class Sheet extends Component {
                     tabindex: "-1",
                     onkeydown: this.handleKeyDown,
                     onclick: this.handleClick,
-                    onmouseover: this.handleMouseover,
+                    onmouseover: this.handleCellMouseover,
                     onmousedown: this.handleCellMousedown,
                     onmouseup: this.handleCellMouseup,
                     onmouseleave: this.handleTableMouseleave
@@ -546,6 +542,7 @@ class Sheet extends Component {
             );
         } else if (this.selector){
             if (event.key === "ArrowUp"){
+                event.preventDefault();
                 this.selector.cursorUp();
             } else if (event.key === "ArrowDown"){
                 event.preventDefault();
@@ -599,19 +596,16 @@ class Sheet extends Component {
             return;
         }
 
-        this._createActiveElement(body, target);
         // display the contents in the top header line
         this._updateHeader(body, head);
     }
 
     /* I handle updates to the display header */
     _updateHeader(body, head){
-        if (this.active_frame){
-            let origin = this.active_frame.origin;
-            let td = body.querySelector(`#${this._coordToId("td", [origin.x, origin.y])}`);
-            let th = head.querySelector(`#sheet-${this.props.id}-head-current`);
-            th.textContent = `(${td.dataset.x},${td.dataset.y}): ${td.textContent}`;
-        }
+        let origin = this.selector.selectionFrame.corner;
+        let td = body.querySelector(`#${this._coordToId("td", [origin.x, origin.y])}`);
+        let th = head.querySelector(`#sheet-${this.props.id}-head-current`);
+        th.textContent = `(${td.dataset.x}x${td.dataset.y}): ${td.textContent}`;
     }
 
     /* I listen for a mouseover event on a table element and and display the element
@@ -636,7 +630,6 @@ class Sheet extends Component {
     handleTableMouseleave(event){
         this.is_selecting = false;
     }
-    **/
 
     /* I covert a string of the form `nodeName_id_x_y` to [x, y] */
     _idToCoord(s){

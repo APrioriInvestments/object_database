@@ -500,7 +500,7 @@ class Sheet extends Component {
                 if (this.locked_column_frame.dim){
                     this.locked_column_frame.origin.y = this.view_frame_offset.y + this.totalRows - this.max_num_rows + 1;
                     this.locked_column_frame.corner.y = this.totalRows - 1;
-                    console.log(this.locked_column_frame)
+                    console.log(this.locked_column_frame);
                     console.log(this.locked_column_offset);
                     this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
                     this.fetchData(
@@ -543,16 +543,32 @@ class Sheet extends Component {
         } else if (this.selector){
             if (event.key === "ArrowUp"){
                 event.preventDefault();
-                this.selector.cursorUp();
+                if(event.shiftKey){
+                    this.selector.growUp();
+                } else {
+                    this.selector.cursorUp();
+                }
             } else if (event.key === "ArrowDown"){
                 event.preventDefault();
-                this.selector.cursorDown();
+                if(event.shiftKey){
+                    this.selector.growDown();
+                } else {
+                    this.selector.cursorDown();
+                }
             } else if (event.key === "ArrowLeft"){
                 event.preventDefault();
-                this.selector.cursorLeft();
+                if(event.shiftKey){
+                    this.selector.growLeft();
+                } else {
+                    this.selector.cursorLeft();
+                }
             } else if (event.key === "ArrowRight"){
                 event.preventDefault();
-                this.selector.cursorRight();
+                if(event.shiftKey){
+                    this.selector.growRight();
+                } else {
+                    this.selector.cursorRight();
+                }
             }
         }
     }
@@ -578,10 +594,14 @@ class Sheet extends Component {
         // information.
         if(this.is_selecting){
             let target_coord = this._idToCoord(event.target.id);
-            this.selector.fromPointToPoint(
-                this.selector.selectionFrame.cursor,
-                target_coord
-            );
+            let in_locked_column = this.locked_column_frame.contains(target_coord);
+            let in_locked_row = this.locked_row_frame.contains(target_coord);
+            if(!in_locked_column && !in_locked_row){
+                this.selector.fromPointToPoint(
+                    this.selector.selectionFrame.cursor,
+                    target_coord
+                );
+            }
         }
     }
 
@@ -635,7 +655,7 @@ class Sheet extends Component {
     _idToCoord(s){
         let s_list = s.split("_");
         try {
-            return [parseInt(s_list[2]), parseInt(s_list[3])]
+            return [parseInt(s_list[2]), parseInt(s_list[3])];
         } catch(e) {
             throw "unable to covert id " + s + " to coordinate, with error: " + e;
         }
@@ -650,7 +670,7 @@ class Sheet extends Component {
             // let y = p.y + offset.y;
             let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
             td.className += " locked";
-        })
+        });
     }
 
     /* I take all coordinates in provided frame and style the corresponding 'td' DOM
@@ -660,7 +680,7 @@ class Sheet extends Component {
         frame.coords.map((p) => {
             let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
             td.className += td.className.replace(" locked", "");
-        })
+        });
     }
 
     /* I covert a coord [x, y] array to a string of the form `nodeName_id_x_y`*/
@@ -715,7 +735,7 @@ class Sheet extends Component {
      */
     _updateData(dataInfos, projector) {
         dataInfos.map((dataInfo) => {
-            console.log("updating data for sheet: " + this.props.id + " with response id " + dataInfo.response_id)
+            console.log("updating data for sheet: " + this.props.id + " with response id " + dataInfo.response_id);
             // make sure the data is not empty
             let body = document.getElementById(`sheet-${this.props.id}-body`);
             let head = document.getElementById(`sheet-${this.props.id}-head`);

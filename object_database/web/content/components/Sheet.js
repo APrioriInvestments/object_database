@@ -88,14 +88,16 @@ class Sheet extends Component {
         this.locked_column_frame = new Frame([0, 0], [0, 0]);
         this.locked_row_frame = new Frame([0, 0], [0, 0]);
         if (this.props.numLockColumns > 0){
-            this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1]);
-            // this.locked_row_offset.y = this.;
             this.view_frame_offset.x = this.props.numLockColumns;
-            // this.locked_column_offset.x = this.props.numLockColumns;
+            this.locked_row_frame.origin.x = this.props.numLockColumns;
+            this.locked_row_offset.x = this.props.numLockColumns;
+            this.locked_column_frame.setCorner = [this.props.numLockColumns - 1, this.max_num_rows - 1];
         }
         if (this.props.numLockRows > 0){
-            this.locked_row_frame = new Frame([0, 0], [this.max_num_columns - 1, this.props.numLockRows - 1]);
             this.view_frame_offset.y = this.props.numLockRows;
+            this.locked_column_frame.origin.y = this.props.numLockRows;
+            this.locked_column_offset.y = this.props.numLockRows;
+            this.locked_row_frame.setCorner = [this.max_num_columns - 1, this.props.numLockRows - 1];
         }
         // this.locked_row_frame.origin.x = this.locked_column_frame.size.x;
         // this.locked_column_frame.origin.y = this.locked_row_frame.size.y;
@@ -203,11 +205,15 @@ class Sheet extends Component {
         rows.map((r) => {
             projector.append(body, () => {return r});
         })
-        if (this.locked_column_frame.dim > 0){
+        if (this.locked_column_frame.dim){
             this._addLockedElements(body, this.locked_column_frame);
         }
-        if (this.locked_row_frame.dim > 0){
+        if (this.locked_row_frame.dim){
             this._addLockedElements(body, this.locked_row_frame);
+        }
+        if (this.locked_row_frame.dim && this.locked_column_frame.dim){
+            let locked_overlap_frame = new Frame([0, 0], [this.locked_column_frame.size.x - 1, this.locked_row_frame.size.y - 1]);
+            this._addLockedElements(body, locked_overlap_frame);
         }
     }
 
@@ -251,11 +257,13 @@ class Sheet extends Component {
         // console.log(event.key + event.altKey);
         if (["PageUp", "PageDown"].indexOf(event.key) > -1){
             this.pageUpDown(body, event);
+            // display the contents in the top header line
+            this._updateHeader(body, head);
         } else if(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(event.key) > -1) {
             this.arrowUpDownLeftRight(body, event);
+            // display the contents in the top header line
+            this._updateHeader(body, head);
         }
-        // display the contents in the top header line
-        this._updateHeader(body, head);
     }
 
     /* I handle page Up/Down of the view */
@@ -347,7 +355,8 @@ class Sheet extends Component {
                 this.view_frame.origin.y = this.view_frame_offset.y;
                 this.view_frame.corner.y = this.max_num_rows - 1;
                 if (this.locked_column_frame.dim){
-                    this.locked_column_frame = new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1]);
+                    this.locked_column_frame.origin.y = this.view_frame_offset.y;
+                    this.locked_column_frame.corner.y = this.max_num_rows - 1;
                     this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
                     this.fetchData(
                         this.locked_column_frame,
@@ -356,13 +365,13 @@ class Sheet extends Component {
                 }
             // Go to bottom of the sheet
             } else if (event.key === "ArrowDown"){
-                console.log(this.totalRows);
                 this.view_frame.origin.y = this.view_frame_offset.y + this.totalRows - this.max_num_rows + 1;
                 this.view_frame.corner.y = this.totalRows - 1;
                 if (this.locked_column_frame.dim){
-                    this.locked_column_frame = new Frame(
-                        [0, this.totalRows - this.locked_column_frame.size.y + 1],
-                        [this.props.numLockColumns - 1, this.totalRows - 1]);
+                    this.locked_column_frame.origin.y = this.view_frame_offset.y + this.totalRows - this.max_num_rows + 1;
+                    this.locked_column_frame.corner.y = this.totalRows - 1;
+                    console.log(this.locked_column_frame)
+                    console.log(this.locked_column_offset);
                     this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
                     this.fetchData(
                         this.locked_column_frame,
@@ -371,12 +380,11 @@ class Sheet extends Component {
                 }
             // Go to the right of the sheet
             } else if (event.key === "ArrowRight"){
-                this.view_frame.origin.x = this.totalColumns - this.view_frame.size.x;
+                this.view_frame.origin.x = this.view_frame_offset.x + this.totalColumns - this.max_num_columns;
                 this.view_frame.corner.x = this.totalColumns - 1;
                 if (this.locked_row_frame.dim){
-                    this.locked_row_frame = new Frame(
-                        [this.totalColumns - this.locked_row_frame.size.x, 0],
-                        [this.totalColumns - 1, this.props.numLockRows - 1]);
+                    this.locked_row_frame.origin.x = this.view_frame_offset.x + this.totalColumns - this.max_num_columns;
+                    this.locked_row_frame.corner.x = this.totalColumns - 1;
                     this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
                     this.fetchData(
                         this.locked_row_frame,
@@ -388,7 +396,8 @@ class Sheet extends Component {
                 this.view_frame.origin.x = this.view_frame_offset.x;
                 this.view_frame.corner.x = this.max_num_columns - 1;
                 if (this.locked_row_frame.dim){
-                    this.locked_row_frame = new Frame([0, 0], [this.max_num_columns - 1, this.props.numLockRows - 1]);
+                    this.locked_row_frame.origin.x = this.view_frame_offset.x;
+                    this.locked_row_frame.corner.x = this.max_num_columns - 1;
                     this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
                     this.fetchData(
                         this.locked_row_frame,
@@ -541,10 +550,12 @@ class Sheet extends Component {
 
     /* I handle updates to the display header */
     _updateHeader(body, head){
-        let origin = this.active_frame.origin;
-        let td = body.querySelector(`#${this._coordToId("td", [origin.x, origin.y])}`);
-        let th = head.querySelector(`#sheet-${this.props.id}-head-current`);
-        th.textContent = `(${td.dataset.x}x${td.dataset.y}): ${td.textContent}`;
+        if (this.active_frame){
+            let origin = this.active_frame.origin;
+            let td = body.querySelector(`#${this._coordToId("td", [origin.x, origin.y])}`);
+            let th = head.querySelector(`#sheet-${this.props.id}-head-current`);
+            th.textContent = `(${td.dataset.x},${td.dataset.y}): ${td.textContent}`;
+        }
     }
 
     /* I listen for a mouseover event on a table element and and display the element
@@ -616,6 +627,8 @@ class Sheet extends Component {
      */
     _addLockedElements(body, frame){
         frame.coords.map((p) => {
+            // let x = p.x + offset.x;
+            // let y = p.y + offset.y;
             let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
             td.className += " locked";
         })
@@ -709,7 +722,12 @@ class Sheet extends Component {
                 if (this.locked_row_frame.dim > 0){
                     this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
                 }
+                if (this.locked_column_frame.dim && this.locked_row_frame.dim){
+                    let locked_overlap_frame = new Frame([0, 0], [this.locked_column_frame.size.x - 1, this.locked_row_frame.size.y - 1]);
+                    this._updatedDisplayValues(body, locked_overlap_frame, new Point([0, 0]));
+                }
                 this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
+                this._updateHeader(body, head);
             }
         })
     }

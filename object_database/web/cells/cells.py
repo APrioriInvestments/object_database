@@ -227,6 +227,17 @@ class Cells:
 
         self._dirtyComputedSlots = set()
 
+    def cleanupCells(self):
+        """Walk down the tree calling 'onRemovedFromTree' so that our cells can GC any
+        outstanding threads or downloaders they have sitting around."""
+
+        def walk(cell):
+            cell.onRemovedFromTree()
+            for child in cell.children.allChildren:
+                walk(child)
+
+        walk(self._root)
+
     def _processCallbacks(self):
         """Execute any callbacks that have been scheduled to run on the main UI thread."""
         try:
@@ -368,6 +379,8 @@ class Cells:
         self._nodesToDiscard.add(cell)
         # TODO: lifecycle attribute; see cell.updateLifecycleState()
         cell.wasRemoved = True
+
+        cell.onRemovedFromTree()
 
     def markToBroadcast(self, node):
         assert node.cells is self
@@ -805,6 +818,11 @@ class Cell:
         # components will need to know about
         # when composing DOM.
         self.exportData = {}
+
+    def onRemovedFromTree(self):
+        """Called when a cell is removed from the tree. This shouldn't update any slots,
+        but may schedule callbacks."""
+        pass
 
     def subscribedSlotChanged(self, slot):
         """Called when a slot we're subscribed to changes."""
@@ -1919,7 +1937,7 @@ class ContextualDisplay(Cell):
 
 
 class Subscribed(Cell):
-    def __init__(self, cellFactory, childIdentity=0):
+    def __init__(self, cellFactory, childIdentity=0, onRemoved=None):
         super().__init__()
 
         # a function of no arguments that proces a cell.
@@ -1927,6 +1945,14 @@ class Subscribed(Cell):
         # when to recalculate the element.
         self.cellFactory = cellFactory
         self.childIdentity = childIdentity
+        self.onRemovedCallback = onRemoved
+
+    def onRemovedFromTree(self):
+        if self.onRemovedCallback is not None:
+            try:
+                self.onRemovedCallback()
+            except Exception:
+                logging.exception("Subscribed onRemoved callback failed.")
 
     def identityOfChild(self, child):
         return self.childIdentity

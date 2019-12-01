@@ -415,6 +415,8 @@ class ActiveWebService(ServiceBase):
             if reader:
                 reader.join()
 
+            cells.cleanupCells()
+
     def _getSessionState(self, sessionId):
         if sessionId is None:
             sessionState = SessionState()

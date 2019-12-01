@@ -14,11 +14,12 @@
 
 """message_bus
 
-Classes for maintaining a stronlyg-typed message bus over sockets,
+Classes for maintaining a strongly-typed message bus over sockets,
 along with classes to simulate this in tests.
 """
 
 import ssl
+import time
 import threading
 import queue
 import struct
@@ -26,6 +27,7 @@ import logging
 import select
 import os
 import socket
+import sortedcontainers
 
 from typed_python import Alternative, NamedTuple, TypeFunction, serialize, deserialize
 
@@ -262,6 +264,12 @@ class MessageBus(object):
         self._outputThread.daemon = True
         self._wantsSSL = wantsSSL
 
+        # a set of (timestamp, callback) pairs of callbacks we're supposed
+        # to fire on the output thread.
+        self._pendingTimedCallbacks = sortedcontainers.SortedSet(
+            key=lambda tsAndCallback: tsAndCallback[0]
+        )
+
     def setMaxWriteQueueSize(self, queueSize):
         """Insist that we block any _sending_ threads if our outgoing queue gets too large."""
         self._messagesToSendQueue.setMaxBytes(queueSize)
@@ -355,6 +363,27 @@ class MessageBus(object):
         self._wakeOutputThreadIfAsleep()
 
         return connId
+
+    def scheduleCallback(self, callback, *, atTimestamp=None, delay=None):
+        """Schedule a callback to fire on the message read thread.
+
+        Use 'delay' or 'atTimestamp' to decide when the callback runs, or
+        use neither to mean 'immediately'. You can't use both.
+
+        Args:
+            atTimestamp - the earliest posix timestamp to run the callback on
+            delay - the amount of time until we fire the callback.
+        """
+        with self._lock:
+            assert atTimestamp is None or delay is None
+
+            if atTimestamp is None:
+                atTimestamp = time.time() + (delay or 0.0)
+
+            self._pendingTimedCallbacks.add((atTimestamp, callback))
+
+            if self._pendingTimedCallbacks[0][0] == atTimestamp:
+                self._wakeOutputThreadIfAsleep()
 
     def sendMessage(self, connectionId, message):
         """Send a message to another endpoint endpoint.
@@ -714,6 +743,29 @@ class MessageBus(object):
 
             return False
 
+    def consumeCallbacksOnOutputThread(self):
+        """Execute any waiting callbacks that are scheduled for now.
+
+        Returns:
+            None if no additional callbacks are pending, or the amount of time
+            to the next scheduled callback.
+        """
+        while True:
+            with self._lock:
+                t0 = time.time()
+
+                if self._pendingTimedCallbacks and self._pendingTimedCallbacks[0][0] <= t0:
+                    _, callback = self._pendingTimedCallbacks.pop(0)
+                else:
+                    if self._pendingTimedCallbacks:
+                        return max(self._pendingTimedCallbacks[0][0] - t0, 0.0)
+                    return
+
+            try:
+                callback()
+            except Exception:
+                logging.exception(f"User callback {callback} threw unexpected exception:")
+
     def _outThreadLoop(self):
         context = sslContextFromCertPathOrNone(self._certPath)
         socketToBytes = {}  # socket -> bytes that need to be written
@@ -749,42 +801,54 @@ class MessageBus(object):
                     or self.totalBytesPendingInOutputLoop < self._messagesToSendQueue.maxBytes
                 )
 
+                # before going to sleep, flush any callbacks that need to fire. Note that
+                # we do this only if we're allowed to read messages also
+                if canRead:
+                    maxSleepTime = self.consumeCallbacksOnOutputThread()
+
                 readReady, writeReady = select.select(
-                    [self._outThreadWakePipe[0]] if canRead else [], socketToBytes, []
+                    [self._outThreadWakePipe[0]] if canRead else [],
+                    socketToBytes,
+                    [],
+                    maxSleepTime,
                 )[:2]
 
                 if readReady:
-                    connectionAndMsg = self._messagesToSendQueue.get()
+                    try:
+                        connectionAndMsg = self._messagesToSendQueue.get(timeout=0.0)
+                    except queue.Empty:
+                        connectionAndMsg = None
+
+                    assert os.read(self._outThreadWakePipe[0], 1) == b" "
 
                     if connectionAndMsg is Disconnected:
                         return
 
-                    assert os.read(self._outThreadWakePipe[0], 1) == b" "
+                    if connectionAndMsg is not None:
+                        connId, msg = connectionAndMsg
 
-                    connId, msg = connectionAndMsg
+                        if msg is TriggerDisconnect:
+                            # take this message, and make sure we never put this
+                            # socket in the selectloop again.
+                            if connId in socketToBytes:
+                                del socketToBytes[connId]
 
-                    if msg is TriggerDisconnect:
-                        # take this message, and make sure we never put this
-                        # socket in the selectloop again.
-                        if connId in socketToBytes:
-                            del socketToBytes[connId]
+                            with self._lock:
+                                self._currentlyClosingConnections.add(connId)
 
-                        with self._lock:
-                            self._currentlyClosingConnections.add(connId)
+                            # Then trigger the input loop to remove it and gracefully close it.
+                            self._eventsToFireQueue.put((connId, TriggerDisconnect))
+                            self._wakeInputThreadIfAsleep()
 
-                        # Then trigger the input loop to remove it and gracefully close it.
-                        self._eventsToFireQueue.put((connId, TriggerDisconnect))
-                        self._wakeInputThreadIfAsleep()
+                        elif msg is TriggerConnect:
+                            # we're supposed to connect to this worker
+                            connected = self._connectTo(context, connId)
 
-                    elif msg is TriggerConnect:
-                        # we're supposed to connect to this worker
-                        connected = self._connectTo(context, connId)
-
-                        # and immediately write the auth token
-                        if connected and self._authToken is not None:
-                            writeBytes(connId, self._authToken.encode("utf8"))
-                    else:
-                        writeBytes(connId, msg)
+                            # and immediately write the auth token
+                            if connected and self._authToken is not None:
+                                writeBytes(connId, self._authToken.encode("utf8"))
+                        else:
+                            writeBytes(connId, msg)
 
                 for writeable in writeReady:
                     try:

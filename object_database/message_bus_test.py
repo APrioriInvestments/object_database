@@ -18,6 +18,7 @@ import threading
 import time
 import os
 
+from flaky import flaky
 from object_database.message_bus import MessageBus
 from object_database.bytecount_limited_queue import BytecountLimitedQueue
 
@@ -160,6 +161,106 @@ class TestMessageBus(unittest.TestCase):
 
         # then queue 1 should see it
         self.assertTrue(self.messageQueue1.get(timeout=1.0).matches.OutgoingConnectionClosed)
+
+    def test_callbacks(self):
+        q = queue.Queue()
+
+        def sender(i):
+            return lambda: q.put(i)
+
+        for i in range(10):
+            self.messageBus1.scheduleCallback(sender(i))
+
+        for i in range(10):
+            self.assertEqual(q.get(timeout=0.1), i)
+
+    def test_callbacks_with_exceptions_are_ok(self):
+        q = queue.Queue()
+
+        def sender(i):
+            return lambda: q.put(i)
+
+        def excepter():
+            assert False
+
+        for i in range(10):
+            self.messageBus1.scheduleCallback(sender(i))
+            self.messageBus1.scheduleCallback(excepter)
+
+        for i in range(10):
+            self.assertEqual(q.get(timeout=0.1), i)
+
+    def test_callbacks_in_odd_ordering(self):
+        q = queue.Queue()
+
+        def sender(i):
+            return lambda: q.put(i)
+
+        def excepter():
+            assert False
+
+        t0 = time.time()
+        for i in range(10):
+            self.messageBus1.scheduleCallback(sender(i), atTimestamp=t0 + 0.05 - i / 1000.0)
+
+        for i in reversed(range(10)):
+            self.assertEqual(q.get(timeout=0.2), i)
+
+    @flaky(max_runs=3, min_passes=1)
+    def test_callbacks_intermixed_with_messages(self):
+        q = queue.Queue()
+
+        def sender(i):
+            return lambda: q.put(i)
+
+        for i in range(100):
+            self.messageBus1.scheduleCallback(sender(i), delay=i / 100.0)
+
+        connId1 = self.messageBus1.connect(("localhost", 8001))
+        connId2 = self.messageBus2.connect(("localhost", 8000))
+        read1 = [0]
+        read2 = [0]
+
+        self.messageBus1.sendMessage(connId1, "A")
+
+        def conn1Reader():
+            while True:
+                msg = self.messageQueue1.get()
+                if msg.matches.Stopped:
+                    return
+                read1[0] += 1
+                try:
+                    self.messageBus1.sendMessage(connId1, "A")
+                except Exception:
+                    return
+
+        def conn2Reader():
+            while True:
+                msg = self.messageQueue2.get()
+                if msg.matches.Stopped:
+                    return
+                read2[0] += 1
+                try:
+                    self.messageBus2.sendMessage(connId2, "A")
+                except Exception:
+                    return
+
+        t1 = threading.Thread(target=conn1Reader)
+        t2 = threading.Thread(target=conn2Reader)
+        t1.start()
+        t2.start()
+
+        for i in range(100):
+            self.assertEqual(q.get(timeout=0.1), i)
+
+        self.messageBus1.stop(timeout=0.2)
+        self.messageBus2.stop(timeout=0.2)
+
+        t1.join()
+        t2.join()
+
+        self.assertGreater(read1[0], 100)
+        self.assertGreater(read2[0], 100)
 
     def test_auth(self):
         # bus1 requires auth

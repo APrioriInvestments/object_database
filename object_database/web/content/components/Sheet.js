@@ -495,6 +495,8 @@ class Sheet extends Component {
                 }
             // Go to bottom of the sheet
             } else if (event.key === "ArrowDown"){
+                console.log(this.fixed_view_frame.size)
+                console.log(this.view_frame.size)
                 this.view_frame.origin.y = this.view_frame_offset.y + this.totalRows - this.max_num_rows + 1;
                 this.view_frame.corner.y = this.totalRows - 1;
                 if (this.locked_column_frame.dim){
@@ -754,6 +756,8 @@ class Sheet extends Component {
                 }
                 // load the data into the data with the provided origin
                 let origin = dataInfo.origin;
+                // clean the sheet to make sure no residual data values left
+                this._updatedDisplayValues(body, this.fixed_view_frame, new Point([0,0]), true);
                 this.data_frame.load(dataInfo.data, [origin.x, origin.y]);
                 if (this.locked_column_frame.dim > 0){
                     this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
@@ -773,7 +777,7 @@ class Sheet extends Component {
 
     /* Update data helpers */
     /* I update the values displayed in the sheet for the provided frame */
-    _updatedDisplayValues(body, frame, offset){
+    _updatedDisplayValues(body, frame, offset, clean=false){
         // the fixed_view_frame coordinates never change and we use the passed frame.origin
         // as the offset, i.e. we are effectively shifting the passed frame to match the
         // fixed view but keeping the 'true' coordintaes to retrieve the data
@@ -783,7 +787,10 @@ class Sheet extends Component {
             let x = p.x - frame.origin.x + offset.x;
             let y = p.y - frame.origin.y + offset.y;
             let td = body.querySelector(`#${this._coordToId("td", [x, y])}`);
-            let d = this.data_frame.get(p);
+            let d = "";
+            if (!clean){
+                d = this.data_frame.get(p);
+            }
             td.textContent = d;
             td.dataset.x = p.x;
             td.dataset.y = p.y;

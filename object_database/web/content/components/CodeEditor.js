@@ -12,7 +12,6 @@ class CodeEditor extends Component {
         this.editor = null;
         // used to schedule regular server updates
         this.SERVER_UPDATE_DELAY_MS = 50;
-        //this.editorStyle = 'width:100%;min-height:100%;margin:auto;border:1px solid lightgray;';
 
         this.onChange = this.onChange.bind(this);
         this.setupEditor = this.setupEditor.bind(this);
@@ -48,7 +47,7 @@ class CodeEditor extends Component {
 
 
             if (this.props.initialText !== null) {
-                this.editor.setValue(this.props.initialText, 1)
+                this.editor.setValue(this.props.initialText, 1);
             }
 
             if (this.props.currentIteration !== null) {
@@ -56,7 +55,7 @@ class CodeEditor extends Component {
             }
 
             if (this.props.initialSelection !== null) {
-                this.editor.selection.setSelectionRange(this.props.initialSelection)
+                this.editor.selection.setSelectionRange(this.props.initialSelection);
             }
 
             if (this.props.autocomplete) {
@@ -93,10 +92,6 @@ class CodeEditor extends Component {
     }
 
     componentDidUpdate(projector){
-        let newEditor = ace.edit(`editor${this.props.id}`);
-        newEditor.setSession(this.editor.session);
-        this.editor = newEditor;
-
         // Replace the placeholder with the cached
         // DOM element
         let placeholder = document.getElementById(`placeholder-${this.props.id}`);
@@ -105,6 +100,9 @@ class CodeEditor extends Component {
         } else {
             throw new Error(`Could not find replacement node for ${this.name}[${this.props.id}]`);
         }
+        let newEditor = ace.edit(`editor${this.props.id}`);
+        newEditor.setSession(this.editor.session);
+        this.editor = newEditor;
     }
 
 

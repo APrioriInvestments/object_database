@@ -312,3 +312,23 @@ def MarginSides(amount, cell=None):
         return CellDecorator(lambda cell: MarginSides(amount, cell), f"MarginSides({amount})")
 
     return CustomInset(cell, "margin", top=0, right=amount, bottom=0, left=amount)
+
+
+def BackgroundColor(color, cell=None):
+    """Cell modifier function that
+    will set the customStyle background-color
+    for a given Cell instance.
+
+    Parameters
+    ----------
+    color: str
+        A CSS-compatible string value for
+        a background color
+
+    Returns
+    -------
+    A modified Cell instance or CellDecorator"""
+    if cell is None:
+        return CellDecorator(lambda cell: BackgroundColor(color), f"BackgroundColor({color})")
+    cell.backgroundColor(color)
+    return cell

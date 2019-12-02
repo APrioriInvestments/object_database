@@ -86,6 +86,7 @@ from object_database.web.cells.util import (
     MarginSides,
     MarginRight,
     MarginLeft,
+    BackgroundColor,
 )
 
 from object_database.web.cells.views.resizable_panel import ResizablePanel

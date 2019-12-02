@@ -795,7 +795,6 @@ class Cell:
         self.postscript = None
         self.garbageCollected = False
         self.subscriptions = set()
-        self._style = {}
         self.serializationContext = getCoreSerializationContext()
         self.context = {}
 
@@ -1127,6 +1126,11 @@ class Cell:
     def height(self, height):
         self._height = height
         return self
+
+    def backgroundColor(self, color):
+        if "customStyle" not in self.exportData:
+            self.exportData["customStyle"] = {}
+        self.exportData["customStyle"]["background-color"] = color
 
     def isActive(self):
         """Is this cell installed in the tree and active?"""

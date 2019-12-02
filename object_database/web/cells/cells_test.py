@@ -48,6 +48,7 @@ from object_database.web.cells import (
     Margin,
     MarginSides,
     MarginRight,
+    BackgroundColor,
 )
 
 import logging
@@ -831,6 +832,13 @@ class CellsUtilTests(unittest.TestCase):
         self.assertEqual("0px", cell.exportData["customStyle"]["margin-left"])
         self.assertEqual("0px", cell.exportData["customStyle"]["margin-bottom"])
         self.assertEqual("0px", cell.exportData["customStyle"]["margin-top"])
+
+    def test_background_color(self):
+        cell = Text("test")
+        BackgroundColor("blue", cell)
+        self.assertTrue("customStyle" in cell.exportData)
+        self.assertTrue("background-color" in cell.exportData["customStyle"])
+        self.assertEqual("blue", cell.exportData["customStyle"]["background-color"])
 
 
 if __name__ == "__main__":

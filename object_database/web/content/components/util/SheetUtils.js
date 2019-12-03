@@ -212,6 +212,22 @@ class Frame {
         ]);
     }
 
+    get right(){
+        return this.corner.x;
+    }
+
+    get bottom(){
+        return this.corner.y;
+    }
+
+    get top(){
+        return this.origin.y;
+    }
+
+    get left(){
+        return this.origin.x;
+    }
+
     /* Returns an array of relative (to the frame's origin and corner)
      * coordinate pairs.
      */

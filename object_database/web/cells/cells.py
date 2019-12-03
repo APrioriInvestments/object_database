@@ -1576,6 +1576,7 @@ class _NavTab(Cell):
             self.exportData["isActive"] = False
 
         childCell = Cell.makeCell(self.child)
+        childCell.prepareForReuse()
         self.children["child"] = childCell
 
 
@@ -1610,7 +1611,6 @@ class Tabs(Cell):
 
     def onMessage(self, msgFrame):
         self.whichSlot.set(int(msgFrame["ix"]))
-        self.markDirty()
 
 
 class Dropdown(Cell):

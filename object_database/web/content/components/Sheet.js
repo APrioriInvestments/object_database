@@ -493,10 +493,17 @@ class Sheet extends Component {
                         "update",
                     );
                 }
+
+                // Ensure that cursor moves to the
+                // top of the current view frame
+                this.selector.cursorTo(new Point([
+                    this.selector.selectionFrame.cursor.x,
+                    this.fixed_view_frame.top
+                ]));
             // Go to bottom of the sheet
             } else if (event.key === "ArrowDown"){
-                console.log(this.fixed_view_frame.size)
-                console.log(this.view_frame.size)
+                console.log(this.fixed_view_frame.size);
+                console.log(this.view_frame.size);
                 this.view_frame.origin.y = this.view_frame_offset.y + this.totalRows - this.max_num_rows + 1;
                 this.view_frame.corner.y = this.totalRows - 1;
                 if (this.locked_column_frame.dim){
@@ -510,6 +517,13 @@ class Sheet extends Component {
                         "update",
                     );
                 }
+
+                // Ensure that the cursor moves to the
+                // bottom of the current view frame
+                this.selector.cursorTo(new Point([
+                    this.selector.selectionFrame.cursor.x,
+                    this.fixed_view_frame.bottom
+                ]));
             // Go to the right of the sheet
             } else if (event.key === "ArrowRight"){
                 this.view_frame.origin.x = this.view_frame_offset.x + this.totalColumns - this.max_num_columns;
@@ -523,6 +537,13 @@ class Sheet extends Component {
                         "update",
                     );
                 }
+
+                // Ensure that the cursor moves to the
+                // right side of the current view frame
+                this.selector.cursorTo(new Point([
+                    this.fixed_view_frame.right,
+                    this.selector.selectionFrame.cursor.y
+                ]));
             // Go to the left of the sheet
             } else if (event.key === "ArrowLeft"){
                 this.view_frame.origin.x = this.view_frame_offset.x;
@@ -536,6 +557,13 @@ class Sheet extends Component {
                         "update",
                     );
                 }
+
+                // Ensure that the cursor moves to the
+                // left side of the current view frame
+                this.selector.cursorTo(new Point([
+                    this.fixed_view_frame.left,
+                    this.selector.selectionFrame.cursor.y
+                ]));
             }
             this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
             this.fetchData(

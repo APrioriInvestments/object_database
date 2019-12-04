@@ -504,7 +504,7 @@ class Sheet extends Component {
                 // top of the current view frame
                 this.selector.cursorTo(new Point([
                     this.selector.selectionFrame.cursor.x,
-                    this.fixed_view_frame.top
+                    this.view_frame.top
                 ]));
             // Go to bottom of the sheet
             } else if (event.key === "ArrowDown"){
@@ -528,7 +528,7 @@ class Sheet extends Component {
                 // bottom of the current view frame
                 this.selector.cursorTo(new Point([
                     this.selector.selectionFrame.cursor.x,
-                    this.fixed_view_frame.bottom
+                    this.fixed_view_frame.bottom - 1 // Not sure why I need -1 (EG)
                 ]));
             // Go to the right of the sheet
             } else if (event.key === "ArrowRight"){
@@ -567,7 +567,7 @@ class Sheet extends Component {
                 // Ensure that the cursor moves to the
                 // left side of the current view frame
                 this.selector.cursorTo(new Point([
-                    this.fixed_view_frame.left,
+                    this.view_frame.left,
                     this.selector.selectionFrame.cursor.y
                 ]));
             }

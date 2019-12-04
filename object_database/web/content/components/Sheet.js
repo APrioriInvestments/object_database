@@ -1,4 +1,4 @@
-/*
+''/*
  *
  * Sheet Cell Component
  * NOTE: This is in part a wrapper
@@ -465,6 +465,12 @@ class Sheet extends Component {
                 );
             }
         }
+
+        // If there is a current selection,
+        // shrink it to the cursor.
+        this.selector.clearStyling();
+        this.selector.shrinkToCursor();
+
         // we update the values before the make a server and after
         this.view_frame.translate(shift);
         this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);

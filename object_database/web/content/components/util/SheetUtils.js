@@ -484,10 +484,9 @@ class Selector {
         this.cursorRight = this.cursorRight.bind(this);
         this.cursorDown = this.cursorDown.bind(this);
         this.cursorLeft = this.cursorLeft.bind(this);
+		this.getSelectionClipboard = this.getSelectionClipboard.bind(this);
 
     }
-
-
 
     clearStyling(clearCursor = false){
         // Clears all styling on the
@@ -518,6 +517,22 @@ class Selector {
             }
         });
     }
+
+	getSelectionClipboard(){
+		// generates a clipboard string from the current points
+		// Note: in order to create line breaks we slice along the y-axis
+		let clipboard = "";
+		for (let y = this.selectionFrame.origin.y; y <= this.selectionFrame.corner.y; y++){
+			let row = "";
+			this.selectionFrame.slice(y, "y").(point => {
+				let id = this.sheet._coordToId("td", [point.x, point.y]);
+				let td = document.getElementById(id);
+				row += td.textContent + "\t";
+			}
+			clipboard += row + "\n";
+		}
+		return clipboard;
+	}
 
     elementAtPoint(point){
         let id = this.sheet._coordToId("td", [point.x, point.y]);

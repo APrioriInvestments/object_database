@@ -134,6 +134,7 @@ class Sheet extends Component {
         });
         ro.observe(this.container.parentNode);
         // window.addEventListener('resize', this.componentDidLoad);
+		document.addEventListener('copy', event => this.copyToClipboad(event));
     }
 
     /* I resize the sheet by recalculating the number of columns and rows using the
@@ -409,14 +410,17 @@ class Sheet extends Component {
             // display the contents in the top header line
             this._updateHeader(body, head);
         } else if(event.key === 'c' && (event.ctrlKey || event.metaKey)) {
-			this.copyToClipboad();
+			// this.copyToClipboad();
 		}
     }
 
 	/* I copy the current this.selector cell values to the clipboard. */
 	copyToClipboad(){
 		let txt = this.selector.getSelectionClipboard();
-		navigator.clipboard.writeText(txt);
+		event.clipboardData.setData('text/plain', txt);
+		event.preventDefault();
+		event.stopPropagation();
+		// navigator.clipboard.writeText(txt);
 	}
 
     /* I handle page Up/Down of the view */

@@ -240,7 +240,7 @@ class Frame {
             }
         } else if (axis === "x"){
             for(let x = this.origin.x; x <= this.corner.x; x++){
-                coords.push(new Point(x, index));
+                coords.push(new Point([x, index]));
             }
         }
         return coords;
@@ -524,11 +524,11 @@ class Selector {
 		let clipboard = "";
 		for (let y = this.selectionFrame.origin.y; y <= this.selectionFrame.corner.y; y++){
 			let row = "";
-			this.selectionFrame.slice(y, "y").(point => {
+			this.selectionFrame.coords_slice(y, "x").map(point => {
 				let id = this.sheet._coordToId("td", [point.x, point.y]);
 				let td = document.getElementById(id);
 				row += td.textContent + "\t";
-			}
+			})
 			clipboard += row + "\n";
 		}
 		return clipboard;

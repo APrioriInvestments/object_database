@@ -81,6 +81,7 @@ class Sheet extends Component {
         this.handleSelectorUpdate = this.handleSelectorUpdate.bind(this);
         this.arrowUpDownLeftRight = this.arrowUpDownLeftRight.bind(this);
         this.pageUpDown = this.pageUpDown.bind(this);
+		this.copyToClipboad = this.copyToClipboad.bind(this);
         this._updateHeader = this._updateHeader.bind(this);
         this._addLockedElements = this._addLockedElements.bind(this);
         this._removeLockedElements = this._removeLockedElements.bind(this);
@@ -407,8 +408,16 @@ class Sheet extends Component {
             this.arrowUpDownLeftRight(body, event);
             // display the contents in the top header line
             this._updateHeader(body, head);
-        }
+        } else if(event.key === 'c' && (event.ctrlKey || event.metaKey)) {
+			this.copyToClipboad();
+		}
     }
+
+	/* I copy the current this.selector cell values to the clipboard. */
+	copyToClipboad(){
+		let txt = this.selector.getSelectionClipboard();
+		navigator.clipboard.writeText(txt);
+	}
 
     /* I handle page Up/Down of the view */
     pageUpDown(body, event){

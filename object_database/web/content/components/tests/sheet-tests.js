@@ -289,7 +289,7 @@ describe("Sheet util tests.", () => {
             let frame = new Frame([0, 0], [10, 10]);
             let slice_x = [];
             for (let x = 0; x <= 10; x++){
-                slice_x.push(new Point(x, 5))
+                slice_x.push(new Point([x, 5]))
             }
             let slice_x_str = slice_x.map((item) => {return item.toString()});
             let frame_slice_x_str = frame.coords_slice(5, "x").map((item) => {return item.toString()});
@@ -300,7 +300,7 @@ describe("Sheet util tests.", () => {
             // y-axis
             let slice_y = [];
             for (let y = 0; y <= 10; y++){
-                slice_y.push(new Point(5, y))
+                slice_y.push(new Point([5, y]))
             }
             assert.equal(slice_x.length, frame.coords_slice(5, "y").length);
             let slice_y_str = slice_y.map((item) => {return item.toString()});

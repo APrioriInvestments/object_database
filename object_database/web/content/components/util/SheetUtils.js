@@ -236,7 +236,7 @@ class Frame {
                 throw "Index out of range"
             }
             for(let y = this.origin.y; y <= this.corner.y; y++){
-                coords.push(new Point(index, y));
+                coords.push(new Point([index, y]));
             }
         } else if (axis === "x"){
             for(let x = this.origin.x; x <= this.corner.x; x++){

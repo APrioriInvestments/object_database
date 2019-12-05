@@ -409,8 +409,6 @@ class Sheet extends Component {
             this.arrowUpDownLeftRight(body, event);
             // display the contents in the top header line
             this._updateHeader(body, head);
-        } else if(event.key === 'c' && (event.ctrlKey || event.metaKey)) {
-			// this.copyToClipboad();
 		}
     }
 
@@ -420,7 +418,6 @@ class Sheet extends Component {
 		event.clipboardData.setData('text/plain', txt);
 		event.preventDefault();
 		event.stopPropagation();
-		// navigator.clipboard.writeText(txt);
 	}
 
     /* I handle page Up/Down of the view */

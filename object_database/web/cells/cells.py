@@ -3157,7 +3157,6 @@ class Sheet(Cell):
         # ROW_LEN_OFFSET = 0
 
         if msgFrame["event"] == "sheet_needs_data":
-            print("RECEIVE request#", msgFrame["request_index"])
             frame = msgFrame["frame"]
             start_row = frame["origin"]["y"]
             end_row = frame["corner"]["y"]

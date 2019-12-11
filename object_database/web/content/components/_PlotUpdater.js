@@ -28,6 +28,17 @@ class _PlotUpdater extends Component {
         } else {
             this.listenForPlot();
         }
+        const ro = new ResizeObserver(entries => {
+            initialPlotDiv.style.width = '100%';
+            initialPlotDiv.style.height = '100%';
+            Plotly.Plots.resize(initialPlotDiv)
+            initialPlotDiv.parentNode.style.width = '100%';
+            initialPlotDiv.parentNode.style.height = '100%';
+            Plotly.Plots.resize(initialPlotDiv.parentNode)
+            let plotDiv = document.getElementById(`plot${this.props.extraData.plotId}`);
+            this.runUpdate(initialPlotDiv);
+        });
+        ro.observe(initialPlotDiv.parentNode.parentNode);
     }
 
     componentDidUpdate(){

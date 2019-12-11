@@ -372,6 +372,7 @@ class Cells:
 
     def computedSlotDirty(self, slot):
         self._dirtyComputedSlots.add(slot)
+        self._gEventHasTransactions.trigger()
 
     def markToDiscard(self, cell):
         assert not cell.garbageCollected, (cell, cell.text if isinstance(cell, Text) else "")
@@ -2641,16 +2642,18 @@ class Table(Cell):
 
 
 class Clickable(Cell):
-    def __init__(self, content, f, makeBold=False, makeUnderling=False):
+    def __init__(self, content, onClick, makeBold=False, makeUnderling=False):
         super().__init__()
-        self.f = f  # What is this?
+        self.onClick = onClick
         self.content = Cell.makeCell(content)
         self.bold = makeBold
 
     def calculatedOnClick(self):
-        if isinstance(self.f, str):
+        if isinstance(self.onClick, str):
             return quoteForJs(
-                "window.location.href = '__url__'".replace("__url__", quoteForJs(self.f, "'")),
+                "window.location.href = '__url__'".replace(
+                    "__url__", quoteForJs(self.onClick, "'")
+                ),
                 '"',
             )
         else:
@@ -2674,7 +2677,7 @@ class Clickable(Cell):
         return self.content.sortsAs()
 
     def onMessage(self, msgFrame):
-        val = self.f()
+        val = self.onClick()
         if isinstance(val, str):
             self.triggerPostscript(
                 quoteForJs(

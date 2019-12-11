@@ -68,21 +68,25 @@ class Plot extends Component {
         return this.renderChildNamed('error');
     }
 
+
     setupPlot(){
+        console.log("calling plot setup")
         // TODO These are global var defined in page.html
         // we should do something about this.
         var ownId = this.props.id;
 
         var plotDiv = document.getElementById('plot' + this.props.id);
-        Plotly.plot(
+        Plotly.react(
             plotDiv,
             [],
             {
                 margin: {t : 30, l: 30, r: 30, b:30 },
-                xaxis: {rangeslider: {visible: false}}
+                xaxis: {rangeslider: {visible: false}},
             },
             { scrollZoom: true, dragmode: 'pan', displaylogo: false, displayModeBar: 'hover',
-                modeBarButtons: [ ['pan2d'], ['zoom2d'], ['zoomIn2d'], ['zoomOut2d'] ] }
+                modeBarButtons: [ ['pan2d'], ['zoom2d'], ['zoomIn2d'], ['zoomOut2d'] ],
+                //responsive: true
+            }
         );
         plotDiv.on('plotly_relayout',
             function(eventdata){

@@ -19,6 +19,7 @@ class Point {
         // Bind methods
         this.equals = this.equals.bind(this);
         this.toString = this.toString.bind(this);
+        this.translate = this.translate.bind(this);
     }
 
     get x(){
@@ -74,6 +75,16 @@ class Point {
         return false;
     }
 
+    /* I translate myself by another point p; p can also be a length 2 array
+     * of coordinates */
+    translate(p){
+        if (p instanceof Array){
+            p = new Point(p);
+        }
+        this.x += p.x;
+        this.y += p.y;
+    }
+
     toString(){
         if (this.isNaN){
             return "NaN";
@@ -92,9 +103,8 @@ Array.prototype.toPoint = function(){
     }
 };
 
-
 class Frame {
-    constructor(origin, corner){
+    constructor(origin, corner, name=null){
         /* Origin and corner can be any points in the first quadrant. Only those where
          * corner.x >= origin.x AND corner.y <= origin.y will lead an non-empty
          * non-zero dimensional frame.IE we stick the basic bitmap conventions of
@@ -102,6 +112,7 @@ class Frame {
          */
         this.origin = new Point(origin);
         this.corner = new Point(corner);
+        this.name = name;
         if (!this.origin.isNaN && !this.corner.isNaN) {
             if (this.origin.quadrant !== 1 || this.corner.quadrant !== 1){
                 throw "Both 'origin' and 'corner' must be of non-negative coordinates"
@@ -156,6 +167,11 @@ class Frame {
             return true;
         }
         return false;
+    }
+
+    /* Set the name */
+    set setName(n){
+        this.name = name;
     }
 
     /* Set the origin */
@@ -289,12 +305,12 @@ class Frame {
         return false;
     }
 
-    /* I translate myself in the given [x, y] direction */
+    /* I translate myself in the given [x, y] direction
+        * Note: xy can also be an instance of class Point
+        */
     translate(xy){
-        this.origin.x += xy[0];
-        this.corner.x += xy[0];
-        this.origin.y += xy[1];
-        this.corner.y += xy[1];
+        this.corner.translate(xy);
+        this.origin.translate(xy);
         if (this.origin.x > this.corner.x || this.origin.y > this.corner.y){
             throw "Invalid translation: new origin must be top-left and corner bottom-right"
         }
@@ -320,6 +336,49 @@ class Frame {
         }
         return new Frame();
     }
+}
+
+
+/* I am Frame of Frames, i.e. a composite frame. I allow you to manipulate many frames at once
+ * overlayed on a base frame. You can think of me as moving ship formations on a battleship game board.
+ * I allow you to do basic geometric arithmetic, transformations etc without having to keep track of many
+ * frames at once.
+ */
+class CompositeFrame {
+    constructor(baseFrame, overlayFrames){
+        /* baseFrame is the underlying frame for CompositeFrame; all other frames
+         * should fit inside it, and CompositeFrame will raise an error if this is not the case.
+         * overlayFrames is an array of dictionaries, each containing keys 'frame' and 'origin.' The values are a Frame and Point object respectively (Point can also be passed in as a 2-dim array of integers); 'origin' will specify the position of 'frame' inside of baseFrame.
+         */
+        if (! baseFrame instanceof Frame){
+            throw "baseFrame must be a Frame class object";
+        }
+        this.baseFrame = baseFrame;
+        this.overlayFrames = overlayFrames;
+
+        // bind methods
+        this.checkFrameConsistency = this.checkFrameConsistency.bind(this);
+        this._checkFrameConsistency = this._checkFrameConsistency.bind(this);
+        this.checkFrameConsistency();
+    }
+
+    /* I make sure that overlay frames fit inside the baseFrame */
+    checkFrameConsistency() {
+        this.overlayFrames.map(data => {
+            this._checkFrameConsistency(data.frame, data.origin);
+        });
+        return true;
+    }
+
+    _checkFrameConsistency(frame, origin){
+        if (!this.baseFrame.contains(origin)){
+            throw "frame origin not in baseFrame";
+        }
+        if (!this.baseFrame.contains(frame)){
+            throw "frame not contained in baseFrame";
+        }
+    }
+
 }
 
 class SelectionFrame extends Frame {
@@ -789,6 +848,7 @@ class Selector {
 export {
     Point,
     Frame,
+    CompositeFrame,
     SelectionFrame,
     Selector,
     DataFrame

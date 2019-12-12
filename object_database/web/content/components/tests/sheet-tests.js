@@ -11,6 +11,7 @@ let projector = maquette.createProjector();
 const registry = require('../../ComponentRegistry').ComponentRegistry;
 const Point = require('../util/SheetUtils.js').Point;
 const Frame = require('../util/SheetUtils.js').Frame;
+const CompositeFrame = require('../util/SheetUtils.js').CompositeFrame;
 const DataFrame = require('../util/SheetUtils.js').DataFrame;
 
 /* Example Messages and Structures */
@@ -119,12 +120,28 @@ describe("Sheet util tests.", () => {
             p = new Point([-1, 0]);
             assert.equal(p.quadrant, 3);
         })
+        it("Translate", () => {
+            let p = new Point([10, 20]);
+            p.translate(new Point([1, 2]));
+            assert.equal(p.x, 11);
+            assert.equal(p.y, 22);
+            p.translate([1, 2]);
+            assert.equal(p.x, 12);
+            assert.equal(p.y, 24);
+        })
     })
     describe("Frame class tests.", () => {
         before(() => {
         });
         after(() => {
         });
+        it("Name", () => {
+            let frame = new Frame([0, 0], [9, 19], name="myframe");
+            assert.equal(frame.name, "myframe");
+            frame = new Frame([0, 0], [9, 19]);
+            frame.setName = "myname";
+            assert.equal(frame.name, "myframe");
+        })
         it("Dimension", () => {
             let frame = new Frame([0, 0], [9, 19]);
             assert.equal(frame.dim, 2);
@@ -480,6 +497,34 @@ describe("Sheet util tests.", () => {
             another_frame = new Frame([0, 0], [10, 10]);
             intersection = frame.intersect(another_frame);
             assert.isTrue(intersection.empty);
+        })
+    })
+    describe("CompositeFrame class tests.", () => {
+        before(() => {
+        });
+        after(() => {
+        });
+        it("BaseFrame", () => {
+            try {
+                new CompositeFrame("a", [])
+            } catch(e) {
+                assert.equal(e, "baseFrame must be a Fram class object");
+            }
+            let frame = new DataFrame([0, 0], [10, 10]);
+            assert.isTrue(new CompositeFrame(baseFrame=frame, []) instanceof CompositeFrame);
+        })
+        it("overlayFrames consistency", () => {
+            let baseFrame = new DataFrame([0, 0], [10, 10]);
+            let overlayFrames = [
+                {
+                    frame: new Frame([1, 1], [5, 5]),
+                    origin: new Point([2, 2])
+                },
+                {
+                    frame: new Frame([0, 0], [1, 1]),
+                    origin: new Point([5, 6])
+                },
+            ]
         })
     })
     describe("DataFrame class tests.", () => {

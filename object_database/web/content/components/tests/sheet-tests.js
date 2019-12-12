@@ -516,15 +516,32 @@ describe("Sheet util tests.", () => {
         it("overlayFrames consistency", () => {
             let baseFrame = new DataFrame([0, 0], [10, 10]);
             let overlayFrames = [
-                {
-                    frame: new Frame([1, 1], [5, 5]),
-                    origin: new Point([2, 2])
-                },
-                {
-                    frame: new Frame([0, 0], [1, 1]),
-                    origin: new Point([5, 6])
-                },
+                    new Frame([1, 1], [5, 5]),
+                    new Frame([0, 0], [1, 1]),
             ]
+            assert.exists(new CompositeFrame(baseFrame, overlayFrames));
+            overlayFrames.push(new Frame([1, 1], [11, 5], name="badframe"))
+            try {
+                new CompositeFrame(baseFrame, overlayFrames);
+            } catch (e) {
+                assert.equal(e, "frame named 'badframe' not contained in baseFrame");
+            }
+        })
+        it("Translation", () => {
+            let baseFrame = new DataFrame([0, 0], [10, 10]);
+            let overlayFrames = [
+                    new Frame([1, 1], [5, 5]),
+                    new Frame([0, 0], [1, 1]),
+            ]
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let p = new Point([10, 10]);
+            composition.translate(p);
+            baseFrame.translate(p);
+            assert.isTrue(composition.baseFrame.equals(baseFrame));
+            composition.overlayFrames.map((frame, index) => {
+                overlayFrames[index].translate(p);
+                assert.isTrue(frame.equals(overlayFrames[index]));
+            })
         })
     })
     describe("DataFrame class tests.", () => {

@@ -306,8 +306,8 @@ class Frame {
     }
 
     /* I translate myself in the given [x, y] direction
-        * Note: xy can also be an instance of class Point
-        */
+     * Note: xy can also be an instance of class Point
+     */
     translate(xy){
         this.corner.translate(xy);
         this.origin.translate(xy);
@@ -348,7 +348,7 @@ class CompositeFrame {
     constructor(baseFrame, overlayFrames){
         /* baseFrame is the underlying frame for CompositeFrame; all other frames
          * should fit inside it, and CompositeFrame will raise an error if this is not the case.
-         * overlayFrames is an array of dictionaries, each containing keys 'frame' and 'origin.' The values are a Frame and Point object respectively (Point can also be passed in as a 2-dim array of integers); 'origin' will specify the position of 'frame' inside of baseFrame.
+         * overlayFrames is an array of frame; the origin of each frame determines how it overlays on the base frame.
          */
         if (! baseFrame instanceof Frame){
             throw "baseFrame must be a Frame class object";
@@ -358,25 +358,26 @@ class CompositeFrame {
 
         // bind methods
         this.checkFrameConsistency = this.checkFrameConsistency.bind(this);
-        this._checkFrameConsistency = this._checkFrameConsistency.bind(this);
         this.checkFrameConsistency();
     }
 
     /* I make sure that overlay frames fit inside the baseFrame */
     checkFrameConsistency() {
-        this.overlayFrames.map(data => {
-            this._checkFrameConsistency(data.frame, data.origin);
+        this.overlayFrames.map(frame => {
+            if (!this.baseFrame.contains(frame)){
+                throw `frame named '${frame.name}' not contained in baseFrame`;
+            }
         });
         return true;
     }
 
-    _checkFrameConsistency(frame, origin){
-        if (!this.baseFrame.contains(origin)){
-            throw "frame origin not in baseFrame";
-        }
-        if (!this.baseFrame.contains(frame)){
-            throw "frame not contained in baseFrame";
-        }
+    /* I translate myself in the given [x, y] direction. This means that baseFrame and
+     * all overlayFrames are translated by xy.
+     * Note: xy can also be an instance of class Point
+     */
+    translate(xy){
+        this.baseFrame.translate(xy);
+        this.overlayFrames.map(frame => {frame.translate(xy)});
     }
 
 }

@@ -58,3 +58,67 @@ class InVertSequenceFlexed(CellsTestPage):
 
     def text(self):
         return "Should see ResizablePanel flexed in Sequence with text"
+
+
+class ResizePanelWithButtons(CellsTestPage):
+    def text(self):
+        return (
+            "Should see three ResizablePanels with a button bar to control them. "
+            "You should be able to turn them all of, then all back on, and that should work."
+        )
+
+    def cell(self):
+        ss = cells.sessionState()
+
+        ss.setdefault("showFirst", True)
+        ss.setdefault("showSecond", True)
+        ss.setdefault("showThird", True)
+
+        def firstDisplay():
+            return cells.Panel("First display")
+
+        def secondDisplay():
+            return cells.Panel("Second display")
+
+        def thirdDisplay():
+            return cells.Panel("Third display")
+
+        def toggles():
+            def toggler(which):
+                return lambda: ss.toggle(f"show{which}")
+
+            return cells.Subscribed(
+                lambda: cells.ButtonGroup(
+                    [
+                        cells.Button(which, toggler(which), active=getattr(ss, f"show{which}"))
+                        for which in ["First", "Second", "Third"]
+                    ]
+                )
+            )
+
+        def toggledSecondAndThird():
+            if (
+                cells.sessionState().showSecond is True
+                and cells.sessionState().showThird is True
+            ):
+                return cells.ResizablePanel(
+                    cells.Subscribed(secondDisplay), cells.Subscribed(thirdDisplay)
+                )
+            elif cells.sessionState().showSecond is True:
+                return cells.Subscribed(secondDisplay)
+            elif cells.sessionState().showThird is True:
+                return cells.Subscribed(thirdDisplay)
+            else:
+                return cells.Panel(cells.Span("Nothing to see here"))
+
+        return toggles() + cells.Flex(
+            cells.Subscribed(
+                lambda: cells.ResizablePanel(
+                    cells.Subscribed(firstDisplay),
+                    cells.Subscribed(toggledSecondAndThird),
+                    ratio=0.20,
+                )
+                if ss.showFirst
+                else cells.Subscribed(toggledSecondAndThird)
+            )
+        )

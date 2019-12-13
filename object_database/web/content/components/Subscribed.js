@@ -21,6 +21,9 @@ class Subscribed extends Component {
 
         // Bind component methods
         this.makeContent = this.makeContent.bind(this);
+
+        // Debugging.
+        throw new Error('Subscribeds should not be created anymore!');
     }
 
     build(){

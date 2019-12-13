@@ -608,6 +608,18 @@ describe("Sheet util tests.", () => {
                 assert.isTrue(frame.equals(overlayFrames[index]));
             })
         })
+        it("Get Overlay Frame by Name", () => {
+            let baseFrame = new DataFrame([0, 0], [10, 10]);
+            let overlayFrames = [
+                    new Frame([1, 1], [5, 5], "frame0"),
+                    new Frame([0, 0], [1, 1], "frame1"),
+            ]
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let frame = composition.getOverlayFrame("frame0");
+            assert.isTrue(frame.equals(overlayFrames[0]));
+            frame = composition.getOverlayFrame("noname");
+            assert.equal(frame, null);
+        })
         it("Equals", () => {
             let baseFrame = new DataFrame([0, 0], [10, 10]);
             let overlayFrames = [

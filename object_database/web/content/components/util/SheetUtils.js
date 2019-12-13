@@ -415,6 +415,19 @@ class CompositeFrame {
         this.overlayFrames.map(frame => {frame.translate(xy)});
     }
 
+    /* I return the overlay frame which corresponds to the name provided.
+     * If none is found I return null.
+     */
+    getOverlayFrame(name){
+        let frame = null;
+        this.overlayFrames.map(frm => {
+            if (frm.name === name){
+                frame = frm;
+            }
+        });
+        return frame;
+    }
+
     /* I map my baseFrame and all overlayFrames onto another frame by
      * putting my origin in the provided
      * origin/coordinates. For example, `map(new Frame(0, 10), new Point(5, 5))`

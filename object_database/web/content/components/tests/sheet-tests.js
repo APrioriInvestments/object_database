@@ -426,6 +426,37 @@ describe("Sheet util tests.", () => {
                 assert.isTrue(frame_coords_str.includes(coords_str[i]));
             }
         })
+        it("Translate (not in place)", () => {
+            let frame = new Frame([3, 4], [5, 6]);
+            assert.equal(frame.dim, 2);
+            let coords = [];
+            for (let x = 3; x <= 5; x++){
+              for (let y = 4; y <= 6; y++){
+                  coords.push(new Point([x, y]));
+              }
+            }
+            assert.equal(coords.length, frame.coords.length);
+            let coords_str = coords.map((item) => {return item.toString()});
+            let frame_coords_str = frame.coords.map((item) => {return item.toString()});
+            for (let i = 0; i < coords_str.length; i++){
+                assert.isTrue(frame_coords_str.includes(coords_str[i]));
+            }
+            // now translate
+            frame = frame.translate([-1, -1], inplace=false);
+            coords = [];
+            for (let x = 2; x <= 4; x++){
+              for (let y = 3; y <= 5; y++){
+                  coords.push(new Point([x, y]));
+              }
+            }
+            assert.equal(frame.dim, 2);
+            assert.equal(coords.length, frame.coords.length);
+            coords_str = coords.map((item) => {return item.toString()});
+            frame_coords_str = frame.coords.map((item) => {return item.toString()});
+            for (let i = 0; i < coords_str.length; i++){
+                assert.isTrue(frame_coords_str.includes(coords_str[i]));
+            }
+        })
         it("Translate out of quadrant 1", () => {
             let frame = new Frame([3, 4], [5, 6]);
             assert.equal(frame.dim, 2);
@@ -498,6 +529,40 @@ describe("Sheet util tests.", () => {
             intersection = frame.intersect(another_frame);
             assert.isTrue(intersection.empty);
         })
+        it("Map (not strict)", () => {
+            // contained
+            let frame = new Frame([0, 0], [10, 10]);
+            let anotherFrame = new Frame([5, 4], [9, 10]);
+            let mappedFrame = anotherFrame.map(frame, new Point([2, 2]));
+            assert.isTrue(mappedFrame.equals(new Frame([2, 2], [6, 8])));
+            // not contained
+            frame = new Frame([0, 0], [10, 10]);
+            anotherFrame = new Frame([5, 4], [20, 20]);
+            mappedFrame = anotherFrame.map(frame, new Point([2, 2]));
+            assert.isTrue(mappedFrame.equals(new Frame([2, 2], [10, 10])));
+        })
+        it("Map (strict)", () => {
+            // contained
+            let frame = new Frame([0, 0], [10, 10]);
+            let anotherFrame = new Frame([5, 4], [9, 10]);
+            let mappedFrame = anotherFrame.map(frame, new Point([2, 2]), strict=true);
+            assert.isTrue(mappedFrame.equals(new Frame([2, 2], [6, 8])));
+            // not contained
+            frame = new Frame([0, 0], [10, 10]);
+            anotherFrame = new Frame([5, 4], [20, 20]);
+            mappedFrame = anotherFrame.map(frame, new Point([2, 2]), strict=true);
+            assert.isTrue(mappedFrame.equals(new Frame()));
+        })
+        it("Map (exception)", () => {
+            // contained
+            let frame = new Frame([0, 0], [10, 10]);
+            let anotherFrame = new Frame([5, 4], [9, 10]);
+            try {
+                let mappedFrame = anotherFrame.map(frame, new Point([20, 30]), strict=true);
+            } catch(e) {
+                assert.equal(e, "the specified origin is not contained in the provided frame.");
+            }
+        })
     })
     describe("CompositeFrame class tests.", () => {
         before(() => {
@@ -542,6 +607,99 @@ describe("Sheet util tests.", () => {
                 overlayFrames[index].translate(p);
                 assert.isTrue(frame.equals(overlayFrames[index]));
             })
+        })
+        it("Equals", () => {
+            let baseFrame = new DataFrame([0, 0], [10, 10]);
+            let overlayFrames = [
+                    new Frame([1, 1], [5, 5]),
+                    new Frame([0, 0], [1, 1]),
+            ]
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let anotherComposition = new CompositeFrame(baseFrame, overlayFrames);
+            assert.isTrue(composition.equals(anotherComposition));
+        })
+        it("(not) Equals", () => {
+            let baseFrame = new DataFrame([0, 0], [10, 10]);
+            let overlayFrames = [
+                    new Frame([1, 1], [5, 5]),
+                    new Frame([0, 0], [1, 1]),
+            ]
+            let anotherOverlayFrames = [
+                    new Frame([0, 0], [1, 1]),
+            ]
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let anotherComposition = new CompositeFrame(baseFrame, anotherOverlayFrames);
+            assert.isFalse(composition.equals(anotherComposition));
+            anotherOverlayFrames = [
+                    new Frame([0, 0], [1, 1]),
+                    new Frame([0, 0], [4, 4]),
+            ]
+            anotherComposition = new CompositeFrame(baseFrame, anotherOverlayFrames);
+            assert.isFalse(composition.equals(anotherComposition));
+            let anotherBaseFrame = new DataFrame([0, 0], [11, 13]);
+            anotherComposition = new CompositeFrame(anotherBaseFrame, overlayFrames);
+            assert.isFalse(composition.equals(anotherComposition));
+        })
+        it("Map (not strict)", () => {
+            // contained
+            let frame = new DataFrame([0, 0], [20, 20]);
+            let baseFrame = new DataFrame([0, 0], [10, 10]);
+            let overlayFrames = [
+                    new Frame([1, 1], [5, 5]),
+                    new Frame([0, 0], [1, 1]),
+            ]
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let mappedComposition = composition.map(frame, new Point([1, 1]));
+            let testBaseFrame = new DataFrame([1, 1], [11, 11]);
+            let testOverlayFrames = [
+                    new Frame([2, 2], [6, 6]),
+                    new Frame([1, 1], [2, 2]),
+            ]
+            let testComposition = new CompositeFrame(testBaseFrame, testOverlayFrames);
+            assert.isTrue(mappedComposition.equals(testComposition));
+            // not contained
+            baseFrame = new DataFrame([0, 0], [30, 30]);
+            overlayFrames = [
+                    new Frame([1, 1], [25, 25]),
+                    new Frame([0, 0], [1, 1]),
+            ]
+            composition = new CompositeFrame(baseFrame, overlayFrames);
+            mappedComposition = composition.map(frame, new Point([1, 1]));
+            testBaseFrame = new DataFrame([1, 1], [20, 20]);
+            testOverlayFrames = [
+                    new Frame([2, 2], [20, 20]),
+                    new Frame([1, 1], [2, 2]),
+            ]
+            testComposition = new CompositeFrame(testBaseFrame, testOverlayFrames);
+            assert.isTrue(mappedComposition.equals(testComposition));
+        })
+        it("Map (strict)", () => {
+            let frame = new DataFrame([0, 0], [20, 20]);
+            let baseFrame = new DataFrame([0, 0], [10, 10]);
+            let overlayFrames = [
+                    new Frame([1, 1], [5, 5]),
+                    new Frame([0, 0], [1, 1]),
+            ]
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let mappedComposition = composition.map(frame, new Point([1, 1]), strict=true);
+            let testBaseFrame = new DataFrame([1, 1], [11, 11]);
+            let testOverlayFrames = [
+                    new Frame([2, 2], [6, 6]),
+                    new Frame([1, 1], [2, 2]),
+            ]
+            let testComposition = new CompositeFrame(testBaseFrame, testOverlayFrames);
+            assert.isTrue(mappedComposition.equals(testComposition));
+            baseFrame = new DataFrame([0, 0], [30, 30]);
+            overlayFrames = [
+                    new Frame([1, 1], [5, 5]),
+                    new Frame([0, 0], [1, 1]),
+            ]
+            composition = new CompositeFrame(baseFrame, overlayFrames);
+            mappedComposition = composition.map(frame, new Point([1, 1]), strict=true);
+            testBaseFrame = new DataFrame();
+            testOverlayFrames = []
+            testComposition = new CompositeFrame(testBaseFrame, testOverlayFrames);
+            assert.isTrue(mappedComposition.equals(testComposition));
         })
     })
     describe("DataFrame class tests.", () => {

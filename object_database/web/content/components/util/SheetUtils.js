@@ -307,13 +307,48 @@ class Frame {
 
     /* I translate myself in the given [x, y] direction
      * Note: xy can also be an instance of class Point
+     * If inplace=true I translate myself; if inplace=false I return a new
+     * Frame that is a translated copy of myself.
      */
-    translate(xy){
-        this.corner.translate(xy);
-        this.origin.translate(xy);
-        if (this.origin.x > this.corner.x || this.origin.y > this.corner.y){
+    translate(xy, inplace=true){
+        let origin = this.origin;
+        let corner = this.corner;
+        if (inplace){
+            this.corner.translate(xy);
+            this.origin.translate(xy);
+        } else {
+            let newFrame = new Frame(new Point(this.origin), new Point(this.corner));
+            newFrame.translate(xy);
+            origin = newFrame.origin;
+            corner = newFrame.corner;
+            return newFrame;
+        }
+        if (origin.x > corner.x || origin.y > corner.y){
             throw "Invalid translation: new origin must be top-left and corner bottom-right"
         }
+    }
+
+    /* I map myself onto another frame by putting my origin in the provided
+     * origin/coordinates. For example, `map(new Frame(0, 10), new Point(5, 5))`
+     * will map myself onto the Frame(0, 10) putting my origin at Point(5, 5).
+     * If strict=true then I will make sure that I fit entirely in the frame,
+     * returning an empty frame if this is not the case;
+     * otherwise I will simply take the intersection.
+     */
+    map(frame, origin, strict=false){
+        if (origin instanceof Array){
+            origin = new Point(origin);
+        }
+        if (!frame.contains(origin)){
+            throw "the specified origin is not contained in the provided frame.";
+        }
+        let x_diff = origin.x - this.origin.x;
+        let y_diff = origin.y - this.origin.y;
+        let translatedFrame = this.translate([x_diff, y_diff], inplace=false);
+        if (strict && !frame.contains(translatedFrame)){
+            return new Frame();
+        }
+        return frame.intersect(translatedFrame);
     }
 
     /* I return a frame that is the intersection of myself and another. */
@@ -378,6 +413,49 @@ class CompositeFrame {
     translate(xy){
         this.baseFrame.translate(xy);
         this.overlayFrames.map(frame => {frame.translate(xy)});
+    }
+
+    /* I map my baseFrame and all overlayFrames onto another frame by
+     * putting my origin in the provided
+     * origin/coordinates. For example, `map(new Frame(0, 10), new Point(5, 5))`
+     * will map myself onto the Frame(0, 10) putting my origin at Point(5, 5).
+     * If strict=true then I will make sure that I fit entirely in the frame,
+     * returning an empty frame if this is not the case;
+     * otherwise I will simply take the intersection.
+     */
+    map(frame, origin, strict=false){
+        if (origin instanceof Array){
+            origin = new Point(origin);
+        }
+        if (!frame.contains(origin)){
+            throw "the specified origin is not contained in the provided frame.";
+        }
+        let x_diff = origin.x - this.baseFrame.origin.x;
+        let y_diff = origin.y - this.baseFrame.origin.y;
+        let translatedBaseFrame = this.baseFrame.translate([x_diff, y_diff], inplace=false);
+        if (strict && !frame.contains(translatedBaseFrame)){
+            return new CompositeFrame(new Frame(), []);
+        }
+        let translatedOverlayFrames = this.overlayFrames.map(frm => {
+            return frm.translate([x_diff, y_diff], inplace=false).intersect(frame);
+        });
+        translatedBaseFrame = translatedBaseFrame.intersect(frame);
+        return new CompositeFrame(translatedBaseFrame, translatedOverlayFrames);
+    }
+
+    /* I check whether this matched the provided CompositeFrame. */
+    equals(compositeFrame){
+        if (! compositeFrame instanceof CompositeFrame){
+            throw "you must provide and instance of CompositeFrame.";
+        }
+        let baseFrameTest = this.baseFrame.equals(compositeFrame.baseFrame);
+        let overlayFramesTest = this.overlayFrames.every(frame => {
+            return compositeFrame.overlayFrames.some(argFrame => {
+                return frame.equals(argFrame);
+            });
+        })
+        return baseFrameTest && overlayFramesTest;
+
     }
 
 }

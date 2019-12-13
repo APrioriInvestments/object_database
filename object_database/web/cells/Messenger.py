@@ -202,7 +202,15 @@ def getUpdateStructure(cell):
 
     own_children = {}
     for child_name, child in children.items():
-        own_children[child_name] = _resolveUpdateChild(child_name, child, cell)
+        # If the incoming child is a Subscribed, we
+        # "look through" it and instead process the
+        # Subscribed's child. This ensures that we
+        # are not sending over Subscribed information.
+        if child.__class__.__name__ == "Subscribed":
+            sub_child = child.children["content"]
+            own_children[child_name] = _resolveUpdateChild(child_name, sub_child, cell)
+        else:
+            own_children[child_name] = _resolveUpdateChild(child_name, child, cell)
 
     structure = {
         "id": cell.identity,

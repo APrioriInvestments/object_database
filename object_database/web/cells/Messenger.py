@@ -186,6 +186,10 @@ def _resolveExpandedChild(parent_id, cell_or_list, name_in_parent):
         return [
             _resolveExpandedChild(parent_id, cell, name_in_parent) for cell in cell_or_list
         ]
+    if cell_or_list.__class__.__name__ == "Subscribed":
+        next_child = cell_or_list.children["content"]
+        return _resolveExpandedChild(parent_id, next_child, name_in_parent)
+
     return _getExpandedStructure(parent_id, cell_or_list, name_in_parent)
 
 
@@ -202,15 +206,7 @@ def getUpdateStructure(cell):
 
     own_children = {}
     for child_name, child in children.items():
-        # If the incoming child is a Subscribed, we
-        # "look through" it and instead process the
-        # Subscribed's child. This ensures that we
-        # are not sending over Subscribed information.
-        if child.__class__.__name__ == "Subscribed":
-            sub_child = child.children["content"]
-            own_children[child_name] = _resolveUpdateChild(child_name, sub_child, cell)
-        else:
-            own_children[child_name] = _resolveUpdateChild(child_name, child, cell)
+        own_children[child_name] = _resolveUpdateChild(child_name, child, cell)
 
     structure = {
         "id": cell.identity,
@@ -230,6 +226,12 @@ def _resolveUpdateChild(name_in_parent, child_or_list, parent_cell):
             _resolveUpdateChild(name_in_parent, next_child, parent_cell)
             for next_child in child_or_list
         ]
+
+    # If the child is a Subscribed, we attempt to
+    # "see through" it by moving onto its content
+    if child_or_list.__class__.__name__ == "Subscribed":
+        next_child = child_or_list.children["content"]
+        return _resolveUpdateChild(name_in_parent, next_child, parent_cell)
 
     # If the child was just created, recursively grab
     # the whole subtree for it

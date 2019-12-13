@@ -394,17 +394,12 @@ class Cells:
 
     def findStableParent(self, cell):
         while True:
-            if isinstance(cell, Subscribed):
-                cell = cell.parent
-
-            if isinstance(cell.parent, Subscribed):
-                cell = cell.parent.parent
-
             if not cell.parent:
                 return cell
 
             if cell.parent.wasUpdated or cell.parent.wasCreated or cell.isMergedIntoParent():
                 cell = cell.parent
+
             else:
                 return cell
 
@@ -517,6 +512,13 @@ class Cells:
                 for node in nodesAtThisLevel:
                     if not node.garbageCollected:
                         self._recalculateSingleCell(node)
+
+        # Any Subscribeds that are set to broadcast
+        # and that have been updated should also
+        # make sure their parent Cell is updated.
+        for node in self._nodesToBroadcast:
+            if isinstance(node, Subscribed) and node.wasUpdated:
+                node.parent.wasUpdated = True
 
     def _recalculateSingleCell(self, node):
         if node.wasDataUpdated:

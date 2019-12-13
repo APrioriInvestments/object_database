@@ -10,6 +10,7 @@ import {PropTypes} from './util/PropertyValidator';
 import {
     Point,
     Frame,
+    CompositeFrame,
     Selector,
     SelectionFrame,
     DataFrame
@@ -48,6 +49,7 @@ class Sheet extends Component {
         // fixed_view_frame defines the coordinates of the Sheet view; it never changes and is defined
         // by the max number of columns and rows which fit into the alloted DOM element
         this.fixed_view_frame = null;
+        this.composite_fixed_frame = null;
         // view_frame defines the coordinates of the current data **not** including the fixed
         // rows/columns view frame
         this.view_frame = null;
@@ -118,12 +120,38 @@ class Sheet extends Component {
         this.fixed_view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
         // view frame accounts for locked column/row frames
         this.view_frame = new Frame(this.view_frame_offset, [this.max_num_columns - 1, this.max_num_rows - 1]);
+        // new
+        this.composite_fixed_frame = new CompositeFrame(
+            new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1], name="full"),
+            []
+        )
+        if (this.props.numLockColumns && this.props.numLockRows){
+            this.composite_fixed_frame.overlayFrames.push(
+                new Frame([this.props.numLockColumns, 0], [this.max_num_columns - 1, this.props.numLockRows - 1], name="locked_rows")
+            );
+            this.composite_fixed_frame.overlayFrames.push(
+                new Frame([0, this.props.numLockRows], [this.props.numLockColumns - 1, this.max_num_rows - 1], name = "locked_colums"),
+            );
+            this.composite_fixed_frame.overlayFrames.push(
+                new Frame([0, 0], [this.props.numLockColumns - 1, this.props.numLockRows - 1], name = "locked_intersection")
+            );
+        } else if (this.props.numLockColumns){
+            this.composite_fixed_frame.overlayFrames.push(
+                new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1], name = "locked_colums")
+            );
+        } else if (this.props.numLockRows){
+            this.composite_fixed_frame.overlayFrames.push(
+                new Frame([0, this.props.numLockRows], [this.props.numLockColumns - 1, this.max_num_rows - 1], name = "locked_colums")
+            );
+        }
+
         if (this.props.dontFetch != true){
             this.fetchData(
-                this.fixed_view_frame, // we get all the data we need for now
+                this.composite_fixed_frame.baseFrame, // we get all the data we need for now
                 "replace",
             );
         }
+        //
         const ro = new ResizeObserver(entries => {
             this.resize();
             for (let entry of entries) {
@@ -194,8 +222,8 @@ class Sheet extends Component {
         header_info.textContent = `${this.totalColumns}x${this.totalRows}`;
 
         let rows = [];
-        let origin = this.fixed_view_frame.origin;
-        let corner = this.fixed_view_frame.corner;
+        let origin = this.composite_fixed_frame.baseFrame.origin;
+        let corner = this.composite_fixed_frame.baseFrame.corner;
         for (let y = origin.y; y <= corner.y; y++){
             var row_data = [];
             for (let x = origin.x; x <= corner.x; x++){
@@ -220,16 +248,11 @@ class Sheet extends Component {
         rows.map((r) => {
             projector.append(body, () => {return r;});
         });
-        if (this.locked_column_frame.dim){
-            this._addLockedElements(body, this.locked_column_frame);
-        }
-        if (this.locked_row_frame.dim){
-            this._addLockedElements(body, this.locked_row_frame);
-        }
-        if (this.locked_row_frame.dim && this.locked_column_frame.dim){
-            let locked_overlap_frame = new Frame([0, 0], [this.locked_column_frame.size.x - 1, this.locked_row_frame.size.y - 1]);
-            this._addLockedElements(body, locked_overlap_frame);
-        }
+        // style the locked column elements
+        // Note: in the future we might want to consider styling based on overlayFrame type/name
+        this.composite_fixed_frame.overlayFrames.map(frame => {
+            this._addLockedElements(body, frame);
+        });
     }
 
     build(){

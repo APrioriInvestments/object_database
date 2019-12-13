@@ -394,6 +394,12 @@ class Cells:
 
     def findStableParent(self, cell):
         while True:
+            if isinstance(cell, Subscribed):
+                cell = cell.parent
+
+            if isinstance(cell.parent, Subscribed):
+                cell = cell.parent.parent
+
             if not cell.parent:
                 return cell
 
@@ -1993,6 +1999,7 @@ class Subscribed(Cell):
         with self.view() as v:
             try:
                 newCell = Cell.makeCell(self.cellFactory())
+
                 if newCell.cells is not None:
                     newCell.prepareForReuse()
 

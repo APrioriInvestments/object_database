@@ -1674,9 +1674,8 @@ class ObjectDatabaseTests:
                         c.x = 0
 
         r1 = Reactor(db, incrementor)
-        r1.start()
 
-        try:
+        with r1.running(teardown=True):
             time.sleep(0.10)
             self.assertEqual(executed[0], 0)
 
@@ -1699,9 +1698,6 @@ class ObjectDatabaseTests:
                 self.assertEqual(c.k, 102)
                 self.assertEqual(c.x, 0)
                 self.assertEqual(executed[0], 2)
-        finally:
-            r1.stop()
-            r1.teardown()
 
     def test_reactor_with_exception(self):
         db = self.createNewDb()
@@ -1726,17 +1722,13 @@ class ObjectDatabaseTests:
             assert not shouldThrow
 
         r1 = Reactor(db, incrementor)
-        r1.start()
 
-        try:
+        with r1.running():
             for _ in range(10):
                 with db.transaction():
                     c.x = 1
 
                 self.assertTrue(db.waitForCondition(lambda: c.x == 0, timeout=1.0))
-        finally:
-            r1.stop()
-            r1.teardown()
 
         self.assertEqual(thrown[0], 10)
         self.assertGreater(executed[0], thrown[0])

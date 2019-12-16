@@ -17,6 +17,7 @@ import queue
 import logging
 import time
 
+from contextlib import contextmanager
 from object_database.view import RevisionConflictException, ViewWatcher
 
 
@@ -67,21 +68,30 @@ class Reactor:
                     print("Consumed one")
                     t.delete()
 
-        r = Reactor(db, consumeOne)
-        r.start()
-
-        ...
-
-        r.stop()
-        r.teardown()
-
-        # alternatively
-
+        # 1. Reactor in daemonic thread (explicit)
         r1 = Reactor(db, consumeOne)
-        r1.next(timeout=1.0)
-        r1.next(timeout=1.0)
+        r1.start()
 
         ...
+
+        r1.stop()
+        r1.teardown()
+
+        # 2. Reactor in daemonic thread (with-block)
+        r2 = Reactor(db, consumeOne)
+        with r2.running() as r2:
+            ...
+
+        r2.teardown()
+
+        # 3. Reactor used synchronously
+        r3 = Reactor(db, consumeOne)
+        r3.next(timeout=1.0)
+        r3.next(timeout=1.0)
+
+        ...
+
+        r3.teardown()
 
     """
 
@@ -96,7 +106,7 @@ class Reactor:
         self.maxSleepTime = maxSleepTime
 
         self._transactionQueue = queue.Queue()
-        self._thread = threading.Thread(target=self.updateLoop, daemon=True)
+        self._thread = None
         self._isStarted = False
         self._lastReadKeys = None
         self._nextWakeup = None
@@ -140,19 +150,41 @@ class Reactor:
         return False
 
     def start(self):
+        if self._thread is not None:
+            return
+
+        self._thread = threading.Thread(target=self._updateLoop, daemon=True)
         self._isStarted = True
         self._thread.start()
 
     def stop(self):
-        if not self._isStarted:
+        if self._thread is None:
             return
+
         self._isStarted = False
         self._transactionQueue.put(Reactor.STOP)
         self._thread.join()
+        self._thread = None
+
+    @contextmanager
+    def running(self, teardown=False):
+        self.start()
+        yield self
+        self.stop()
+        if teardown:
+            self.teardown()
 
     def teardown(self):
-        """Remove this reactor. Clients should _always_ call this when they are done."""
+        """Remove this reactor from the object_database.
+
+        Clients should _always_ call this when they are done, even though
+        the __del__ method calls it, because calling __del__ is done on a
+        best-effort basis in python.
+        """
         self.db.dropTransactionHandler(self.transactionHandler)
+
+    def __del__(self):
+        self.teardown()
 
     def blockUntilTrue(self, timeout=None):
         """Block until the reactor function returns 'True'.
@@ -182,7 +214,7 @@ class Reactor:
             return False
 
     def next(self, timeout=None):
-        if self._isStarted:
+        if self._thread is not None:
             raise Exception("Can't call 'next' if the reactor is being used in threaded mode.")
 
         if self._lastReadKeys is not None:
@@ -198,7 +230,7 @@ class Reactor:
 
         return result
 
-    def updateLoop(self):
+    def _updateLoop(self):
         try:
             """Update as quickly as possible."""
             exceptionsInARow = 0
@@ -209,6 +241,7 @@ class Reactor:
                 try:
                     _, readKeys, nextWakeup = self._calculate(catchRevisionConflicts=True)
                     exceptionsInARow = 0
+
                 except Exception:
                     exceptionsInARow += 1
                     if (
@@ -271,14 +304,18 @@ class Reactor:
         """Calculate the reactor function.
 
         Returns:
-            (functionResult, keySetOrNone)
-
-            keySetOrNone will be 'None' if the function should be
-            recalculated, otherwise the set of keys to check for updates and a
-            transactionId.
+            (functionResult, keySetOrNone, nextWakeup)
 
             functionResult will be the actual result of the function,
             or None if it threw a RevisionConflictException
+
+            keySetOrNone will be 'None' if the function should be recalculated
+            right away, otherwise the set of keys to check for updates and a
+            transactionId.
+
+            nextWakeup will be None unless it was updated by `curTimestampIsAfter`,
+            in which case it will be the timestamp of the next wakeup for the
+            reactor.
         """
         try:
             seenKeys = set()
@@ -309,6 +346,7 @@ class Reactor:
                     functionResult = self.reactorFunction()
 
                     nextWakeup = _currentReactor.nextWakeup
+
                 finally:
                     _currentReactor.nextWakeup = origWakeup
                     _currentReactor.timestamp = origTimestamp

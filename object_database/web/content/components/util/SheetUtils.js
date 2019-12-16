@@ -383,7 +383,8 @@ class CompositeFrame {
     constructor(baseFrame, overlayFrames){
         /* baseFrame is the underlying frame for CompositeFrame; all other frames
          * should fit inside it, and CompositeFrame will raise an error if this is not the case.
-         * overlayFrames is an array of frame; the origin of each frame determines how it overlays on the base frame.
+         * overlayFrames is an array of dictionaries, each consition of a frame and origin poing (key and values);
+         * the origin determines where the given frame roots itself project on the base frame.
          */
         if (! baseFrame instanceof Frame){
             throw "baseFrame must be a Frame class object";
@@ -396,36 +397,38 @@ class CompositeFrame {
         this.checkFrameConsistency();
     }
 
-    /* I make sure that overlay frames fit inside the baseFrame */
+    /* I make sure that overlay frames can fit inside the baseFrame */
     checkFrameConsistency() {
         this.overlayFrames.map(frame => {
-            if (!this.baseFrame.contains(frame)){
-                throw `frame named '${frame.name}' not contained in baseFrame`;
+            if (frame["frame"].size.x > this.baseFrame.size.x || frame["frame"].size.y > this.baseFrame.size.y){
+                throw `frame named '${frame.name}' will not project/fit into baseFrame`;
             }
         });
         return true;
     }
 
-    /* I translate myself in the given [x, y] direction. This means that baseFrame and
-     * all overlayFrames are translated by xy.
+    /* I translate all my overlay frames in the given [x, y] direction.
+     * If baseFrame=true, the my baseFrame is also translated.
      * Note: xy can also be an instance of class Point
      */
-    translate(xy){
-        this.baseFrame.translate(xy);
-        this.overlayFrames.map(frame => {frame.translate(xy)});
+    translate(xy, baseFrame=false){
+        if (baseFrame) {
+            this.baseFrame.translate(xy);
+        }
+        this.overlayFrames.map(frame => {frame["frame"].translate(xy)});
     }
 
     /* I return the overlay frame which corresponds to the name provided.
      * If none is found I return null.
      */
     getOverlayFrame(name){
-        let frame = null;
+        let frame = {"frame": null, origin: null};
         this.overlayFrames.map(frm => {
-            if (frm.name === name){
+            if (frm["frame"].name === name){
                 frame = frm;
             }
         });
-        return frame;
+        return frame["frame"];
     }
 
     /* I map my baseFrame and all overlayFrames onto another frame by
@@ -464,7 +467,7 @@ class CompositeFrame {
         let baseFrameTest = this.baseFrame.equals(compositeFrame.baseFrame);
         let overlayFramesTest = this.overlayFrames.every(frame => {
             return compositeFrame.overlayFrames.some(argFrame => {
-                return frame.equals(argFrame);
+                return frame["frame"].equals(argFrame["frame"]) && frame["origin"].equals(argFrame["origin"]);
             });
         })
         return baseFrameTest && overlayFramesTest;

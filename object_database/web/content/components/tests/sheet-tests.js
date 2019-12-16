@@ -162,8 +162,8 @@ describe("Sheet util tests.", () => {
         })
         it("Size", () => {
             frame = new Frame([1, 5], [5, 7]);
-            assert.equal(frame.size.x, 5);
-            assert.equal(frame.size.y, 3);
+            assert.equal(frame.size.x, 4);
+            assert.equal(frame.size.y, 2);
         })
         it("Size of empty frame", () => {
             frame = new Frame();
@@ -585,11 +585,23 @@ describe("Sheet util tests.", () => {
                 {frame: new Frame([0, 0], [1, 1], "frame1"), origin: new Point([0, 0])}
             ]
             assert.exists(new CompositeFrame(baseFrame, overlayFrames));
+            overlayFrames = [
+                {frame: new Frame([51, 51], [55, 55], "frame0"), origin: new Point([1, 1])},
+                {frame: new Frame([0, 0], [1, 1], "frame1"), origin: new Point([0, 0])}
+            ]
+            assert.exists(new CompositeFrame(baseFrame, overlayFrames));
             overlayFrames.push({frame: new Frame([1, 1], [11, 5], name="badframe"), origin: new Point([1, 1])});
             try {
                 new CompositeFrame(baseFrame, overlayFrames);
             } catch (e) {
-                assert.equal(e, "frame named 'badframe' will not project/fit into baseFrame");
+                assert.equal(e, "frame named 'badframe' will not project/fit into baseFrame at specified origin");
+            }
+            overlayFrames.pop(2);
+            overlayFrames.push({frame: new Frame([1, 1], [5, 5], name="badframe"), origin: new Point([9, 1])});
+            try {
+                new CompositeFrame(baseFrame, overlayFrames);
+            } catch (e) {
+                assert.equal(e, "frame named 'badframe' will not project/fit into baseFrame at specified origin");
             }
         })
         it("Translation", () => {
@@ -617,7 +629,6 @@ describe("Sheet util tests.", () => {
             let p = new Point([10, 10]);
             composition.translate(p, true);
             baseFrame.translate(p);
-            assert.isTrue(composition.baseFrame.equals(baseFrame));
             composition.overlayFrames.map((frame, index) => {
                 overlayFrames[index]["frame"].translate(p);
                 assert.isTrue(frame["frame"].equals(overlayFrames[index]["frame"]));
@@ -631,7 +642,7 @@ describe("Sheet util tests.", () => {
             ]
             let composition = new CompositeFrame(baseFrame, overlayFrames);
             let frame = composition.getOverlayFrame("frame0");
-            assert.isTrue(frame.equals(overlayFrames[0]["frame"]));
+            assert.isTrue(frame["frame"].equals(overlayFrames[0]["frame"]));
             frame = composition.getOverlayFrame("noname");
             assert.equal(frame, null);
         })
@@ -667,66 +678,33 @@ describe("Sheet util tests.", () => {
             anotherComposition = new CompositeFrame(anotherBaseFrame, overlayFrames);
             assert.isFalse(composition.equals(anotherComposition));
         })
-        it.skip("Map (not strict)", () => {
-            // contained
-            let frame = new DataFrame([0, 0], [20, 20]);
+        it("Project", () => {
             let baseFrame = new DataFrame([0, 0], [10, 10]);
             let overlayFrames = [
-                {frame: new Frame([1, 1], [5, 5], "frame0"), origin: new Point([1, 1])},
-                {frame: new Frame([0, 0], [1, 1], "frame1"), origin: new Point([0, 0])}
+                {frame: new Frame([51, 51], [55, 55], "frame0"), origin: new Point([1, 1])},
+                {frame: new Frame([0, 0], [1, 1], "frame1"), origin: new Point([3, 4])}
             ]
             let composition = new CompositeFrame(baseFrame, overlayFrames);
-            let mappedComposition = composition.map(frame, new Point([1, 1]));
-            let testBaseFrame = new DataFrame([1, 1], [11, 11]);
-            let testOverlayFrames = [
-                {frame: new Frame([2, 2], [6, 6], "frame0"), origin: new Point([2, 2])},
-                {frame: new Frame([1, 1], [2, 2], "frame1"), origin: new Point([1, 1])}
-            ]
-            let testComposition = new CompositeFrame(testBaseFrame, testOverlayFrames);
-            assert.isTrue(mappedComposition.equals(testComposition));
-            // not contained
-            baseFrame = new DataFrame([0, 0], [30, 30]);
-            overlayFrames = [
-                    new Frame([1, 1], [25, 25]),
-                    new Frame([0, 0], [1, 1]),
-            ]
-            composition = new CompositeFrame(baseFrame, overlayFrames);
-            mappedComposition = composition.map(frame, new Point([1, 1]));
-            testBaseFrame = new DataFrame([1, 1], [20, 20]);
-            testOverlayFrames = [
-                {frame: new Frame([2, 2], [20, 20], "frame0"), origin: new Point([2, 2])},
-                {frame: new Frame([1, 1], [2, 2], "frame1"), origin: new Point([1, 1])}
-            ]
-            testComposition = new CompositeFrame(testBaseFrame, testOverlayFrames);
-            assert.isTrue(mappedComposition.equals(testComposition));
+            let projections = composition.project();
+            let testProjections = {
+                "frame0": new Frame([1, 1], [5, 5]),
+                "frame1": new Frame([3, 4], [4, 5]),
+            }
+            assert.isTrue(projections["frame0"].equals(testProjections["frame0"]));
+            assert.isTrue(projections["frame1"].equals(testProjections["frame1"]));
         })
-        it.skip("Map (strict)", () => {
-            let frame = new DataFrame([0, 0], [20, 20]);
+        it("Project (by name)", () => {
             let baseFrame = new DataFrame([0, 0], [10, 10]);
             let overlayFrames = [
-                {frame: new Frame([1, 1], [5, 5], "frame0"), origin: new Point([1, 1])},
-                {frame: new Frame([0, 0], [1, 1], "frame1"), origin: new Point([0, 0])}
+                {frame: new Frame([51, 51], [55, 55], "frame0"), origin: new Point([1, 1])},
+                {frame: new Frame([0, 0], [1, 1], "frame1"), origin: new Point([3, 4])}
             ]
             let composition = new CompositeFrame(baseFrame, overlayFrames);
-            let mappedComposition = composition.map(frame, new Point([1, 1]), strict=true);
-            let testBaseFrame = new DataFrame([1, 1], [11, 11]);
-            let testOverlayFrames = [
-                {frame: new Frame([2, 2], [6, 6], "frame0"), origin: new Point([2, 2])},
-                {frame: new Frame([1, 1], [2, 2], "frame1"), origin: new Point([1, 1])}
-            ]
-            let testComposition = new CompositeFrame(testBaseFrame, testOverlayFrames);
-            assert.isTrue(mappedComposition.equals(testComposition));
-            baseFrame = new DataFrame([0, 0], [30, 30]);
-            overlayFrames = [
-                {frame: new Frame([1, 1], [5, 5], "frame0"), origin: new Point([1, 1])},
-                {frame: new Frame([0, 0], [1, 1], "frame1"), origin: new Point([0, 0])}
-            ]
-            composition = new CompositeFrame(baseFrame, overlayFrames);
-            mappedComposition = composition.map(frame, new Point([1, 1]), strict=true);
-            testBaseFrame = new DataFrame();
-            testOverlayFrames = []
-            testComposition = new CompositeFrame(testBaseFrame, testOverlayFrames);
-            assert.isTrue(mappedComposition.equals(testComposition));
+            let projectionFrame = composition.project("frame0");
+            let testProjections = {
+                "frame0": new Frame([1, 1], [5, 5]),
+            }
+            assert.isTrue(projectionFrame.equals(testProjections["frame0"]));
         })
     })
     describe("DataFrame class tests.", () => {

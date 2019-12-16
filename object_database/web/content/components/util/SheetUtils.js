@@ -150,8 +150,8 @@ class Frame {
     /* I return the size, a Point, of the frame */
     get size(){
         if (!this._empty()){
-            let x = this.corner.x - this.origin.x + 1;
-            let y = this.corner.y - this.origin.y + 1;
+            let x = this.corner.x - this.origin.x;
+            let y = this.corner.y - this.origin.y;
             return new Point([x, y]);
         }
         return NaN;
@@ -394,14 +394,31 @@ class CompositeFrame {
 
         // bind methods
         this.checkFrameConsistency = this.checkFrameConsistency.bind(this);
+        this.project = this.project.bind(this);
+        this._project = this._project.bind(this);
+        this.translate = this.translate.bind(this);
+        this.getOverlayFrame = this.getOverlayFrame.bind(this);
+        this.equals = this.equals.bind(this);
+
         this.checkFrameConsistency();
     }
 
     /* I make sure that overlay frames can fit inside the baseFrame */
     checkFrameConsistency() {
+        // if the baseFrame is empty, check that all the overlayFrames are as well
+        // this is a weird situation but it's valid
+        if (this.baseFrame.empty){
+            if (this.overlayFrames.every(frame => {
+                return frame['frame'].empty;
+            })){
+                return true;
+            }
+        }
         this.overlayFrames.map(frame => {
-            if (frame["frame"].size.x > this.baseFrame.size.x || frame["frame"].size.y > this.baseFrame.size.y){
-                throw `frame named '${frame.name}' will not project/fit into baseFrame`;
+            let x = frame["origin"].x + frame["frame"].size.x;
+            let y = frame["origin"].y + frame["frame"].size.y;
+            if (x > this.baseFrame.size.x || y > this.baseFrame.size.y){
+                throw `frame named '${frame["frame"].name}' will not project/fit into baseFrame at specified origin`;
             }
         });
         return true;
@@ -422,41 +439,37 @@ class CompositeFrame {
      * If none is found I return null.
      */
     getOverlayFrame(name){
-        let frame = {"frame": null, origin: null};
+        let frame = null;
         this.overlayFrames.map(frm => {
             if (frm["frame"].name === name){
                 frame = frm;
             }
         });
-        return frame["frame"];
+        return frame;
     }
 
-    /* I map my baseFrame and all overlayFrames onto another frame by
-     * putting my origin in the provided
-     * origin/coordinates. For example, `map(new Frame(0, 10), new Point(5, 5))`
-     * will map myself onto the Frame(0, 10) putting my origin at Point(5, 5).
-     * If strict=true then I will make sure that I fit entirely in the frame,
-     * returning an empty frame if this is not the case;
-     * otherwise I will simply take the intersection.
+    /* I project the overlay frames onto the baseFrame and return a dictionary of new frames
+     * for every overlay. Essentially I take an overlayFrame's specified origin
+     * in the baseFrame and make a new Frame of the same size starting at that origin.
+     * You can also specify a name for a specific overlayFrame.
      */
-    map(frame, origin, strict=false){
-        if (origin instanceof Array){
-            origin = new Point(origin);
+    project(name=null){
+        if (name !== null){
+            let frm = this.getOverlayFrame(name);
+            return this._project(frm["frame"], frm["origin"]);
         }
-        if (!frame.contains(origin)){
-            throw "the specified origin is not contained in the provided frame.";
-        }
-        let x_diff = origin.x - this.baseFrame.origin.x;
-        let y_diff = origin.y - this.baseFrame.origin.y;
-        let translatedBaseFrame = this.baseFrame.translate([x_diff, y_diff], inplace=false);
-        if (strict && !frame.contains(translatedBaseFrame)){
-            return new CompositeFrame(new Frame(), []);
-        }
-        let translatedOverlayFrames = this.overlayFrames.map(frm => {
-            return frm.translate([x_diff, y_diff], inplace=false).intersect(frame);
+        let projectedFrames = {};
+        this.overlayFrames.map(frm => {
+            projectedFrames[frm["frame"].name] = this._project(frm["frame"], frm["origin"]);
         });
-        translatedBaseFrame = translatedBaseFrame.intersect(frame);
-        return new CompositeFrame(translatedBaseFrame, translatedOverlayFrames);
+        return projectedFrames;
+    }
+
+    _project(frame, origin){
+        return new Frame([origin.x, origin.y],
+            [origin.x + frame.size.x, origin.y + frame.size.y],
+            frame.name
+        );
     }
 
     /* I check whether this matched the provided CompositeFrame. */

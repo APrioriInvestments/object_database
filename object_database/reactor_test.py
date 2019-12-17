@@ -1,34 +1,16 @@
-import pytest
 import time
 
-from contextlib import contextmanager
 from .reactor import Reactor
-
-
-@pytest.fixture
-def db(in_mem_connection):
-    # if needed: in_mem_connection.subscribeToSchema(xyz)
-    return in_mem_connection
-
-
-_logs = []
-
-
-def log():
-    _logs.append(f"Message #{len(_logs) + 1}")
-
-
-@contextmanager
-def running_reactor(reactor):
-    reactor.start()
-    yield reactor
-    reactor.stop()
-    reactor.teardown()
 
 
 def test_reactor_restarting(db):
     sleepAmt = 0.1
-    r = Reactor(db, log, maxSleepTime=sleepAmt)
+    _logs = []
+
+    def logger():
+        _logs.append(f"Message #{len(_logs) + 1}")
+
+    r = Reactor(db, logger, maxSleepTime=sleepAmt)
     assert len(_logs) == 0
 
     with r.running() as r:

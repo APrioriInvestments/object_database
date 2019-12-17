@@ -115,25 +115,28 @@ class Sheet extends Component {
                     frame: new Frame(
                         [0, this.props.numLockRows],
                         [this.props.numLockColumns - 1, this.max_num_rows - 1],
-                        name = "locked_colums"),
+                        name = "locked_columns"),
                     origin: new Point([0, this.props.numLockRows])
                 },
                 {
-                    frame: new Frame([0, 0], [this.props.numLockColumns - 1, this.props.numLockRows - 1], name = "locked_intersection"),
+                    frame: new Frame(
+                        [0, 0], [this.props.numLockColumns - 1, this.props.numLockRows - 1],
+                        name = "locked_intersection"
+                    ),
                     origin: new Point([0, 0])
                 },
             ];
         } else if (this.props.numLockColumns){
             this.composite_fixed_frame.overlayFrames = [
                 {
-                    frame: new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1], name = "locked_colums"),
+                    frame: new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1], name = "locked_columns"),
                     origin: new Point([0, 0])
                 }
             ];
         } else if (this.props.numLockRows){
             this.composite_fixed_frame.overlayFrames = [
                 {
-                    frame: new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1], name = "locked_colums"),
+                    frame: new Frame([0, 0], [this.max_num_columns - 1, this.props.numLockRows - 1], name = "locked_rows"),
                     origin: new Point([0, 0])
                 }
             ];
@@ -150,10 +153,7 @@ class Sheet extends Component {
         );
 
         if (this.props.dontFetch != true){
-            this.fetchData(
-                this.composite_fixed_frame.baseFrame, // we get all the data we need for now
-                "replace",
-            );
+            this.fetchData("replace",);
         }
         //
         const ro = new ResizeObserver(entries => {
@@ -167,6 +167,7 @@ class Sheet extends Component {
         ro.observe(this.container.parentNode);
         // window.addEventListener('resize', this.componentDidLoad);
         document.addEventListener('copy', event => this.copyToClipboad(event));
+        console.log(this.composite_fixed_frame.overlayFrames);
     }
 
     /* I resize the sheet by recalculating the number of columns and rows using the
@@ -526,98 +527,55 @@ class Sheet extends Component {
     /* I handle arrow triggered navigation of the active_frame and related views */
     arrowUpDownLeftRight(body, event){
         event.preventDefault();
+        let translation = new Point([0, 0]);
+        let view_overlay = this.composite_fixed_frame.getOverlayFrame("view_frame");
+        let view_frame = view_overlay["frame"];
+        let view_origin = view_overlay["origin"];
         if (event.ctrlKey){
             // This is sheet level navigation
             // Go to top of the sheet
             if (event.key === "ArrowUp"){
-                this.view_frame.origin.y = this.view_frame_offset.y;
-                this.view_frame.corner.y = this.max_num_rows - 1;
-                if (this.locked_column_frame.dim){
-                    this.locked_column_frame.origin.y = this.view_frame_offset.y;
-                    this.locked_column_frame.corner.y = this.max_num_rows - 1;
-                    this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
-                    this.fetchData(
-                        this.locked_column_frame,
-                        "update",
-                    );
-                }
-
+                translation.y = view_frame.origin.y - view_origin.y;
+                this.composite_fixed_frame.translate(translation, "locked_columns");
                 // Ensure that cursor moves to the
                 // top of the current view frame
                 this.selector.cursorTo(new Point([
                     this.selector.selectionFrame.cursor.x,
-                    this.view_frame.top
+                    view_frame.translate(translation, false).top
                 ]));
             // Go to bottom of the sheet
             } else if (event.key === "ArrowDown"){
-                console.log(this.fixed_view_frame.size);
-                console.log(this.view_frame.size);
-                this.view_frame.origin.y = this.view_frame_offset.y + this.totalRows - this.max_num_rows + 1;
-                this.view_frame.corner.y = this.totalRows - 1;
-                if (this.locked_column_frame.dim){
-                    this.locked_column_frame.origin.y = this.view_frame_offset.y + this.totalRows - this.max_num_rows + 1;
-                    this.locked_column_frame.corner.y = this.totalRows - 1;
-                    console.log(this.locked_column_frame);
-                    console.log(this.locked_column_offset);
-                    this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
-                    this.fetchData(
-                        this.locked_column_frame,
-                        "update",
-                    );
-                }
-
+                translation.y = this.data_frame.corner.y - view_frame.corner.y;
+                this.composite_fixed_frame.translate(translation, "locked_columns");
                 // Ensure that the cursor moves to the
                 // bottom of the current view frame
                 this.selector.cursorTo(new Point([
                     this.selector.selectionFrame.cursor.x,
-                    this.fixed_view_frame.bottom - 1 // Not sure why I need -1 (EG)
+                    this.composite_fixed_frame.baseFrame.bottom,
                 ]));
             // Go to the right of the sheet
             } else if (event.key === "ArrowRight"){
-                this.view_frame.origin.x = this.view_frame_offset.x + this.totalColumns - this.max_num_columns;
-                this.view_frame.corner.x = this.totalColumns - 1;
-                if (this.locked_row_frame.dim){
-                    this.locked_row_frame.origin.x = this.view_frame_offset.x + this.totalColumns - this.max_num_columns;
-                    this.locked_row_frame.corner.x = this.totalColumns - 1;
-                    this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
-                    this.fetchData(
-                        this.locked_row_frame,
-                        "update",
-                    );
-                }
-
+                translation.x = this.data_frame.corner.x - view_frame.corner.x;
+                this.composite_fixed_frame.translate(translation, "locked_rows");
                 // Ensure that the cursor moves to the
                 // right side of the current view frame
                 this.selector.cursorTo(new Point([
-                    this.fixed_view_frame.right,
+                    this.composite_fixed_frame.baseFrame.right,
                     this.selector.selectionFrame.cursor.y
                 ]));
             // Go to the left of the sheet
             } else if (event.key === "ArrowLeft"){
-                this.view_frame.origin.x = this.view_frame_offset.x;
-                this.view_frame.corner.x = this.max_num_columns - 1;
-                if (this.locked_row_frame.dim){
-                    this.locked_row_frame.origin.x = this.view_frame_offset.x;
-                    this.locked_row_frame.corner.x = this.max_num_columns - 1;
-                    this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
-                    this.fetchData(
-                        this.locked_row_frame,
-                        "update",
-                    );
-                }
-
+                translation.x = view_frame.origin.x - view_origin.x;
+                this.composite_fixed_frame.translate(translation, "locked_rows");
                 // Ensure that the cursor moves to the
                 // left side of the current view frame
                 this.selector.cursorTo(new Point([
-                    this.view_frame.left,
+                    view_frame.translate(translation, false).left,
                     this.selector.selectionFrame.cursor.y
                 ]));
             }
-            this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
-            this.fetchData(
-                this.view_frame,
-                "update",
-            );
+            this.composite_fixed_frame.translate(translation, "view_frame");
+            this.fetchData("update");
         } else if (this.selector){
             if (event.key === "ArrowUp"){
                 event.preventDefault();
@@ -767,21 +725,24 @@ class Sheet extends Component {
     }
 
     /* I make WS requests to the server */
-    fetchData(frame, action){
+    fetchData(action){
         // we ask for a bit more data than we need for the view to prevent flickering
         // frame = this._padFrame(frame, new Point([2, 2]));
-        this.requestIndex += 1;
-        let request = JSON.stringify({
-            event: "sheet_needs_data",
-            request_index: this.requestIndex,
-            target_cell: this.props.id,
-            frame: {
-                origin: {x: frame.origin.x, y: frame.origin.y},
-                corner: {x: frame.corner.x, y: frame.corner.y},
-            },
-            action: action,
+        this.composite_fixed_frame.overlayFrames.forEach(frm  => {
+            let frame = frm["frame"];
+            this.requestIndex += 1;
+            let request = JSON.stringify({
+                event: "sheet_needs_data",
+                request_index: this.requestIndex,
+                target_cell: this.props.id,
+                frame: {
+                    origin: {x: frame.origin.x, y: frame.origin.y},
+                    corner: {x: frame.corner.x, y: frame.corner.y},
+                },
+                action: action,
+            });
+            cellSocket.sendString(request);
         });
-        cellSocket.sendString(request);
     }
 
     /* I take a frame and return a new frame with the orign and corner offset by the

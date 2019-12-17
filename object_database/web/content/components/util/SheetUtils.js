@@ -317,7 +317,7 @@ class Frame {
             this.corner.translate(xy);
             this.origin.translate(xy);
         } else {
-            let newFrame = new Frame(new Point(this.origin), new Point(this.corner));
+            let newFrame = new Frame(new Point(this.origin), new Point(this.corner), this.name);
             newFrame.translate(xy);
             origin = newFrame.origin;
             corner = newFrame.corner;
@@ -438,16 +438,19 @@ class CompositeFrame {
         if (name !== null){
             let frame = null;
             let index = null;
-            this.overlayFrames.forEach((frm, index) => {
+            this.overlayFrames.forEach((frm, i) => {
                 if (frm["frame"].name === name){
                     frame = frm;
-                    index = index;
+                    index = i;
                 }
             });
             if (frame === null){
                 throw `'${name}' is not an overlay frame`;
             }
-            this.overlayFrames.splice(index, 1, frame);
+            this.overlayFrames[index] = {
+                frame: this._translate(frame["frame"], xy),
+                origin: frame["origin"]
+            };
         } else {
             this.overlayFrames = this.overlayFrames.map(frame => {
                 return {
@@ -459,7 +462,7 @@ class CompositeFrame {
     }
 
     _translate(frame, xy){
-        return frame.translate(xy, inplace=false);
+        return frame.translate(xy, false);
     }
 
     /* I return the overlay frame which corresponds to the name provided.

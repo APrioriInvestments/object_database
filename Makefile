@@ -23,8 +23,8 @@ ODB_LIB_PATH ?= build/lib.linux-x86_64-3.6/object_database
 
 CPP_FLAGS = -std=c++14  -O2  -Wall  -pthread  -DNDEBUG  -g  -fwrapv         \
             -fstack-protector-strong  -D_FORTIFY_SOURCE=2  -fPIC            \
-            -Wno-terminate -Wno-bool-compare \
-            -Wno-cpp \
+            -Wno-terminate -Wno-bool-compare                                \
+            -Wno-cpp                                                        \
             -Wformat  -Werror=format-security  -Wdate-time -Wno-reorder     \
             -Wno-sign-compare  -Wno-narrowing  -Wno-int-in-bool-context     \
             -I$(VIRTUAL_ENV)/include/python3.6m                             \
@@ -33,7 +33,7 @@ CPP_FLAGS = -std=c++14  -O2  -Wall  -pthread  -DNDEBUG  -g  -fwrapv         \
             -I/usr/include/python3.6m                                       \
             -I/usr/local/lib/python3.6/dist-packages/numpy/core/include
 
-LINKER_FLAGS = -Wl,-O1 \
+LINKER_FLAGS = -Wl,-O1                  \
                -Wl,-Bsymbolic-functions \
                -Wl,-z,relro
 
@@ -100,7 +100,7 @@ install-local: $(VIRTUAL_ENV)
 test: $(VIRTUAL_ENV) testcert.cert testcert.key js-test
 	. $(VIRTUAL_ENV)/bin/activate; pytest
 
-.PHONY:
+.PHONY: js-test
 js-test:
 	cd object_database/web/content/; npm test
 

@@ -464,7 +464,7 @@ class CompositeFrame {
             return this._project(frm["frame"], frm["origin"]);
         }
         let projectedFrames = {};
-        this.overlayFrames.map(frm => {
+        this.overlayFrames.forEach(frm => {
             projectedFrames[frm["frame"].name] = this._project(frm["frame"], frm["origin"]);
         });
         return projectedFrames;

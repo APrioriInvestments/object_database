@@ -97,53 +97,57 @@ class Sheet extends Component {
         this.container = document.getElementById(this.props.id).parentNode;
         this.max_num_columns = this._calc_max_num_columns(this.container.offsetWidth);
         this.max_num_rows = this._calc_max_num_rows(this.container.offsetHeight);
-        // recall columns are on the x-axis and rows on the y-axis
-        // We instantiate all frames, even if they are of dim = 0; this allows us to update
-        // the coordinates later as needed (recall a Frame where either origin or corner are null
-        // or undefined is of dim 0).
-        this.locked_column_frame = new Frame([0, 0], [0, 0]);
-        this.locked_row_frame = new Frame([0, 0], [0, 0]);
-        if (this.props.numLockColumns > 0){
-            this.view_frame_offset.x = this.props.numLockColumns;
-            this.locked_row_frame.origin.x = this.props.numLockColumns;
-            this.locked_row_offset.x = this.props.numLockColumns;
-            this.locked_column_frame.setCorner = [this.props.numLockColumns - 1, this.max_num_rows - 1];
-        }
-        if (this.props.numLockRows > 0){
-            this.view_frame_offset.y = this.props.numLockRows;
-            this.locked_column_frame.origin.y = this.props.numLockRows;
-            this.locked_column_offset.y = this.props.numLockRows;
-            this.locked_row_frame.setCorner = [this.max_num_columns - 1, this.props.numLockRows - 1];
-        }
-        // this.locked_row_frame.origin.x = this.locked_column_frame.size.x;
-        // this.locked_column_frame.origin.y = this.locked_row_frame.size.y;
-        this.fixed_view_frame = new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1]);
-        // view frame accounts for locked column/row frames
-        this.view_frame = new Frame(this.view_frame_offset, [this.max_num_columns - 1, this.max_num_rows - 1]);
         // new
         this.composite_fixed_frame = new CompositeFrame(
             new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1], name="full"),
             []
         )
         if (this.props.numLockColumns && this.props.numLockRows){
-            this.composite_fixed_frame.overlayFrames.push(
-                new Frame([this.props.numLockColumns, 0], [this.max_num_columns - 1, this.props.numLockRows - 1], name="locked_rows")
-            );
-            this.composite_fixed_frame.overlayFrames.push(
-                new Frame([0, this.props.numLockRows], [this.props.numLockColumns - 1, this.max_num_rows - 1], name = "locked_colums"),
-            );
-            this.composite_fixed_frame.overlayFrames.push(
-                new Frame([0, 0], [this.props.numLockColumns - 1, this.props.numLockRows - 1], name = "locked_intersection")
-            );
+            this.composite_fixed_frame.overlayFrames = [
+                {
+                    frame: new Frame(
+                        [this.props.numLockColumns, 0],
+                        [this.max_num_columns - 1, this.props.numLockRows - 1],
+                        name="locked_rows"),
+                    origin: new Point([this.props.numLockColumns, 0])
+                },
+                {
+                    frame: new Frame(
+                        [0, this.props.numLockRows],
+                        [this.props.numLockColumns - 1, this.max_num_rows - 1],
+                        name = "locked_colums"),
+                    origin: new Point([0, this.props.numLockRows])
+                },
+                {
+                    frame: new Frame([0, 0], [this.props.numLockColumns - 1, this.props.numLockRows - 1], name = "locked_intersection"),
+                    origin: new Point([0, 0])
+                },
+            ];
         } else if (this.props.numLockColumns){
-            this.composite_fixed_frame.overlayFrames.push(
-                new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1], name = "locked_colums")
-            );
+            this.composite_fixed_frame.overlayFrames = [
+                {
+                    frame: new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1], name = "locked_colums"),
+                    origin: new Point([0, 0])
+                }
+            ];
         } else if (this.props.numLockRows){
-            this.composite_fixed_frame.overlayFrames.push(
-                new Frame([0, this.props.numLockRows], [this.props.numLockColumns - 1, this.max_num_rows - 1], name = "locked_colums")
-            );
+            this.composite_fixed_frame.overlayFrames = [
+                {
+                    frame: new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1], name = "locked_colums"),
+                    origin: new Point([0, 0])
+                }
+            ];
         }
+        // add the data_view frame which is the main data display of sheet
+        this.composite_fixed_frame.overlayFrames.push(
+            {
+                frame: new Frame(
+                    [this.props.numLockColumns, this.props.numLockRows],
+                    [this.max_num_columns - 1, this.max_num_rows - 1], name = "view_frame"
+                ),
+                origin: new Point([this.props.numLockColumns, this.props.numLockRows])
+            }
+        );
 
         if (this.props.dontFetch != true){
             this.fetchData(
@@ -249,9 +253,14 @@ class Sheet extends Component {
             projector.append(body, () => {return r;});
         });
         // style the locked column elements
-        // Note: in the future we might want to consider styling based on overlayFrame type/name
-        this.composite_fixed_frame.overlayFrames.map(frame => {
-            this._addLockedElements(body, frame);
+        // Note: even though it is not strictly necessary we project each of the locked frames onto
+        // the baseFrame, i.e. the fixed view frame. This setups up the general pattern
+        this.composite_fixed_frame.overlayFrames.map(frm => {
+            let name = frm["frame"].name;
+            if (name.startsWith("locked")){
+                let frame = this.composite_fixed_frame.project(name);
+                this._addLockedElements(body, frame);
+            }
         });
     }
 
@@ -823,36 +832,43 @@ class Sheet extends Component {
                 }
                 // load the data into the data with the provided origin
                 let origin = dataInfo.origin;
-                // clean the sheet to make sure no residual data values left
-                this._updatedDisplayValues(body, this.fixed_view_frame, new Point([0,0]), true);
                 this.data_frame.load(dataInfo.data, [origin.x, origin.y]);
-                if (this.locked_column_frame.dim > 0){
-                    this._updatedDisplayValues(body, this.locked_column_frame, this.locked_column_offset);
-                }
-                if (this.locked_row_frame.dim > 0){
-                    this._updatedDisplayValues(body, this.locked_row_frame, this.locked_row_offset);
-                }
-                if (this.locked_column_frame.dim && this.locked_row_frame.dim){
-                    let locked_overlap_frame = new Frame([0, 0], [this.locked_column_frame.size.x - 1, this.locked_row_frame.size.y - 1]);
-                    this._updatedDisplayValues(body, locked_overlap_frame, new Point([0, 0]));
-                }
-                this._updatedDisplayValues(body, this.view_frame, this.view_frame_offset);
-                this._updateHeader(body, head);
+                // clean the sheet to make sure no residual data values left
+                this._updatedDisplayValues(body);
             }
         });
     }
 
     /* Update data helpers */
-    /* I update the values displayed in the sheet for the provided frame */
-    _updatedDisplayValues(body, frame, offset, clean=false){
-        // the fixed_view_frame coordinates never change and we use the passed frame.origin
-        // as the offset, i.e. we are effectively shifting the passed frame to match the
-        // fixed view but keeping the 'true' coordintaes to retrieve the data
-        // in addition if the frame needs to be shifted, such as the case when frame is the
-        // view frame and we have locked columns or rows, we offset by the provided Point
+    /* I update the values displayed in the sheet */
+    _updatedDisplayValues(body, clean=false){
+        if (clean){
+            this.composite_fixed_frame.baseFrame.coords.forEach(c => {
+            let td = body.querySelector(`#${this._coordToId("td", [c.x, c.y])}`);
+            td.textContent = undefined;
+            td.dataset.x = c.x;
+            td.dataset.y = c.y;
+            });
+        } else {
+            this.composite_fixed_frame.overlayFrames.forEach(frm => {
+                let frame = frm["frame"];
+                let projected_frame = this.composite_fixed_frame.project(frame.name);
+                let frame_coords = frame.coords;
+                let projected_frame_coords = projected_frame.coords;
+                for (let i = 0; i < frame_coords.length; i++){
+                    let data_coord = frame_coords[i];
+                    let display_coord = projected_frame_coords[i];
+                    let td = body.querySelector(`#${this._coordToId("td", [display_coord.x, display_coord.y])}`);
+                    td.textContent = this.data_frame.get(data_coord);
+                    td.dataset.x = data_coord.x;
+                    td.dataset.y = data_coord.y;
+                }
+            });
+        }
+        /*
         frame.coords.map((p) => {
-            let x = p.x - frame.origin.x + offset.x;
-            let y = p.y - frame.origin.y + offset.y;
+            let x = p.x - frame.origin.x;
+            let y = p.y - frame.origin.y;
             let td = body.querySelector(`#${this._coordToId("td", [x, y])}`);
             let d = "";
             if (!clean){
@@ -862,6 +878,7 @@ class Sheet extends Component {
             td.dataset.x = p.x;
             td.dataset.y = p.y;
         });
+        */
     }
 
     /* Helper functions to determine a 'reasonable' number of columns and rows

@@ -11,11 +11,13 @@ from object_database.util import genToken
 
 @pytest.fixture
 def odb_token():
+    """ Returns an authentication token for the ODB. """
     return genToken()
 
 
 @pytest.fixture
 def in_mem_odb_server(odb_token):
+    """ Returns an in-memory ODB server. """
     server = InMemServer(auth_token=odb_token)
     server.start()
     yield server
@@ -24,6 +26,7 @@ def in_mem_odb_server(odb_token):
 
 @pytest.fixture
 def in_mem_odb_connection(odb_token, in_mem_odb_server):
+    """ Returns a connection to the in-memory ODB server. """
     conn = in_mem_odb_server.connect(odb_token)
     yield conn
     conn.disconnect(block=True)
@@ -31,6 +34,7 @@ def in_mem_odb_connection(odb_token, in_mem_odb_server):
 
 @pytest.fixture
 def redis_process_port():
+    """ Creates a Redis process and returns its port. """
     redisProcess = RedisTestHelper(port=1115)
     yield 1115
     redisProcess.tearDown()
@@ -38,6 +42,7 @@ def redis_process_port():
 
 @pytest.fixture
 def redis_odb_server(odb_token, redis_process_port):
+    """ Returns an ODB server with a Redis backend. """
     mem_store = RedisPersistence(port=redis_process_port)
     server = InMemServer(mem_store, odb_token)
     server.start()
@@ -47,6 +52,7 @@ def redis_odb_server(odb_token, redis_process_port):
 
 @pytest.fixture
 def redis_odb_connection(odb_token, redis_odb_server):
+    """ Returns a connection to the Redis-backed ODB server. """
     conn = redis_odb_server.connect(odb_token)
     yield conn
     conn.disconnect()
@@ -54,6 +60,7 @@ def redis_odb_connection(odb_token, redis_odb_server):
 
 @pytest.fixture
 def tcp_odb_server(odb_token):
+    """ Returns an ODB server over TCP. """
     sc = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     sc.load_cert_chain("testcert.cert", "testcert.key")
 
@@ -72,6 +79,7 @@ def tcp_odb_server(odb_token):
 
 @pytest.fixture
 def tcp_odb_connection(odb_token, tcp_odb_server):
+    """ Returns a connection to the TCP ODB server. """
     conn = tcp_odb_server.connect(odb_token)
     yield conn
     conn.disconnect()
@@ -85,6 +93,6 @@ def tcp_odb_connection(odb_token, tcp_odb_server):
     ]
 )
 def db(request):
+    """ Returns an ODB connection (one of multiple kinds). """
     connection = request.param
-    # if needed: connection.subscribeToSchema(xyz)
     return connection

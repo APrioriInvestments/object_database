@@ -80,7 +80,8 @@ def tcp_odb_server(odb_token):
 @pytest.fixture
 def tcp_odb_connection(odb_token, tcp_odb_server):
     """ Returns a connection to the TCP ODB server. """
-    conn = tcp_odb_server.connect(odb_token)
+    conn = tcp_odb_server.connect(odb_token, useSecondaryLoop=False)
+    conn.initialized.wait()
     yield conn
     conn.disconnect()
 

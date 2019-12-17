@@ -12,9 +12,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import threading
-import queue
 import logging
+import queue
+import threading
 import time
 
 from contextlib import contextmanager
@@ -43,8 +43,8 @@ class Reactor:
     recent pass through the function is touched. Otherwise it will continue
     calling the reactor function.
 
-    If the function throws a RevisionConflictException, we will retry the
-    entire function from the beginning. If the function throws any other
+    If the function raises a RevisionConflictException, we will retry the
+    entire function from the beginning. If the function raises any other
     exception the Reactor will log an exception and exit its loop.
 
     You may also specify a periodic wakup time, which causes the reactor
@@ -62,7 +62,7 @@ class Reactor:
     Example:
 
         def consumeOne():
-            with db.transactoon():
+            with db.transaction():
                 t = T.lookupAny()
                 if t is not None:
                     print("Consumed one")
@@ -115,14 +115,15 @@ class Reactor:
         # when we deregister it.
         self.transactionHandler = self._onTransaction
         self.db.registerOnTransactionHandler(self.transactionHandler)
+        self._isTornDown = False
 
     @staticmethod
     def curTimestamp():
-        """Return the timestamp of the start of the current transaction.
+        """Return the timestamp of the start of the current transaction or None.
 
         This does _not_ create a dependency.
         """
-        return _currentReactor.timestamp
+        return getattr(_currentReactor, "timestamp", None)
 
     @staticmethod
     def curTimestampIsAfter(ts):
@@ -131,8 +132,8 @@ class Reactor:
         This allows clients to check if the current time is after a threshold and
         ensure that they are woken up as soon as that condition is met.
 
-        If this function returns False, then as soon as it would return True it wakes up
-        again.
+        If this function returns False, it causes the Reactor to wake up
+        as soon at it would return True.
         """
         if not isinstance(ts, (int, float)):
             raise TypeError(f"Timestamp `ts` must be of type float but was of type {type(ts)}")
@@ -152,6 +153,9 @@ class Reactor:
     def start(self):
         if self._thread is not None:
             return
+
+        if self._isTornDown:
+            raise Exception("Cannot use reactor after it has been torn down")
 
         self._thread = threading.Thread(target=self._updateLoop, daemon=True)
         self._isStarted = True
@@ -181,6 +185,10 @@ class Reactor:
         the __del__ method calls it, because calling __del__ is done on a
         best-effort basis in python.
         """
+        if self._thread is not None:
+            raise Exception("Cannot tear down reactor while its background thread is running")
+
+        self._isTornDown = True
         self.db.dropTransactionHandler(self.transactionHandler)
 
     def __del__(self):
@@ -215,7 +223,12 @@ class Reactor:
 
     def next(self, timeout=None):
         if self._thread is not None:
-            raise Exception("Can't call 'next' if the reactor is being used in threaded mode.")
+            raise Exception(
+                "Cannot call 'next' if the reactor is being used in threaded mode."
+            )
+
+        if self._isTornDown:
+            raise Exception("Cannot use reactor after it has been torn down.")
 
         if self._lastReadKeys is not None:
             if not self._blockUntilRecalculate(

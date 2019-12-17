@@ -1,4 +1,5 @@
 import time
+import pytest
 
 from object_database.schema import Schema, Indexed
 from .reactor import Reactor, Timeout
@@ -40,6 +41,89 @@ def test_reactor_restarting(db):
     with r.running(teardown=True) as r:
         time.sleep(sleepAmt / 2)
         assert len(_logs) == 3
+
+
+@schema.define
+class Status:
+    on = bool
+    count = int
+
+    def set(self):
+        if self.on is not True:
+            self.on = True
+            self.count += 1
+
+    def clear(self):
+        if self.on is not False:
+            self.on = False
+            self.count += 1
+
+
+def test_reactor_invalid_uses(in_mem_odb_connection):
+    def noop():
+        pass
+
+    r = Reactor(in_mem_odb_connection, noop)
+
+    r.next()
+    r.start()
+    with pytest.raises(Exception, match="Cannot call 'next'"):
+        r.next()
+
+    with pytest.raises(Exception, match="Cannot tear down"):
+        r.teardown()
+
+    r.stop()
+    r.teardown()
+
+    with pytest.raises(Exception, match="Cannot use reactor"):
+        r.start()
+
+    with pytest.raises(Exception, match="Cannot use reactor"):
+        r.next()
+
+
+def test_reactor_useless_machine(db):
+    db.subscribeToSchema(schema)
+
+    with db.transaction():
+        s = Status(on=True)
+
+    def turnOn():
+        with db.transaction():
+            status = Status.lookupOne()
+            status.set()
+
+    def getStatus():
+        with db.view():
+            return Status.lookupOne().on
+
+    def useless_machine():
+        with db.transaction():
+            status = Status.lookupOne()
+            status.clear()
+
+    r = Reactor(db, useless_machine)
+    assert getStatus() is True
+
+    REACTION_TIME = 0.01
+
+    with r.running():
+        assert db.waitForCondition(lambda: s.on is False, REACTION_TIME)
+        assert getStatus() is False
+
+        turnOn()
+        assert db.waitForCondition(lambda: s.on is False, REACTION_TIME)
+        assert getStatus() is False
+
+    turnOn()
+    assert not db.waitForCondition(lambda: s.on is False, 5 * REACTION_TIME)
+
+    # we can restart the Reactor
+    assert getStatus() is True
+    with r.running(teardown=True):
+        assert db.waitForCondition(lambda: s.on is False, REACTION_TIME)
+        assert getStatus() is False
 
 
 def test_reactor_threaded(db):
@@ -89,31 +173,31 @@ def test_reactor_with_exception(db):
         c = Counter(k=0, x=0)
 
     executed = [0]
-    thrown = [0]
+    raised = [0]
 
     def incrementor():
-        shouldThrow = False
+        shouldRaise = False
 
         with db.transaction():
             executed[0] += 1
             if c.x:
-                thrown[0] += 1
+                raised[0] += 1
                 c.x = 0
-                shouldThrow = True
+                shouldRaise = True
 
-        assert not shouldThrow
+        assert not shouldRaise
 
     r1 = Reactor(db, incrementor)
 
-    with r1.running():
+    with r1.running(teardown=True):
         for _ in range(10):
             with db.transaction():
                 c.x = 1
 
             assert db.waitForCondition(lambda: c.x == 0, timeout=1.0) is True
 
-    assert thrown[0] == 10
-    assert executed[0] > thrown[0]
+    assert raised[0] == 10
+    assert executed[0] > raised[0]
 
 
 def test_reactor_with_timestamp_lookup(db):
@@ -150,12 +234,11 @@ def test_reactor_with_timestamp_lookup(db):
 
     assert time.time() - t0 < 1.2
 
-    r1.start()
-    assert db.waitForCondition(
-        lambda: sum(x.timesUpdated for x in Thing.lookupAll()) >= 2000, timeout=2.0
-    )
-    assert time.time() - t0 < 2.2
-    r1.stop()
+    with r1.running(teardown=True):
+        assert db.waitForCondition(
+            lambda: sum(x.timesUpdated for x in Thing.lookupAll()) >= 2000, timeout=2.0
+        )
+        assert time.time() - t0 < 2.2
 
 
 def test_reactor_synchronous(db):

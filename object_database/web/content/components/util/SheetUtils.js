@@ -397,6 +397,7 @@ class CompositeFrame {
         this.project = this.project.bind(this);
         this._project = this._project.bind(this);
         this.translate = this.translate.bind(this);
+        this._translate = this._translate.bind(this);
         this.getOverlayFrame = this.getOverlayFrame.bind(this);
         this.equals = this.equals.bind(this);
 
@@ -425,6 +426,8 @@ class CompositeFrame {
     }
 
     /* I translate all my overlay frames in the given [x, y] direction.
+     * I also make sure that we dont' translate off of the baseFrame, i.e.
+     * I move the frame within the bounds of baseFrame coordinates.
      * If baseFrame=true, the my baseFrame is also translated.
      * Note: xy can also be an instance of class Point
      */
@@ -433,11 +436,30 @@ class CompositeFrame {
             this.baseFrame.translate(xy);
         }
         if (name !== null){
-            let frm = this.getOverlayFrame(name);
-            frm["frame"].translate(xy);
+            let frame = null;
+            let index = null;
+            this.overlayFrames.forEach((frm, index) => {
+                if (frm["frame"].name === name){
+                    frame = frm;
+                    index = index;
+                }
+            });
+            if (frame === null){
+                throw `'${name}' is not an overlay frame`;
+            }
+            this.overlayFrames.splice(index, 1, frame);
         } else {
-            this.overlayFrames.map(frame => {frame["frame"].translate(xy)});
+            this.overlayFrames = this.overlayFrames.map(frame => {
+                return {
+                    frame: this._translate(frame["frame"], xy),
+                    origin: frame["origin"]
+                };
+            });
         }
+    }
+
+    _translate(frame, xy){
+        return frame.translate(xy, inplace=false);
     }
 
     /* I return the overlay frame which corresponds to the name provided.

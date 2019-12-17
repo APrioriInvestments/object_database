@@ -428,11 +428,16 @@ class CompositeFrame {
      * If baseFrame=true, the my baseFrame is also translated.
      * Note: xy can also be an instance of class Point
      */
-    translate(xy, baseFrame=false){
+    translate(xy, name=null, baseFrame=false){
         if (baseFrame) {
             this.baseFrame.translate(xy);
         }
-        this.overlayFrames.map(frame => {frame["frame"].translate(xy)});
+        if (name !== null){
+            let frm = this.getOverlayFrame(name);
+            frm["frame"].translate(xy);
+        } else {
+            this.overlayFrames.map(frame => {frame["frame"].translate(xy)});
+        }
     }
 
     /* I return the overlay frame which corresponds to the name provided.

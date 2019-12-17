@@ -91,7 +91,8 @@ def tcp_odb_connection(odb_token, tcp_odb_server):
         lazy_fixture("in_mem_odb_connection"),
         lazy_fixture("redis_odb_connection"),
         lazy_fixture("tcp_odb_connection"),
-    ]
+    ],
+    ids=["inmem_odb", "redis_odb", "tcp_odb"],
 )
 def db(request):
     """ Returns an ODB connection (one of multiple kinds). """

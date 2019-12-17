@@ -13,6 +13,7 @@ selenium = "*"
 flaky = "*"
 nodeenv = "*"
 pre-commit = "*"
+pytest-lazy-fixture = "*"
 
 [packages]
 boto3 = "*"

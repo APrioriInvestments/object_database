@@ -613,10 +613,11 @@ describe("Sheet util tests.", () => {
             let composition = new CompositeFrame(baseFrame, overlayFrames);
             let p = new Point([10, 10]);
             composition.translate(p);
-            assert.isTrue(composition.baseFrame.equals(baseFrame));
-            composition.overlayFrames.map((frame, index) => {
-                overlayFrames[index]["frame"].translate(p);
-                assert.isTrue(frame["frame"].equals(overlayFrames[index]["frame"]));
+            assert.isTrue(composition.baseFrame.equals(new Frame(baseFrame.origin, baseFrame.corner)));
+            composition.overlayFrames.forEach((frame, index) => {
+                let test_frame = new Frame(overlayFrames[index]["frame"].origin, overlayFrames[index]["frame"].corner);
+                test_frame.translate(p);
+                assert.isTrue(frame["frame"].equals(test_frame));
             })
         })
         it("Translation (by name)", () => {
@@ -634,6 +635,20 @@ describe("Sheet util tests.", () => {
             assert.isTrue(frame["frame"].equals(overlayFrames[0]["frame"]));
             frame = composition.getOverlayFrame("frame1");
             assert.isTrue(frame["frame"].equals(overlayFrames[1]["frame"]));
+        })
+        it("Translation (by name) error", () => {
+            let baseFrame = new DataFrame([0, 0], [10, 10]);
+            let overlayFrames = [
+                {frame: new Frame([1, 1], [5, 5], "frame0"), origin: new Point([1, 1])},
+                {frame: new Frame([0, 0], [1, 1], "frame1"), origin: new Point([0, 0])}
+            ]
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let p = new Point([10, 10]);
+            try {
+                composition.translate(p, "noname");
+            } catch(e) {
+                assert.equal(e, "'noname' is not an overlay frame");
+            }
         })
         it("Translation (with baseFrame)", () => {
             let baseFrame = new DataFrame([0, 0], [10, 10]);

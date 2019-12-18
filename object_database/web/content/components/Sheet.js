@@ -230,6 +230,7 @@ class Sheet extends Component {
                 this._addLockedElements(body, frame);
             }
         });
+        console.log(this.composite_frame);
     }
 
     build(){
@@ -306,7 +307,7 @@ class Sheet extends Component {
                 translation.x = Math.min(this.data_frame.corner.x - view_frame.corner.x, view_frame.size.x);
             } else if (event.key === "PageUp") {
                 // make sure we don't run out of data at the left
-                translation.x = Math.min(view_frame.corner.x - view_origin.x, view_frame.size.x);
+                translation.x = -1 * Math.min(view_frame.origin.x - view_origin.x, view_frame.size.x);
             }
             this.composite_frame.translate(translation, "locked_rows");
         } else {
@@ -316,7 +317,7 @@ class Sheet extends Component {
                 translation.y = Math.min(this.data_frame.corner.y - view_frame.corner.y, view_frame.size.y);
             } else if (event.key === "PageUp"){
                 // make sure we don't run out of data at the top
-                translation.y = Math.min(view_frame.corner.y - view_origin.y, view_frame.size.y);
+                translation.y = -1 * Math.min(view_frame.origin.y - view_origin.y, view_frame.size.y);
             }
             this.composite_frame.translate(translation, "locked_columns");
         }
@@ -341,13 +342,13 @@ class Sheet extends Component {
             // This is sheet level navigation
             // Go to top of the sheet
             if (event.key === "ArrowUp"){
-                translation.y = view_frame.origin.y - view_origin.y;
+                translation.y = view_origin.y - view_frame.origin.y;
                 this.composite_frame.translate(translation, "locked_columns");
                 // Ensure that cursor moves to the
                 // top of the current view frame
                 this.selector.cursorTo(new Point([
                     this.selector.selectionFrame.cursor.x,
-                    view_frame.translate(translation, false).top
+                    view_origin.y
                 ]));
             // Go to bottom of the sheet
             } else if (event.key === "ArrowDown"){
@@ -371,12 +372,12 @@ class Sheet extends Component {
                 ]));
             // Go to the left of the sheet
             } else if (event.key === "ArrowLeft"){
-                translation.x = view_frame.origin.x - view_origin.x;
+                translation.x = view_origin.x - view_frame.origin.x;
                 this.composite_frame.translate(translation, "locked_rows");
                 // Ensure that the cursor moves to the
                 // left side of the current view frame
                 this.selector.cursorTo(new Point([
-                    view_frame.translate(translation, false).left,
+                    view_origin.x,
                     this.selector.selectionFrame.cursor.y
                 ]));
             }
@@ -419,127 +420,30 @@ class Sheet extends Component {
         console.log('onNeedsUpdate:');
         console.log(direction);
         console.log(translation);
-        let body = document.getElementById(`sheet-${this.props.id}-body`);
+        let view_overlay = this.composite_frame.getOverlayFrame("view_frame");
+        let view_frame = view_overlay["frame"];
+        let view_origin = view_overlay["origin"];
         switch(direction){
-        case 'up':
-            if (this.view_frame.origin.y > this.view_frame_offset.y){
-                // now for the locked column frame
-                if (this.locked_column_frame.dim){
-                    this.locked_column_frame.translate(translation);
-                    this._updatedDisplayValues(
-                        body,
-                        this.locked_column_frame,
-                        this.locked_column_offset
-                    );
-                    this.fetchData(
-                        this.locked_column_frame,
-                        "update",
-                    );
-                }
-                // we update the values before the make a server and after
-                this.view_frame.translate(translation);
-                this._updatedDisplayValues(
-                    body,
-                    this.view_frame,
-                    this.view_frame_offset
-                );
-                // no need to translation the active_frame, already at the top
-                this.fetchData(
-                    this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
-                    "update",
-                );
-            }
-            break;
-
-        case 'down':
-            if (this.view_frame.corner.y < this.totalRows - 1){
-                // now for the locked column frame
-                if (this.locked_column_frame.dim){
-                    this.locked_column_frame.translate(translation);
-                    this._updatedDisplayValues(
-                        body,
-                        this.locked_column_frame,
-                        this.locked_column_offset
-                    );
-                    this.fetchData(
-                        this.locked_column_frame,
-                        "update",
-                    );
-                }
-                // we update the values before the make a server and after
-                this.view_frame.translate(translation);
-                this._updatedDisplayValues(
-                    body,
-                    this.view_frame,
-                    this.view_frame_offset
-                );
-                // no need to translation the active_frame, already at the bottom
-                this.fetchData(
-                    this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
-                    "update",
-                );
-            }
-            break;
-
-        case 'left':
-            if (this.view_frame.origin.x > this.view_frame_offset.x){
-                // now for the locked row frame
-                if (this.locked_row_frame.dim){
-                    this.locked_row_frame.translate(translation);
-                    this._updatedDisplayValues(
-                        body,
-                        this.locked_row_frame,
-                        this.locked_row_offset
-                    );
-                    this.fetchData(
-                        this.locked_row_frame,
-                        "update",
-                    );
-                }
-                // we update the values before the make a server and after
-                this.view_frame.translate(translation);
-                this._updatedDisplayValues(
-                    body,
-                    this.view_frame,
-                    this.view_frame_offset
-                );
-                // no need to translation the active_frame, already at the top
-                this.fetchData(
-                    this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
-                    "update",
-                );
-            }
-            break;
-
-        case 'right':
-            if (this.view_frame.corner.x < this.totalColumns - 1){
-                // now for the locked row frame
-                if (this.locked_row_frame.dim){
-                    this.locked_row_frame.translate(translation);
-                    this._updatedDisplayValues(
-                        body,
-                        this.locked_row_frame,
-                        this.locked_row_offset
-                    );
-                    this.fetchData(
-                        this.locked_row_frame,
-                        "update",
-                    );
-                }
-                // we update the values before the make a server and after
-                this.view_frame.translate(translation);
-                this._updatedDisplayValues(
-                    body,
-                    this.view_frame,
-                    this.view_frame_offset
-                );
-                // no need to translation the active_frame, already at the bottom
-                this.fetchData(
-                    this.view_frame, // NOTE: we always fetch against view frames not the fixed frame
-                    "update",
-                );
-            }
-            break;
+            case 'up':
+                translation.y = view_frame.origin.y - view_origin.y;
+                this.composite_frame.translate(translation, "locked_columns");
+                this.composite_frame.translate(translation, "view_frame");
+                this.fetchData("update");
+            case 'down':
+                translation.y = this.data_frame.corner.y - view_frame.corner.y;
+                this.composite_frame.translate(translation, "locked_columns");
+                this.composite_frame.translate(translation, "view_frame");
+                this.fetchData("update");
+            case 'left':
+                translation.x = view_frame.origin.x - view_origin.x;
+                this.composite_frame.translate(translation, "locked_rows");
+                this.composite_frame.translate(translation, "view_frame");
+                this.fetchData("update");
+            case 'right':
+                translation.x = this.data_frame.corner.x - view_frame.corner.x;
+                this.composite_frame.translate(translation, "locked_rows");
+                this.composite_frame.translate(translation, "view_frame");
+                this.fetchData("update");
         }
     }
 
@@ -663,7 +567,12 @@ class Sheet extends Component {
     fetchData(action){
         // we ask for a bit more data than we need for the view to prevent flickering
         // frame = this._padFrame(frame, new Point([2, 2]));
+        // TODO: this place_counter needs to go!
+        let replace_counter = 0;
         this.composite_frame.overlayFrames.forEach(frm  => {
+            if (replace_counter){
+                action = "update";
+            }
             let frame = frm["frame"];
             this.requestIndex += 1;
             let request = JSON.stringify({
@@ -677,6 +586,9 @@ class Sheet extends Component {
                 action: action,
             });
             cellSocket.sendString(request);
+            if (action === "replace"){
+                replace_counter += 1;
+            }
         });
     }
 

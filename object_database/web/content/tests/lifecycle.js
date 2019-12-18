@@ -139,30 +139,7 @@ class LifeCycleTester extends Component {
         this.calledUpdated = false;
     }
 };
-
-class SubscribedTester extends registry['Subscribed'] {
-    constructor(props){
-        super(props);
-        this.calledLoaded = false;
-        this.calledUpdated = false;
-        this.reset = this.reset.bind(this);
-    }
-
-    componentDidLoad(){
-        this.calledLoaded = true;
-    }
-
-    componentDidUpdate(){
-        this.calledUpdated = true;
-    }
-
-    reset(){
-        this.calledUpdated = false;
-        this.calledLoaded = false;
-    }
-};
 registry['LifeCycleTester'] = LifeCycleTester;
-registry['SubscribedTester'] = SubscribedTester;
 
 const createElementChild = (id, parent) => {
     return {
@@ -298,67 +275,6 @@ describe("Component Lifecycle Tests", () => {
             elementChildren.forEach(comp => {
                 assert.isTrue(comp.calledUpdated);
             });
-        });
-    });
-
-    /**
-     * Ensure that Subscribed and the contents
-     * of Subscribed Components have the appropriate
-     * lifecycle methods called on them.
-     * This is necessary becasue the component
-     * Subscribed can "mask" calls to #componentDidLoad
-     * for contents when its own update message was just
-     * an id.
-     */
-    describe("Subscribed Content Lifecycle Checks", () => {
-        let handler;
-        before(() => {
-            handler = new NewCellHandler(h, projector, registry);
-            let rootEl = document.createElement('div');
-            rootEl.id = 'page_root';
-            document.body.append(rootEl);
-        });
-        after(() => {
-            let rootEl = document.getElementById('page_root');
-            rootEl.remove();
-        });
-
-        it('Calls #componentDidLoad for both the Subscribed and its content', () => {
-            let message = createUpdateMessageFor(subscribedCreateStructure);
-            handler.receive(message);
-            let subscribed = handler.activeComponents['subscribed'];
-            let child = handler.activeComponents['subscribedChild'];
-            assert.exists(subscribed);
-            assert.exists(child);
-
-            // Lifecycle
-            assert.isTrue(subscribed.calledLoaded);
-            assert.isTrue(child.calledLoaded);
-        });
-        it('Does not call #componentDidUpdate for either Subscribed or its content', () => {
-            let subscribed = handler.activeComponents['subscribed'];
-            let child = handler.activeComponents['subscribedChild'];
-            assert.exists(subscribed);
-            assert.exists(child);
-
-            // Lifecycle
-            assert.isFalse(subscribed.calledUpdated);
-            assert.isFalse(child.calledUpdated);
-        });
-        it('Calls #componentDidUpdate for both the Subscribed and its content', () => {
-            let subscribed = handler.activeComponents['subscribed'];
-            let child = handler.activeComponents['subscribedChild'];
-            assert.exists(subscribed);
-            assert.exists(child);
-
-            subscribed.reset();
-            child.reset();
-            let message = createUpdateMessageFor(subscribedUpdateStructure);
-            handler.receive(message);
-
-            // Lifecycle
-            assert.isTrue(subscribed.calledUpdated);
-            assert.isTrue(child.calledUpdated);
         });
     });
 });

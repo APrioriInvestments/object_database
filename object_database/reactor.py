@@ -27,6 +27,10 @@ class Timeout:
     pass
 
 
+class DeadlockException(Exception):
+    pass
+
+
 _currentReactor = threading.local()
 
 
@@ -170,6 +174,11 @@ class Reactor:
         self._thread.join()
         self._thread = None
 
+    def isRunning(self):
+        if self._thread is None:
+            return False
+        return self._thread.isAlive()
+
     @contextmanager
     def running(self, teardown=False):
         self.start()
@@ -273,6 +282,8 @@ class Reactor:
                 if readKeys is not None:
                     self._blockUntilRecalculate(readKeys, nextWakeup, self.maxSleepTime)
 
+        except DeadlockException:
+            raise
         except Exception:
             logging.exception("Unexpected exception in Reactor loop:")
 
@@ -283,7 +294,7 @@ class Reactor:
             True if we were triggered by a key update, False otherwise.
         """
         if not readKeys and timeout is None and nextWakeup is None:
-            raise Exception("Reactor would block forever.")
+            raise DeadlockException("Reactor would block forever.")
 
         curTime = time.time()
         finalTime = curTime + (timeout if timeout is not None else 10 ** 8)
@@ -317,18 +328,17 @@ class Reactor:
         """Calculate the reactor function.
 
         Returns:
-            (functionResult, keySetOrNone, nextWakeup)
+            (functionResult, keySet, nextWakeup)
 
             functionResult will be the actual result of the function,
             or None if it threw a RevisionConflictException
 
-            keySetOrNone will be 'None' if the function should be recalculated
-            right away, otherwise the set of keys to check for updates and a
-            transactionId.
+            keySet will be the set of keys to check for updates, which could be empty.
 
-            nextWakeup will be None unless it was updated by `curTimestampIsAfter`,
-            in which case it will be the timestamp of the next wakeup for the
-            reactor.
+            nextWakeup will be None unless it was updated by `curTimestampIsAfter`
+            or unless the reactor needs to re-execute immediately due to a write,
+            in which cases nextWakeup will be the timestamp at which the reactor
+            should re-execute.
         """
         try:
             seenKeys = set()
@@ -345,12 +355,13 @@ class Reactor:
                 seenKeys.update(view._view.extractReads())
                 seenKeys.update(view._view.extractIndexReads())
 
+            currentStartTimestamp = time.time()
             with ViewWatcher(onViewClose):
                 try:
                     origTimestamp = getattr(_currentReactor, "timestamp", None)
                     origWakeup = getattr(_currentReactor, "nextWakeup", None)
 
-                    _currentReactor.timestamp = time.time()
+                    _currentReactor.timestamp = currentStartTimestamp
                     _currentReactor.nextWakeup = None
 
                     logging.getLogger(__name__).debug(
@@ -365,9 +376,9 @@ class Reactor:
                     _currentReactor.timestamp = origTimestamp
 
             if hadWrites[0]:
-                return functionResult, None, nextWakeup
-            else:
-                return functionResult, seenKeys, nextWakeup
+                nextWakeup = currentStartTimestamp
+
+            return functionResult, seenKeys, nextWakeup
 
         except RevisionConflictException as e:
             if not catchRevisionConflicts:
@@ -377,7 +388,7 @@ class Reactor:
                 "Handled a revision conflict on key %s in %s. Retrying."
                 % (e, self.reactorFunction.__name__)
             )
-            return None, None, None
+            return None, seenKeys, currentStartTimestamp
 
     def _onTransaction(self, key_value, set_adds, set_removes, transactionId):
         self._transactionQueue.put(list(key_value) + list(set_adds) + list(set_removes))

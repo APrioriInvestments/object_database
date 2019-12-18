@@ -517,8 +517,10 @@ class Cells:
         # and that have been updated should also
         # make sure their parent Cell is updated.
         for node in self._nodesToBroadcast:
-            if isinstance(node, Subscribed) and node.wasUpdated:
-                node.parent.wasUpdated = True
+            node_to_check = node
+            while node_to_check and isinstance(node_to_check, Subscribed):
+                node_to_check = node_to_check.parent
+                node_to_check.wasUpdated = True
 
     def _recalculateSingleCell(self, node):
         if node.wasDataUpdated:

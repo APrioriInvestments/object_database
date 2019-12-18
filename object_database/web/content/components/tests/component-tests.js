@@ -651,18 +651,6 @@ describe('VElement Build Tests for All Components', () => {
         assert.exists(result);
     });
 
-    it('Subscribed can build', () => {
-        let comp = new AllComponents.Subscribed({
-            id: 'foo',
-            namedChildren: {
-                content: newPlainComponent(1)
-            }
-        });
-        expect(comp[funcName].bind(comp)).to.not.throw();
-        let result = comp[funcName]();
-        assert.exists(result);
-    });
-
     it('SubscribedSequence can build', () => {
         let comp = new AllComponents.SubscribedSequence({
             id: 'foo',

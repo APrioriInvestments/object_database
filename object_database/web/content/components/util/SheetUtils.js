@@ -445,7 +445,7 @@ class CompositeFrame {
                 }
             });
             if (frame === null){
-                throw `'${name}' is not an overlay frame`;
+                return;
             }
             this.overlayFrames[index] = {
                 frame: this._translate(frame["frame"], xy),
@@ -966,19 +966,19 @@ class Selector {
     }
 
     isAtViewTop(){
-        return this.selectionFrame.origin.y === this.sheet.view_frame_offset.y;
+        return this.selectionFrame.origin.y === this.sheet.composite_frame.getOverlayFrame("view_frame")["origin"].y;
     }
 
     isAtViewBottom(){
-        return this.selectionFrame.corner.y === this.sheet.fixed_view_frame.corner.y;
+        return this.selectionFrame.corner.y === this.sheet.composite_frame.baseFrame.corner.y;
     }
 
     isAtViewLeft(){
-        return this.selectionFrame.origin.x === this.sheet.view_frame_offset.x;
+        return this.selectionFrame.origin.x === this.sheet.composite_frame.getOverlayFrame("view_frame").origin.x;
     }
 
     isAtViewRight(){
-        return this.selectionFrame.corner.x === this.sheet.fixed_view_frame.corner.x;
+        return this.selectionFrame.corner.x === this.sheet.composite_frame.baseFrame.corner.x;
     }
 }
 

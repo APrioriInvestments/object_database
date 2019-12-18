@@ -644,11 +644,7 @@ describe("Sheet util tests.", () => {
             ]
             let composition = new CompositeFrame(baseFrame, overlayFrames);
             let p = new Point([10, 10]);
-            try {
-                composition.translate(p, "noname");
-            } catch(e) {
-                assert.equal(e, "'noname' is not an overlay frame");
-            }
+            assert.equal(composition.translate(p, "noname"), undefined);
         })
         it("Translation (with baseFrame)", () => {
             let baseFrame = new DataFrame([0, 0], [10, 10]);

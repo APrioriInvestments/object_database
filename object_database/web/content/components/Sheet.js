@@ -169,17 +169,23 @@ class Sheet extends Component {
             return;
         }
         // now set the max column/row attributes
-        /*
         this.max_num_columns = max_num_columns;
         this.max_num_rows = max_num_rows;
-        this.fixed_view_frame.setCorner = [this.max_num_columns - 1, this.max_num_rows - 1];
-        this.view_frame.corner.x += max_columns_diff;
-        this.view_frame.corner.y += max_rows_diff;
-        this.fetchData(
-            this.view_frame,
-            "replace",
-        );
-        */
+        // TODO: this could potentially be a CompositeFrame.grow() method
+        this.composite_frame.baseFrame.corner.x += max_columns_diff;
+        this.composite_frame.baseFrame.corner.y += max_rows_diff;
+        this.composite_frame.overlayFrames.forEach(frm => {
+            let frame = frm["frame"];
+            if (frame.name === "view_frame"){
+                frame.corner.x += max_columns_diff;
+                frame.corner.y += max_rows_diff;
+            } else if (frame.name === "locked_columns"){
+                frame.corner.y += max_rows_diff;
+            } else if (frame.name === "locked_rows"){
+                frame.corner.x += max_columns_diff;
+            }
+        });
+        this.fetchData("replace");
     }
 
     /* I initialize the sheet from coordintate [0, 0] to [corner.x, corner.y] (corner isinstanceof Point)
@@ -230,7 +236,6 @@ class Sheet extends Component {
                 this._addLockedElements(body, frame);
             }
         });
-        console.log(this.composite_frame);
     }
 
     build(){

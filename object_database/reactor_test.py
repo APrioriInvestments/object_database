@@ -61,12 +61,19 @@ class Status:
 
 def test_reactor_invalid_uses(in_mem_odb_connection):
     def noop():
-        pass
+        time.sleep(0.01)
 
     r = Reactor(in_mem_odb_connection, noop)
 
     r.next()
+    with pytest.raises(Exception, match="Reactor would block forever"):
+        r.next()
+
     r.start()
+    assert r.isRunning()
+    time.sleep(0.1)
+    assert not r.isRunning()
+
     with pytest.raises(Exception, match="Cannot call 'next'"):
         r.next()
 
@@ -185,7 +192,8 @@ def test_reactor_with_exception(db):
                 c.x = 0
                 shouldRaise = True
 
-        assert not shouldRaise
+        if shouldRaise:
+            raise Exception("Raising exception for Testing")
 
     r1 = Reactor(db, incrementor)
 

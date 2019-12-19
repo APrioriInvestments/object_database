@@ -899,7 +899,7 @@ class Selector {
     shiftUp(amount = 1, shrinkToCursor = false){
         let shift = [0, (amount * -1)];
         if(this.isAtViewTop()){
-            this.triggerNeedsUpdate('up', shift);
+            this.triggerNeedsUpdate('up', amount);
         } else {
             this.clearStyling(true);
             this.selectionFrame.translate(shift);
@@ -913,7 +913,7 @@ class Selector {
     shiftRight(amount = 1, shrinkToCursor = false){
         let shift = [amount * 1, 0];
         if(this.isAtViewRight()){
-            this.triggerNeedsUpdate('right', shift);
+            this.triggerNeedsUpdate('right', amount);
         } else {
             this.clearStyling(true);
             this.selectionFrame.translate(shift);
@@ -927,7 +927,7 @@ class Selector {
     shiftDown(amount = 1, shrinkToCursor = false){
         let shift = [0, amount * 1];
         if(this.isAtViewBottom()){
-            this.triggerNeedsUpdate('down', shift);
+            this.triggerNeedsUpdate('down', amount);
         } else {
             this.clearStyling(true);
             this.selectionFrame.translate(shift);
@@ -941,7 +941,7 @@ class Selector {
     shiftLeft(amount = 1, shrinkToCursor = false){
         let shift = [amount * -1, 0];
         if(this.isAtViewLeft()){
-            this.triggerNeedsUpdate('left', shift);
+            this.triggerNeedsUpdate('left', amount);
         } else {
             this.clearStyling(true);
             this.selectionFrame.translate(shift);
@@ -974,7 +974,7 @@ class Selector {
     }
 
     isAtViewLeft(){
-        return this.selectionFrame.origin.x === this.sheet.composite_frame.getOverlayFrame("view_frame").origin.x;
+        return this.selectionFrame.origin.x === this.sheet.composite_frame.getOverlayFrame("view_frame")["origin"].x;
     }
 
     isAtViewRight(){

@@ -421,34 +421,34 @@ class Sheet extends Component {
         }
     }
 
-    handleSelectorUpdate(direction, translation){
+    handleSelectorUpdate(direction, amount){
         console.log('onNeedsUpdate:');
         console.log(direction);
-        console.log(translation);
+        // we need translation to be an instance of Point
+        let translation = new Point([0, 0]);
         let view_overlay = this.composite_frame.getOverlayFrame("view_frame");
         let view_frame = view_overlay["frame"];
         let view_origin = view_overlay["origin"];
-        switch(direction){
-            case 'up':
-                translation.y = view_frame.origin.y - view_origin.y;
-                this.composite_frame.translate(translation, "locked_columns");
-                this.composite_frame.translate(translation, "view_frame");
-                this.fetchData("update");
-            case 'down':
-                translation.y = this.data_frame.corner.y - view_frame.corner.y;
-                this.composite_frame.translate(translation, "locked_columns");
-                this.composite_frame.translate(translation, "view_frame");
-                this.fetchData("update");
-            case 'left':
-                translation.x = view_frame.origin.x - view_origin.x;
-                this.composite_frame.translate(translation, "locked_rows");
-                this.composite_frame.translate(translation, "view_frame");
-                this.fetchData("update");
-            case 'right':
-                translation.x = this.data_frame.corner.x - view_frame.corner.x;
-                this.composite_frame.translate(translation, "locked_rows");
-                this.composite_frame.translate(translation, "view_frame");
-                this.fetchData("update");
+        if (direction === "up"){
+            translation.y = -1 * Math.min(view_frame.origin.y - view_origin.y, amount);
+            this.composite_frame.translate(translation, "locked_columns");
+            this.composite_frame.translate(translation, "view_frame");
+            this.fetchData("update");
+        } else if (direction === "down"){
+            translation.y = Math.min(this.data_frame.corner.y - view_frame.corner.y, amount);
+            this.composite_frame.translate(translation, "locked_columns");
+            this.composite_frame.translate(translation, "view_frame");
+            this.fetchData("update");
+        } else if (direction === "left"){
+            translation.x = -1 * Math.min(view_frame.origin.x - view_origin.x, view_frame.size.x);
+            this.composite_frame.translate(translation, "locked_rows");
+            this.composite_frame.translate(translation, "view_frame");
+            this.fetchData("update");
+        } else if (direction === "right") {
+            translation.x = Math.min(this.data_frame.corner.x - view_frame.corner.x, amount);
+            this.composite_frame.translate(translation, "locked_rows");
+            this.composite_frame.translate(translation, "view_frame");
+            this.fetchData("update");
         }
     }
 
@@ -648,6 +648,9 @@ class Sheet extends Component {
                 this.data_frame.load(dataInfo.data, [origin.x, origin.y]);
                 // clean the sheet to make sure no residual data values left
                 this._updatedDisplayValues(body);
+                // if (this.is_selecting){
+                //    this.selector.addStyling();
+                //}
             }
         });
     }

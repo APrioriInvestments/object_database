@@ -1,4 +1,4 @@
-''/*
+/*
  *
  * Sheet Cell Component
  * NOTE: This is in part a wrapper
@@ -35,23 +35,23 @@ class Sheet extends Component {
 
         // offset is used as a buffer for lazy loading, i.e. we have this many extra
         // columns/rows
-        this.max_num_rows = null;
-        this.max_num_columns = null;
+        this.maxNumRows = null;
+        this.maxNumColumns = null;
         this.requestIndex = 0;
 
         // frames
-        this.composite_frame = null;
-        // active_frame defines the user's currently selected cells. It lives exclusively inside the view_frame
+        this.compositeFrame = null;
+        // active_frame defines the user's currently selected cells. It lives exclusively inside the viewFrame
         this.selector = new Selector(this);
         this.selector.onNeedsUpdate = this.handleSelectorUpdate.bind(this);
         // this is our core data frame, containing all table data values
         // NOTE: since we start at row 0 and column 0 we need to subtract 1 from the frame corner coords
-        // TODO: we need some cleanup/garbage-collection of data_frame
-        this.data_frame = new DataFrame([0, 0], [this.totalColumns - 1, this.totalRows - 1]);
+        // TODO: we need some cleanup/garbage-collection of dataFrame
+        this.dataFrame = new DataFrame([0, 0], [this.totalColumns - 1, this.totalRows - 1]);
 
         // Whether or not the user is currently 'selecting'
         // a region of the sheet
-        this.is_selecting = false;
+        this.isSelecting = false;
 
         // Bind context to methods
         this.initializeSheet  = this.initializeSheet.bind(this);
@@ -79,58 +79,58 @@ class Sheet extends Component {
     componentDidLoad(){
         console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
         this.container = document.getElementById(this.props.id).parentNode;
-        this.max_num_columns = this._calc_max_num_columns(this.container.offsetWidth);
-        this.max_num_rows = this._calc_max_num_rows(this.container.offsetHeight);
+        this.maxNumColumns = this._calcMaxNumColumns(this.container.offsetWidth);
+        this.maxNumRows = this._calcMaxNumRows(this.container.offsetHeight);
         // new
-        this.composite_frame = new CompositeFrame(
-            new Frame([0, 0], [this.max_num_columns - 1, this.max_num_rows - 1], name="full"),
+        this.compositeFrame = new CompositeFrame(
+            new Frame([0, 0], [this.maxNumColumns - 1, this.maxNumRows - 1], name="full"),
             []
-        )
+        );
         if (this.props.numLockColumns && this.props.numLockRows){
-            this.composite_frame.overlayFrames = [
+            this.compositeFrame.overlayFrames = [
                 {
                     frame: new Frame(
                         [this.props.numLockColumns, 0],
-                        [this.max_num_columns - 1, this.props.numLockRows - 1],
-                        name="locked_rows"),
+                        [this.maxNumColumns - 1, this.props.numLockRows - 1],
+                        name="lockedRows"),
                     origin: new Point([this.props.numLockColumns, 0])
                 },
                 {
                     frame: new Frame(
                         [0, this.props.numLockRows],
-                        [this.props.numLockColumns - 1, this.max_num_rows - 1],
-                        name = "locked_columns"),
+                        [this.props.numLockColumns - 1, this.maxNumRows - 1],
+                        name = "lockedColumns"),
                     origin: new Point([0, this.props.numLockRows])
                 },
                 {
                     frame: new Frame(
                         [0, 0], [this.props.numLockColumns - 1, this.props.numLockRows - 1],
-                        name = "locked_intersection"
+                        name = "lockedIntersection"
                     ),
                     origin: new Point([0, 0])
                 },
             ];
         } else if (this.props.numLockColumns){
-            this.composite_frame.overlayFrames = [
+            this.compositeFrame.overlayFrames = [
                 {
-                    frame: new Frame([0, 0], [this.props.numLockColumns - 1, this.max_num_rows - 1], name = "locked_columns"),
+                    frame: new Frame([0, 0], [this.props.numLockColumns - 1, this.maxNumRows - 1], name = "lockedColumns"),
                     origin: new Point([0, 0])
                 }
             ];
         } else if (this.props.numLockRows){
-            this.composite_frame.overlayFrames = [
+            this.compositeFrame.overlayFrames = [
                 {
-                    frame: new Frame([0, 0], [this.max_num_columns - 1, this.props.numLockRows - 1], name = "locked_rows"),
+                    frame: new Frame([0, 0], [this.maxNumColumns - 1, this.props.numLockRows - 1], name = "lockedRows"),
                     origin: new Point([0, 0])
                 }
             ];
         }
         // add the data_view frame which is the main data display of sheet
-        this.composite_frame.overlayFrames.push(
+        this.compositeFrame.overlayFrames.push(
             {
                 frame: new Frame(
                     [this.props.numLockColumns, this.props.numLockRows],
-                    [this.max_num_columns - 1, this.max_num_rows - 1], name = "view_frame"
+                    [this.maxNumColumns - 1, this.maxNumRows - 1], name = "viewFrame"
                 ),
                 origin: new Point([this.props.numLockColumns, this.props.numLockRows])
             }
@@ -159,30 +159,30 @@ class Sheet extends Component {
     resize(){
         // TODO eventually pass this as an argument or set as an attrubute on the class
         let body = document.getElementById(`sheet-${this.props.id}-body`);
-        let max_num_columns = this._calc_max_num_columns(this.container.offsetWidth);
-        let max_num_rows = this._calc_max_num_rows(this.container.offsetHeight);
+        let maxNumColumns = this._calcMaxNumColumns(this.container.offsetWidth);
+        let maxNumRows = this._calcMaxNumRows(this.container.offsetHeight);
         // first figure out how much we changed in size (wrt to rows/columns)
         // we'll use this to shift the appropriate frame corners
-        let max_columns_diff = max_num_columns - this.max_num_columns;
-        let max_rows_diff = max_num_rows - this.max_num_rows;
-        if (!max_columns_diff && !max_rows_diff){
+        let maxColumnsDiff = maxNumColumns - this.maxNumColumns;
+        let maxRowsDiff = maxNumRows - this.maxNumRows;
+        if (!maxColumnsDiff && !maxRowsDiff){
             return;
         }
         // now set the max column/row attributes
-        this.max_num_columns = max_num_columns;
-        this.max_num_rows = max_num_rows;
+        this.maxNumColumns = maxNumColumns;
+        this.maxNumRows = maxNumRows;
         // TODO: this could potentially be a CompositeFrame.grow() method
-        this.composite_frame.baseFrame.corner.x += max_columns_diff;
-        this.composite_frame.baseFrame.corner.y += max_rows_diff;
-        this.composite_frame.overlayFrames.forEach(frm => {
+        this.compositeFrame.baseFrame.corner.x += maxColumnsDiff;
+        this.compositeFrame.baseFrame.corner.y += maxRowsDiff;
+        this.compositeFrame.overlayFrames.forEach(frm => {
             let frame = frm["frame"];
-            if (frame.name === "view_frame"){
-                frame.corner.x += max_columns_diff;
-                frame.corner.y += max_rows_diff;
-            } else if (frame.name === "locked_columns"){
-                frame.corner.y += max_rows_diff;
-            } else if (frame.name === "locked_rows"){
-                frame.corner.x += max_columns_diff;
+            if (frame.name === "viewFrame"){
+                frame.corner.x += maxColumnsDiff;
+                frame.corner.y += maxRowsDiff;
+            } else if (frame.name === "lockedColumns"){
+                frame.corner.y += maxRowsDiff;
+            } else if (frame.name === "lockedRows"){
+                frame.corner.x += maxColumnsDiff;
             }
         });
         this.fetchData("replace");
@@ -193,27 +193,27 @@ class Sheet extends Component {
      */
     initializeSheet(projector, body, head){
         // make sure the header spans the entire width
-        let header_current = head.querySelector(`#sheet-${this.props.id}-head-current`);
-        header_current.colSpan = this.max_num_columns - 1;
-        let header_info = head.querySelector(`#sheet-${this.props.id}-head-info`);
-        header_info.colSpan = 1;
-        header_info.textContent = `${this.totalColumns}x${this.totalRows}`;
+        let headerCurrent = head.querySelector(`#sheet-${this.props.id}-head-current`);
+        headerCurrent.colSpan = this.maxNumColumns - 1;
+        let headerInfo = head.querySelector(`#sheet-${this.props.id}-head-info`);
+        headerInfo.colSpan = 1;
+        headerInfo.textContent = `${this.totalColumns}x${this.totalRows}`;
 
         let rows = [];
-        let origin = this.composite_frame.baseFrame.origin;
-        let corner = this.composite_frame.baseFrame.corner;
+        let origin = this.compositeFrame.baseFrame.origin;
+        let corner = this.compositeFrame.baseFrame.corner;
         for (let y = origin.y; y <= corner.y; y++){
-            var row_data = [];
+            var rowData = [];
             for (let x = origin.x; x <= corner.x; x++){
-                // even if on initialization we get values from the data_frame; this sets up our general
-                // flow but also allows for data_frame to be populated with default or cached values
-                row_data.push({id: this._coordToId("td", [x, y]), value: this.data_frame.get([x, y])});
+                // even if on initialization we get values from the dataFrame; this sets up our general
+                // flow but also allows for dataFrame to be populated with default or cached values
+                rowData.push({id: this._coordToId("td", [x, y]), value: this.dataFrame.get([x, y])});
             }
             rows.push(
                 new SheetRow(
                     {
                         id: `tr_${this.props.id}_${y}`,
-                        row_data: row_data,
+                        rowData: rowData,
                         colWidth: this.props.colWidth,
                         height: this.props.rowHeight
                     }
@@ -229,10 +229,10 @@ class Sheet extends Component {
         // style the locked column elements
         // Note: even though it is not strictly necessary we project each of the locked frames onto
         // the baseFrame, i.e. the fixed view frame. This setups up the general pattern
-        this.composite_frame.overlayFrames.map(frm => {
+        this.compositeFrame.overlayFrames.map(frm => {
             let name = frm["frame"].name;
             if (name.startsWith("locked")){
-                let frame = this.composite_frame.project(name);
+                let frame = this.compositeFrame.project(name);
                 this._addLockedElements(body, frame);
             }
         });
@@ -302,29 +302,29 @@ class Sheet extends Component {
     pageUpDown(body, event){
         event.preventDefault();
         let translation = new Point([0, 0]);
-        let view_overlay = this.composite_frame.getOverlayFrame("view_frame");
-        let view_frame = view_overlay["frame"];
-        let view_origin = view_overlay["origin"];
+        let viewOverlay = this.compositeFrame.getOverlayFrame("viewFrame");
+        let viewFrame = viewOverlay["frame"];
+        let viewOrigin = viewOverlay["origin"];
         if (event.altKey){
             // offset by fixed rows/columns
             if (event.key === "PageDown"){
                 // make sure we don't run out of data at the right of the page
-                translation.x = Math.min(this.data_frame.corner.x - view_frame.corner.x, view_frame.size.x);
+                translation.x = Math.min(this.dataFrame.corner.x - viewFrame.corner.x, viewFrame.size.x);
             } else if (event.key === "PageUp") {
                 // make sure we don't run out of data at the left
-                translation.x = -1 * Math.min(view_frame.origin.x - view_origin.x, view_frame.size.x);
+                translation.x = -1 * Math.min(viewFrame.origin.x - viewOrigin.x, viewFrame.size.x);
             }
-            this.composite_frame.translate(translation, "locked_rows");
+            this.compositeFrame.translate(translation, "lockedRows");
         } else {
             // offset by fixed rows/columns
             if (event.key === "PageDown"){
                 // make sure we don't run out of data at the bottom of the page
-                translation.y = Math.min(this.data_frame.corner.y - view_frame.corner.y, view_frame.size.y);
+                translation.y = Math.min(this.dataFrame.corner.y - viewFrame.corner.y, viewFrame.size.y);
             } else if (event.key === "PageUp"){
                 // make sure we don't run out of data at the top
-                translation.y = -1 * Math.min(view_frame.origin.y - view_origin.y, view_frame.size.y);
+                translation.y = -1 * Math.min(viewFrame.origin.y - viewOrigin.y, viewFrame.size.y);
             }
-            this.composite_frame.translate(translation, "locked_columns");
+            this.compositeFrame.translate(translation, "lockedColumns");
         }
 
         // If there is a current selection,
@@ -332,7 +332,7 @@ class Sheet extends Component {
         this.selector.clearStyling();
         this.selector.shrinkToCursor();
 
-        this.composite_frame.translate(translation, "view_frame");
+        this.compositeFrame.translate(translation, "viewFrame");
         this.fetchData("update");
     }
 
@@ -340,53 +340,53 @@ class Sheet extends Component {
     arrowUpDownLeftRight(body, event){
         event.preventDefault();
         let translation = new Point([0, 0]);
-        let view_overlay = this.composite_frame.getOverlayFrame("view_frame");
-        let view_frame = view_overlay["frame"];
-        let view_origin = view_overlay["origin"];
+        let viewOverlay = this.compositeFrame.getOverlayFrame("viewFrame");
+        let viewFrame = viewOverlay["frame"];
+        let viewOrigin = viewOverlay["origin"];
         if (event.ctrlKey){
             // This is sheet level navigation
             // Go to top of the sheet
             if (event.key === "ArrowUp"){
-                translation.y = view_origin.y - view_frame.origin.y;
-                this.composite_frame.translate(translation, "locked_columns");
+                translation.y = viewOrigin.y - viewFrame.origin.y;
+                this.compositeFrame.translate(translation, "lockedColumns");
                 // Ensure that cursor moves to the
                 // top of the current view frame
                 this.selector.cursorTo(new Point([
                     this.selector.selectionFrame.cursor.x,
-                    view_origin.y
+                    viewOrigin.y
                 ]));
             // Go to bottom of the sheet
             } else if (event.key === "ArrowDown"){
-                translation.y = this.data_frame.corner.y - view_frame.corner.y;
-                this.composite_frame.translate(translation, "locked_columns");
+                translation.y = this.dataFrame.corner.y - viewFrame.corner.y;
+                this.compositeFrame.translate(translation, "lockedColumns");
                 // Ensure that the cursor moves to the
                 // bottom of the current view frame
                 this.selector.cursorTo(new Point([
                     this.selector.selectionFrame.cursor.x,
-                    this.composite_frame.baseFrame.bottom,
+                    this.compositeFrame.baseFrame.bottom,
                 ]));
             // Go to the right of the sheet
             } else if (event.key === "ArrowRight"){
-                translation.x = this.data_frame.corner.x - view_frame.corner.x;
-                this.composite_frame.translate(translation, "locked_rows");
+                translation.x = this.dataFrame.corner.x - viewFrame.corner.x;
+                this.compositeFrame.translate(translation, "lockedRows");
                 // Ensure that the cursor moves to the
                 // right side of the current view frame
                 this.selector.cursorTo(new Point([
-                    this.composite_frame.baseFrame.right,
+                    this.compositeFrame.baseFrame.right,
                     this.selector.selectionFrame.cursor.y
                 ]));
             // Go to the left of the sheet
             } else if (event.key === "ArrowLeft"){
-                translation.x = view_origin.x - view_frame.origin.x;
-                this.composite_frame.translate(translation, "locked_rows");
+                translation.x = viewOrigin.x - viewFrame.origin.x;
+                this.compositeFrame.translate(translation, "lockedRows");
                 // Ensure that the cursor moves to the
                 // left side of the current view frame
                 this.selector.cursorTo(new Point([
-                    view_origin.x,
+                    viewOrigin.x,
                     this.selector.selectionFrame.cursor.y
                 ]));
             }
-            this.composite_frame.translate(translation, "view_frame");
+            this.compositeFrame.translate(translation, "viewFrame");
             this.fetchData("update");
         } else if (this.selector){
             if (event.key === "ArrowUp"){
@@ -426,43 +426,43 @@ class Sheet extends Component {
         console.log(direction);
         // we need translation to be an instance of Point
         let translation = new Point([0, 0]);
-        let view_overlay = this.composite_frame.getOverlayFrame("view_frame");
-        let view_frame = view_overlay["frame"];
-        let view_origin = view_overlay["origin"];
+        let viewOverlay = this.compositeFrame.getOverlayFrame("viewFrame");
+        let viewFrame = viewOverlay["frame"];
+        let viewOrigin = viewOverlay["origin"];
         if (direction === "up"){
-            translation.y = -1 * Math.min(view_frame.origin.y - view_origin.y, amount);
-            this.composite_frame.translate(translation, "locked_columns");
-            this.composite_frame.translate(translation, "view_frame");
+            translation.y = -1 * Math.min(viewFrame.origin.y - viewOrigin.y, amount);
+            this.compositeFrame.translate(translation, "lockedColumns");
+            this.compositeFrame.translate(translation, "viewFrame");
             this.fetchData("update");
         } else if (direction === "down"){
-            translation.y = Math.min(this.data_frame.corner.y - view_frame.corner.y, amount);
-            this.composite_frame.translate(translation, "locked_columns");
-            this.composite_frame.translate(translation, "view_frame");
+            translation.y = Math.min(this.dataFrame.corner.y - viewFrame.corner.y, amount);
+            this.compositeFrame.translate(translation, "lockedColumns");
+            this.compositeFrame.translate(translation, "viewFrame");
             this.fetchData("update");
         } else if (direction === "left"){
-            translation.x = -1 * Math.min(view_frame.origin.x - view_origin.x, view_frame.size.x);
-            this.composite_frame.translate(translation, "locked_rows");
-            this.composite_frame.translate(translation, "view_frame");
+            translation.x = -1 * Math.min(viewFrame.origin.x - viewOrigin.x, viewFrame.size.x);
+            this.compositeFrame.translate(translation, "lockedRows");
+            this.compositeFrame.translate(translation, "viewFrame");
             this.fetchData("update");
         } else if (direction === "right") {
-            translation.x = Math.min(this.data_frame.corner.x - view_frame.corner.x, amount);
-            this.composite_frame.translate(translation, "locked_rows");
-            this.composite_frame.translate(translation, "view_frame");
+            translation.x = Math.min(this.dataFrame.corner.x - viewFrame.corner.x, amount);
+            this.compositeFrame.translate(translation, "lockedRows");
+            this.compositeFrame.translate(translation, "viewFrame");
             this.fetchData("update");
         }
     }
 
     handleCellMouseup(event){
-        this.is_selecting = false;
+        this.isSelecting = false;
     }
 
     handleCellMousedown(event){
         if(event.target.nodeName !== "TD"){
             return;
         }
-        this.is_selecting = true;
-        let target_coord = this._idToCoord(event.target.id);
-        this.selector.cursorTo(target_coord);
+        this.isSelecting = true;
+        let targetCoord = this._idToCoord(event.target.id);
+        this.selector.cursorTo(targetCoord);
     }
 
     handleCellMouseover(event){
@@ -471,15 +471,15 @@ class Sheet extends Component {
         }
         // Here is where we update the selection
         // information.
-        if(this.is_selecting){
-            let target_coord = this._idToCoord(event.target.id);
+        if(this.isSelecting){
+            let targetCoord = this._idToCoord(event.target.id);
             // TODO this can be made cleaner
-            let in_locked_column = this.composite_frame.getOverlayFrame("locked_columns")["frame"].contains(target_coord);
-            let in_locked_row = this.composite_frame.getOverlayFrame("locked_rows")["frame"].contains(target_coord);
-            if(!in_locked_column && !in_locked_row){
+            let inLockedColumn = this.compositeFrame.getOverlayFrame("lockedColumns")["frame"].contains(targetCoord);
+            let inLockedRow = this.compositeFrame.getOverlayFrame("lockedRows")["frame"].contains(targetCoord);
+            if(!inLockedColumn && !inLockedRow){
                 this.selector.fromPointToPoint(
                     this.selector.selectionFrame.cursor,
-                    target_coord
+                    targetCoord
                 );
             }
         }
@@ -523,19 +523,19 @@ class Sheet extends Component {
         this.handleCellMouseover(event);
     }
 
-    /* Simply resets the `is_selecting` to false, in the
+    /* Simply resets the `isSelecting` to false, in the
      * event that the user clicked and dragged out of the
      * element
      */
     handleTableMouseleave(event){
-        this.is_selecting = false;
+        this.isSelecting = false;
     }
 
     /* I covert a string of the form `nodeName_id_x_y` to [x, y] */
     _idToCoord(s){
-        let s_list = s.split("_");
+        let splitList = s.split("_");
         try {
-            return [parseInt(s_list[2]), parseInt(s_list[3])];
+            return [parseInt(splitList[2]), parseInt(splitList[3])];
         } catch(e) {
             throw "unable to covert id " + s + " to coordinate, with error: " + e;
         }
@@ -573,9 +573,9 @@ class Sheet extends Component {
         // we ask for a bit more data than we need for the view to prevent flickering
         // frame = this._padFrame(frame, new Point([2, 2]));
         // TODO: this place_counter needs to go!
-        let replace_counter = 0;
-        this.composite_frame.overlayFrames.forEach(frm  => {
-            if (replace_counter){
+        let replaceCounter = 0;
+        this.compositeFrame.overlayFrames.forEach(frm  => {
+            if (replaceCounter){
                 action = "update";
             }
             let frame = frm["frame"];
@@ -592,7 +592,7 @@ class Sheet extends Component {
             });
             cellSocket.sendString(request);
             if (action === "replace"){
-                replace_counter += 1;
+                replaceCounter += 1;
             }
         });
     }
@@ -634,7 +634,7 @@ class Sheet extends Component {
                 if (dataInfo.action === "replace") {
                     // we update the Sheet with (potentially empty) values
                     // creating 'td' elements with ids corresponding to the frame coordinates (and the sheet id);
-                    // this will set up our updateData flow which continually retrieves values from data_frame regadless
+                    // this will set up our updateData flow which continually retrieves values from dataFrame regadless
                     // if the server has returned the request
                     // NOTE: we use frame origin and corner as much as possible, utilizing properties of Point and avoiding
                     // potential confusion of axes vs columns/rows
@@ -645,10 +645,10 @@ class Sheet extends Component {
                 }
                 // load the data into the data with the provided origin
                 let origin = dataInfo.origin;
-                this.data_frame.load(dataInfo.data, [origin.x, origin.y]);
+                this.dataFrame.load(dataInfo.data, [origin.x, origin.y]);
                 // clean the sheet to make sure no residual data values left
                 this._updatedDisplayValues(body);
-                // if (this.is_selecting){
+                // if (this.isSelecting){
                 //    this.selector.addStyling();
                 //}
             }
@@ -659,25 +659,25 @@ class Sheet extends Component {
     /* I update the values displayed in the sheet */
     _updatedDisplayValues(body, clean=false){
         if (clean){
-            this.composite_frame.baseFrame.coords.forEach(c => {
-            let td = body.querySelector(`#${this._coordToId("td", [c.x, c.y])}`);
-            td.textContent = undefined;
-            td.dataset.x = c.x;
-            td.dataset.y = c.y;
+            this.compositeFrame.baseFrame.coords.forEach(c => {
+                let td = body.querySelector(`#${this._coordToId("td", [c.x, c.y])}`);
+                td.textContent = undefined;
+                td.dataset.x = c.x;
+                td.dataset.y = c.y;
             });
         } else {
-            this.composite_frame.overlayFrames.forEach(frm => {
+            this.compositeFrame.overlayFrames.forEach(frm => {
                 let frame = frm["frame"];
-                let projected_frame = this.composite_frame.project(frame.name);
-                let frame_coords = frame.coords;
-                let projected_frame_coords = projected_frame.coords;
-                for (let i = 0; i < frame_coords.length; i++){
-                    let data_coord = frame_coords[i];
-                    let display_coord = projected_frame_coords[i];
-                    let td = body.querySelector(`#${this._coordToId("td", [display_coord.x, display_coord.y])}`);
-                    td.textContent = this.data_frame.get(data_coord);
-                    td.dataset.x = data_coord.x;
-                    td.dataset.y = data_coord.y;
+                let projectedFrame = this.compositeFrame.project(frame.name);
+                let frameCoords = frame.coords;
+                let projectedFrameCoords = projectedFrame.coords;
+                for (let i = 0; i < frameCoords.length; i++){
+                    let dataCoord = frameCoords[i];
+                    let displayCoord = projectedFrameCoords[i];
+                    let td = body.querySelector(`#${this._coordToId("td", [displayCoord.x, displayCoord.y])}`);
+                    td.textContent = this.dataFrame.get(dataCoord);
+                    td.dataset.x = dataCoord.x;
+                    td.dataset.y = dataCoord.y;
                 }
             });
         }
@@ -688,7 +688,7 @@ class Sheet extends Component {
             let td = body.querySelector(`#${this._coordToId("td", [x, y])}`);
             let d = "";
             if (!clean){
-                d = this.data_frame.get(p);
+                d = this.dataFrame.get(p);
             }
             td.textContent = d;
             td.dataset.x = p.x;
@@ -702,13 +702,13 @@ class Sheet extends Component {
      * window.innerWidth divided by the number provided height and width of the
      * rows, columns, respecitively and then add a bit more for lazy loading.
      */
-    _calc_max_num_rows(max_height){
+    _calcMaxNumRows(maxHeight){
         // NOTE: we account for the header row
-        return Math.min(this.totalRows, Math.ceil(max_height/this.props.rowHeight)) - 1;
+        return Math.min(this.totalRows, Math.ceil(maxHeight/this.props.rowHeight)) - 1;
     }
 
-    _calc_max_num_columns(max_width){
-        return Math.min(this.totalColumns, Math.ceil(max_width/this.props.colWidth));
+    _calcMaxNumColumns(maxWidth){
+        return Math.min(this.totalColumns, Math.ceil(maxWidth/this.props.colWidth));
     }
 }
 
@@ -755,7 +755,7 @@ class SheetRow extends Component {
     }
 
     build(){
-        var row_data = this.props.row_data.map((item) => {
+        var rowData = this.props.rowData.map((item) => {
             return new SheetCell({
                 id: item.id,
                 value: item.value,
@@ -769,7 +769,7 @@ class SheetRow extends Component {
         return (
             h("tr",
                 {id: this.props.id, class: "sheet-row", style: this.style},
-                row_data
+                rowData
             )
         );
     }
@@ -780,7 +780,7 @@ SheetRow.propTypes = {
         description: "Height of the row in pixels.",
         type: PropTypes.oneOf([PropTypes.number])
     },
-    row_data: {
+    rowData: {
         description: "Row data array.",
         type: PropTypes.oneOf([PropTypes.object])
     },
@@ -800,12 +800,6 @@ class SheetCell extends Component {
         } else {
             this.value = undefined;
         }
-
-        // Bind component methods
-        this.handleMouseenter = this.handleMouseenter.bind(this);
-        this.handleMouseleave = this.handleMouseleave.bind(this);
-        this.handleMousedown = this.handleMousedown.bind(this);
-        this.handleMouseup = this.handleMouseup.bind(this);
     }
 
     componentDidLoad(){
@@ -821,45 +815,12 @@ class SheetCell extends Component {
                 {
                     id: this.props.id,
                     class: this.class,
-                    style: this.style,
-                    /*
-                    onmousedown: this.handleMousedown,
-                    onmouseup: this.handleMouseup,
-                    onmouseenter: this.handleMouseenter,
-                    onmouseleave: this.handleMouseleave
-                    */
+                    style: this.style
                 },
                 // child
                 [this.value]
             )
         );
-    }
-
-    handleMouseup(event){
-        if(this.props.onMouseup){
-            this.props.onMouseup(event);
-        }
-    }
-
-    handleMousedown(event){
-        if(this.props.onMousedown){
-            this.props.onMousedown(event);
-        }
-    }
-
-    handleMouseenter(event){
-        console.log('Cell received MouseEnter!');
-        console.log(this);
-        console.log(this.props.onMouseenter);
-        if(this.props.onMouseenter){
-            this.props.onMouseenter(event);
-        }
-    }
-
-    handleMouseleave(event){
-        if(this.props.onMouseleave){
-            this.props.onMouseleave(event);
-        }
     }
 }
 

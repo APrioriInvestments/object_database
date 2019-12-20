@@ -1,7 +1,7 @@
 /**
  * Utility Classes and Methods for
  * Sheet Component
- */
+ **/
 
 class Point {
     constructor(listOfTwo){
@@ -77,8 +77,12 @@ class Point {
         return false;
     }
 
-    /* I translate myself by another point p; p can also be a length 2 array
-     * of coordinates */
+    /**
+     * I translate myself by another point p.
+     * p can also be a length 2 array
+     * @param {Point|Array} p - The point by which we
+     * with to translate the current instance.
+     */
     translate(p){
         if (p instanceof Array){
             p = new Point(p);
@@ -127,14 +131,14 @@ class Frame {
         // Bind methods
         this.intersect = this.intersect.bind(this);
         this.translate = this.translate.bind(this);
-        this._empty = this._empty.bind(this);
         this.sliceCoords = this.sliceCoords.bind(this);
     }
 
-    /* The "dimension" of the frame.
-        * Note: this is really the min dimension of a plan this frame
-        * can be embedded in.
-        */
+    /**
+     * Responds with the number of dimensions
+     * the current frame has.
+     * @returns {number}
+     */
     get dim(){
         if (this._empty()){
             return NaN;
@@ -150,6 +154,11 @@ class Frame {
     }
 
     /* I return the size, a Point, of the frame */
+    /**
+     * I return the size, in the form of a Point,
+     * of the current frame.
+     * @returns {Point}
+     */
     get size(){
         if (!this._empty()){
             let x = this.corner.x - this.origin.x;
@@ -161,10 +170,6 @@ class Frame {
 
     /* check if the frame is empty. */
     get empty(){
-        return this._empty();
-    }
-
-    _empty(){
         if (this.origin.isNaN || this.corner.isNaN){
             return true;
         }
@@ -189,6 +194,7 @@ class Frame {
     /**
      * Returns the Point in the top right
      * corner
+     * @returns {Point}
      */
     get topRight(){
         return new Point([
@@ -200,6 +206,7 @@ class Frame {
     /**
      * Returns the Point in the bottom
      * left corner
+     * @returns {Point}
      */
     get bottomLeft(){
         return new Point([
@@ -211,6 +218,7 @@ class Frame {
     /**
      * Returns the Point in the bottom
      * right corner
+     * @returns {Point}
      */
     get bottomRight(){
         return new Point([
@@ -222,6 +230,7 @@ class Frame {
     /**
      * Returns the point at the top
      * left corner
+     * @returns {Point}
      */
     get topLeft(){
         return new Point([
@@ -246,8 +255,10 @@ class Frame {
         return this.origin.x;
     }
 
-    /* Returns an array of relative (to the frame's origin and corner)
-     * coordinate pairs.
+    /**
+     * Returns an array of relative (to the frame's origin
+     * and corner) coordinate pairs.
+     * @returns {Array}
      */
     get coords() {
         let coords = [];
@@ -259,9 +270,17 @@ class Frame {
         return coords;
     }
 
-    /* I slice the frame along a given axis at a given rown and return
-     * corresponding coordinates. For example, Frame([0, 0], [10, 10]).slice(5, "y")
-     * will return a list [[5, 0], ... [5, 10]]
+    /**
+     * I slice the frame along a given axis at a given row
+     * and return the cooresponding coordinates.
+     * For example:
+     *     Frame([0, 0], [10, 10]).sliceCoords(5, 'y')
+     * will return a  list like
+     *     [[5, 0], ... [5, 10]]
+     * @param {number} index - The row index where the
+     * slice should begin
+     * @param {string} axis - Either 'y' or 'x'
+     * @returns {Array}
      */
     sliceCoords(index, axis) {
         let coords = [];
@@ -280,9 +299,13 @@ class Frame {
         return coords;
     }
 
-    /* I check whether the point (as Point, tuple of coordinates, or
-     * string representaiton of tuple of coordinates)
-     * or Frame is contained in this.
+    /**
+     * I check whether the given point (as Point, tuple
+     * of coordinates, or string representation) or
+     * Frame is contained within myself.
+     * @param {Array|Point|Frame|string} other - The entity
+     * that I will check to see if I contain.
+     * @returns {boolean}
      */
     contains(other){
         if (other instanceof String || typeof(other) === "string") {
@@ -301,7 +324,13 @@ class Frame {
         throw "You must pass a length 2 array, a Point, or a Frame";
     }
 
-    /* I check whether this frame matches this. */
+    /**
+     * I return true if the frames have the same origin
+     * and corner.
+     * @param {Frame} frame - The other frame to check
+     * equality with.
+     * @returns {boolean}
+     */
     equals(frame){
         if (this.origin.equals(frame.origin) && this.corner.equals(frame.corner)){
             return true;
@@ -309,10 +338,19 @@ class Frame {
         return false;
     }
 
-    /* I translate myself in the given [x, y] direction
-     * Note: xy can also be an instance of class Point
-     * If inplace=true I translate myself; if inplace=false I return a new
-     * Frame that is a translated copy of myself.
+    /**
+     * I translate myself in the given [x, y]
+     * direction.
+     * Note: xy can also be a Point instance.
+     * If inplace is true, I translate myself.
+     * Otherwise, I return a new Frame instance that
+     * is a translated copy of myself.
+     * @param {Array|Point} xy - The coordinate pair
+     * or Point instance that I will translate by.
+     * @param {boolean} inplace - Whether or not to
+     * mutate myself (true) or return a translated
+     * copy (false). Defaults to true.
+     * @returns {Frame}
      */
     translate(xy, inplace=true){
         let origin = this.origin;
@@ -332,13 +370,25 @@ class Frame {
         }
     }
 
-    /* I map myself onto another frame by putting my origin in the provided
-     * origin/coordinates. For example, `map(new Frame(0, 10), new Point(5, 5))`
-     * will map myself onto the Frame(0, 10) putting my origin at Point(5, 5).
-     * If strict=true then I will make sure that I fit entirely in the frame,
-     * returning an empty frame if this is not the case;
-     * otherwise I will simply take the intersection.
+    /**
+     * I map myself onto another Frame by putting my
+     * origin in the provided origin/coordinates.
+     * For example:
+     *     map(new Frame(0, 10), new Point(5, 5))
+     * will map myself onto the Frame(0, 10) and put
+     * my origin at Point(5, 5).
+     * If strict=true, then I will make sure that I fit
+     * entirely within the frame. Otherwise I will simply
+     * take the intersection.
+     * @param {Frame} frame - A Frame to map onto
+     * @param {Array|Point} origin - Location in the
+     *  new frame for the mapped origin
+     * @param {boolean} strict - If true, throws an error
+     * if I cannot fit entirely in the new Frame. Defaults
+     * to false.
+     * @returns {Frame}
      */
+
     map(frame, origin, strict=false){
         if (origin instanceof Array){
             origin = new Point(origin);
@@ -355,7 +405,15 @@ class Frame {
         return frame.intersect(translatedFrame);
     }
 
-    /* I return a frame that is the intersection of myself and another. */
+    /**
+     * I return a Frame that is the intersection of
+     * myself and the passed-in Frame.
+     * @param {Frame} frame - The Frame that I should
+     * intersect with.
+     * @returns {Frame} - A new Frame instance that
+     * is the intersect of myself and the passed-in
+     * frame.
+     */
     intersect(frame){
         if (this.empty || frame.empty){
             return new Frame();
@@ -378,17 +436,26 @@ class Frame {
 }
 
 
-/* I am Frame of Frames, i.e. a composite frame. I allow you to manipulate many frames at once
- * overlayed on a base frame. You can think of me as moving ship formations on a battleship game board.
- * I allow you to do basic geometric arithmetic, transformations etc without having to keep track of many
- * frames at once.
+/**
+ * I am a Frame of Frames, i.e., a Composite Frame.
+ * I allow you to manipulate many frames at once
+ * overlayed on a base frame.
+ * You can think of me as moving ship formations on
+ * a Battleship game board.
+ * I allow you to do basic geometric arithmetic,
+ * transformation, etc., without having to keep
+ * track of many frames at once.
  */
 class CompositeFrame {
     constructor(baseFrame, overlayFrames){
-        /* baseFrame is the underlying frame for CompositeFrame; all other frames
-         * should fit inside it, and CompositeFrame will raise an error if this is not the case.
-         * overlayFrames is an array of dictionaries, each consition of a frame and origin poing (key and values);
-         * the origin determines where the given frame roots itself project on the base frame.
+        /*
+         * baseFrame is the underlying frame for CompositeFrame.
+         * All other frames should fit inside of it, and CompositeFrame
+         * will raise an error if this is not the case.
+         * overlayFrames is an array of dictionaries, each consisting of
+         * a frame and origin point (key and values)
+         * The origin determines where the given frame roots itself
+         * project on the base frame.
          */
         if (!(baseFrame instanceof Frame)){
             throw "baseFrame must be a Frame class object";
@@ -408,10 +475,16 @@ class CompositeFrame {
         this.checkFrameConsistency();
     }
 
-    /* I make sure that overlay frames can fit inside the baseFrame */
+    /**
+     * I make sure that overlay frames can fit
+     * inside the baseFrame.
+     * @returns {boolean} - true if the overlay frames
+     * can fit inside the baseFrame
+     */
     checkFrameConsistency() {
-        // if the baseFrame is empty, check that all the overlayFrames are as well
-        // this is a weird situation but it's valid
+        // If the baseFrame is empty, check that all the
+        // overlayFrames are as well.
+        // This is a weird situation but it's valid
         if (this.baseFrame.empty){
             if (this.overlayFrames.every(frame => {
                 return frame['frame'].empty;
@@ -429,11 +502,22 @@ class CompositeFrame {
         return true;
     }
 
-    /* I translate all my overlay frames in the given [x, y] direction.
-     * I also make sure that we dont' translate off of the baseFrame, i.e.
-     * I move the frame within the bounds of baseFrame coordinates.
-     * If baseFrame=true, the my baseFrame is also translated.
-     * Note: xy can also be an instance of class Point
+    /**
+     * I translate all my overlay frames in the given
+     * [x, y] direction.
+     * I also make sure that we don't translate off the
+     * baseFrame, i.e., I move the frame within the
+     * bounds of the baseFrame coordinates.
+     * If baseFrame=true, then my baseFrame is also
+     * translated.
+     * Note: xy can also be a Point instance.
+     * @param {Array|Point} xy - The direction of the
+     * translation to apply
+     * @param {string} name - The name to give the
+     * translation (defaults to null)
+     * @param {boolean} baseFrame - Whether or not
+     * to also translate the whole baseFrame (defaults
+     * to false)
      */
     translate(xy, name=null, baseFrame=false){
         if (baseFrame) {
@@ -469,8 +553,13 @@ class CompositeFrame {
         return frame.translate(xy, false);
     }
 
-    /* I return the overlay frame which corresponds to the name provided.
+    /**
+     * I return the overlay frame that corresponds to
+     * the name provided.
      * If none is found I return null.
+     * @param {string} name - The name of the overlay
+     * frame to find in this CompositeFrame.
+     * @returns {Frame|null}
      */
     getOverlayFrame(name){
         let frame = null;
@@ -482,10 +571,18 @@ class CompositeFrame {
         return frame;
     }
 
-    /* I project the overlay frames onto the baseFrame and return a dictionary of new frames
-     * for every overlay. Essentially I take an overlayFrame's specified origin
-     * in the baseFrame and make a new Frame of the same size starting at that origin.
+    /**
+     * I project the overlay frames onto the baseFrame and
+     * return a dictionary of new frames for each overlay.
+     * Essentially I take an overlayFrame's specified origin
+     * in the baseFrame and make a new Frame of the same size,
+     * starting at that origin.
      * You can also specify a name for a specific overlayFrame.
+     * @param {string} name - The name of an overlayFrame
+     * to project onto the baseFrame by itself.
+     * @returns {object|Array} - An array of dictionaries
+     * if we are doing all overlayFrames or a single dictionary
+     * if we have specified a single overlayFrame by name.
      */
     project(name=null){
         if (name !== null){
@@ -506,7 +603,13 @@ class CompositeFrame {
         );
     }
 
-    /* I check whether this matched the provided CompositeFrame. */
+    /**
+     * I check whether I match the provided CompositeFrame
+     * instance.
+     * @param {CompositeFrame} compositeFrame - Another
+     * CompositeFrame to check for equality against.
+     * @returns {boolean} - true if they are equal
+     */
     equals(compositeFrame){
         if (! compositeFrame instanceof CompositeFrame){
             throw "you must provide and instance of CompositeFrame.";
@@ -514,7 +617,8 @@ class CompositeFrame {
         let baseFrameTest = this.baseFrame.equals(compositeFrame.baseFrame);
         let overlayFramesTest = this.overlayFrames.every(frame => {
             return compositeFrame.overlayFrames.some(argFrame => {
-                return frame["frame"].equals(argFrame["frame"]) && frame["origin"].equals(argFrame["origin"]);
+                return frame["frame"].equals(
+                    argFrame["frame"]) && frame["origin"].equals(argFrame["origin"]);
             });
         });
         return baseFrameTest && overlayFramesTest;
@@ -522,6 +626,15 @@ class CompositeFrame {
 
 }
 
+
+/**
+ * I am a kind of Frame that represents a rectangular
+ * selection of Points in another Frame or across
+ * several intersecting frames.
+ * I maintain a special Point called the cursor
+ * which can be used by other classes for navigation
+ * purposes.
+ */
 class SelectionFrame extends Frame {
     constructor(origin, corner){
         super(origin, corner);
@@ -534,6 +647,25 @@ class SelectionFrame extends Frame {
         this.fromPointToPoint = this.fromPointToPoint.bind(this);
     }
 
+
+    /**
+     * Given two Points/coordinate pairs, I
+     * adjust my own properties to embody a new
+     * rectangle that encloses those points.
+     * I also performs checks to ensure that
+     * the top left is still the origin and the
+     * bottom right is still the corner, even
+     * if the to/from points are negative opposed.
+     * If updateCursor=true, I will set the cursor
+     * to be the from point.
+     * @param {Array|Point} from - The point from
+     * which we start making a new rect
+     * @param {Array|Point} to - The point to
+     * which we will extend the new rect
+     * @param {boolean} updateCursor - Whether or not
+     * to also re-set the cursor to be at the from
+     * point. Defaults to true.
+     */
     fromPointToPoint(from, to, updateCursor = true){
         // If the destination point is behind
         // the from point in some way, then we calc
@@ -578,6 +710,13 @@ class SelectionFrame extends Frame {
         this.cursor.y += xy[1];
     }
 
+    /**
+     * I return an array of all the Points that
+     * correspond to the left side of myself.
+     * In other words, the Points of the left
+     * border.
+     * @returns {Array} - An array of Points
+     */
     get leftPoints(){
         let result = [];
         for(let y = this.origin.y; y <= this.corner.y; y++){
@@ -586,6 +725,13 @@ class SelectionFrame extends Frame {
         return result;
     }
 
+    /**
+     * I return an array of all the Points that
+     * correspond to the left side of myself.
+     * In other words, the Points of the left
+     * border.
+     * @returns {Array} - An array of Points
+     */
     get rightPoints(){
         let result = [];
         for(let y = this.origin.y; y <= this.corner.y; y++){
@@ -594,6 +740,13 @@ class SelectionFrame extends Frame {
         return result;
     }
 
+    /**
+     * I return an array of all the Points that
+     * correspond to the left side of myself.
+     * In other words, the Points of the left
+     * border.
+     * @returns {Array} - An array of Points
+     */
     get topPoints(){
         let result = [];
         for(let x = this.origin.x; x <= this.corner.x; x++){
@@ -602,6 +755,13 @@ class SelectionFrame extends Frame {
         return result;
     }
 
+    /**
+     * I return an array of all the Points that
+     * correspond to the bottom side of myself.
+     * In other words, the Points of the bottom
+     * border.
+     * @returns {Array} - An array of Points
+     */
     get bottomPoints(){
         let result = [];
         for(let x = this.origin.x; x <= this.corner.x; x++){
@@ -626,10 +786,16 @@ class DataFrame extends Frame {
         this.load = this.load.bind(this);
     }
 
-    /* I load an array of arrays of data. Data coordinates (keys) are
-     * defined by the 'origin' point where data.length corresponds to
-     * the y axis (offset by origin.y) and data[N] corresponds to the
-     * x-axis (offset by origin.x)
+    /**
+     * I load an array of arrays of data.
+     * Data coordinates (keys) are defined by the
+     * 'origin' Point where data.length corresponds
+     * to the y axis (offset by origin.y) and data[N]
+     * corresponds to the x-axis (offset by origin.x)
+     * @param {Array[Array]} data - An array of array of data
+     * values.
+     * @param {Array|Point} origin - The Point offset origin
+     * for storing each data value
      */
     load(data, origin){
         if (origin instanceof Array){
@@ -657,7 +823,14 @@ class DataFrame extends Frame {
         }
     }
 
-    /* I retrieve the corresponding frame.store value. */
+    /**
+     * Given a coordinate, I respond with the stored
+     * data value at that location.
+     * @param {Array} coordinate - A coordinate pair
+     * to lookup
+     * @returns {object} - The data value at the coordinate
+     * location
+     */
     get(coordinate){
         if (!this.contains(coordinate)){
             throw "Coordinate not in frame.";
@@ -703,6 +876,18 @@ class Selector {
         this.getSelectionClipboard = this.getSelectionClipboard.bind(this);
     }
 
+    /**
+     * I remove all styling from td elements
+     * that are within my selection frame.
+     * This includes any border styling.
+     * If clearCursor=true, I will also
+     * clear the styling of the td element
+     * that maps to the current selection frame
+     * cursor.
+     * @param {boolean} clearCursor - Whether or not
+     * to clear the cursor styling too. Defaults to
+     * true
+     */
     clearStyling(clearCursor = false){
         // Clears all styling on the
         // current selectionFrame and
@@ -733,6 +918,14 @@ class Selector {
         });
     }
 
+    /**
+     * I generate a clipboard string based on the text
+     * content of td elements that are within my current
+     * selection frame.
+     * Note that we use the CSV format for the values,
+     * creating line breaks along the y-axis.
+     * @returns {string} - A CSV-formatted string
+     */
     getSelectionClipboard(){
         // generates a clipboard string from the current points
         // Note: in order to create line breaks we slice along the y-axis
@@ -749,11 +942,24 @@ class Selector {
         return clipboard;
     }
 
+    /**
+     * Returns the td element that is mapped to by
+     * the given Point.
+     * @param {Point} point - The point at which we want
+     * to look up the corresponding td element
+     * @returns {DOMElement} - A mapped td element
+     */
     elementAtPoint(point){
         let id = this.sheet._coordToId("td", [point.x, point.y]);
         return document.getElementById(id);
     }
 
+    /**
+     * I add styling to all td elements that are within
+     * my selection frame.
+     * This includes styling for elements that are along
+     * the borders of the selection frame.
+     */
     addStyling(){
         // Adds the correct styling to the
         // selection area and cursor.
@@ -794,11 +1000,25 @@ class Selector {
         }
     }
 
+    /**
+     * I set my selection frame to be a single Point, that
+     * of the selection cursor.
+     */
     shrinkToCursor(){
         this.selectionFrame.setOrigin = this.selectionFrame.cursor;
         this.selectionFrame.setCorner = this.selectionFrame.cursor;
     }
 
+    /**
+     * I am an action that moves the cursor
+     * of my selection frame to a new Point.
+     * I always shrink the current selection frame
+     * to the size of its cursor.
+     * Note also that I clear styling, move, then
+     * apply styling to the new cursor.
+     * @param {Point} aPoint - The new location for
+     * the selection frame cursor
+     */
     cursorTo(aPoint){
         this.clearStyling(true);
         this.shrinkToCursor();
@@ -809,6 +1029,19 @@ class Selector {
         this.addStyling();
     }
 
+    /**
+     * I add the given coordinate pair to the Point that
+     * corresponds to the opposite corner of the current
+     * selection frame's cursor. This means, of course, that
+     * the cursor must be in one of the frame's corners. We throw
+     * an error if it is not.
+     * This method is used in the process of expanding the selection
+     * frame using key events, while ensuring that the cursor remains
+     * in the correct place.
+     * @param {Array} diffCoord - A coordinate pair that will be added to
+     * the Point in the opposite corner from the cursor
+     * @returns {Point} - A Point representing the updated corner value
+     */
     applyToOppositeCorner(diffCoord){
         if(this.selectionFrame.cursor.equals(this.selectionFrame.origin)){
             return new Point([
@@ -835,6 +1068,9 @@ class Selector {
         }
     }
 
+    /**
+     * I expand the selection frame up by one
+     */
     growUp(){
         if(!this.isAtViewTop()){
             let diff = [0, -1];
@@ -847,6 +1083,9 @@ class Selector {
         }
     }
 
+    /**
+     * I expand the selection frame right by one
+     */
     growRight(){
         if(!this.isAtViewRight()){
             let diff = [1, 0];
@@ -859,6 +1098,9 @@ class Selector {
         }
     }
 
+    /**
+     * I expand the selection frame down by one
+     */
     growDown(){
         if(!this.isAtViewBottom()){
             let diff = [0, 1];
@@ -871,6 +1113,9 @@ class Selector {
         }
     }
 
+    /**
+     * I expand the selection frame left by one
+     */
     growLeft(){
         if(!this.isAtViewLeft()){
             let diff = [-1, 0];
@@ -883,22 +1128,47 @@ class Selector {
         }
     }
 
+    /**
+     * I move the cursor up by one
+     */
     cursorUp(){
         this.shiftUp(1, true);
     }
 
+    /**
+     * I move the cursor right by one
+     */
     cursorRight(){
         this.shiftRight(1, true);
     }
 
+    /**
+     * I move the cursor down by one
+     */
     cursorDown(){
         this.shiftDown(1, true);
     }
 
+    /**
+     * I move the cursor left by one
+     */
     cursorLeft(){
         this.shiftLeft(1, true);
     }
 
+    /**
+     * I shift the selection frame up by the
+     * specified number of points. I can
+     * optionally shrink the frame to fit
+     * the cursor after doing so.
+     * @param {number} amount - The number of
+     * points to shift in the up direction.
+     * Defaults to 1.
+     * @param {boolean} shrinkToCursor - Whether
+     * to shrink the selection frame to be just
+     * the size of the cursor after shifting.
+     * Defaults to false.
+     */
     shiftUp(amount = 1, shrinkToCursor = false){
         let shift = [0, (amount * -1)];
         if(this.isAtViewTop()){
@@ -913,6 +1183,19 @@ class Selector {
         this.addStyling();
     }
 
+    /**
+     * I shift the selection frame right by the
+     * specified number of points. I can
+     * optionally shrink the frame to fit
+     * the cursor after doing so.
+     * @param {number} amount - The number of
+     * points to shift in the right direction.
+     * Defaults to 1.
+     * @param {boolean} shrinkToCursor - Whether
+     * to shrink the selection frame to be just
+     * the size of the cursor after shifting.
+     * Defaults to false.
+     */
     shiftRight(amount = 1, shrinkToCursor = false){
         let shift = [amount * 1, 0];
         if(this.isAtViewRight()){
@@ -927,6 +1210,19 @@ class Selector {
         this.addStyling();
     }
 
+    /**
+     * I shift the selection frame down by the
+     * specified number of points. I can
+     * optionally shrink the frame to fit
+     * the cursor after doing so.
+     * @param {number} amount - The number of
+     * points to shift in the down direction.
+     * Defaults to 1.
+     * @param {boolean} shrinkToCursor - Whether
+     * to shrink the selection frame to be just
+     * the size of the cursor after shifting.
+     * Defaults to false.
+     */
     shiftDown(amount = 1, shrinkToCursor = false){
         let shift = [0, amount * 1];
         if(this.isAtViewBottom()){
@@ -941,6 +1237,19 @@ class Selector {
         this.addStyling();
     }
 
+    /**
+     * I shift the selection frame left by the
+     * specified number of points. I can
+     * optionally shrink the frame to fit
+     * the cursor after doing so.
+     * @param {number} amount - The number of
+     * points to shift in the left direction.
+     * Defaults to 1.
+     * @param {boolean} shrinkToCursor - Whether
+     * to shrink the selection frame to be just
+     * the size of the cursor after shifting.
+     * Defaults to false.
+     */
     shiftLeft(amount = 1, shrinkToCursor = false){
         let shift = [amount * -1, 0];
         if(this.isAtViewLeft()){
@@ -953,7 +1262,6 @@ class Selector {
             this.shrinkToCursor();
         }
         this.addStyling();
-
     }
 
     triggerNeedsUpdate(direction, shift){
@@ -962,24 +1270,53 @@ class Selector {
         }
     }
 
+    /**
+     * I am a wrapper for my selection frame's
+     * fromPointToPoint method.
+     * I first clear all styling before the
+     * underlying call, and then add styling
+     * once the frame has been translated.
+     * See SelectionFrame.fromPointToPoint()
+     * for more detail.
+     */
     fromPointToPoint(from, to, updateCursor = true){
         this.clearStyling();
         this.selectionFrame.fromPointToPoint(from, to, updateCursor);
         this.addStyling();
     }
 
+    /**
+     * Returns true if the selection frame's cursor
+     * is currently at the 'view top,' meaning what is
+     * currently visual to the user.
+     */
     isAtViewTop(){
         return this.selectionFrame.origin.y === this.sheet.compositeFrame.getOverlayFrame("view_frame")["origin"].y;
     }
 
+    /**
+     * Returns true if the selection frame's cursor
+     * is currently at the 'view bottom,' meaning what is
+     * currently visual to the user.
+     */
     isAtViewBottom(){
         return this.selectionFrame.corner.y === this.sheet.compositeFrame.baseFrame.corner.y;
     }
 
+    /**
+     * Returns true if the selection frame's cursor
+     * is currently at the 'view left,' meaning what is
+     * currently visual to the user.
+     */
     isAtViewLeft(){
         return this.selectionFrame.origin.x === this.sheet.compositeFrame.getOverlayFrame("view_frame")["origin"].x;
     }
 
+    /**
+     * Returns true if the selection frame's cursor
+     * is currently at the 'view right,' meaning what is
+     * currently visual to the user.
+     */
     isAtViewRight(){
         return this.selectionFrame.corner.x === this.sheet.compositeFrame.baseFrame.corner.x;
     }

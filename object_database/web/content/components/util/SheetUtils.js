@@ -1291,7 +1291,7 @@ class Selector {
      * currently visual to the user.
      */
     isAtViewTop(){
-        return this.selectionFrame.origin.y === this.sheet.compositeFrame.getOverlayFrame("view_frame")["origin"].y;
+        return this.selectionFrame.origin.y === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["origin"].y;
     }
 
     /**
@@ -1309,7 +1309,7 @@ class Selector {
      * currently visual to the user.
      */
     isAtViewLeft(){
-        return this.selectionFrame.origin.x === this.sheet.compositeFrame.getOverlayFrame("view_frame")["origin"].x;
+        return this.selectionFrame.origin.x === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["origin"].x;
     }
 
     /**

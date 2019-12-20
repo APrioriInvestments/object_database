@@ -36,7 +36,7 @@ class Point {
             this._values[0] !== undefined,
             this._values[1] !== null,
             this._values[1] !== undefined];
-        if (condition.every((item) => {return item === true})){
+        if (condition.every((item) => {return item === true;})){
             return false;
         }
         return true;
@@ -58,6 +58,8 @@ class Point {
         } else if (this._values[0] < 0 && this._values[1] > 0){
             return 4;
         }
+
+        return NaN;
     }
 
     set x(val){
@@ -115,10 +117,10 @@ class Frame {
         this.name = name;
         if (!this.origin.isNaN && !this.corner.isNaN) {
             if (this.origin.quadrant !== 1 || this.corner.quadrant !== 1){
-                throw "Both 'origin' and 'corner' must be of non-negative coordinates"
+                throw "Both 'origin' and 'corner' must be of non-negative coordinates";
             }
             if (this.origin.x > this.corner.x || this.origin.y > this.corner.y){
-                throw "Origin must be top-left and corner bottom-right"
+                throw "Origin must be top-left and corner bottom-right";
             }
         }
 
@@ -126,7 +128,7 @@ class Frame {
         this.intersect = this.intersect.bind(this);
         this.translate = this.translate.bind(this);
         this._empty = this._empty.bind(this);
-        this.coords_slice = this.coords_slice.bind(this);
+        this.sliceCoords = this.sliceCoords.bind(this);
     }
 
     /* The "dimension" of the frame.
@@ -261,11 +263,11 @@ class Frame {
      * corresponding coordinates. For example, Frame([0, 0], [10, 10]).slice(5, "y")
      * will return a list [[5, 0], ... [5, 10]]
      */
-    coords_slice(index, axis) {
+    sliceCoords(index, axis) {
         let coords = [];
         if (axis === "y"){
             if (index > this.corner.x || index < this.origin.x){
-                throw "Index out of range"
+                throw "Index out of range";
             }
             for(let y = this.origin.y; y <= this.corner.y; y++){
                 coords.push(new Point([index, y]));
@@ -284,17 +286,19 @@ class Frame {
      */
     contains(other){
         if (other instanceof String || typeof(other) === "string") {
-            other = new Point(other.split(',').map((item) => {return parseInt(item)}));
+            other = new Point(other.split(',').map((item) => {
+                return parseInt(item);
+            }));
         } else if (other instanceof Array){
             other = new Point(other);
         }
         if (other instanceof Point) {
             return (other.x >= this.origin.x && other.x <= this.corner.x
-                && other.y <= this.corner.y && other.y >= this.origin.y)
+                    && other.y <= this.corner.y && other.y >= this.origin.y);
         } else if (other instanceof Frame) {
-            return this.contains(other.origin) && this.contains(other.corner)
+            return this.contains(other.origin) && this.contains(other.corner);
         }
-        throw "You must pass a length 2 array, a Point, or a Frame"
+        throw "You must pass a length 2 array, a Point, or a Frame";
     }
 
     /* I check whether this frame matches this. */
@@ -324,7 +328,7 @@ class Frame {
             return newFrame;
         }
         if (origin.x > corner.x || origin.y > corner.y){
-            throw "Invalid translation: new origin must be top-left and corner bottom-right"
+            throw "Invalid translation: new origin must be top-left and corner bottom-right";
         }
     }
 
@@ -342,9 +346,9 @@ class Frame {
         if (!frame.contains(origin)){
             throw "the specified origin is not contained in the provided frame.";
         }
-        let x_diff = origin.x - this.origin.x;
-        let y_diff = origin.y - this.origin.y;
-        let translatedFrame = this.translate([x_diff, y_diff], inplace=false);
+        let xDiff = origin.x - this.origin.x;
+        let yDiff = origin.y - this.origin.y;
+        let translatedFrame = this.translate([xDiff, yDiff], inplace=false);
         if (strict && !frame.contains(translatedFrame)){
             return new Frame();
         }
@@ -386,7 +390,7 @@ class CompositeFrame {
          * overlayFrames is an array of dictionaries, each consition of a frame and origin poing (key and values);
          * the origin determines where the given frame roots itself project on the base frame.
          */
-        if (! baseFrame instanceof Frame){
+        if (!(baseFrame instanceof Frame)){
             throw "baseFrame must be a Frame class object";
         }
         this.baseFrame = baseFrame;
@@ -512,9 +516,8 @@ class CompositeFrame {
             return compositeFrame.overlayFrames.some(argFrame => {
                 return frame["frame"].equals(argFrame["frame"]) && frame["origin"].equals(argFrame["origin"]);
             });
-        })
+        });
         return baseFrameTest && overlayFramesTest;
-
     }
 
 }
@@ -633,23 +636,23 @@ class DataFrame extends Frame {
             origin = new Point(origin);
         }
         if (origin.y > this.corner.y || origin.x > this.corner.x){
-            throw "Origin is outside of frame."
+            throw "Origin is outside of frame.";
         }
         // check to make sure we are not out of the frame
         if (data.length + origin.y - 1> this.corner.y){
-            throw "Data + origin surpass frame y-dimension."
+            throw "Data + origin surpass frame y-dimension.";
         }
         // iterate over the data and update the store; make sure to offset the
         // coordintates properly
         for (let y = 0; y < data.length; y++){
-            let x_slice = data[y];
-            for (let x = 0; x < x_slice.length; x++){
+            let xSlice = data[y];
+            for (let x = 0; x < xSlice.length; x++){
                 if (x + origin.x > this.corner.x){
-                    throw "Data + origin surpass frame x-dimension."
+                    throw "Data + origin surpass frame x-dimension.";
                 }
                 let coord = [x + origin.x, y + origin.y];
                 coord = coord.toString();
-                this.store[coord] = x_slice[x];
+                this.store[coord] = xSlice[x];
             }
         }
     }
@@ -736,11 +739,11 @@ class Selector {
         let clipboard = "";
         for (let y = this.selectionFrame.origin.y; y <= this.selectionFrame.corner.y; y++){
             let row = "";
-            this.selectionFrame.coords_slice(y, "x").map(point => {
+            this.selectionFrame.sliceCoords(y, "x").map(point => {
                 let id = this.sheet._coordToId("td", [point.x, point.y]);
                 let td = document.getElementById(id);
                 row += td.textContent + "\t";
-            })
+            });
             clipboard += row + "\n";
         }
         return clipboard;
@@ -966,19 +969,19 @@ class Selector {
     }
 
     isAtViewTop(){
-        return this.selectionFrame.origin.y === this.sheet.composite_frame.getOverlayFrame("view_frame")["origin"].y;
+        return this.selectionFrame.origin.y === this.sheet.compositeFrame.getOverlayFrame("view_frame")["origin"].y;
     }
 
     isAtViewBottom(){
-        return this.selectionFrame.corner.y === this.sheet.composite_frame.baseFrame.corner.y;
+        return this.selectionFrame.corner.y === this.sheet.compositeFrame.baseFrame.corner.y;
     }
 
     isAtViewLeft(){
-        return this.selectionFrame.origin.x === this.sheet.composite_frame.getOverlayFrame("view_frame")["origin"].x;
+        return this.selectionFrame.origin.x === this.sheet.compositeFrame.getOverlayFrame("view_frame")["origin"].x;
     }
 
     isAtViewRight(){
-        return this.selectionFrame.corner.x === this.sheet.composite_frame.baseFrame.corner.x;
+        return this.selectionFrame.corner.x === this.sheet.compositeFrame.baseFrame.corner.x;
     }
 }
 

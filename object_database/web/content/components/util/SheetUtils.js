@@ -140,7 +140,7 @@ class Frame {
      * @returns {number}
      */
     get dim(){
-        if (this._empty()){
+        if (this.empty){
             return NaN;
         }
         let dim = 0;
@@ -160,7 +160,7 @@ class Frame {
      * @returns {Point}
      */
     get size(){
-        if (!this._empty()){
+        if (!this.empty){
             let x = this.corner.x - this.origin.x;
             let y = this.corner.y - this.origin.y;
             return new Point([x, y]);

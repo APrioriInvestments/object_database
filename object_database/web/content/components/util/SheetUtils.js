@@ -1072,7 +1072,7 @@ class Selector {
      * I expand the selection frame up by one
      */
     growUp(){
-        if(!this.isAtViewTop()){
+        if(!this.isAtViewTop(true)){
             let diff = [0, -1];
             let toPoint = this.applyToOppositeCorner(diff);
             this.fromPointToPoint(
@@ -1117,7 +1117,7 @@ class Selector {
      * I expand the selection frame left by one
      */
     growLeft(){
-        if(!this.isAtViewLeft()){
+        if(!this.isAtViewLeft(true)){
             let diff = [-1, 0];
             let toPoint = this.applyToOppositeCorner(diff);
             this.fromPointToPoint(
@@ -1289,8 +1289,13 @@ class Selector {
      * Returns true if the selection frame's cursor
      * is currently at the 'view top,' meaning what is
      * currently visual to the user.
+     * If absolute=true we use the complete grid, i.e. the baseFrame, as opposed to the
+     * viewFrame.
      */
-    isAtViewTop(){
+    isAtViewTop(absolute=false){
+        if (absolute){
+            return this.selectionFrame.origin.y === this.sheet.compositeFrame.baseFrame["origin"].y;
+        }
         return this.selectionFrame.origin.y === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["origin"].y;
     }
 
@@ -1307,8 +1312,13 @@ class Selector {
      * Returns true if the selection frame's cursor
      * is currently at the 'view left,' meaning what is
      * currently visual to the user.
+     * If absolute=true we use the complete grid, i.e. the baseFrame, as opposed to the
+     * viewFrame.
      */
-    isAtViewLeft(){
+    isAtViewLeft(absolute=false){
+        if (absolute){
+            return this.selectionFrame.origin.x === this.sheet.compositeFrame.baseFrame["origin"].x;
+        }
         return this.selectionFrame.origin.x === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["origin"].x;
     }
 

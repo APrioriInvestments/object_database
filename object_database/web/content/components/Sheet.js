@@ -473,15 +473,26 @@ class Sheet extends Component {
         // information.
         if(this.isSelecting){
             let targetCoord = this._idToCoord(event.target.id);
-            // TODO this can be made cleaner
-            let inLockedColumn = this.compositeFrame.getOverlayFrame("lockedColumns")["frame"].contains(targetCoord);
-            let inLockedRow = this.compositeFrame.getOverlayFrame("lockedRows")["frame"].contains(targetCoord);
+            this.selector.fromPointToPoint(
+                this.selector.selectionFrame.cursor,
+                targetCoord
+            );
+            /*
+            let inLockedColumn = false;
+            let inLockedRow = false;
+            if (this.compositeFrame.getOverlayFrame("lockedColumns") !== null){
+                inLockedColumn = this.compositeFrame.getOverlayFrame("lockedColumns")["frame"].contains(targetCoord);
+            }
+            if (this.compositeFrame.getOverlayFrame("lockedColumns") !== null){
+                inLockedRow = this.compositeFrame.getOverlayFrame("lockedRows")["frame"].contains(targetCoord);
+            }
             if(!inLockedColumn && !inLockedRow){
                 this.selector.fromPointToPoint(
                     this.selector.selectionFrame.cursor,
                     targetCoord
                 );
             }
+            */
         }
     }
 

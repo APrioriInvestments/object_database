@@ -157,7 +157,6 @@ class Sheet extends Component {
      * current container size.
      */
     resize(){
-        // TODO eventually pass this as an argument or set as an attrubute on the class
         let body = document.getElementById(`sheet-${this.props.id}-body`);
         let maxNumColumns = this._calcMaxNumColumns(this.container.offsetWidth);
         let maxNumRows = this._calcMaxNumRows(this.container.offsetHeight);
@@ -171,7 +170,6 @@ class Sheet extends Component {
         // now set the max column/row attributes
         this.maxNumColumns = maxNumColumns;
         this.maxNumRows = maxNumRows;
-        // TODO: this could potentially be a CompositeFrame.grow() method
         this.compositeFrame.baseFrame.corner.x += maxColumnsDiff;
         this.compositeFrame.baseFrame.corner.y += maxRowsDiff;
         this.compositeFrame.overlayFrames.forEach(frm => {
@@ -275,7 +273,6 @@ class Sheet extends Component {
 
     /* I listen for arrow keys and paginate if necessary. */
     handleKeyDown(event){
-        // TODO eventually pass this as an argument or set as an attrubute on the class
         let body = document.getElementById(`sheet-${this.props.id}-body`);
         let head = document.getElementById(`sheet-${this.props.id}-head`);
         // console.log(event.key + event.altKey);
@@ -498,7 +495,6 @@ class Sheet extends Component {
 
     /* I listen for clicks and and set up this.active_frame as necessary.*/
     handleClick(event){
-        // TODO eventually pass this as an argument or set as an attrubute on the class
         let body = document.getElementById(`sheet-${this.props.id}-body`);
         let head = document.getElementById(`sheet-${this.props.id}-head`);
         let target = event.target;
@@ -517,21 +513,6 @@ class Sheet extends Component {
         let td = body.querySelector(`#${this._coordToId("td", [origin.x, origin.y])}`);
         let th = head.querySelector(`#sheet-${this.props.id}-head-current`);
         th.textContent = `(${td.dataset.x}x${td.dataset.y}): ${td.textContent}`;
-    }
-
-    /* I listen for a mouseover event on a table element and and display the element
-    * textContent in the header row.
-    **/
-    /* No longer used but leaving for later as useful pattern
-    handleMouseover(event){
-        let head = document.getElementById(`sheet-${this.props.id}-head`);
-        let target = event.target;
-        if (target.nodeName !== "TD"){
-            return;
-        }
-        let th = head.firstChild.firstChild;
-        th.textContent = target.textContent;
-        this.handleCellMouseover(event);
     }
 
     /* Simply resets the `isSelecting` to false, in the
@@ -583,7 +564,8 @@ class Sheet extends Component {
     fetchData(action){
         // we ask for a bit more data than we need for the view to prevent flickering
         // frame = this._padFrame(frame, new Point([2, 2]));
-        // TODO: this place_counter needs to go!
+        // We don't want to replace for every overlayFrame, so in the case that the action
+        // = `replace` we keep a counter and flip action to `update` after the first call.
         let replaceCounter = 0;
         this.compositeFrame.overlayFrames.forEach(frm  => {
             if (replaceCounter){
@@ -814,7 +796,6 @@ class SheetCell extends Component {
     }
 
     componentDidLoad(){
-        //TODO: check if cell is active and add proper styling
     }
 
     build(){

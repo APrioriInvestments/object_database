@@ -13,6 +13,8 @@ const Point = require('../util/SheetUtils.js').Point;
 const Frame = require('../util/SheetUtils.js').Frame;
 const CompositeFrame = require('../util/SheetUtils.js').CompositeFrame;
 const DataFrame = require('../util/SheetUtils.js').DataFrame;
+const SelectionFrame = require('../util/SheetUtils.js').SelectionFrame;
+
 
 /* Example Messages and Structures */
 let simpleRoot = {
@@ -884,6 +886,66 @@ describe("Sheet util tests.", () => {
             } catch(e) {
                 assert.equal(e, "Coordinate not in frame.");
             }
+        });
+    });
+    describe("SelectionFrame class tests.", () => {
+        before(() => {
+        });
+        after(() => {
+        });
+        it("Translation", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10]);
+            frame.translate([5, 5]);
+            assert.isTrue(frame.equals(new SelectionFrame([5, 5], [15, 15])));
+            assert.isTrue(frame.cursor, new Point([5, 5]));
+        });
+        it("From Point to Point (basic)", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10]);
+            frame.fromPointToPoint([5, 5], [15, 15]);
+            assert.isTrue(frame.equals(new SelectionFrame([5, 5], [15, 15])));
+            assert.isTrue(frame.cursor.equals(new Point([5, 5])));
+        });
+        it("From Point to Point (flip)", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10]);
+            frame.fromPointToPoint([15, 15], [5, 5]);
+            assert.isTrue(frame.equals(new SelectionFrame([5, 5], [15, 15])));
+            assert.isTrue(frame.cursor.equals(new Point([15, 15])));
+        });
+        it("From Point to Point (basic without cursor)", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10]);
+            frame.fromPointToPoint([5, 5], [15, 15], false);
+            assert.isTrue(frame.equals(new SelectionFrame([5, 5], [15, 15])));
+            assert.isTrue(frame.cursor.equals(new Point([0, 0])));
+        });
+        it("From Point to Point (flip without cursor)", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10]);
+            frame.fromPointToPoint([15, 15], [5, 5], false);
+            assert.isTrue(frame.equals(new SelectionFrame([5, 5], [15, 15])));
+            assert.isTrue(frame.cursor.equals(new Point([0, 0])));
+        });
+        it("Left Points", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10]);
+            frame.leftPoints.forEach((p, i) => {
+                assert.isTrue(p.equals(new Point([0, i])));
+            });
+        });
+        it("Right Points", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10]);
+            frame.rightPoints.forEach((p, i) => {
+                assert.isTrue(p.equals(new Point([10, i])));
+            });
+        });
+        it("Top Points", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10]);
+            frame.topPoints.forEach((p, i) => {
+                assert.isTrue(p.equals(new Point([i, 0])));
+            });
+        });
+        it("Bottom Points", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10]);
+            frame.bottomPoints.forEach((p, i) => {
+                assert.isTrue(p.equals(new Point([i, 10])));
+            });
         });
     });
 });

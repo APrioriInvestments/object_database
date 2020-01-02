@@ -893,11 +893,18 @@ describe("Sheet util tests.", () => {
         });
         after(() => {
         });
-        it("Translation", () => {
-            let frame = new SelectionFrame([0, 0], [10, 10]);
+        it("Translation (cursor at origin)", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10], "selection");
             frame.translate([5, 5]);
             assert.isTrue(frame.equals(new SelectionFrame([5, 5], [15, 15])));
-            assert.isTrue(frame.cursor, new Point([5, 5]));
+            assert.isTrue(frame.cursor.equals(new Point([5, 5])));
+        });
+        it("Translation (cursor off origin)", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10], "selection");
+            frame.cursor = new Point([1, 1]);
+            frame.translate([5, 5]);
+            assert.isTrue(frame.equals(new SelectionFrame([5, 5], [15, 15])));
+            assert.isTrue(frame.cursor.equals(new Point([6, 6])));
         });
         it("From Point to Point (basic)", () => {
             let frame = new SelectionFrame([0, 0], [10, 10]);

@@ -636,12 +636,12 @@ class CompositeFrame {
  * purposes.
  */
 class SelectionFrame extends Frame {
-    constructor(origin, corner){
-        super(origin, corner);
+    constructor(origin, corner, name=null){
+        super(origin, corner, name);
 
         // This is what used to be the
         // single-cell "active" cell.
-        this.cursor = this.origin;
+        this.cursor = new Point(this.origin);
 
         // Bind methods
         this.fromPointToPoint = this.fromPointToPoint.bind(this);

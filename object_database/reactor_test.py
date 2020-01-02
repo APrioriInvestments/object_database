@@ -342,3 +342,14 @@ def test_reactor_block_until_true(db):
         assert checkCount[0] >= 8
 
     checker.teardown()
+
+
+def test_currentTimestamp_exceptions(db):
+    """ Test the exceptional paths of curTimestampIsAfter """
+    assert Reactor.curTimestamp() is None
+
+    with pytest.raises(TypeError):
+        Reactor.curTimestampIsAfter("now")
+
+    with pytest.raises(Exception, match="No reactor is running"):
+        Reactor.curTimestampIsAfter(0)

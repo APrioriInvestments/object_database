@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from contextlib import contextmanager
 
 import object_database
 
@@ -46,6 +47,9 @@ class ServiceBase:
         else:
             self.serializationContext = None
 
+        self.registeredReactors = []
+        self._reactorsRunning = False
+
     @staticmethod
     def configureFromCommandline(db, serviceObject, args):
         """Subclasses should take the remaining args from the commandline
@@ -57,8 +61,9 @@ class ServiceBase:
         pass
 
     def doWork(self, shouldStop):
-        # subclasses actually do work in here.
-        shouldStop.wait()
+        # subclasses may override if they are doing work outside of reactors.
+        with self.reactorsRunning():
+            shouldStop.wait()
 
     @staticmethod
     def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
@@ -69,3 +74,30 @@ class ServiceBase:
     @staticmethod
     def serviceHeaderToggles(serviceObject, instance=None):
         return []
+
+    def registerReactor(self, reactor):
+        if self._reactorsRunning:
+            raise Exception("Cannot register new reactors while reactors are already runing")
+
+        self.registeredReactors.append(reactor)
+
+    def startReactors(self):
+        self._reactorsRunning = True
+        for r in self.registeredReactors:
+            r.start()
+
+    def stopReactors(self):
+        for r in self.registeredReactors:
+            r.stop()
+        self._reactorsRunning = False
+
+    def teardownReactors(self):
+        for r in self.registeredReactors:
+            r.teardown()
+
+    @contextmanager
+    def reactorsRunning(self):
+        self.startReactors()
+        yield
+        self.stopReactors()
+        self.teardownReactors()

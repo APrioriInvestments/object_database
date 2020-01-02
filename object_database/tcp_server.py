@@ -128,8 +128,7 @@ class ClientToServerProtocol(AlgebraicProtocol):
 class EventLoopInThread:
     def __init__(self):
         self.loop = asyncio.new_event_loop()
-        self.thread = threading.Thread(target=self.runEventLoop)
-        self.thread.daemon = True
+        self.thread = threading.Thread(target=self.runEventLoop, daemon=True)
         self.started = False
 
     def runEventLoop(self):
@@ -164,6 +163,26 @@ class EventLoopInThread:
         res = asyncio.run_coroutine_threadsafe(doit(), self.loop)
 
         return res.result(10)
+
+    def stop_server(self, server):
+        """ wait for the server to be stopped.
+
+        calling server.close() directly is not thread-safe and has occasionally
+        lead to an asyncio internal exception:
+
+        >       for waiter in waiters:
+        E       TypeError: 'NoneType' object is not iterable
+        /opt/python/3.6.7/lib/python3.6/asyncio/base_events.py:229: TypeError
+
+        alternatively we could have called `self.loop.call_soon_threadsafe(server.close)`
+        but then we couldn't have waited for the closing to be completed.
+        """
+
+        async def doit():
+            server.close()
+
+        future = asyncio.run_coroutine_threadsafe(doit(), self.loop)
+        future.result(10)
 
 
 _eventLoop = EventLoopInThread()
@@ -247,7 +266,7 @@ class TcpServer(Server):
 
         self.stopped = True
         if self.socket_server:
-            self.socket_server.close()
+            _eventLoop.stop_server(self.socket_server)
 
     def connect(self, auth_token, useSecondaryLoop=False):
         if useSecondaryLoop:

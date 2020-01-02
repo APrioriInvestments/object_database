@@ -228,7 +228,7 @@ def test_reactor_with_timestamp_lookup(db):
         with db.transaction():
             for t in someThings:
                 if Reactor.curTimestampIsAfter(t.nextUpdate):
-                    t.nextUpdate = t.nextUpdate + 0.01
+                    t.nextUpdate += 0.01
                     t.timesUpdated += 1
 
     def updateCount():
@@ -344,8 +344,8 @@ def test_reactor_block_until_true(db):
     checker.teardown()
 
 
-def test_currentTimestamp_exceptions(db):
-    """ Test the exceptional paths of curTimestampIsAfter """
+def test_curTimestamp_exceptions(db):
+    """ Test the exceptional paths of curTimestamp and curTimestampIsAfter """
     assert Reactor.curTimestamp() is None
 
     with pytest.raises(TypeError):

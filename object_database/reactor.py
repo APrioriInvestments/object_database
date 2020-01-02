@@ -142,7 +142,7 @@ class Reactor:
         if not isinstance(ts, (int, float)):
             raise TypeError(f"Timestamp `ts` must be of type float but was of type {type(ts)}")
 
-        curTime = getattr(_currentReactor, "timestamp", None)
+        curTime = Reactor.curTimestamp()
         if curTime is None:
             raise Exception("No reactor is running.")
 

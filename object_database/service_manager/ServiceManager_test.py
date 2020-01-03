@@ -22,6 +22,7 @@ import tempfile
 import textwrap
 import time
 import unittest
+import pytest
 from flaky import flaky
 
 from object_database.service_manager.ServiceManagerTestCommon import ServiceManagerTestCommon
@@ -59,6 +60,7 @@ from object_database import (
     Index,
     service_schema,
     current_transaction,
+    Reactor,
 )
 
 ownDir = os.path.dirname(os.path.abspath(__file__))
@@ -153,8 +155,35 @@ class UninitializableService(ServiceBase):
     def initialize(self):
         assert False
 
-    def doWork(self, shouldStop):
-        time.sleep(120)
+
+@schema.define
+class Status:
+    on = bool
+    count = int
+
+    def set(self):
+        if self.on is not True:
+            self.on = True
+            self.count += 1
+
+    def clear(self):
+        if self.on is not False:
+            self.on = False
+            self.count += 1
+
+
+class ReactorService(ServiceBase):
+    def initialize(self):
+        self.db.subscribeToSchema(core_schema, service_schema, schema)
+        reactor = Reactor(self.db, self.reactorFun)
+        self.registerReactor(reactor)
+        print("Initialized ReactorService", flush=True)
+
+    def reactorFun(self):
+        print("Reactor executing", flush=True)
+        with self.db.transaction():
+            status = Status.lookupOne()
+            status.clear()
 
 
 @schema.define
@@ -727,6 +756,27 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
         for ix in range(10):
             test_once()
 
+    def test_reactor_service(self):
+        with self.database.transaction():
+            s = Status(on=True)
+            ServiceManager.createOrUpdateService(
+                ReactorService, "ReactorService", target_count=1
+            )
+
+        with self.database.transaction():
+            ServiceManager.startService("ReactorService", 1)
+
+        self.assertTrue(self.database.waitForCondition(lambda: s.on is False, 5))
+
+        with self.database.transaction():
+            self.assertEqual(s.count, 1)
+            s.set()
+            self.assertEqual(s.count, 2)
+
+        self.assertTrue(self.database.waitForCondition(lambda: s.on is False, 0.5))
+        with self.database.view():
+            self.assertEqual(s.count, 3)
+
     def test_racheting_service_count_up_and_down(self):
         with self.database.transaction():
             ServiceManager.createOrUpdateService(MockService, "MockService", target_count=1)
@@ -916,7 +966,8 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
         # which would be a real problem!
         self.assertTrue(emptyThroughputs[-1] * 2 > emptyThroughputs[0], (emptyThroughputs))
 
-    def DISABLEDtest_throughput_with_many_workers(self):
+    @pytest.mark.skip(reason="multi-worker test")
+    def test_throughput_with_many_workers(self):
         with self.database.transaction():
             ServiceManager.createOrUpdateService(MockService, "MockService", target_count=0)
 

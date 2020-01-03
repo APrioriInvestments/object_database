@@ -27,3 +27,22 @@ class ClickableText(CellsTestPage):
 
     def text(self):
         return "You should see some text that you can click on to increment a counter."
+
+
+def test_clickable_displays(headless_browser):
+    demo_root = headless_browser.get_demo_root_for(ClickableText)
+    assert demo_root
+    assert demo_root.get_attribute("data-cell-type") == "Clickable"
+
+
+def test_clickable_clicking_works(headless_browser):
+    demo_root = headless_browser.get_demo_root()
+    query = "{} > *".format(headless_browser.demo_root_selector)
+    subscribed = headless_browser.find_by_css(query)
+    assert subscribed.text == "You've clicked on this text 0 times"
+    demo_root.click()
+    headless_browser.wait(2).until(
+        headless_browser.expect.text_to_be_present_in_element(
+            (headless_browser.by.CSS_SELECTOR, query), "You've clicked on this text 1 times"
+        )
+    )

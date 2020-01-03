@@ -104,6 +104,12 @@ class Component {
             addCustomStyles(this.props.customStyle, velement);
         }
 
+        // Add any custom queryTag that should be
+        // added as a data attribute
+        if(this.props.queryTag){
+            velement.properties['data-tag'] = this.props.queryTag.toString();
+        }
+
         return velement;
     }
 
@@ -415,7 +421,11 @@ const dictToStyle = (styleDict) => {
     let items = Object.keys(styleDict).map(key => {
         return `${key}:${styleDict[key]}`;
     });
-    return items.join(";");
+    let result = items.join(";");
+    if(!result.endsWith(";")){
+        result += ";";
+    }
+    return result;
 };
 
 export {

@@ -141,7 +141,7 @@ class CodeEditor extends Component {
 
         // force a focus. it would be better to pick a better way to trigger
         // this from the serverside after an action
-        this.editor.focus()
+        this.editor.focus();
     }
 
     setTextFromServer(iteration, newBufferText) {
@@ -180,7 +180,7 @@ class CodeEditor extends Component {
         window.setTimeout(() => {
             if (Date.now() - this.editor.last_edit_millis >= this.SERVER_UPDATE_DELAY_MS) {
                 //save our current state to the remote buffer
-                console.log("Updating server state for CodeEditor(" + this.props.id + ")")
+                console.log("Updating server state for CodeEditor(" + this.props.id + ")");
 
                 this.editor.current_iteration += 1;
                 this.editor.last_edit_millis = Date.now();

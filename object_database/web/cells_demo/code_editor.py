@@ -28,10 +28,50 @@ class CodeEditorDemo(CellsTestPage):
         return "You should see a button that lets you see a text editor."
 
 
+def test_basic_code_editor_hidden(headless_browser):
+    # Ensures we can load the demo page element
+    # and that there is NO CodeEditor showing yet
+    headless_browser.load_demo_page(CodeEditorDemo)
+    query = '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
+    elements = headless_browser.find_by_css(query, many=True)
+    assert len(elements) < 1
+
+
+def test_basic_code_editor_shown(headless_browser):
+    # Click the button, then see if the CodeEditor shows
+    button = headless_browser.find_by_css(
+        '{} > [data-cell-type="Button"]'.format(headless_browser.demo_root_selector)
+    )
+    query = '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
+    location = (headless_browser.by.CSS_SELECTOR, query)
+    button.click()
+    headless_browser.wait(5).until(
+        headless_browser.expect.presence_of_element_located(location)
+    )
+
+
+def test_basic_code_editor_hidden_again(headless_browser):
+    # Now ensure that a second click hides the
+    # CodeEditor
+    button = headless_browser.find_by_css(
+        '{} > [data-cell-type="Button"]'.format(headless_browser.demo_root_selector)
+    )
+    query = '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
+    location = (headless_browser.by.CSS_SELECTOR, query)
+    button.click()
+    headless_browser.wait(5).until(
+        headless_browser.expect.invisibility_of_element_located(location)
+    )
+
+
 class CodeEditorStashedDemo(CellsTestPage):
     def cell(self):
-        isShown = cells.Slot(False)
-        editor = cells.CodeEditor()
+        isShown = cells.Slot(True)
+        textContent = cells.Slot("")
+        editor = cells.CodeEditor(
+            onTextChange=lambda text, selection: textContent.set(text),
+            textToDisplayFunction=lambda: textContent.get(),
+        )
 
         return cells.Button(
             "Toggle the editor", lambda: isShown.set(not isShown.get())
@@ -42,6 +82,59 @@ class CodeEditorStashedDemo(CellsTestPage):
             "You should be able to Toggle a text editor, enter some text,",
             " and have the same text editor re-appear on toggling again",
         )
+
+
+def test_stashed_editor_insert_text(headless_browser):
+    # Test that we can find the editor and
+    # add text to it.
+    demo_root = headless_browser.get_demo_root_for(CodeEditorStashedDemo)
+    assert demo_root
+    code_editor = headless_browser.find_by_css(
+        '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
+    )
+    assert code_editor
+    script = 'cellHandler.activeComponents["{}"].editor.setValue("{}")'.format(
+        code_editor.get_attribute("data-cell-id"), "Hello World"
+    )
+    headless_browser.webdriver.execute_script(script)
+    editor_query = "{} .ace_scroller".format(headless_browser.demo_root_selector)
+    editor_content_area = headless_browser.find_by_css(editor_query)
+    assert editor_content_area
+    assert editor_content_area.text == "Hello World"
+
+
+def test_stashed_hides_code_editor(headless_browser):
+    # Now test that the CodeEditor is hidden by clicking
+    # the toggle button
+    toggle_btn = headless_browser.find_by_css(
+        '{} > [data-cell-type="Button"]'.format(headless_browser.demo_root_selector)
+    )
+    query = '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
+    location = (headless_browser.by.CSS_SELECTOR, query)
+    toggle_btn.click()
+    headless_browser.wait(5).until(
+        headless_browser.expect.invisibility_of_element_located(location)
+    )
+
+
+def test_reloaded_editor_has_text(headless_browser):
+    # Now click the button again, revealing the editor
+    # and ensure that the editor has the previous text
+    # value we assigned to it in
+    # test_stashed_editor_insert_text
+    toggle_btn = headless_browser.find_by_css(
+        '{} > [data-cell-type="Button"]'.format(headless_browser.demo_root_selector)
+    )
+    query = '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
+    location = (headless_browser.by.CSS_SELECTOR, query)
+    toggle_btn.click()
+    headless_browser.wait(5).until(
+        headless_browser.expect.presence_of_element_located(location)
+    )
+    editor_content_area_query = "{} .ace_scroller".format(headless_browser.demo_root_selector)
+    editor_content_area = headless_browser.find_by_css(editor_content_area_query)
+    assert editor_content_area
+    assert editor_content_area.text == "Hello World"
 
 
 class CodeEditorInHorizSequence(CellsTestPage):

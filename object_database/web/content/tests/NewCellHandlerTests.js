@@ -613,3 +613,137 @@ describe("Properties Update Tests", () => {
         assert.equal(textChild.textContent, "WORLD");
     });
 });
+
+/**
+ * This suite describes tests that occur in the
+ * base class Component's `render()` method, and
+ * that involve operations on the velement before
+ * it is returned.
+ * Examples include:
+ *     - Adding a 'flex-child' class to the velement
+ *       if the flexChild prop is passed;
+ *     - Adding inline styling to the velement if
+ *       a 'customStyle' prop (dictionary) has been
+ *       passed
+ *     - Adding a data-tag attribute if a 'queryTag'
+ *       prop has been passed.
+ * We test for the velement and DOM presence of each of
+ * these here.
+ */
+describe("Pre-render Additions Tests", () => {
+    var handler;
+    before(() => {
+        handler = new NewCellHandler(h, projector, registry);
+        let rootEl = document.createElement('div');
+        rootEl.id = "page_root";
+        document.body.append(rootEl);
+    });
+    after(() => {
+        let rootEl = document.getElementById('page_root');
+        if(rootEl){
+            rootEl.remove();
+        }
+    });
+
+    it("Adds a flex-child class to the velement if the prop is passed", () => {
+        let target = new AllComponents.Text({
+            id: 3,
+            flexChild: true
+        });
+        let result = target.render();
+        assert.exists(result.properties.class);
+        let classNames = result.properties.class.split(" ");
+        assert.include(classNames, 'flex-child');
+    });
+
+    it("Adds a flex-child class to the DOM element if the prop is passed", () => {
+        let target = Object.assign({}, firstText, {
+            id: 2,
+            parentId: simpleRoot.id,
+            nameInParent: 'child',
+            extraData: {
+                rawText: "HELLO",
+                flexChild: true
+            }
+        });
+        let parent = Object.assign({}, simpleRoot, {
+            namedChildren: {
+                child: target
+            }
+        });
+        let updateMessage = makeUpdateMessage(parent);
+        handler.receive(updateMessage);
+        let el = document.getElementById(target.id);
+        assert.isTrue(el.classList.contains('flex-child'));
+    });
+
+    it("Adds custom styling to a velement if the customStyle prop is passed", () => {
+        let target = new AllComponents.Text({
+            id: '3',
+            customStyle: {
+                color: 'brown'
+            }
+        });
+        let result = target.render();
+        assert.exists(result.properties.style);
+        assert.equal(result.properties.style, 'color:brown;');
+    });
+
+    it("Adds custom styling to a DOM element if the prop is passed", () => {
+        let target = Object.assign({}, firstText, {
+            id: 2,
+            parentId: simpleRoot.id,
+            nameInParent: 'child',
+            extraData: {
+                rawText: "HELLO",
+                customStyle: {
+                    color: 'brown',
+                    width: '100%'
+                }
+            }
+        });
+        let parent = Object.assign({}, simpleRoot, {
+            namedChildren: {
+                child: target
+            }
+        });
+        let updateMessage = makeUpdateMessage(parent);
+        handler.receive(updateMessage);
+        let el = document.getElementById(target.id);
+        assert.exists(el.attributes.style);
+        assert.equal(el.style.color, 'brown');
+        assert.equal(el.style.width, '100%');
+    });
+
+    it("Adds a queryTag data attr to the velement in the prop is passed", () => {
+        let target = new AllComponents.Text({
+            id: 'foo',
+            queryTag: 'test'
+        });
+        let result = target.render();
+        assert.exists(result.properties['data-tag']);
+        assert.equal(result.properties['data-tag'], 'test');
+    });
+
+    it("Adds a queryTag data attr to the DOM element if the prop is passed", () => {
+        let target = Object.assign({}, firstText, {
+            id: 2,
+            parentId: simpleRoot.id,
+            nameInParent: 'child',
+            extraData: {
+                rawText: "HELLO",
+                queryTag: "test"
+            }
+        });
+        let parent = Object.assign({}, simpleRoot, {
+            namedChildren: {
+                child: target
+            }
+        });
+        let updateMessage = makeUpdateMessage(parent);
+        handler.receive(updateMessage);
+        let el = document.getElementById(target.id);
+        assert.exists(el.getAttribute('data-tag'));
+        assert.equal(el.dataset.tag, "test");
+    });
+});

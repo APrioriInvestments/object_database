@@ -35,3 +35,19 @@ class SomeButtons(CellsTestPage):
 
     def text(self):
         return "You should see some buttons in various styles."
+
+
+def test_some_buttons_display(headless_browser):
+    demo_root = headless_browser.get_demo_root_for(SomeButtons)
+    assert demo_root
+
+    # Root should have 4 children that are each buttons
+    buttons_query = '[data-tag="demo_root"] > [data-cell-type="Button"]'
+    buttons = headless_browser.find_by_css(buttons_query, many=True)
+    assert len(buttons) == 4
+
+
+def test_can_actually_load_page(headless_browser):
+    query = "#page_root"
+    el = headless_browser.find_by_css(query)
+    assert el

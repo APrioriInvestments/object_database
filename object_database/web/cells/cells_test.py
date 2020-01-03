@@ -557,6 +557,13 @@ class CellsStructureTests(unittest.TestCase):
         struct = c.getCurrentStructure()
         self.assertIsInstance(struct, dict)
 
+    def test_cell_export_tag(self):
+        c = Text("hello").tagged("test")
+        self.cells.withRoot(c)
+        self.cells._recalculateCells()
+        self.assertTrue("queryTag" in c.exportData)
+        self.assertEquals(c.exportData["queryTag"], "test")
+
 
 class CellsSequenceHandlingTests(unittest.TestCase):
     @classmethod

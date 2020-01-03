@@ -993,6 +993,7 @@ class Cell:
     def tagged(self, tag):
         """Give a tag to the cell, which can help us find interesting cells during test."""
         self._tag = tag
+        self.exportData["queryTag"] = tag
         return self
 
     def findChildrenByTag(self, tag, stopSearchingAtFoundTag=False):

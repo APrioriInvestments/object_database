@@ -11,6 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+import urllib
 
 
 class CellsTestPage(object):
@@ -26,6 +27,13 @@ class CellsTestPage(object):
 
     def name(self):
         return type(self).__name__
+
+    def querystring(self):
+        """Respond with the querystring representation of the demo"""
+        item_name_part = urllib.parse.urlencode(
+            dict(category=self.category(), name=self.name())
+        )
+        return "?{}".format(item_name_part)
 
     def cell(self):
         """Return a 'cell' that this displays."""

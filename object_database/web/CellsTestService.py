@@ -84,11 +84,11 @@ class CellsTestService(ServiceBase):
                             sys.modules[type(page).__module__].__dict__,
                             locals,
                         )
-                        return locals["cell"](page)
+                        return locals["cell"](page).tagged("demo_root")
                     except Exception:
                         return cells.Traceback(traceback.format_exc())
 
-                return page.cell()
+                return page.cell.tagged("demo_root")
 
             def onEnter(buffer, selection):
                 contentsToEvaluate.set(buffer)

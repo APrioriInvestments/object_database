@@ -51,6 +51,7 @@ from object_database.web.cells import (
 )
 
 import logging
+import pytest
 import unittest
 import threading
 
@@ -325,7 +326,9 @@ class CellsTests(unittest.TestCase):
 
         self.helper_memory_leak(cell, initFn, workFn, 1)
 
-    @unittest.skip("Test is failing oddly, but it's not clear what test is trying to do")
+    @pytest.mark.skip(
+        reason="Test is failing oddly, but it's not clear what test is trying to do"
+    )
     def test_cells_memory_leak2(self):
         cell = SubscribedSequence(
             lambda: Thing.lookupAll(k=0),

@@ -3,9 +3,7 @@ import pytest
 from pytest_lazyfixture import lazy_fixture
 
 from object_database.RedisTestHelper import RedisTestHelper
-from object_database.persistence import InMemoryPersistence, RedisPersistence
-from object_database import InMemServer
-from object_database.tcp_server import TcpServer
+from object_database import InMemServer, TcpServer, InMemoryPersistence, RedisPersistence
 from object_database.util import genToken
 
 

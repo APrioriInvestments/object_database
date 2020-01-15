@@ -77,6 +77,21 @@ class VertSequenceWithoutFlex(CellsTestPage):
         )
 
 
+class VertSequenceWithoutFlexInPanel(CellsTestPage):
+    def cell(self):
+        return cells.ResizablePanel(
+            cells.Text("Sinle line"),
+            cells.Sequence([cells.Text("Many lines") for _ in range(1000)]),
+        )
+
+    def text(self):
+        return (
+            "You should see a resizeable panel. The left should not have a scrollbar. The "
+            "Right one should, and it should scroll separately from the contents of the "
+            "left panel."
+        )
+
+
 class VertSequenceWithoutFlexNestedSeq(CellsTestPage):
     def cell(self):
         letteredTextItems = [

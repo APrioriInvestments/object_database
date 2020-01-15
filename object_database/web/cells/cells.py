@@ -3397,6 +3397,7 @@ class Panel(Cell):
         self.content = Cell.makeCell(content)
 
     def recalculate(self):
+        self.exportData["divStyle"] = self._divStyle()
         self.children["content"] = Cell.makeCell(self.content)
 
 

@@ -860,6 +860,8 @@ class Selector {
         this.isAtViewRight = this.isAtViewRight.bind(this);
         this.isAtViewLeft = this.isAtViewLeft.bind(this);
         this.isAtViewBottom = this.isAtViewBottom.bind(this);
+        this.isAtDataTop = this.isAtDataTop.bind(this);
+        this.isAtDataLeft = this.isAtDataLeft.bind(this);
         this.shiftUp = this.shiftUp.bind(this);
         this.shiftRight = this.shiftRight.bind(this);
         this.shiftDown = this.shiftDown.bind(this);
@@ -1171,7 +1173,14 @@ class Selector {
      */
     shiftUp(amount = 1, shrinkToCursor = false){
         let shift = [0, (amount * -1)];
-        if(this.isAtViewTop()){
+        // TODO clean up this logic
+        if(this.isAtDataTop()){
+            if(this.isAtViewTop(true)){
+            } else {
+                this.clearStyling(true);
+                this.selectionFrame.translate(shift);
+            }
+        } else if(this.isAtViewTop()){
             this.triggerNeedsUpdate('up', amount);
         } else {
             this.clearStyling(true);
@@ -1252,7 +1261,14 @@ class Selector {
      */
     shiftLeft(amount = 1, shrinkToCursor = false){
         let shift = [amount * -1, 0];
-        if(this.isAtViewLeft()){
+        // TODO clean up this logic
+        if(this.isAtDataLeft()){
+            if(this.isAtViewLeft(true)){
+            } else {
+                this.clearStyling(true);
+                this.selectionFrame.translate(shift);
+            }
+        } else if(this.isAtViewLeft()){
             this.triggerNeedsUpdate('left', amount);
         } else {
             this.clearStyling(true);
@@ -1329,6 +1345,27 @@ class Selector {
      */
     isAtViewRight(){
         return this.selectionFrame.corner.x === this.sheet.compositeFrame.baseFrame.corner.x;
+    }
+
+    /**
+     * Returns true if the viewFrame top row matches up with the projected viewFrame top row, meaning
+     * that we have reached the top of the Sheet and there is no more data above.
+     */
+    isAtDataTop(){
+        return (
+            this.sheet.compositeFrame.project("viewFrame").origin.y === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["frame"].origin.y
+        );
+    }
+
+    /**
+     * Returns true if the viewFrame left-most column matches up with the
+     * projected viewFrame left-most column, meaning
+     * that we have reached the beginning of the Sheet and there is no more data to the left.
+     */
+    isAtDataLeft(){
+        return (
+            this.sheet.compositeFrame.project("viewFrame").origin.x === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["frame"].origin.x
+        );
     }
 }
 

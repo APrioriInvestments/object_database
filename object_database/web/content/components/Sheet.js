@@ -437,7 +437,7 @@ class Sheet extends Component {
             this.compositeFrame.translate(translation, "viewFrame");
             this.fetchData("update");
         } else if (direction === "left"){
-            translation.x = -1 * Math.min(viewFrame.origin.x - viewOrigin.x, viewFrame.size.x);
+            translation.x = -1 * Math.min(viewFrame.origin.x - viewOrigin.x, amount);
             this.compositeFrame.translate(translation, "lockedRows");
             this.compositeFrame.translate(translation, "viewFrame");
             this.fetchData("update");

@@ -55,6 +55,10 @@ class Sheet extends Component {
         // Bind context to methods
         this.initializeSheet  = this.initializeSheet.bind(this);
         this.resize = this.resize.bind(this);
+        this.resizeCorner = this.resizeCorner.bind(this);
+        this.resizeOrigin = this.resizeOrigin.bind(this);
+        this._atDataBottom = this._atDataBottom.bind(this);
+        this._atDataRight = this._atDataRight.bind(this);
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -170,20 +174,56 @@ class Sheet extends Component {
         // now set the max column/row attributes
         this.maxNumColumns = maxNumColumns;
         this.maxNumRows = maxNumRows;
-        this.compositeFrame.baseFrame.corner.x += maxColumnsDiff;
-        this.compositeFrame.baseFrame.corner.y += maxRowsDiff;
+        // check whether we are at the bottom of the sheet and, hence, should grow the
+        // origin
+        if ((this._atDataBottom() && maxRowsDiff) || (this._atDataRight() && maxColumnsDiff)){
+            this.resizeOrigin(maxRowsDiff, maxColumnsDiff);
+        } else {
+            this.resizeCorner(maxRowsDiff, maxColumnsDiff);
+        }
+        this.fetchData("replace");
+    }
+
+    _atDataBottom(){
+        let viewFrame = this.compositeFrame.getOverlayFrame("viewFrame")["frame"];
+        return viewFrame.corner.y === this.dataFrame.corner.y;
+    }
+
+    _atDataRight(){
+        let viewFrame = this.compositeFrame.getOverlayFrame("viewFrame")["frame"];
+        return viewFrame.corner.x === this.dataFrame.corner.x;
+    }
+
+    resizeCorner(numRows, numColumns){
+        this.compositeFrame.baseFrame.corner.x += numColumns;
+        this.compositeFrame.baseFrame.corner.y += numRows;
         this.compositeFrame.overlayFrames.forEach(frm => {
             let frame = frm["frame"];
             if (frame.name === "viewFrame"){
-                frame.corner.x += maxColumnsDiff;
-                frame.corner.y += maxRowsDiff;
+                frame.corner.x += numColumns;
+                frame.corner.y += numRows;
             } else if (frame.name === "lockedColumns"){
-                frame.corner.y += maxRowsDiff;
+                frame.corner.y += numRows;
             } else if (frame.name === "lockedRows"){
-                frame.corner.x += maxColumnsDiff;
+                frame.corner.x += numColumns;
             }
         });
-        this.fetchData("replace");
+    }
+
+    resizeOrigin(numRows, numColumns){
+        this.compositeFrame.baseFrame.origin.x -= numColumns;
+        this.compositeFrame.baseFrame.origin.y -= numRows;
+        this.compositeFrame.overlayFrames.forEach(frm => {
+            let frame = frm["frame"];
+            if (frame.name === "viewFrame"){
+                frame.origin.x -= numColumns;
+                frame.origin.y -= numRows;
+            } else if (frame.name === "lockedColumns"){
+                frame.origin.y -= numRows;
+            } else if (frame.name === "lockedRows"){
+                frame.origin.x -= numColumns;
+            }
+        });
     }
 
     /* I initialize the sheet from coordintate [0, 0] to [corner.x, corner.y] (corner isinstanceof Point)
@@ -386,33 +426,34 @@ class Sheet extends Component {
             this.compositeFrame.translate(translation, "viewFrame");
             this.fetchData("update");
         } else if (this.selector){
+            let shrinkToCursor = !event.altKey;
             if (event.key === "ArrowUp"){
                 event.preventDefault();
                 if(event.shiftKey){
                     this.selector.growUp();
                 } else {
-                    this.selector.cursorUp();
+                    this.selector.cursorUp(shrinkToCursor);
                 }
             } else if (event.key === "ArrowDown"){
                 event.preventDefault();
                 if(event.shiftKey){
                     this.selector.growDown();
                 } else {
-                    this.selector.cursorDown();
+                    this.selector.cursorDown(shrinkToCursor);
                 }
             } else if (event.key === "ArrowLeft"){
                 event.preventDefault();
                 if(event.shiftKey){
                     this.selector.growLeft();
                 } else {
-                    this.selector.cursorLeft();
+                    this.selector.cursorLeft(shrinkToCursor);
                 }
             } else if (event.key === "ArrowRight"){
                 event.preventDefault();
                 if(event.shiftKey){
                     this.selector.growRight();
                 } else {
-                    this.selector.cursorRight();
+                    this.selector.cursorRight(shrinkToCursor);
                 }
             }
         }

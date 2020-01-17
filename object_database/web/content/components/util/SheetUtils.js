@@ -1133,29 +1133,29 @@ class Selector {
     /**
      * I move the cursor up by one
      */
-    cursorUp(){
-        this.shiftUp(1, true);
+    cursorUp(shrinkToCursor){
+        this.shiftUp(1, shrinkToCursor);
     }
 
     /**
      * I move the cursor right by one
      */
-    cursorRight(){
-        this.shiftRight(1, true);
+    cursorRight(shrinkToCursor){
+        this.shiftRight(1, shrinkToCursor);
     }
 
     /**
      * I move the cursor down by one
      */
-    cursorDown(){
-        this.shiftDown(1, true);
+    cursorDown(shrinkToCursor){
+        this.shiftDown(1, shrinkToCursor);
     }
 
     /**
      * I move the cursor left by one
      */
-    cursorLeft(){
-        this.shiftLeft(1, true);
+    cursorLeft(shrinkToCursor){
+        this.shiftLeft(1, shrinkToCursor);
     }
 
     /**

@@ -33,8 +33,7 @@ class Sheet extends Component {
         this.totalColumns = this.props.totalColumns;
         this.totalRows = this.props.totalRows;
 
-        // offset is used as a buffer for lazy loading, i.e. we have this many extra
-        // columns/rows
+        this.container = null;
         this.maxNumRows = null;
         this.maxNumColumns = null;
         this.requestIndex = 0;
@@ -79,6 +78,7 @@ class Sheet extends Component {
     componentDidLoad(){
         console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
         this.container = document.getElementById(this.props.id).parentNode;
+        console.log(this.container);
         this.maxNumColumns = this._calcMaxNumColumns(this.container.offsetWidth);
         this.maxNumRows = this._calcMaxNumRows(this.container.offsetHeight);
         // new
@@ -697,7 +697,7 @@ class Sheet extends Component {
      */
     _calcMaxNumRows(maxHeight){
         // NOTE: we account for the header row
-        return Math.min(this.totalRows, Math.ceil(maxHeight/this.props.rowHeight)) - 1;
+        return Math.min(this.totalRows, Math.ceil(maxHeight/(this.props.rowHeight * 1.05))) - 1;
     }
 
     _calcMaxNumColumns(maxWidth){

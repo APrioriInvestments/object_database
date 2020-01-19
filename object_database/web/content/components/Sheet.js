@@ -434,7 +434,7 @@ class Sheet extends Component {
                 // Ensure that the cursor moves to the
                 // left side of the current view frame
                 this.selector.cursorTo(new Point([
-                    viewOrigin.x,
+                    0,
                     this.selector.selectionFrame.cursor.y
                 ]));
             }

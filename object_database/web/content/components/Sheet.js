@@ -362,9 +362,19 @@ class Sheet extends Component {
             if (event.key === "PageDown"){
                 // make sure we don't run out of data at the right of the page
                 translation.x = Math.min(this.dataFrame.corner.x - viewFrame.corner.x, viewFrame.size.x);
+                this.selector.fromPointToPoint(
+                    [0, this.selector.selectionFrame.origin.y],
+                    this.selector.selectionFrame.corner,
+                    false
+                );
             } else if (event.key === "PageUp") {
                 // make sure we don't run out of data at the left
                 translation.x = -1 * Math.min(viewFrame.origin.x - viewOrigin.x, viewFrame.size.x);
+                this.selector.fromPointToPoint(
+                    this.selector.selectionFrame.origin,
+                    [this.compositeFrame.baseFrame.corner.x, this.selector.selectionFrame.corner.y],
+                    false
+                );
             }
             this.compositeFrame.translate(translation, "lockedRows");
         } else {
@@ -372,17 +382,34 @@ class Sheet extends Component {
             if (event.key === "PageDown"){
                 // make sure we don't run out of data at the bottom of the page
                 translation.y = Math.min(this.dataFrame.corner.y - viewFrame.corner.y, viewFrame.size.y);
+                if(event.shiftKey){
+                    this.selector.fromPointToPoint(
+                        [this.selector.selectionFrame.origin.x, 0],
+                        this.selector.selectionFrame.corner,
+                        false
+                    );
+                }
             } else if (event.key === "PageUp"){
                 // make sure we don't run out of data at the top
                 translation.y = -1 * Math.min(viewFrame.origin.y - viewOrigin.y, viewFrame.size.y);
+                if(event.shiftKey){
+                    this.selector.fromPointToPoint(
+                        this.selector.selectionFrame.origin,
+                        [this.selector.selectionFrame.corner.x, this.compositeFrame.baseFrame.corner.y],
+                        false
+                    );
+                }
             }
             this.compositeFrame.translate(translation, "lockedColumns");
         }
 
         // If there is a current selection,
-        // shrink it to the cursor.
-        this.selector.clearStyling();
-        this.selector.shrinkToCursor();
+        // shrink it to the cursor unless the navigation is
+        // combined with selector expansion.
+        if (!event.shiftKey){
+            this.selector.clearStyling();
+            this.selector.shrinkToCursor();
+        }
 
         this.compositeFrame.translate(translation, "viewFrame");
         this.fetchData("update");

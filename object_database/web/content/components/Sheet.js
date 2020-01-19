@@ -362,19 +362,23 @@ class Sheet extends Component {
             if (event.key === "PageDown"){
                 // make sure we don't run out of data at the right of the page
                 translation.x = Math.min(this.dataFrame.corner.x - viewFrame.corner.x, viewFrame.size.x);
-                this.selector.fromPointToPoint(
-                    [0, this.selector.selectionFrame.origin.y],
-                    this.selector.selectionFrame.corner,
-                    false
-                );
+                if(event.shiftKey){
+                    this.selector.fromPointToPoint(
+                        [0, this.selector.selectionFrame.origin.y],
+                        this.selector.selectionFrame.corner,
+                        false
+                    );
+                }
             } else if (event.key === "PageUp") {
                 // make sure we don't run out of data at the left
                 translation.x = -1 * Math.min(viewFrame.origin.x - viewOrigin.x, viewFrame.size.x);
-                this.selector.fromPointToPoint(
-                    this.selector.selectionFrame.origin,
-                    [this.compositeFrame.baseFrame.corner.x, this.selector.selectionFrame.corner.y],
-                    false
-                );
+                if(event.shiftKey){
+                    this.selector.fromPointToPoint(
+                        this.selector.selectionFrame.origin,
+                        [this.compositeFrame.baseFrame.corner.x, this.selector.selectionFrame.corner.y],
+                        false
+                    );
+                }
             }
             this.compositeFrame.translate(translation, "lockedRows");
         } else {

@@ -88,26 +88,36 @@ class Plot extends Component {
                 //responsive: true
             }
         );
-        plotDiv.on('plotly_relayout',
-            function(eventdata){
-                if (plotDiv.is_server_defined_move === true) {
-                    return
-                }
-                //if we're sending a string, then its a date object, and we want to send
-                // a timestamp
-                if (typeof(eventdata['xaxis.range[0]']) === 'string') {
-                    eventdata = Object.assign({},eventdata);
-                    eventdata["xaxis.range[0]"] = Date.parse(eventdata["xaxis.range[0]"]) / 1000.0;
-                    eventdata["xaxis.range[1]"] = Date.parse(eventdata["xaxis.range[1]"]) / 1000.0;
-                }
+        var onRelayout = function() {
+            if (plotDiv.is_server_defined_move === true) {
+                return
+            }
 
-                let responseData = {
-                    'event':'plot_layout',
-                    'target_cell': ownId,
-                    'data': eventdata
-                };
-                cellSocket.sendString(JSON.stringify(responseData));
-            });
+            var axes = {
+                'xaxis.range[0]': plotDiv.layout.xaxis.range[0],
+                'xaxis.range[1]': plotDiv.layout.xaxis.range[1],
+                'yaxis.range[0]': plotDiv.layout.yaxis.range[0],
+                'yaxis.range[1]': plotDiv.layout.yaxis.range[1],
+            }
+
+            //if we're sending a string, then its a date object, and we want to send
+            // a timestamp
+            if (typeof(axes['xaxis.range[0]']) === 'string') {
+                axes = Object.assign({},axes);
+                axes["xaxis.range[0]"] = Date.parse(axes["xaxis.range[0]"]) / 1000.0;
+                axes["xaxis.range[1]"] = Date.parse(axes["xaxis.range[1]"]) / 1000.0;
+            }
+
+            let responseData = {
+                'event':'plot_layout',
+                'target_cell': ownId,
+                'data': axes
+            };
+            cellSocket.sendString(JSON.stringify(responseData));
+        }
+
+        plotDiv.on('plotly_relayout', onRelayout);
+        plotDiv.on('plotly_doubleclick', onRelayout);
     }
 }
 

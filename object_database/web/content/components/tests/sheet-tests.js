@@ -74,6 +74,20 @@ describe("Sheet util tests.", () => {
             assert.equal(p.x, 0);
             assert.equal(p.y, 1);
         });
+        it("Copy", () => {
+            let p = new Point([10, 20]);
+            let pCopy = p.copy;
+            assert.equal(p.x, 10);
+            assert.equal(p.y, 20);
+            assert.equal(pCopy.x, 10);
+            assert.equal(pCopy.y, 20);
+            pCopy.x = 100;
+            pCopy.y = 200;
+            assert.equal(p.x, 10);
+            assert.equal(p.y, 20);
+            assert.equal(pCopy.x, 100);
+            assert.equal(pCopy.y, 200);
+        });
         it("Equals", () => {
             let p = new Point([0, 0]);
             assert.isTrue(p.equals(p));

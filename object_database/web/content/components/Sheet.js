@@ -84,7 +84,6 @@ class Sheet extends Component {
     componentDidLoad(){
         console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
         this.container = document.getElementById(this.props.id).parentNode;
-        console.log(this.container);
         this.maxNumColumns = this._calcMaxNumColumns(this.container.offsetWidth);
         this.maxNumRows = this._calcMaxNumRows(this.container.offsetHeight);
         // new
@@ -368,6 +367,7 @@ class Sheet extends Component {
                         this.selector.selectionFrame.corner,
                         false
                     );
+                    this.selector.clipBoard.corner.x += translation.x;
                 }
             } else if (event.key === "PageUp") {
                 // make sure we don't run out of data at the left
@@ -378,6 +378,7 @@ class Sheet extends Component {
                         [this.compositeFrame.baseFrame.corner.x, this.selector.selectionFrame.corner.y],
                         false
                     );
+                    this.selector.clipBoard.origin.x += translation.x;
                 }
             }
             this.compositeFrame.translate(translation, "lockedRows");
@@ -392,6 +393,7 @@ class Sheet extends Component {
                         this.selector.selectionFrame.corner,
                         false
                     );
+                    this.selector.clipBoard.corner.y += translation.y;
                 }
             } else if (event.key === "PageUp"){
                 // make sure we don't run out of data at the top
@@ -402,6 +404,7 @@ class Sheet extends Component {
                         [this.selector.selectionFrame.corner.x, this.compositeFrame.baseFrame.corner.y],
                         false
                     );
+                    this.selector.clipBoard.origin.y += translation.y;
                 }
             }
             this.compositeFrame.translate(translation, "lockedColumns");
@@ -561,6 +564,8 @@ class Sheet extends Component {
                 this.selector.selectionFrame.cursor,
                 targetCoord
             );
+            this.selector.clipBoard.setOrigin = this.selector.selectionFrame.origin.copy;
+            this.selector.clipBoard.setCorner = this.selector.selectionFrame.corner.copy;
             /*
             let inLockedColumn = false;
             let inLockedRow = false;

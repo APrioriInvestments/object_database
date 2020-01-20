@@ -62,6 +62,10 @@ class Point {
         return NaN;
     }
 
+    get copy(){
+        return new Point([this._values[0], this._values[1]]);
+    }
+
     set x(val){
         this._values[0] = val;
     }
@@ -847,6 +851,12 @@ class Selector {
         this.sheet = sheet;
         this.selectionFrame = new SelectionFrame([0,0], [0,0]);
         this.onNeedsUpdate = null;
+        // Note this.selectionFrame represents the visual layout of the
+        // Selector instance within the Sheet, whereas this.clipBoard
+        // represents the 'actual' selected area. For example,
+        // this.clipBoord can span many pages of the Sheet view while the
+        // user only this.selectionFrame in the immediate page-view.
+        this.clipBoard = new Frame([0, 0], [0, 0]);
 
         // Bind methods
         this.elementAtPoint = this.elementAtPoint.bind(this);
@@ -932,12 +942,13 @@ class Selector {
         // generates a clipboard string from the current points
         // Note: in order to create line breaks we slice along the y-axis
         let clipboard = "";
-        for (let y = this.selectionFrame.origin.y; y <= this.selectionFrame.corner.y; y++){
+        for (let y = this.clipBoard.origin.y; y <= this.clipBoard.corner.y; y++){
             let row = "";
-            this.selectionFrame.sliceCoords(y, "x").map(point => {
+            this.clipBoard.sliceCoords(y, "x").map(point => {
                 let id = this.sheet._coordToId("td", [point.x, point.y]);
                 let td = document.getElementById(id);
-                row += td.textContent + "\t";
+                let value = this.sheet.dataFrame.get(point);
+                row += value + "\t";
             });
             clipboard += row + "\n";
         }
@@ -1018,6 +1029,8 @@ class Selector {
      * to the size of its cursor.
      * Note also that I clear styling, move, then
      * apply styling to the new cursor.
+     * I also set the clipBoard origin and corner to
+     * the new Point.
      * @param {Point} aPoint - The new location for
      * the selection frame cursor
      */
@@ -1029,6 +1042,8 @@ class Selector {
             aPoint
         );
         this.addStyling();
+        this.clipBoard.setOrigin = aPoint;
+        this.clipBoard.setCorner = aPoint;
     }
 
     /**
@@ -1082,6 +1097,7 @@ class Selector {
                 toPoint,
                 false
             );
+            this.clipBoard.origin.y -= 1;
         }
     }
 
@@ -1097,6 +1113,7 @@ class Selector {
                 toPoint,
                 false
             );
+            this.clipBoard.corner.x += 1;
         }
     }
 
@@ -1112,6 +1129,7 @@ class Selector {
                 toPoint,
                 false
             );
+            this.clipBoard.corner.y += 1;
         }
     }
 
@@ -1127,6 +1145,7 @@ class Selector {
                 toPoint,
                 false
             );
+            this.clipBoard.origin.x -= 1;
         }
     }
 
@@ -1135,6 +1154,10 @@ class Selector {
      */
     cursorUp(shrinkToCursor){
         this.shiftUp(1, shrinkToCursor);
+        // TODO: this is not compatible with pagination!
+        // and could lead to unexpected UX/behavior
+        this.clipBoard.setOrigin = this.selectionFrame.origin.copy;
+        this.clipBoard.setCorner = this.selectionFrame.corner.copy;
     }
 
     /**
@@ -1142,6 +1165,10 @@ class Selector {
      */
     cursorRight(shrinkToCursor){
         this.shiftRight(1, shrinkToCursor);
+        // TODO: this is not compatible with pagination!
+        // and could lead to unexpected UX/behavior
+        this.clipBoard.setOrigin = this.selectionFrame.origin.copy;
+        this.clipBoard.setCorner = this.selectionFrame.corner.copy;
     }
 
     /**
@@ -1149,6 +1176,10 @@ class Selector {
      */
     cursorDown(shrinkToCursor){
         this.shiftDown(1, shrinkToCursor);
+        // TODO: this is not compatible with pagination!
+        // and could lead to unexpected UX/behavior
+        this.clipBoard.setOrigin = this.selectionFrame.origin.copy;
+        this.clipBoard.setCorner = this.selectionFrame.corner.copy;
     }
 
     /**
@@ -1156,6 +1187,10 @@ class Selector {
      */
     cursorLeft(shrinkToCursor){
         this.shiftLeft(1, shrinkToCursor);
+        // TODO: this is not compatible with pagination!
+        // and could lead to unexpected UX/behavior
+        this.clipBoard.setOrigin = this.selectionFrame.origin.copy;
+        this.clipBoard.setCorner = this.selectionFrame.corner.copy;
     }
 
     /**

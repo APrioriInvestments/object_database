@@ -3385,7 +3385,7 @@ class Panel(Cell):
         the bordered Panel area.
     """
 
-    def __init__(self, content):
+    def __init__(self, content, border=True):
         """
         Parameters
         ----------
@@ -3394,13 +3394,18 @@ class Panel(Cell):
             within the bordered Panel area.
             Will be set on instance as `content`
             property.
+        border: bool
+            If True, produce a border and padding. Otherwise, just use this as a grouping
+            element in the display.
         """
         super().__init__()
 
         self.content = Cell.makeCell(content)
+        self.applyBorder = border
 
     def recalculate(self):
         self.exportData["divStyle"] = self._divStyle()
+        self.exportData["applyBorder"] = self.applyBorder
         self.children["content"] = Cell.makeCell(self.content)
 
 

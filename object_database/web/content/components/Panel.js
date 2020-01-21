@@ -28,8 +28,11 @@ class Panel extends Component {
     }
 
     getClasses(){
-        let classes = ["cell", "cell-panel"];
-        return classes.join(" ");
+        if (this.props.extraData.applyBorder) {
+            return "cell cell-panel cell-panel-border"
+        } else {
+            return "cell cell-panel"
+        }
     }
 }
 

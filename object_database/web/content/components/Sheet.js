@@ -71,6 +71,8 @@ class Sheet extends Component {
         this.arrowUpDownLeftRight = this.arrowUpDownLeftRight.bind(this);
         this.pageUpDown = this.pageUpDown.bind(this);
         this.copyToClipboad = this.copyToClipboad.bind(this);
+        this.onFocus = this.onFocus.bind(this);
+        this.onBlur = this.onBlur.bind(this);
         this._updateHeader = this._updateHeader.bind(this);
         this._addLockedElements = this._addLockedElements.bind(this);
         this._removeLockedElements = this._removeLockedElements.bind(this);
@@ -154,7 +156,7 @@ class Sheet extends Component {
         });
         ro.observe(this.container.parentNode);
         // window.addEventListener('resize', this.componentDidLoad);
-        document.addEventListener('copy', event => this.copyToClipboad(event));
+        // document.addEventListener('copy', event => this.copyToClipboad(event));
     }
 
     /* I resize the sheet by recalculating the number of columns and rows using the
@@ -297,6 +299,8 @@ class Sheet extends Component {
                     class: "sheet",
                     style: "table-layout:fixed",
                     tabindex: "-1",
+                    onfocus: this.onFocus,
+                    onblur: this.onBlur,
                     onkeydown: this.handleKeyDown,
                     onclick: this.handleClick,
                     onmouseover: this.handleCellMouseover,
@@ -328,11 +332,22 @@ class Sheet extends Component {
     }
 
     /* I copy the current this.selector cell values to the clipboard. */
-    copyToClipboad(){
-        let txt = this.selector.getSelectionClipboard();
-        event.clipboardData.setData('text/plain', txt);
+    copyToClipboad(event){
         event.preventDefault();
         event.stopPropagation();
+        let txt = this.selector.getSelectionClipboard();
+        event.clipboardData.setData('text/plain', txt);
+    }
+
+    onFocus(event){
+        console.log("sheet in focus")
+        document.addEventListener('copy', this.copyToClipboad)
+    };
+
+
+    onBlur(event){
+        console.log("sheet not in focus")
+        document.removeEventListener('copy', this.copyToClipboad);
     }
 
     /* I handle page Up/Down of the view */

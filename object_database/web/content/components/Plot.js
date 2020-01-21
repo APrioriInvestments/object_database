@@ -93,6 +93,12 @@ class Plot extends Component {
                 return
             }
 
+            if (plotDiv.data.length == 0) {
+                return
+            }
+
+            plotDiv.lastUpdateTimestamp = Date.now()
+
             var axes = {
                 'xaxis.range[0]': plotDiv.layout.xaxis.range[0],
                 'xaxis.range[1]': plotDiv.layout.xaxis.range[1],
@@ -116,7 +122,12 @@ class Plot extends Component {
             cellSocket.sendString(JSON.stringify(responseData));
         }
 
+        var onRelayouting = function() {
+            plotDiv.lastRelayoutingTimestamp = Date.now();
+        }
+
         plotDiv.on('plotly_relayout', onRelayout);
+        plotDiv.on('plotly_relayouting', onRelayouting);
         plotDiv.on('plotly_doubleclick', onRelayout);
     }
 }

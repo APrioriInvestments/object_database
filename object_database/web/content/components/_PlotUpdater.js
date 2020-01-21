@@ -15,6 +15,10 @@ class _PlotUpdater extends Component {
 
         this.runUpdate = this.runUpdate.bind(this);
         this.listenForPlot = this.listenForPlot.bind(this);
+        this.lastWidth = -1
+        this.lastHeight = -1
+        this.lastUpdateTimestamp = 0
+        this.lastUpdateData = {}
     }
 
     componentDidLoad() {
@@ -29,6 +33,17 @@ class _PlotUpdater extends Component {
             this.listenForPlot();
         }
         const ro = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                if (entry.contentRect.width == this.lastWidth &&
+                    entry.contentRect.height == this.lastHeight) {
+                    return
+                }
+                this.lastWidth = entry.contentRect.width;
+                this.lastHeight = entry.contentRect.height;
+            }
+
+            console.log("Resizing plotly plot to " + this.lastWidth + " x " + this.lastHeight)
+
             initialPlotDiv.style.width = '100%';
             initialPlotDiv.style.height = '100%';
             Plotly.Plots.resize(initialPlotDiv)
@@ -89,15 +104,41 @@ class _PlotUpdater extends Component {
     }
 
     runUpdate(aDOMElement){
-        console.log("Updating plotly chart.");
         // TODO These are global var defined in page.html
         // we should do something about this.
         if (this.props.extraData.exceptionOccured) {
             console.log("plot exception occured");
             Plotly.purge(aDOMElement);
         } else {
-            let data = this.props.extraData.plotData.map(mapPlotlyData);
-            Plotly.react(aDOMElement, data, aDOMElement.layout);
+            aDOMElement.lastUpdateData = this.props.extraData.plotData.map(mapPlotlyData);
+            aDOMElement.lastUpdateTimestamp = Date.now()
+
+            var UPDATE_DELAY_MS = 100;
+
+            window.setTimeout(() => {
+                if (aDOMElement.lastRelayoutingTimestamp !== undefined) {
+                    if (Date.now() - aDOMElement.lastRelayoutingTimestamp < 75) {
+                        //the user just scrolled.
+                        window.setTimeout(() => {
+                            this.runUpdate(aDOMElement)
+                        }, 75)
+
+                        return
+                    }
+                }
+                if (Date.now() - aDOMElement.lastUpdateTimestamp >= UPDATE_DELAY_MS) {
+                    console.log("Apply an update from " + (Date.now() - aDOMElement.lastUpdateTimestamp) + " ms ago with " + aDOMElement.lastUpdateData[0].y.length + " items")
+
+                    if (aDOMElement.data.length > 0) {
+                        aDOMElement.layout.xaxis.autorange = false
+                    }
+
+                    console.log(aDOMElement._redrawTimer)
+
+                    Plotly.react(aDOMElement, aDOMElement.lastUpdateData, aDOMElement.layout)
+                    aDOMElement.lastUpdateTimestamp = Date.now()
+                }
+            }, UPDATE_DELAY_MS)
         }
     }
 }

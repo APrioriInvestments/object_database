@@ -737,7 +737,12 @@ class DatabaseConnection:
 
         transaction_guid = self._connection_state.allocateIdentity()
 
-        self._transaction_callbacks[transaction_guid] = confirmCallback
+        with self._lock:
+            if self.disconnected.is_set():
+                confirmCallback(TransactionResult.Disconnected())
+                return
+            else:
+                self._transaction_callbacks[transaction_guid] = confirmCallback
 
         out_writes = {}
 

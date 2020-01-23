@@ -24,8 +24,7 @@ class BasicPlot(CellsTestPage):
         slot = cells.Slot(data)
 
         def getData():
-            d = slot.get()
-            return {"data": d}
+            return [dict(slot.get())], {}
 
         def updateData():
             d = slot.get()
@@ -52,8 +51,7 @@ class TogglePlot(CellsTestPage):
         slot = cells.Slot({"x": [1, 2, 3, 4, 5], "y": [5, 4, 3, 2, 1]})
 
         def getData():
-            d = slot.get()
-            return {"data": d}
+            return [dict(slot.get())], {}
 
         def updateData():
             d = slot.get()
@@ -86,7 +84,7 @@ class InSubscribedSequence(CellsTestPage):
             x = [random.randint(0, 100) for i in range(20)]
             y = [random.randint(0, 100) for i in range(20)]
             coords = {"x": x, "y": y}
-            return {"data": coords}
+            return [coords], {}
 
         first_slot = cells.Slot(getRandomPlotData())
         second_slot = cells.Slot(getRandomPlotData())

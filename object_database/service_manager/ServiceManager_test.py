@@ -209,7 +209,7 @@ class TextEditorService(ServiceBase):
                 data = ast.literal_eval(toEval.get())
             except (AttributeError, SyntaxError):
                 data = {}
-            return {"data": data}
+            return [data], {"title": "some stuff"}
 
         return SplitView([(ed, 1), (Card(Plot(makePlotData)), 1)])
 
@@ -233,14 +233,13 @@ class GraphDisplayService(ServiceBase):
 
         def twinned():
             data = {
-                "PointsToShow": {
-                    "timestamp": [1500000000 + x for x in range(1000)],
-                    "y": [numpy.sin(x) for x in range(1000)],
-                }
+                "name": "PointsToShow",
+                "timestamp": [1500000000 + x for x in range(1000)],
+                "y": [numpy.sin(x) for x in range(1000)],
             }
             slot = Slot(None)
-            p1 = Plot(lambda: data, xySlot=slot)
-            p2 = Plot(lambda: data, xySlot=slot)
+            p1 = Plot(lambda: ([data], {}), xySlot=slot)
+            p2 = Plot(lambda: ([data], {}), xySlot=slot)
 
             def synchronize():
                 if slot.get() is not None:
@@ -252,10 +251,13 @@ class GraphDisplayService(ServiceBase):
         return Tabs(
             Overlay=Card(
                 Plot(
-                    lambda: {
-                        "single_array": [1, 2, 3, 1, 2, 3],
-                        "xy": {"x": [1, 2, 3, 1, 2, 3], "y": [4, 5, 6, 7, 8, 9]},
-                    }
+                    lambda: (
+                        [
+                            {"y": [1, 2, 3, 1, 2, 3], "name": "single_array"},
+                            {"x": [1, 2, 3, 1, 2, 3], "y": [4, 5, 6, 7, 8, 9], "name": "xy"},
+                        ],
+                        {},
+                    )
                 )
                 .width(600)
                 .height(400)
@@ -295,29 +297,36 @@ class GraphDisplayService(ServiceBase):
                     list(range(100, 10000, 100)),
                     lambda polyVal: setattr(Feigenbaum.lookupAny(), "density", float(polyVal)),
                 )
-                + Card(Plot(lambda graph: GraphDisplayService.feigenbaum(graph, depth.get())))
-                .width(600)
-                .height(400)
+                + Card(GraphDisplayService.makeFeigenbaum(depth)).width(600).height(400)
             ),
         )
 
     @staticmethod
-    def chartData(linePlot):
+    def chartData():
         points = sorted(PointsToShow.lookupAll(), key=lambda p: p.timestamp)
 
-        return {
-            "PointsToShow": {
-                "timestamp": [p.timestamp for p in points],
-                "y": [p.y for p in points],
-            }
-        }
+        return (
+            [
+                {
+                    "name": "PointsToShow",
+                    "timestamp": [p.timestamp for p in points],
+                    "y": [p.y for p in points],
+                }
+            ],
+            {},
+        )
 
     @staticmethod
-    def feigenbaum(linePlot, depth):
-        if linePlot.curXYRanges.get() is None:
+    def makeFeigenbaum(depth):
+        xySlot = Slot(None)
+        return Plot(lambda: GraphDisplayService.feigenbaum(xySlot, depth.get()), xySlot=xySlot)
+
+    @staticmethod
+    def feigenbaum(xySlot, depth):
+        if xySlot.get() is None:
             left, right = 0.0, 4.0
         else:
-            left, right = linePlot.curXYRanges.get()[0]
+            left, right = xySlot.get()[0]
             left = max(0.0, left) if left is not None else 3
             right = min(4.0, right) if right is not None else 4
             left = min(left, right - 1e-6)
@@ -341,16 +350,20 @@ class GraphDisplayService(ServiceBase):
 
         fvals = feigenbaum(values)
 
-        return {
-            "feigenbaum": {
-                "x": numpy.concatenate([values] * (len(fvals) // len(values))),
-                "y": fvals,
-                "type": "scattergl",
-                "mode": "markers",
-                "opacity": 0.5,
-                "marker": {"size": 2},
-            }
-        }
+        return (
+            [
+                {
+                    "name": "feigenbaum",
+                    "x": numpy.concatenate([values] * (len(fvals) // len(values))),
+                    "y": fvals,
+                    "type": "scattergl",
+                    "mode": "markers",
+                    "opacity": 0.5,
+                    "marker": {"size": 2},
+                }
+            ],
+            {"title": "a feigenbaum diagram", "xaxis": {"title": "the x axis"}},
+        )
 
 
 class DropdownTestService(ServiceBase):

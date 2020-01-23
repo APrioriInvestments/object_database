@@ -27,8 +27,6 @@ import numpy
 from object_database.web.cells import Messenger
 from object_database.web.cells.children import Children
 
-from inspect import signature
-
 from object_database.view import RevisionConflictException
 from object_database.view import current_transaction
 from object_database.util import Timer
@@ -3199,15 +3197,18 @@ class Sheet(Cell):
 class Plot(Cell):
     """Produce some reactive line plots."""
 
-    def __init__(self, namedDataSubscriptions, xySlot=None):
+    def __init__(self, plotDataGenerator, xySlot=None):
         """Initialize a line plot.
 
-        namedDataSubscriptions: a map from plot name to a lambda function
-            producing either an array, or {x: array, y: array}
+        plotDataGenerator: a function that produces plot data to pass to plotly.
+            the function should return a tuple with two values: (data, layout), where
+            'data' contains a list of trace objects to be passed to plotly, and 'layout'
+            contains a dictionary of layout values to be merged into the layout we pass
+            into plotly.
         """
         super().__init__()
 
-        self.namedDataSubscriptions = namedDataSubscriptions
+        self.plotDataGenerator = plotDataGenerator
         self.curXYRanges = xySlot or Slot(None)
         self.error = Slot(None)
 
@@ -3282,49 +3283,28 @@ class _PlotUpdater(Cell):
         super().__init__()
 
         self.linePlot = linePlot
-        self.namedDataSubscriptions = linePlot.namedDataSubscriptions
+        self.plotDataGenerator = linePlot.plotDataGenerator
         self.chartId = linePlot._identity
         self.exportData["plotId"] = self.chartId
 
     def calculatedDataJson(self):
-        series = self.callFun(self.namedDataSubscriptions)
+        traces, layout = self.plotDataGenerator()
 
-        assert isinstance(series, (dict, list))
+        assert isinstance(traces, list)
+        assert isinstance(layout, dict)
 
-        if isinstance(series, dict):
-            return [
-                self.processSeries(callableOrData, name)
-                for name, callableOrData in series.items()
-            ]
-        else:
-            return [self.processSeries(callableOrData, None) for callableOrData in series]
+        return [self.processTrace(trace) for trace in traces], layout
 
-    def callFun(self, fun):
-        if not callable(fun):
-            return fun
+    def processTrace(self, trace):
+        assert isinstance(trace, dict)
 
-        sig = signature(fun)
-        if len(sig.parameters) == 0:
-            return fun()
-        if len(sig.parameters) == 1:
-            return fun(self.linePlot)
-        assert False, "%s expects more than 1 argument" % fun
+        res = {}
 
-    def processSeries(self, callableOrData, name):
-        data = self.callFun(callableOrData)
-
-        if isinstance(data, list):
-            res = {"x": [float(x) for x in range(len(data))], "y": [float(d) for d in data]}
-        else:
-            assert isinstance(data, dict)
-            res = dict(data)
-
-            for k, v in res.items():
-                if isinstance(v, numpy.ndarray):
-                    res[k] = v.astype("float64").tostring().hex()
-
-        if name is not None:
-            res["name"] = name
+        for k, v in trace.items():
+            if isinstance(v, numpy.ndarray):
+                res[k] = v.astype("float64").tostring().hex()
+            else:
+                res[k] = v
 
         return res
 

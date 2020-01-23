@@ -15,6 +15,10 @@ class _PlotUpdater extends Component {
 
         this.runUpdate = this.runUpdate.bind(this);
         this.listenForPlot = this.listenForPlot.bind(this);
+        this.mapTraceTerms = this.mapTraceTerms.bind(this);
+        this.unpackHexFloats = this.unpackHexFloats.bind(this);
+        this.hexcharToInt = this.hexcharToInt.bind(this);
+        this.mergeObjects = this.mergeObjects.bind(this);
         this.lastWidth = -1
         this.lastHeight = -1
         this.lastUpdateTimestamp = 0
@@ -103,6 +107,68 @@ class _PlotUpdater extends Component {
         }, 50);
     }
 
+    mapTraceTerms(traceFromServer) {
+        /******
+        map the data in a trace we've received from the server. We apply two transformations:
+
+        1. if there is a 'timestamp' dimension, rename it from 'timestamp' to 'x' and map each
+           value into Date objects.
+
+        2. unpack the hexadecimal notation we've used to pack our hex floats on 'x' and 'y'.
+
+        This is an in-place transformation that mutates the trace objects, so beware.
+        ******/
+
+        if (traceFromServer.timestamp !== undefined) {
+            traceFromServer.timestamp = this.unpackHexFloats(traceFromServer.timestamp)
+            traceFromServer.x = Array.from(traceFromServer.timestamp).map(ts => new Date(ts * 1000))
+        } else {
+            traceFromServer.x = this.unpackHexFloats(traceFromServer.x)
+        }
+        if (traceFromServer.y !== undefined) {
+            traceFromServer.y = this.unpackHexFloats(traceFromServer.y)
+        }
+        return traceFromServer
+    }
+
+    hexcharToInt(x) {
+        if (x>=97) return x - 97 + 10
+        return x - 48
+    }
+
+    unpackHexFloats(x) {
+        if (typeof x != "string") {
+            return x
+        }
+        var buf = new ArrayBuffer(x.length/2);
+        var bufView = new Uint8Array(buf);
+
+        for (var i=0, strLen=x.length/2; i < strLen; i+=1) {
+            bufView[i] = (
+                this.hexcharToInt(x.charCodeAt(i*2)) * 16 +
+                this.hexcharToInt(x.charCodeAt(i*2+1))
+            )
+        }
+        return new Float64Array(buf)
+    }
+
+    mergeObjects(target, source) {
+        Object.keys(source).forEach((key) => {
+            if (target[key] === undefined) {
+                target[key] = source[key]
+            }
+            else if (typeof(target[key]) == "object") {
+                if (typeof(source[key]) == "object") {
+                    this.mergeObjects(target[key], source[key])
+                } else {
+                    target[key] = source[key]
+                }
+            } else {
+                target[key] = source[key]
+            }
+        })
+    }
+
     runUpdate(aDOMElement){
         // TODO These are global var defined in page.html
         // we should do something about this.
@@ -110,7 +176,7 @@ class _PlotUpdater extends Component {
             console.log("plot exception occured");
             Plotly.purge(aDOMElement);
         } else {
-            aDOMElement.lastUpdateData = this.props.extraData.plotData.map(mapPlotlyData);
+            aDOMElement.lastUpdateData = this.props.extraData.plotData
             aDOMElement.lastUpdateTimestamp = Date.now()
 
             var UPDATE_DELAY_MS = 100;
@@ -127,15 +193,24 @@ class _PlotUpdater extends Component {
                     }
                 }
                 if (Date.now() - aDOMElement.lastUpdateTimestamp >= UPDATE_DELAY_MS) {
-                    console.log("Apply an update from " + (Date.now() - aDOMElement.lastUpdateTimestamp) + " ms ago with " + aDOMElement.lastUpdateData[0].y.length + " items")
+                    var traces = aDOMElement.lastUpdateData[0]
+                    var layout = aDOMElement.lastUpdateData[1]
+
+                    traces.map(this.mapTraceTerms);
+
+                    var layoutToUse = {}
 
                     if (aDOMElement.data.length > 0) {
-                        aDOMElement.layout.xaxis.autorange = false
+                        layoutToUse = {
+                            'xaxis': {'range': aDOMElement.layout.xaxis.range, 'autorange': false},
+                            'yaxis': {'range': aDOMElement.layout.yaxis.range}
+                        }
                     }
 
-                    console.log(aDOMElement._redrawTimer)
+                    // merge the layout data from the user
+                    this.mergeObjects(layoutToUse, layout)
 
-                    Plotly.react(aDOMElement, aDOMElement.lastUpdateData, aDOMElement.layout)
+                    Plotly.react(aDOMElement, traces, layoutToUse)
                     aDOMElement.lastUpdateTimestamp = Date.now()
                 }
             }, UPDATE_DELAY_MS)

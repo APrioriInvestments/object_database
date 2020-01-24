@@ -17,7 +17,7 @@ class CircleLoader extends Component {
                 id: this.props.id,
                 "data-cell-id": this.props.id,
                 "data-cell-type": "CircleLoader",
-                class: "spinner-grow",
+                class: "spinner",
                 role: "status"
             })
         );

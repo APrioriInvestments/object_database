@@ -99,7 +99,7 @@ class AsyncDropdownContent extends Component {
     build(){
         return (
             h('div', {
-                id: `dropdownContent-${this.props.id}`,
+                id: `${this.props.id}`,
                 "data-cell-id": this.props.id,
                 "data-cell-type": "AsyncDropdownContent"
             }, [this.makeContent()])

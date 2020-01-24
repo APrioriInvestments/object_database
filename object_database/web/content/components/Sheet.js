@@ -424,6 +424,7 @@ class Sheet extends Component {
 
         this.compositeFrame.translate(translation, "viewFrame");
         this.fetchData("update");
+        console.log(this.selector.clipBoard);
     }
 
     /* I handle arrow triggered navigation of the active_frame and related views */
@@ -514,6 +515,7 @@ class Sheet extends Component {
             }
             this.compositeFrame.translate(translation, "viewFrame");
             this.fetchData("update");
+        console.log(this.selector.clipBoard);
         } else if (this.selector){
             let shrinkToCursor = !event.altKey;
             if (event.key === "ArrowUp"){

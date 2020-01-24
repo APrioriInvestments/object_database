@@ -708,10 +708,12 @@ class SelectionFrame extends Frame {
         }
     }
 
-    translate(xy){
+    translate(xy, cursor=true){
         super.translate(xy);
-        this.cursor.x += xy[0];
-        this.cursor.y += xy[1];
+        if (cursor){
+            this.cursor.x += xy[0];
+            this.cursor.y += xy[1];
+        }
     }
 
     /**
@@ -846,6 +848,38 @@ class DataFrame extends Frame {
     }
 }
 
+class ClipBoard extends SelectionFrame {
+    constructor(origin, corner, name=null){
+        super(origin, corner, name);
+
+        // Bind methods
+    }
+
+
+    /**
+     * Given two Points/coordinate pairs, I
+     * adjust my own properties to embody a new
+     * rectangle that encloses those points.
+     * I also performs checks to ensure that
+     * the top left is still the origin and the
+     * bottom right is still the corner, even
+     * if the to/from points are negative opposed.
+     * If updateCursor=true, I will set the cursor
+     * to be the from point.
+     * @param {Array|Point} from - The point from
+     * which we start making a new rect
+     * @param {Array|Point} to - The point to
+     * which we will extend the new rect
+     */
+    fromPointToPoint(from, to){
+        super.fromPointToPoint(from, to, false);
+    }
+
+    translate(xy){
+        super.translate(xy, false);
+    }
+}
+
 class Selector {
     constructor(sheet){
         this.sheet = sheet;
@@ -945,9 +979,11 @@ class Selector {
         for (let y = this.clipBoard.origin.y; y <= this.clipBoard.corner.y; y++){
             let row = "";
             this.clipBoard.sliceCoords(y, "x").map(point => {
-                let id = this.sheet._coordToId("td", [point.x, point.y]);
-                let td = document.getElementById(id);
-                let value = this.sheet.dataFrame.get(point);
+                try {
+                    let value = this.sheet.dataFrame.get(point);
+                } catch(e) {
+                    debugger;
+                }
                 row += value + "\t";
             });
             clipboard += row + "\n";

@@ -155,7 +155,6 @@ class Sheet extends Component {
         });
         ro.observe(this.container.parentNode);
         // window.addEventListener('resize', this.componentDidLoad);
-        // document.addEventListener('copy', event => this.copyToClipboad(event));
     }
 
     /* I resize the sheet by recalculating the number of columns and rows using the
@@ -332,20 +331,25 @@ class Sheet extends Component {
 
     /* I copy the current this.selector cell values to the clipboard. */
     copyToClipboad(event){
-        event.preventDefault();
-        event.stopPropagation();
-        let txt = this.selector.getSelectionClipboard();
-        event.clipboardData.setData('text/plain', txt);
+        let size = this.selector.clipBoard.size;
+        if ((size.x + 1) * (size.y + 1) > 10000){
+            alert("copy is limited to 10,000 cells");
+        } else {
+            event.preventDefault();
+            event.stopPropagation();
+            let txt = this.selector.getSelectionClipboard();
+            event.clipboardData.setData('text/plain', txt);
+        }
     }
 
+    /* I add the copy event listener, when the current sheet is in focus. */
     onFocus(event){
-        console.log("sheet in focus")
         document.addEventListener('copy', this.copyToClipboad)
     };
 
 
+    /* I remove the copy event listener, when the current sheet is out of focus. */
     onBlur(event){
-        console.log("sheet not in focus")
         document.removeEventListener('copy', this.copyToClipboad);
     }
 
@@ -435,42 +439,78 @@ class Sheet extends Component {
             if (event.key === "ArrowUp"){
                 translation.y = viewOrigin.y - viewFrame.origin.y;
                 this.compositeFrame.translate(translation, "lockedColumns");
-                // Ensure that cursor moves to the
-                // top of the current view frame
-                this.selector.cursorTo(new Point([
-                    this.selector.selectionFrame.cursor.x,
-                    viewOrigin.y
-                ]));
+                if(event.shiftKey){
+                    this.selector.fromPointToPoint(
+                        this.selector.selectionFrame.origin,
+                        [this.selector.selectionFrame.corner.x, this.compositeFrame.baseFrame.corner.y],
+                        false
+                    );
+                    this.selector.clipBoard.origin.y += translation.y;
+                } else {
+                    // Ensure that cursor moves to the
+                    // top of the current view frame
+                    this.selector.cursorTo(new Point([
+                        this.selector.selectionFrame.cursor.x,
+                        viewOrigin.y
+                    ]));
+                }
             // Go to bottom of the sheet
             } else if (event.key === "ArrowDown"){
                 translation.y = this.dataFrame.corner.y - viewFrame.corner.y;
                 this.compositeFrame.translate(translation, "lockedColumns");
-                // Ensure that the cursor moves to the
-                // bottom of the current view frame
-                this.selector.cursorTo(new Point([
-                    this.selector.selectionFrame.cursor.x,
-                    this.compositeFrame.baseFrame.bottom,
-                ]));
+                if(event.shiftKey){
+                    this.selector.fromPointToPoint(
+                        [this.selector.selectionFrame.origin.x, 0],
+                        this.selector.selectionFrame.corner,
+                        false
+                    );
+                    this.selector.clipBoard.corner.y += translation.y;
+                 } else {
+                    // Ensure that the cursor moves to the
+                    // bottom of the current view frame
+                    this.selector.cursorTo(new Point([
+                        this.selector.selectionFrame.cursor.x,
+                        this.compositeFrame.baseFrame.bottom,
+                    ]));
+                 }
             // Go to the right of the sheet
             } else if (event.key === "ArrowRight"){
                 translation.x = this.dataFrame.corner.x - viewFrame.corner.x;
                 this.compositeFrame.translate(translation, "lockedRows");
-                // Ensure that the cursor moves to the
-                // right side of the current view frame
-                this.selector.cursorTo(new Point([
-                    this.compositeFrame.baseFrame.right,
-                    this.selector.selectionFrame.cursor.y
-                ]));
+                if(event.shiftKey){
+                    this.selector.fromPointToPoint(
+                        [0, this.selector.selectionFrame.origin.y],
+                        this.selector.selectionFrame.corner,
+                        false
+                    );
+                    this.selector.clipBoard.corner.x += translation.x;
+                } else {
+                    // Ensure that the cursor moves to the
+                    // right side of the current view frame
+                    this.selector.cursorTo(new Point([
+                        this.compositeFrame.baseFrame.right,
+                        this.selector.selectionFrame.cursor.y
+                    ]));
+                }
             // Go to the left of the sheet
             } else if (event.key === "ArrowLeft"){
                 translation.x = viewOrigin.x - viewFrame.origin.x;
                 this.compositeFrame.translate(translation, "lockedRows");
-                // Ensure that the cursor moves to the
-                // left side of the current view frame
-                this.selector.cursorTo(new Point([
-                    0,
-                    this.selector.selectionFrame.cursor.y
-                ]));
+                if(event.shiftKey){
+                    this.selector.fromPointToPoint(
+                        this.selector.selectionFrame.origin,
+                        [this.compositeFrame.baseFrame.corner.x, this.selector.selectionFrame.corner.y],
+                        false
+                    );
+                    this.selector.clipBoard.origin.x += translation.x;
+                } else {
+                    // Ensure that the cursor moves to the
+                    // left side of the current view frame
+                    this.selector.cursorTo(new Point([
+                        0,
+                        this.selector.selectionFrame.cursor.y
+                    ]));
+                }
             }
             this.compositeFrame.translate(translation, "viewFrame");
             this.fetchData("update");

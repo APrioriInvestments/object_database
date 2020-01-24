@@ -15,7 +15,7 @@ class _PlotUpdater extends Component {
 
         this.runUpdate = this.runUpdate.bind(this);
         this.listenForPlot = this.listenForPlot.bind(this);
-        this.mapTraceTerms = this.mapTraceTerms.bind(this);
+        this.recursivelyUnpackNumpyArrays = this.recursivelyUnpackNumpyArrays.bind(this);
         this.unpackHexFloats = this.unpackHexFloats.bind(this);
         this.hexcharToInt = this.hexcharToInt.bind(this);
         this.mergeObjects = this.mergeObjects.bind(this);
@@ -107,28 +107,33 @@ class _PlotUpdater extends Component {
         }, 50);
     }
 
-    mapTraceTerms(traceFromServer) {
-        /******
-        map the data in a trace we've received from the server. We apply two transformations:
-
-        1. if there is a 'timestamp' dimension, rename it from 'timestamp' to 'x' and map each
-           value into Date objects.
-
-        2. unpack the hexadecimal notation we've used to pack our hex floats on 'x' and 'y'.
-
-        This is an in-place transformation that mutates the trace objects, so beware.
-        ******/
-
-        if (traceFromServer.timestamp !== undefined) {
-            traceFromServer.timestamp = this.unpackHexFloats(traceFromServer.timestamp)
-            traceFromServer.x = Array.from(traceFromServer.timestamp).map(ts => new Date(ts * 1000))
-        } else {
-            traceFromServer.x = this.unpackHexFloats(traceFromServer.x)
+    recursivelyUnpackNumpyArrays(elt) {
+        if (typeof(elt) === "string") {
+            if (elt.startsWith("__hexencoded__")) {
+                return this.unpackHexFloats(elt.substr(14))
+            }
+            return elt
         }
-        if (traceFromServer.y !== undefined) {
-            traceFromServer.y = this.unpackHexFloats(traceFromServer.y)
+
+        if (Array.isArray(elt)) {
+            return elt.map(this.recursivelyUnpackNumpyArrays)
         }
-        return traceFromServer
+
+        if (elt === null) {
+            return elt
+        }
+
+        if (typeof(elt) === "object") {
+            var newElt = {}
+
+            Object.keys(elt).forEach((key) => {
+                newElt[key] = this.recursivelyUnpackNumpyArrays(elt[key])
+            })
+
+            return newElt;
+        }
+
+        return elt
     }
 
     hexcharToInt(x) {
@@ -196,7 +201,13 @@ class _PlotUpdater extends Component {
                     var traces = aDOMElement.lastUpdateData[0]
                     var layout = aDOMElement.lastUpdateData[1]
 
-                    traces.map(this.mapTraceTerms);
+                    traces = this.recursivelyUnpackNumpyArrays(traces);
+
+                    traces.map((trace) => {
+                        if (trace.timestamp !== undefined) {
+                            trace.x = Array.from(trace.timestamp).map(ts => new Date(ts * 1000))
+                        }
+                    })
 
                     var layoutToUse = {}
 
@@ -204,6 +215,10 @@ class _PlotUpdater extends Component {
                         layoutToUse = {
                             'xaxis': {'range': aDOMElement.layout.xaxis.range, 'autorange': false},
                             'yaxis': {'range': aDOMElement.layout.yaxis.range}
+                        }
+
+                        if (aDOMElement.layout.yaxis2 !== undefined) {
+                            layoutToUse.yaxis2 = {'range': aDOMElement.layout.yaxis2.range}
                         }
                     }
 

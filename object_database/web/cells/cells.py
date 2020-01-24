@@ -3293,20 +3293,26 @@ class _PlotUpdater(Cell):
         assert isinstance(traces, list)
         assert isinstance(layout, dict)
 
-        return [self.processTrace(trace) for trace in traces], layout
+        return [self.recursivelyEncodeNumpyArrays(trace) for trace in traces], layout
 
-    def processTrace(self, trace):
-        assert isinstance(trace, dict)
+    def recursivelyEncodeNumpyArrays(self, trace):
+        if isinstance(trace, dict):
+            res = {}
 
-        res = {}
+            for k, v in trace.items():
+                res[k] = self.recursivelyEncodeNumpyArrays(v)
 
-        for k, v in trace.items():
-            if isinstance(v, numpy.ndarray):
-                res[k] = v.astype("float64").tostring().hex()
-            else:
-                res[k] = v
+            return res
+        elif isinstance(trace, list):
+            res = []
+            for v in trace:
+                res.append(self.recursivelyEncodeNumpyArrays(v))
 
-        return res
+            return res
+        elif isinstance(trace, numpy.ndarray):
+            return "__hexencoded__" + trace.astype("float64").tostring().hex()
+        else:
+            return trace
 
     def recalculate(self):
         with self.view() as v:

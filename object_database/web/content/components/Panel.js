@@ -22,16 +22,16 @@ class Panel extends Component {
             id: this.props.id,
             "data-cell-id": this.props.id,
             "data-cell-type": "Panel",
-            style: this.props.extraData.divStyle,
+            style: this.props.divStyle,
             class: this.getClasses()
         }, [this.renderChildNamed('content')]);
     }
 
     getClasses(){
-        if (this.props.extraData.applyBorder) {
-            return "cell cell-panel cell-panel-border"
+        if (this.props.applyBorder) {
+            return "cell cell-panel cell-panel-border";
         } else {
-            return "cell cell-panel"
+            return "cell cell-panel";
         }
     }
 }

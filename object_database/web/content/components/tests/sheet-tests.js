@@ -749,6 +749,63 @@ describe("Sheet util tests.", () => {
             };
             assert.isTrue(projectionFrame.equals(testProjections["frame0"]));
         });
+        it("Intersect and Project 1", () => {
+            let baseFrame = new DataFrame([0, 0], [20, 20]);
+            let overlayFrames = [];
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let frame1 = new Frame([0, 0], [10, 10]);
+            let origin1 = new Point([0, 0]);
+            let frame2 = new Frame([0, 0], [5, 5]);
+            let resultFrame = composition.intersectAndProject(frame1, origin1, frame2);
+            let testFrame = new Frame([0, 0], [5, 5]);
+            assert.isTrue(resultFrame.equals(testFrame));
+        });
+        it("Intersect and Project 2", () => {
+            let baseFrame = new DataFrame([0, 0], [20, 20]);
+            let overlayFrames = [];
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let frame1 = new Frame([0, 0], [10, 10]);
+            let origin1 = new Point([1, 1]);
+            let frame2 = new Frame([0, 0], [5, 5]);
+            let resultFrame = composition.intersectAndProject(frame1, origin1, frame2);
+            let testFrame = new Frame([1, 1], [6, 6]);
+            assert.isTrue(resultFrame.equals(testFrame));
+        });
+        it("Intersect and Project 3", () => {
+            let baseFrame = new DataFrame([0, 0], [20, 20]);
+            let overlayFrames = [];
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let frame1 = new Frame([100, 100], [110, 110]);
+            let origin1 = new Point([1, 1]);
+            let frame2 = new Frame([101, 101], [105, 105]);
+            let resultFrame = composition.intersectAndProject(frame1, origin1, frame2);
+            let testFrame = new Frame([2, 2], [6, 6]);
+            assert.isTrue(resultFrame.equals(testFrame));
+        });
+        it("Intersect and Project (bad origin)", () => {
+            let baseFrame = new DataFrame([0, 0], [20, 20]);
+            let overlayFrames = [];
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let frame1 = new Frame([0, 0], [10, 10]);
+            let origin1 = new Point([50, 50]);
+            let frame2 = new Frame([0, 0], [5, 5]);
+            try {
+                let resultFrame = composition.intersectAndProject(frame1, origin1, frame2);
+            } catch(e) {
+                assert.equal(e, "origin not contained in baseFrame");
+            }
+        });
+        it("Intersect and Project (empty intersection)", () => {
+            let baseFrame = new DataFrame([0, 0], [20, 20]);
+            let overlayFrames = [];
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let frame1 = new Frame([0, 0], [10, 10]);
+            let origin1 = new Point([0, 0]);
+            let frame2 = new Frame([100, 1000], [500, 5000]);
+            let resultFrame = composition.intersectAndProject(frame1, origin1, frame2);
+            let testFrame = new Frame();
+            assert.isTrue(resultFrame.equals(testFrame));
+        });
     });
     describe("DataFrame class tests.", () => {
         before(() => {

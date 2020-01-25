@@ -608,6 +608,35 @@ class CompositeFrame {
     }
 
     /**
+     * I project the intersection of frame2 and frame1 onto
+     * the baseFrame using frame1's origin.
+     * return a dictionary of new frames for each overlay.
+     * Essentially I take frame1's specified origin
+     * in the baseFrame and make a new Frame of the same size,
+     * starting at that origin, and then translate said new Frame's
+     * origin and corner by the difference in those from frame1 and
+     * frane1.intersection(frame2).
+     * @param {frame} frame1 - The frame to intersect with frame2 and project
+     * onto the baseFrame.
+     * @param {frame} frame2 - The frame to intersect with frame1.
+     * @returns {frame} - The projected intersection frame.
+     */
+    intersectAndProject(frame1, origin1, frame2){
+        if (!this.baseFrame.contains(origin1)){
+            throw "origin not contained in baseFrame";
+        }
+        if (frame1.intersect(frame2).empty){
+            return new Frame();
+        }
+        let originOffset = new Point([frame2.origin.x - frame1.origin.x, frame2.origin.y - frame1.origin.y]);
+        let cornerOffset = new Point([frame2.corner.x - frame1.corner.x, frame2.corner.y - frame1.corner.y]); //NOTE: this is <=0
+        let projection = this._project(frame1, origin1);
+        projection.origin.translate(originOffset);
+        projection.corner.translate(cornerOffset);
+        return projection;
+    }
+
+    /**
      * I check whether I match the provided CompositeFrame
      * instance.
      * @param {CompositeFrame} compositeFrame - Another
@@ -1012,10 +1041,14 @@ class Selector {
     addStyling(){
         // Adds the correct styling to the
         // selection area and cursor.
+        debugger;
         let cursorEl = this.elementAtPoint(this.selectionFrame.cursor);
         cursorEl.classList.add('active');
 
-        if(this.selectionFrame.dim > 0){
+        console.log("origin: " + this.selectionFrame.origin.x + ',' + this.selectionFrame.origin.y);
+        console.log("corner: " + this.selectionFrame.corner.x + ',' + this.selectionFrame.corner.y);
+        // if(this.selectionFrame.dim > 0){
+        if(false){
             this.selectionFrame.coords.forEach(point => {
                 if(!point.equals(this.selectionFrame.cursor)){
                     let el = this.elementAtPoint(point);
@@ -1244,16 +1277,38 @@ class Selector {
      */
     shiftUp(amount = 1, shrinkToCursor = false){
         let shift = [0, (amount * -1)];
-        // TODO clean up this logic
-        if(this.isAtDataTop()){
+        if(!this.isAtDataTop()){
             if(this.isAtViewTop(true)){
-            } else {
-                this.clearStyling(true);
-                this.selectionFrame.translate(shift);
+                this.triggerNeedsUpdate('up', amount);
             }
-        } else if(this.isAtViewTop()){
-            this.triggerNeedsUpdate('up', amount);
-        } else {
+            this.clearStyling(true);
+            this.selectionFrame.translate(shift);
+        }
+        if(shrinkToCursor){
+            this.shrinkToCursor();
+        }
+        this.addStyling();
+    }
+
+    /**
+     * I shift the selection frame down by the
+     * specified number of points. I can
+     * optionally shrink the frame to fit
+     * the cursor after doing so.
+     * @param {number} amount - The number of
+     * points to shift in the down direction.
+     * Defaults to 1.
+     * @param {boolean} shrinkToCursor - Whether
+     * to shrink the selection frame to be just
+     * the size of the cursor after shifting.
+     * Defaults to false.
+     */
+    shiftDown(amount = 1, shrinkToCursor = false){
+        let shift = [0, amount * 1];
+        if(!this.isAtDataBottom()){
+            if(this.isAtViewBottom()){
+                this.triggerNeedsUpdate('down', amount);
+            }
             this.clearStyling(true);
             this.selectionFrame.translate(shift);
         }
@@ -1280,33 +1335,6 @@ class Selector {
         let shift = [amount * 1, 0];
         if(this.isAtViewRight()){
             this.triggerNeedsUpdate('right', amount);
-        } else {
-            this.clearStyling(true);
-            this.selectionFrame.translate(shift);
-        }
-        if(shrinkToCursor){
-            this.shrinkToCursor();
-        }
-        this.addStyling();
-    }
-
-    /**
-     * I shift the selection frame down by the
-     * specified number of points. I can
-     * optionally shrink the frame to fit
-     * the cursor after doing so.
-     * @param {number} amount - The number of
-     * points to shift in the down direction.
-     * Defaults to 1.
-     * @param {boolean} shrinkToCursor - Whether
-     * to shrink the selection frame to be just
-     * the size of the cursor after shifting.
-     * Defaults to false.
-     */
-    shiftDown(amount = 1, shrinkToCursor = false){
-        let shift = [0, amount * 1];
-        if(this.isAtViewBottom()){
-            this.triggerNeedsUpdate('down', amount);
         } else {
             this.clearStyling(true);
             this.selectionFrame.translate(shift);
@@ -1419,24 +1447,35 @@ class Selector {
     }
 
     /**
-     * Returns true if the viewFrame top row matches up with the projected viewFrame top row, meaning
-     * that we have reached the top of the Sheet and there is no more data above.
+     * Returns true if the selectionFrame is at the absolute top of the data, i.e. its
+     * origin.x === dataFrame.origin.x.
      */
     isAtDataTop(){
-        return (
-            this.sheet.compositeFrame.project("viewFrame").origin.y === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["frame"].origin.y
-        );
+        return this.selectionFrame.origin.x === this.sheet.dataFrame.origin.x;
     }
 
     /**
-     * Returns true if the viewFrame left-most column matches up with the
-     * projected viewFrame left-most column, meaning
-     * that we have reached the beginning of the Sheet and there is no more data to the left.
+     * Returns true if the selectionFrame is at the absolute left of the data, i.e. its
+     * origin.y === dataFrame.origin.y.
      */
     isAtDataLeft(){
-        return (
-            this.sheet.compositeFrame.project("viewFrame").origin.x === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["frame"].origin.x
-        );
+        return this.selectionFrame.origin.y === this.sheet.dataFrame.origin.y;
+    }
+
+    /**
+     * Returns true if the selectionFrame is at the absolute bottom of the data, i.e. its
+     * corner.y === dataFrame.corner.y.
+     */
+    isAtDataBottom(){
+        return this.selectionFrame.corner.y === this.sheet.dataFrame.corner.y;
+    }
+
+    /**
+     * Returns true if the selectionFrame is at the absolute right of the data, i.e. its
+     * corner.x === dataFrame.corner.x.
+     */
+    isAtDataRight(){
+        return this.selectionFrame.corner.x === this.sheet.dataFrame.corner.x;
     }
 }
 

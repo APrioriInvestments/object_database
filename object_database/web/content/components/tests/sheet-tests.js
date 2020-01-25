@@ -782,6 +782,40 @@ describe("Sheet util tests.", () => {
             let testFrame = new Frame([2, 2], [6, 6]);
             assert.isTrue(resultFrame.equals(testFrame));
         });
+        it("Intersect and Project (point) 1", () => {
+            let baseFrame = new DataFrame([0, 0], [20, 20]);
+            let overlayFrames = [];
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let frame1 = new Frame([0, 0], [10, 10]);
+            let origin1 = new Point([0, 0]);
+            let point = new Point([1, 1]);
+            let resultPoint = composition.intersectAndProject(frame1, origin1, point);
+            let testPoint = new Point([1, 1]);
+            assert.isTrue(resultPoint.equals(testPoint));
+        });
+        it("Intersect and Project (point) 2", () => {
+            let baseFrame = new DataFrame([0, 0], [20, 20]);
+            let overlayFrames = [];
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let frame1 = new Frame([100, 100], [110, 110]);
+            let origin1 = new Point([1, 1]);
+            let point = new Point([105, 110]);
+            let resultPoint = composition.intersectAndProject(frame1, origin1, point);
+            let testPoint = new Point([6, 11]);
+            assert.isTrue(resultPoint.equals(testPoint));
+        });
+        it("Intersect and Project (point) 3", () => {
+            let baseFrame = new DataFrame([0, 0], [20, 20]);
+            let overlayFrames = [];
+            let composition = new CompositeFrame(baseFrame, overlayFrames);
+            let frame1 = new Frame([101, 102], [110, 110]);
+            let origin1 = new Point([1, 1]);
+            let point = new Point([105, 110]);
+            let resultPoint = composition.intersectAndProject(frame1, origin1, point);
+            console.log(resultPoint);
+            let testPoint = new Point([5, 9]);
+            assert.isTrue(resultPoint.equals(testPoint));
+        });
         it("Intersect and Project (bad origin)", () => {
             let baseFrame = new DataFrame([0, 0], [20, 20]);
             let overlayFrames = [];

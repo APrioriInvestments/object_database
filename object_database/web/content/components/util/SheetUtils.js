@@ -608,31 +608,40 @@ class CompositeFrame {
     }
 
     /**
-     * I project the intersection of frame2 and frame1 onto
-     * the baseFrame using frame1's origin.
+     * I project the intersection of toIntersect and frame onto
+     * the baseFrame using frame's origin.
      * return a dictionary of new frames for each overlay.
-     * Essentially I take frame1's specified origin
+     * Essentially I take frame's specified origin
      * in the baseFrame and make a new Frame of the same size,
      * starting at that origin, and then translate said new Frame's
-     * origin and corner by the difference in those from frame1 and
-     * frane1.intersection(frame2).
-     * @param {frame} frame1 - The frame to intersect with frame2 and project
+     * origin and corner by the difference in those from frame and
+     * frame.intersection(toIntersect).
+     * @param {frame} frame - The frame to intersect with toIntersect and project
      * onto the baseFrame.
-     * @param {frame} frame2 - The frame to intersect with frame1.
+     * @param {frame/point} toIntersect - The frame or point to intersect with frame1.
      * @returns {frame} - The projected intersection frame.
      */
-    intersectAndProject(frame1, origin1, frame2){
-        if (!this.baseFrame.contains(origin1)){
+    intersectAndProject(frame, origin, toIntersect){
+        let returnPoint = false;
+        let frame2 = toIntersect;
+        if (toIntersect instanceof Point){
+            frame2 = new Frame(toIntersect, toIntersect);
+            returnPoint = true;
+        }
+        if (!this.baseFrame.contains(origin)){
             throw "origin not contained in baseFrame";
         }
-        if (frame1.intersect(frame2).empty){
+        if (frame.intersect(frame2).empty){
             return new Frame();
         }
-        let originOffset = new Point([frame2.origin.x - frame1.origin.x, frame2.origin.y - frame1.origin.y]);
-        let cornerOffset = new Point([frame2.corner.x - frame1.corner.x, frame2.corner.y - frame1.corner.y]); //NOTE: this is <=0
-        let projection = this._project(frame1, origin1);
+        let originOffset = new Point([frame2.origin.x - frame.origin.x, frame2.origin.y - frame.origin.y]);
+        let cornerOffset = new Point([frame2.corner.x - frame.corner.x, frame2.corner.y - frame.corner.y]); //NOTE: this is <=0
+        let projection = this._project(frame, origin);
         projection.origin.translate(originOffset);
         projection.corner.translate(cornerOffset);
+        if (returnPoint){
+            return projection.origin;
+        }
         return projection;
     }
 

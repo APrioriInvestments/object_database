@@ -371,7 +371,8 @@ class Sheet extends Component {
                         this.selector.selectionFrame.corner,
                         false
                     );
-                    this.selector.clipBoard.corner.x += translation.x;
+                } else {
+                    this.selector.selectionFrame.translate(translation);
                 }
             } else if (event.key === "PageUp") {
                 // make sure we don't run out of data at the left
@@ -382,7 +383,8 @@ class Sheet extends Component {
                         [this.compositeFrame.baseFrame.corner.x, this.selector.selectionFrame.corner.y],
                         false
                     );
-                    this.selector.clipBoard.origin.x += translation.x;
+                } else {
+                    this.selector.selectionFrame.translate(translation);
                 }
             }
             this.compositeFrame.translate(translation, "lockedRows");
@@ -397,7 +399,8 @@ class Sheet extends Component {
                         this.selector.selectionFrame.corner,
                         false
                     );
-                    this.selector.clipBoard.corner.y += translation.y;
+                } else {
+                    this.selector.selectionFrame.translate(translation);
                 }
             } else if (event.key === "PageUp"){
                 // make sure we don't run out of data at the top
@@ -408,7 +411,8 @@ class Sheet extends Component {
                         [this.selector.selectionFrame.corner.x, this.compositeFrame.baseFrame.corner.y],
                         false
                     );
-                    this.selector.clipBoard.origin.y += translation.y;
+                } else {
+                    this.selector.selectionFrame.translate(translation);
                 }
             }
             this.compositeFrame.translate(translation, "lockedColumns");
@@ -424,7 +428,7 @@ class Sheet extends Component {
 
         this.compositeFrame.translate(translation, "viewFrame");
         this.fetchData("update");
-        console.log(this.selector.clipBoard);
+        console.log(this.selector.selectionFrame);
     }
 
     /* I handle arrow triggered navigation of the active_frame and related views */
@@ -442,17 +446,17 @@ class Sheet extends Component {
                 this.compositeFrame.translate(translation, "lockedColumns");
                 if(event.shiftKey){
                     this.selector.fromPointToPoint(
-                        this.selector.selectionFrame.origin,
-                        [this.selector.selectionFrame.corner.x, this.compositeFrame.baseFrame.corner.y],
+                        [this.selector.selectionFrame.origin.x, 0], // Note: we might want this to be viewOrigin.y
+                        this.selector.selectionFrame.corner,
                         false
                     );
-                    this.selector.clipBoard.origin.y += translation.y;
                 } else {
                     // Ensure that cursor moves to the
                     // top of the current view frame
                     this.selector.cursorTo(new Point([
                         this.selector.selectionFrame.cursor.x,
-                        viewOrigin.y
+                        0
+                        // viewOrigin.y
                     ]));
                 }
             // Go to bottom of the sheet
@@ -461,17 +465,16 @@ class Sheet extends Component {
                 this.compositeFrame.translate(translation, "lockedColumns");
                 if(event.shiftKey){
                     this.selector.fromPointToPoint(
-                        [this.selector.selectionFrame.origin.x, 0],
-                        this.selector.selectionFrame.corner,
+                        this.selector.selectionFrame.origin,
+                        [this.selector.selectionFrame.corner.x, this.dataFrame.corner.y],
                         false
                     );
-                    this.selector.clipBoard.corner.y += translation.y;
                  } else {
                     // Ensure that the cursor moves to the
                     // bottom of the current view frame
                     this.selector.cursorTo(new Point([
                         this.selector.selectionFrame.cursor.x,
-                        this.compositeFrame.baseFrame.bottom,
+                        this.dataFrame.corner.y,
                     ]));
                  }
             // Go to the right of the sheet
@@ -480,16 +483,15 @@ class Sheet extends Component {
                 this.compositeFrame.translate(translation, "lockedRows");
                 if(event.shiftKey){
                     this.selector.fromPointToPoint(
-                        [0, this.selector.selectionFrame.origin.y],
-                        this.selector.selectionFrame.corner,
+                        this.selector.selectionFrame.origin,
+                        [this.dataFrame.corner.x, this.selector.selectionFrame.corner.y],
                         false
                     );
-                    this.selector.clipBoard.corner.x += translation.x;
                 } else {
                     // Ensure that the cursor moves to the
                     // right side of the current view frame
                     this.selector.cursorTo(new Point([
-                        this.compositeFrame.baseFrame.right,
+                        this.dataFrame.corner.x,
                         this.selector.selectionFrame.cursor.y
                     ]));
                 }
@@ -499,15 +501,15 @@ class Sheet extends Component {
                 this.compositeFrame.translate(translation, "lockedRows");
                 if(event.shiftKey){
                     this.selector.fromPointToPoint(
-                        this.selector.selectionFrame.origin,
-                        [this.compositeFrame.baseFrame.corner.x, this.selector.selectionFrame.corner.y],
+                        [0, this.selector.selectionFrame.origin.y], // Note: we might want this to be viewOrigin.x
+                        this.selector.selectionFrame.corner,
                         false
                     );
-                    this.selector.clipBoard.origin.x += translation.x;
                 } else {
                     // Ensure that the cursor moves to the
                     // left side of the current view frame
                     this.selector.cursorTo(new Point([
+                        //viewOrigin.x,
                         0,
                         this.selector.selectionFrame.cursor.y
                     ]));
@@ -515,7 +517,6 @@ class Sheet extends Component {
             }
             this.compositeFrame.translate(translation, "viewFrame");
             this.fetchData("update");
-        console.log(this.selector.clipBoard);
         } else if (this.selector){
             let shrinkToCursor = !event.altKey;
             if (event.key === "ArrowUp"){
@@ -548,6 +549,7 @@ class Sheet extends Component {
                 }
             }
         }
+        console.log(this.selector.selectionFrame);
     }
 
     handleSelectorUpdate(direction, amount){
@@ -602,13 +604,14 @@ class Sheet extends Component {
         // Here is where we update the selection
         // information.
         if(this.isSelecting){
-            let targetCoord = this._idToCoord(event.target.id);
+            // let targetCoord = this._idToCoord(event.target.id);
+            let targetCoord = [parseInt(event.target.dataset.x), parseInt(event.target.dataset.y)];
             this.selector.fromPointToPoint(
                 this.selector.selectionFrame.cursor,
                 targetCoord
             );
-            this.selector.clipBoard.setOrigin = this.selector.selectionFrame.origin.copy;
-            this.selector.clipBoard.setCorner = this.selector.selectionFrame.corner.copy;
+            // this.selector.clipBoard.setOrigin = this.selector.selectionFrame.origin.copy;
+            // this.selector.clipBoard.setCorner = this.selector.selectionFrame.corner.copy;
             /*
             let inLockedColumn = false;
             let inLockedRow = false;

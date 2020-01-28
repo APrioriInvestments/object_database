@@ -749,8 +749,7 @@ class SelectionFrame extends Frame {
     translate(xy, cursor=true){
         super.translate(xy);
         if (cursor){
-            this.cursor.x += xy[0];
-            this.cursor.y += xy[1];
+            this.cursor.translate(xy);
         }
     }
 

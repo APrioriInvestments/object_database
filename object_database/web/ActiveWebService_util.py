@@ -11,6 +11,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 import json
+import traceback
 
 from itertools import chain
 
@@ -310,6 +311,21 @@ def makeMainView(display, toggles, current_username, authorized_groups_text):
 
 
 def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
+    """ Calls the correct service's display with the right arguments
+
+    Requirements:
+        - Must be called from within an ODB view (or transaction)
+        - The ODB connection must be subscribed to the service_schema
+
+    Args:
+        path: a list of strings constructed from the URL
+        query: a dictionary of queries constructed from the URL
+
+    Returns:
+        a tuple made of a cell.Cell and a list of toggles for the
+        appropriate rervice
+    """
+
     if len(path) and path[0] == "services":
         if len(path) == 1:
             return view(), []
@@ -354,14 +370,31 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
                 serviceToggles,
             )
 
-        instance = typeObj.fromIdentity(path[3])
+        try:
+            identity = int(path[3])
+        except ValueError as e:
+            return (
+                Traceback(f"Invalid object ID {path[3]}: {e}:\n{traceback.format_exc()}"),
+                [],
+            )
 
-        return (
-            serviceType.serviceDisplay(
-                serviceObj, instance=instance, queryArgs=queryArgs
-            ).withSerializationContext(serviceObj.getSerializationContext()),
-            serviceToggles,
-        )
+        instance = typeObj.fromIdentity(identity)
+        if instance.exists():
+            return (
+                serviceType.serviceDisplay(
+                    serviceObj, instance=instance, queryArgs=queryArgs
+                ).withSerializationContext(serviceObj.getSerializationContext()),
+                serviceToggles,
+            )
+
+        else:
+            return (
+                Traceback(
+                    f"Invalid instance ID {instance._identity} for type {typename}: "
+                    "Instance does not exist"
+                ),
+                [],
+            )
 
     return Traceback("Invalid url path: %s" % path), []
 

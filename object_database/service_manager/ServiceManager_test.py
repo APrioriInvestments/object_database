@@ -475,7 +475,7 @@ class Happy:
 
     def display(self, queryParams=None):
         ensureSubscribedType(Happy)
-        return "Happy %s. " % self.i + str(queryParams)
+        return Card("Happy %s. " % self.i + str(queryParams))
 
 
 class HappyService(ServiceBase):

@@ -976,6 +976,19 @@ class Selector {
         // Clears all styling on the
         // current selectionFrame and
         // cursor.
+        let sheetEl = this.sheet.getDOMElement();
+        let cells = sheetEl.querySelectorAll(`[class^="sheet-cell"]`);
+        cells.forEach(element => {
+            element.classList.remove(
+                'active',
+                'active-selection',
+                'active-selection-left',
+                'active-selection-right',
+                'active-selection-top',
+                'active-selection-bottom'
+            );
+        });
+        /*
         this.selectionFrame.coords.forEach(point => {
             if(clearCursor && point.equals(this.selectionFrame.cursor)){
                 let id = this.sheet._coordToId("td", [point.x, point.y]);
@@ -1000,6 +1013,7 @@ class Selector {
                 );
             }
         });
+        */
     }
 
     /**
@@ -1050,7 +1064,17 @@ class Selector {
     addStyling(){
         // Adds the correct styling to the
         // selection area and cursor.
-        debugger;
+        let sheetEl = this.sheet.getDOMElement();
+        let cells = sheetEl.querySelectorAll(`[class^="sheet-cell"]`);
+        cells.forEach(element => {
+            let x = parseInt(element.dataset['x']);
+            let y = parseInt(element.dataset['y']);
+            let elementPoint = new Point([x, y]);
+            if (this.selectionFrame.contains(elementPoint)){
+                element.classList.add('active');
+            };
+        });
+        /*
         let cursorEl = this.elementAtPoint(this.selectionFrame.cursor);
         cursorEl.classList.add('active');
 
@@ -1089,6 +1113,7 @@ class Selector {
                 }
             });
         }
+        */
     }
 
     /**
@@ -1286,6 +1311,24 @@ class Selector {
      */
     shiftUp(amount = 1, shrinkToCursor = false){
         let shift = [0, (amount * -1)];
+        // TODO clean up this logic
+        if(this.isAtDataTop()){
+            if(this.isAtViewTop(true)){
+            } else {
+                this.clearStyling(true);
+                this.selectionFrame.translate(shift);
+            }
+        } else if(this.isAtViewTop()){
+            this.triggerNeedsUpdate('up', amount);
+        } else {
+            this.clearStyling(true);
+            this.selectionFrame.translate(shift);
+        }
+        if(shrinkToCursor){
+            this.shrinkToCursor();
+        }
+        this.addStyling();
+        /*
         if(!this.isAtDataTop()){
             if(this.isAtViewTop(true)){
                 this.triggerNeedsUpdate('up', amount);
@@ -1297,6 +1340,7 @@ class Selector {
             this.shrinkToCursor();
         }
         this.addStyling();
+        */
     }
 
     /**
@@ -1314,6 +1358,17 @@ class Selector {
      */
     shiftDown(amount = 1, shrinkToCursor = false){
         let shift = [0, amount * 1];
+        if(this.isAtViewBottom()){
+            this.triggerNeedsUpdate('down', amount);
+        }
+        this.clearStyling(true);
+        this.selectionFrame.translate(shift);
+        if(shrinkToCursor){
+            this.shrinkToCursor();
+        }
+        this.addStyling();
+        console.log(this.selectionFrame.cursor);
+        /*
         if(!this.isAtDataBottom()){
             if(this.isAtViewBottom()){
                 this.triggerNeedsUpdate('down', amount);
@@ -1325,6 +1380,7 @@ class Selector {
             this.shrinkToCursor();
         }
         this.addStyling();
+        */
     }
 
     /**
@@ -1429,7 +1485,11 @@ class Selector {
      * currently visual to the user.
      */
     isAtViewBottom(){
-        return this.selectionFrame.corner.y === this.sheet.compositeFrame.baseFrame.corner.y;
+        let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
+        let bottomRow = body.lastChild;
+        let cornerElement = bottomRow.lastChild;
+        return this.selectionFrame.corner.y === parseInt(cornerElement.dataset["y"]);
+        // return this.selectionFrame.corner.y === this.sheet.compositeFrame.baseFrame.corner.y;
     }
 
     /**
@@ -1454,11 +1514,30 @@ class Selector {
     isAtViewRight(){
         return this.selectionFrame.corner.x === this.sheet.compositeFrame.baseFrame.corner.x;
     }
+      /**
+     * Returns true if the viewFrame top row matches up with the projected viewFrame top row, meaning
+     * that we have reached the top of the Sheet and there is no more data above.
+     */
+    isAtDataTop(){
+        return (
+            this.sheet.compositeFrame.project("viewFrame").origin.y === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["frame"].origin.y
+        );
+    }
+
+    /**
+     * Returns true if the viewFrame left-most column matches up with the
+     * projected viewFrame left-most column, meaning
+     * that we have reached the beginning of the Sheet and there is no more data to the left.
+     */
+    isAtDataLeft(){
+        return (
+            this.sheet.compositeFrame.project("viewFrame").origin.x === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["frame"].origin.x
+        );
+    }
 
     /**
      * Returns true if the selectionFrame is at the absolute top of the data, i.e. its
      * origin.x === dataFrame.origin.x.
-     */
     isAtDataTop(){
         return this.selectionFrame.origin.x === this.sheet.dataFrame.origin.x;
     }
@@ -1466,7 +1545,6 @@ class Selector {
     /**
      * Returns true if the selectionFrame is at the absolute left of the data, i.e. its
      * origin.y === dataFrame.origin.y.
-     */
     isAtDataLeft(){
         return this.selectionFrame.origin.y === this.sheet.dataFrame.origin.y;
     }
@@ -1474,7 +1552,6 @@ class Selector {
     /**
      * Returns true if the selectionFrame is at the absolute bottom of the data, i.e. its
      * corner.y === dataFrame.corner.y.
-     */
     isAtDataBottom(){
         return this.selectionFrame.corner.y === this.sheet.dataFrame.corner.y;
     }
@@ -1482,10 +1559,10 @@ class Selector {
     /**
      * Returns true if the selectionFrame is at the absolute right of the data, i.e. its
      * corner.x === dataFrame.corner.x.
-     */
     isAtDataRight(){
         return this.selectionFrame.corner.x === this.sheet.dataFrame.corner.x;
     }
+    */
 }
 
 

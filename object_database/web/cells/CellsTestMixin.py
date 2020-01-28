@@ -13,8 +13,8 @@ class CellsTestMixin:
             not exceptions, "\n\n".join([e.childByIndex(0).contents for e in exceptions])
         )
 
-    def assertCellTagExists(self, cells: Cells, tag: str, expected_count=1):
-        res = self.waitForCells(cells, lambda: cells.findChildrenByTag(tag))
+    def assertCellTagExists(self, cells: Cells, tag: str, expected_count=1, timeout=10.0):
+        res = self.waitForCells(cells, lambda: cells.findChildrenByTag(tag), timeout)
         self.assertIsNotNone(res)
         self.assertEqual(len(res), expected_count)
 

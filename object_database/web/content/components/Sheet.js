@@ -590,7 +590,8 @@ class Sheet extends Component {
             return;
         }
         this.isSelecting = true;
-        let targetCoord = this._idToCoord(event.target.id);
+        // let targetCoord = this._idToCoord(event.target.id);
+        let targetCoord = [parseInt(event.target.dataset.x), parseInt(event.target.dataset.y)];
         this.selector.cursorTo(targetCoord);
     }
 

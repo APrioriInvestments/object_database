@@ -929,49 +929,11 @@ class DataFrame extends Frame {
     }
 }
 
-class ClipBoard extends SelectionFrame {
-    constructor(origin, corner, name=null){
-        super(origin, corner, name);
-
-        // Bind methods
-    }
-
-
-    /**
-     * Given two Points/coordinate pairs, I
-     * adjust my own properties to embody a new
-     * rectangle that encloses those points.
-     * I also performs checks to ensure that
-     * the top left is still the origin and the
-     * bottom right is still the corner, even
-     * if the to/from points are negative opposed.
-     * If updateCursor=true, I will set the cursor
-     * to be the from point.
-     * @param {Array|Point} from - The point from
-     * which we start making a new rect
-     * @param {Array|Point} to - The point to
-     * which we will extend the new rect
-     */
-    fromPointToPoint(from, to){
-        super.fromPointToPoint(from, to, false);
-    }
-
-    translate(xy){
-        super.translate(xy, false);
-    }
-}
-
 class Selector {
     constructor(sheet){
         this.sheet = sheet;
         this.selectionFrame = new SelectionFrame([0,0], [0,0]);
         this.onNeedsUpdate = null;
-        // Note this.selectionFrame represents the visual layout of the
-        // Selector instance within the Sheet, whereas this.clipBoard
-        // represents the 'actual' selected area. For example,
-        // this.clipBoord can span many pages of the Sheet view while the
-        // user only this.selectionFrame in the immediate page-view.
-        this.clipBoard = new Frame([0, 0], [0, 0]);
 
         // Bind methods
         this.elementAtPoint = this.elementAtPoint.bind(this);
@@ -1031,32 +993,6 @@ class Selector {
                 'active-selection-bottom'
             );
         });
-        /*
-        this.selectionFrame.coords.forEach(point => {
-            if(clearCursor && point.equals(this.selectionFrame.cursor)){
-                let id = this.sheet._coordToId("td", [point.x, point.y]);
-                let td = document.getElementById(id);
-                td.classList.remove(
-                    'active',
-                    'active-selection',
-                    'active-selection-left',
-                    'active-selection-right',
-                    'active-selection-top',
-                    'active-selection-bottom'
-                );
-            } else if(!point.equals(this.selectionFrame.cursor)) {
-                let id = this.sheet._coordToId("td", [point.x, point.y]);
-                let td = document.getElementById(id);
-                td.classList.remove(
-                    'active-selection',
-                    'active-selection-left',
-                    'active-selection-right',
-                    'active-selection-top',
-                    'active-selection-bottom'
-                );
-            }
-        });
-        */
     }
 
     /**
@@ -1129,46 +1065,6 @@ class Selector {
                 }
             };
         });
-        /*
-        let cursorEl = this.elementAtPoint(this.selectionFrame.cursor);
-        cursorEl.classList.add('active');
-
-        console.log("origin: " + this.selectionFrame.origin.x + ',' + this.selectionFrame.origin.y);
-        console.log("corner: " + this.selectionFrame.corner.x + ',' + this.selectionFrame.corner.y);
-        // if(this.selectionFrame.dim > 0){
-        if(false){
-            this.selectionFrame.coords.forEach(point => {
-                if(!point.equals(this.selectionFrame.cursor)){
-                    let el = this.elementAtPoint(point);
-                    el.classList.add('active-selection');
-                }
-            });
-            this.selectionFrame.leftPoints.forEach(point => {
-                if(!point.equals(this.selectionFrame.cursor)){
-                    let el = this.elementAtPoint(point);
-                    el.classList.add('active-selection-left');
-                }
-            });
-            this.selectionFrame.topPoints.forEach(point => {
-                if(!point.equals(this.selectionFrame.cursor)){
-                    let el = this.elementAtPoint(point);
-                    el.classList.add('active-selection-top');
-                }
-            });
-            this.selectionFrame.rightPoints.forEach(point => {
-                if(!point.equals(this.selectionFrame.cursor)){
-                    let el = this.elementAtPoint(point);
-                    el.classList.add('active-selection-right');
-                }
-            });
-            this.selectionFrame.bottomPoints.forEach(point => {
-                if(!point.equals(this.selectionFrame.cursor)){
-                    let el = this.elementAtPoint(point);
-                    el.classList.add('active-selection-bottom');
-                }
-            });
-        }
-        */
     }
 
     /**
@@ -1187,8 +1083,6 @@ class Selector {
      * to the size of its cursor.
      * Note also that I clear styling, move, then
      * apply styling to the new cursor.
-     * I also set the clipBoard origin and corner to
-     * the new Point.
      * @param {Point} aPoint - The new location for
      * the selection frame cursor
      */
@@ -1200,8 +1094,6 @@ class Selector {
             aPoint
         );
         this.addStyling();
-        this.clipBoard.setOrigin = aPoint;
-        this.clipBoard.setCorner = aPoint;
     }
 
     /**
@@ -1255,7 +1147,6 @@ class Selector {
                 toPoint,
                 false
             );
-            this.clipBoard.origin.y -= 1;
         }
     }
 
@@ -1271,7 +1162,6 @@ class Selector {
                 toPoint,
                 false
             );
-            this.clipBoard.corner.x += 1;
         }
     }
 
@@ -1287,7 +1177,6 @@ class Selector {
                 toPoint,
                 false
             );
-            this.clipBoard.corner.y += 1;
         }
     }
 
@@ -1303,7 +1192,6 @@ class Selector {
                 toPoint,
                 false
             );
-            this.clipBoard.origin.x -= 1;
         }
     }
 
@@ -1314,8 +1202,6 @@ class Selector {
         this.shiftUp(1, shrinkToCursor);
         // TODO: this is not compatible with pagination!
         // and could lead to unexpected UX/behavior
-        this.clipBoard.setOrigin = this.selectionFrame.origin.copy;
-        this.clipBoard.setCorner = this.selectionFrame.corner.copy;
     }
 
     /**
@@ -1325,8 +1211,6 @@ class Selector {
         this.shiftRight(1, shrinkToCursor);
         // TODO: this is not compatible with pagination!
         // and could lead to unexpected UX/behavior
-        this.clipBoard.setOrigin = this.selectionFrame.origin.copy;
-        this.clipBoard.setCorner = this.selectionFrame.corner.copy;
     }
 
     /**
@@ -1336,8 +1220,6 @@ class Selector {
         this.shiftDown(1, shrinkToCursor);
         // TODO: this is not compatible with pagination!
         // and could lead to unexpected UX/behavior
-        this.clipBoard.setOrigin = this.selectionFrame.origin.copy;
-        this.clipBoard.setCorner = this.selectionFrame.corner.copy;
     }
 
     /**
@@ -1347,8 +1229,6 @@ class Selector {
         this.shiftLeft(1, shrinkToCursor);
         // TODO: this is not compatible with pagination!
         // and could lead to unexpected UX/behavior
-        this.clipBoard.setOrigin = this.selectionFrame.origin.copy;
-        this.clipBoard.setCorner = this.selectionFrame.corner.copy;
     }
 
     /**
@@ -1391,20 +1271,6 @@ class Selector {
                 this.addStyling();
             }
         }
-        // console.log("cursor: (" + this.selectionFrame.cursor.x + "," + this.selectionFrame.cursor.y + ")");
-        /*
-        if(!this.isAtDataTop()){
-            if(this.isAtViewTop(true)){
-                this.triggerNeedsUpdate('up', amount);
-            }
-            this.clearStyling(true);
-            this.selectionFrame.translate(shift);
-        }
-        if(shrinkToCursor){
-            this.shrinkToCursor();
-        }
-        this.addStyling();
-        */
     }
 
     /**
@@ -1422,33 +1288,22 @@ class Selector {
      */
     shiftDown(amount = 1, shrinkToCursor = false){
         let shift = [0, amount * 1];
-        if(this.isAtViewBottom()){
-            this.triggerNeedsUpdate('down', amount);
-            this.selectionFrame.translate(shift);
-            if(shrinkToCursor){
-                this.shrinkToCursor();
-            }
-        } else {
-            this.selectionFrame.translate(shift);
-            this.clearStyling(true);
-            if(shrinkToCursor){
-                this.shrinkToCursor();
-            }
-            this.addStyling();
-        }
-        /*
-        if(!this.isAtDataBottom()){
+        if (!this.isAtDataBottom()){
             if(this.isAtViewBottom()){
                 this.triggerNeedsUpdate('down', amount);
+                this.selectionFrame.translate(shift);
+                if(shrinkToCursor){
+                    this.shrinkToCursor();
+                }
+            } else {
+                this.selectionFrame.translate(shift);
+                this.clearStyling(true);
+                if(shrinkToCursor){
+                    this.shrinkToCursor();
+                }
+                this.addStyling();
             }
-            this.clearStyling(true);
-            this.selectionFrame.translate(shift);
         }
-        if(shrinkToCursor){
-            this.shrinkToCursor();
-        }
-        this.addStyling();
-        */
     }
 
     /**
@@ -1466,19 +1321,21 @@ class Selector {
      */
     shiftRight(amount = 1, shrinkToCursor = false){
         let shift = [amount * 1, 0];
-        if(this.isAtViewRight()){
-            this.triggerNeedsUpdate('right', amount);
-            this.selectionFrame.translate(shift);
-            if(shrinkToCursor){
-                this.shrinkToCursor();
+        if (!this.isAtDataRight()){
+            if(this.isAtViewRight()){
+                this.triggerNeedsUpdate('right', amount);
+                this.selectionFrame.translate(shift);
+                if(shrinkToCursor){
+                    this.shrinkToCursor();
+                }
+            } else {
+                this.selectionFrame.translate(shift);
+                this.clearStyling(true);
+                if(shrinkToCursor){
+                    this.shrinkToCursor();
+                }
+                this.addStyling();
             }
-        } else {
-            this.selectionFrame.translate(shift);
-            this.clearStyling(true);
-            if(shrinkToCursor){
-                this.shrinkToCursor();
-            }
-            this.addStyling();
         }
     }
 
@@ -1628,22 +1485,9 @@ class Selector {
     }
 
     /**
-     * Returns true if the selectionFrame is at the absolute top of the data, i.e. its
-     * origin.x === dataFrame.origin.x.
-    isAtDataTop(){
-        return this.selectionFrame.origin.x === this.sheet.dataFrame.origin.x;
-    }
-
-    /**
-     * Returns true if the selectionFrame is at the absolute left of the data, i.e. its
-     * origin.y === dataFrame.origin.y.
-    isAtDataLeft(){
-        return this.selectionFrame.origin.y === this.sheet.dataFrame.origin.y;
-    }
-
-    /**
      * Returns true if the selectionFrame is at the absolute bottom of the data, i.e. its
      * corner.y === dataFrame.corner.y.
+     */
     isAtDataBottom(){
         return this.selectionFrame.corner.y === this.sheet.dataFrame.corner.y;
     }
@@ -1651,10 +1495,10 @@ class Selector {
     /**
      * Returns true if the selectionFrame is at the absolute right of the data, i.e. its
      * corner.x === dataFrame.corner.x.
+     */
     isAtDataRight(){
         return this.selectionFrame.corner.x === this.sheet.dataFrame.corner.x;
     }
-    */
 }
 
 

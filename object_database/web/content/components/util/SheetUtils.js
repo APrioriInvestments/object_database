@@ -1071,14 +1071,10 @@ class Selector {
         // generates a clipboard string from the current points
         // Note: in order to create line breaks we slice along the y-axis
         let clipboard = "";
-        for (let y = this.clipBoard.origin.y; y <= this.clipBoard.corner.y; y++){
+        for (let y = this.selectionFrame.origin.y; y <= this.selectionFrame.corner.y; y++){
             let row = "";
-            this.clipBoard.sliceCoords(y, "x").map(point => {
-                try {
-                    let value = this.sheet.dataFrame.get(point);
-                } catch(e) {
-                    debugger;
-                }
+            this.selectionFrame.sliceCoords(y, "x").map(point => {
+                let value = this.sheet.dataFrame.get(point);
                 row += value + "\t";
             });
             clipboard += row + "\n";

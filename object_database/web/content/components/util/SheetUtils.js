@@ -1115,7 +1115,23 @@ class Selector {
             let y = parseInt(element.dataset['y']);
             let elementPoint = new Point([x, y]);
             if (this.selectionFrame.contains(elementPoint)){
-                element.classList.add('active');
+                if(this.selectionFrame.cursor.equals(elementPoint)){
+                    element.classList.add('active');
+                } else {
+                    element.classList.add('active-selection');
+                }
+                if(this.selectionFrame.isAtLeft(elementPoint)){
+                    element.classList.add('active-selection-left');
+                }
+                if(this.selectionFrame.isAtRight(elementPoint)){
+                    element.classList.add('active-selection-right');
+                }
+                if(this.selectionFrame.isAtTop(elementPoint)){
+                    element.classList.add('active-selection-top');
+                }
+                if(this.selectionFrame.isAtBottom(elementPoint)){
+                    element.classList.add('active-selection-bottom');
+                }
             };
         });
         /*
@@ -1355,23 +1371,32 @@ class Selector {
      */
     shiftUp(amount = 1, shrinkToCursor = false){
         let shift = [0, (amount * -1)];
-        // TODO clean up this logic
         if(this.isAtDataTop()){
-            if(this.isAtViewTop(true)){
-            } else {
+            if(!this.isAtViewTop(true)){
                 this.clearStyling(true);
                 this.selectionFrame.translate(shift);
+                if(shrinkToCursor){
+                    this.shrinkToCursor();
+                }
+                this.addStyling();
             }
-        } else if(this.isAtViewTop()){
-            this.triggerNeedsUpdate('up', amount);
         } else {
-            this.clearStyling(true);
-            this.selectionFrame.translate(shift);
+            if(this.isAtViewTop()){
+                this.selectionFrame.translate(shift);
+                this.triggerNeedsUpdate('up', amount);
+                if(shrinkToCursor){
+                    this.shrinkToCursor();
+                }
+            } else {
+                this.selectionFrame.translate(shift);
+                this.clearStyling(true);
+                if(shrinkToCursor){
+                    this.shrinkToCursor();
+                }
+                this.addStyling();
+            }
         }
-        if(shrinkToCursor){
-            this.shrinkToCursor();
-        }
-        this.addStyling();
+        // console.log("cursor: (" + this.selectionFrame.cursor.x + "," + this.selectionFrame.cursor.y + ")");
         /*
         if(!this.isAtDataTop()){
             if(this.isAtViewTop(true)){
@@ -1404,14 +1429,18 @@ class Selector {
         let shift = [0, amount * 1];
         if(this.isAtViewBottom()){
             this.triggerNeedsUpdate('down', amount);
+            this.selectionFrame.translate(shift);
+            if(shrinkToCursor){
+                this.shrinkToCursor();
+            }
+        } else {
+            this.selectionFrame.translate(shift);
+            this.clearStyling(true);
+            if(shrinkToCursor){
+                this.shrinkToCursor();
+            }
+            this.addStyling();
         }
-        this.clearStyling(true);
-        this.selectionFrame.translate(shift);
-        if(shrinkToCursor){
-            this.shrinkToCursor();
-        }
-        this.addStyling();
-        console.log(this.selectionFrame.cursor);
         /*
         if(!this.isAtDataBottom()){
             if(this.isAtViewBottom()){
@@ -1444,14 +1473,18 @@ class Selector {
         let shift = [amount * 1, 0];
         if(this.isAtViewRight()){
             this.triggerNeedsUpdate('right', amount);
-        } else {
-            this.clearStyling(true);
             this.selectionFrame.translate(shift);
+            if(shrinkToCursor){
+                this.shrinkToCursor();
+            }
+        } else {
+            this.selectionFrame.translate(shift);
+            this.clearStyling(true);
+            if(shrinkToCursor){
+                this.shrinkToCursor();
+            }
+            this.addStyling();
         }
-        if(shrinkToCursor){
-            this.shrinkToCursor();
-        }
-        this.addStyling();
     }
 
     /**
@@ -1469,23 +1502,31 @@ class Selector {
      */
     shiftLeft(amount = 1, shrinkToCursor = false){
         let shift = [amount * -1, 0];
-        // TODO clean up this logic
         if(this.isAtDataLeft()){
-            if(this.isAtViewLeft(true)){
-            } else {
+            if(!this.isAtViewLeft(true)){
                 this.clearStyling(true);
                 this.selectionFrame.translate(shift);
+                if(shrinkToCursor){
+                    this.shrinkToCursor();
+                }
+                this.addStyling();
             }
-        } else if(this.isAtViewLeft()){
-            this.triggerNeedsUpdate('left', amount);
         } else {
-            this.clearStyling(true);
-            this.selectionFrame.translate(shift);
+            if(this.isAtViewLeft()){
+                this.selectionFrame.translate(shift);
+                this.triggerNeedsUpdate('left', amount);
+                if(shrinkToCursor){
+                    this.shrinkToCursor();
+                }
+            } else {
+                this.selectionFrame.translate(shift);
+                this.clearStyling(true);
+                if(shrinkToCursor){
+                    this.shrinkToCursor();
+                }
+                this.addStyling();
+            }
         }
-        if(shrinkToCursor){
-            this.shrinkToCursor();
-        }
-        this.addStyling();
     }
 
     triggerNeedsUpdate(direction, shift){
@@ -1518,9 +1559,13 @@ class Selector {
      */
     isAtViewTop(absolute=false){
         if (absolute){
-            return this.selectionFrame.origin.y === this.sheet.compositeFrame.baseFrame["origin"].y;
+            let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
+            let firstRow = body.firstChild;
+            let originElement = firstRow.firstChild;
+            return this.selectionFrame.origin.y === parseInt(originElement.dataset["y"]);
+            // return this.selectionFrame.origin.y === this.sheet.compositeFrame.baseFrame["origin"].y;
         }
-        return this.selectionFrame.origin.y === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["origin"].y;
+        return this.selectionFrame.origin.y === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["frame"]["origin"].y;
     }
 
     /**
@@ -1545,9 +1590,13 @@ class Selector {
      */
     isAtViewLeft(absolute=false){
         if (absolute){
-            return this.selectionFrame.origin.x === this.sheet.compositeFrame.baseFrame["origin"].x;
+            let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
+            let firstRow = body.firstChild;
+            let originElement = firstRow.firstChild;
+            return this.selectionFrame.origin.x === parseInt(originElement.dataset["x"]);
+            // return this.selectionFrame.origin.x === this.sheet.compositeFrame.baseFrame["origin"].x;
         }
-        return this.selectionFrame.origin.x === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["origin"].x;
+        return this.selectionFrame.origin.x === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["frame"]["origin"].x;
     }
 
     /**
@@ -1556,7 +1605,11 @@ class Selector {
      * currently visual to the user.
      */
     isAtViewRight(){
-        return this.selectionFrame.corner.x === this.sheet.compositeFrame.baseFrame.corner.x;
+        let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
+        let bottomRow = body.lastChild;
+        let cornerElement = bottomRow.lastChild;
+        return this.selectionFrame.corner.x === parseInt(cornerElement.dataset["x"]);
+        // return this.selectionFrame.corner.x === this.sheet.compositeFrame.baseFrame.corner.x;
     }
       /**
      * Returns true if the viewFrame top row matches up with the projected viewFrame top row, meaning

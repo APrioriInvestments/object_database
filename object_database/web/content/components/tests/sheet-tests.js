@@ -1059,6 +1059,35 @@ describe("Sheet util tests.", () => {
                 assert.isTrue(p.equals(new Point([i, 10])));
             });
         });
+        it("Is At Bottom", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10]);
+            let point = new Point([5, 10]);
+            assert.isTrue(frame.isAtBottom(point));
+            point = new Point([5, 5]);
+            assert.isFalse(frame.isAtBottom(point));
+        });
+        it("Is At Top", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10]);
+            let point = new Point([5, 0]);
+            assert.isTrue(frame.isAtTop(point));
+            point = new Point([5, 5]);
+            assert.isFalse(frame.isAtTop(point));
+        });
+        it("Is At Right", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10]);
+            let point = new Point([10, 5]);
+            assert.isTrue(frame.isAtRight(point));
+            point = new Point([5, 5]);
+            assert.isFalse(frame.isAtRight(point));
+        });
+        it("Is At Left", () => {
+            let frame = new SelectionFrame([0, 0], [10, 10]);
+            let point = new Point([0, 5]);
+            assert.isTrue(frame.isAtLeft(point));
+            point = new Point([5, 5]);
+            assert.isFalse(frame.isAtLeft(point));
+        });
+
     });
 });
 

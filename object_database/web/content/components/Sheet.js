@@ -646,7 +646,8 @@ class Sheet extends Component {
         let origin = this.selector.selectionFrame.corner;
         let td = body.querySelector(`#${this._coordToId("td", [origin.x, origin.y])}`);
         let th = head.querySelector(`#sheet-${this.props.id}-head-current`);
-        th.textContent = `(${td.dataset.x}x${td.dataset.y}): ${td.textContent}`;
+        // TODO: put this back in
+        // th.textContent = `(${td.dataset.x}x${td.dataset.y}): ${td.textContent}`;
     }
 
     /* Simply resets the `isSelecting` to false, in the
@@ -775,6 +776,8 @@ class Sheet extends Component {
                 this.dataFrame.load(dataInfo.data, [origin.x, origin.y]);
                 // clean the sheet to make sure no residual data values left
                 this._updatedDisplayValues(body);
+                this.selector.clearStyling();
+                this.selector.addStyling();
                 // if (this.isSelecting){
                 //    this.selector.addStyling();
                 //}

@@ -813,6 +813,50 @@ class SelectionFrame extends Frame {
         }
         return result;
     }
+
+    /**
+     * I return true if the provided point is at the bottom
+     * side of myself.
+     * @param {tuple/point}
+     * @returns {bool}
+     */
+    isAtBottom(point){
+        point = new Point(point);
+        return this.corner.y === point.y;
+    }
+
+    /**
+     * I return true if the provided point is at the top
+     * side of myself.
+     * @param {tuple/point}
+     * @returns {bool}
+     */
+    isAtTop(point){
+        point = new Point(point);
+        return this.origin.y === point.y;
+    }
+
+    /**
+     * I return true if the provided point is at the right
+     * side of myself.
+     * @param {tuple/point}
+     * @returns {bool}
+     */
+    isAtRight(point){
+        point = new Point(point);
+        return this.corner.x === point.x;
+    }
+
+    /**
+     * I return true if the provided point is at the left
+     * side of myself.
+     * @param {tuple/point}
+     * @returns {bool}
+     */
+    isAtLeft(point){
+        point = new Point(point);
+        return this.origin.x === point.x;
+    }
 }
 
 class DataFrame extends Frame {

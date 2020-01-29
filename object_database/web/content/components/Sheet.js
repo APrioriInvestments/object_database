@@ -142,7 +142,7 @@ class Sheet extends Component {
         );
 
         if (this.props.dontFetch != true){
-            this.fetchData("replace",);
+            this.fetchData("replace");
         }
         //
         const ro = new ResizeObserver(entries => {
@@ -335,10 +335,12 @@ class Sheet extends Component {
         if ((size.x + 1) * (size.y + 1) > 10000){
             alert("copy is limited to 10,000 cells");
         } else {
+            // NOTE: we need to first fetch the data which means send a
+            // WS data request with action==="clipboardData" so that the data
+            // arrives before we copy the elements to the clipboard.
             event.preventDefault();
             event.stopPropagation();
-            let txt = this.selector.getSelectionClipboard();
-            event.clipboardData.setData('text/plain', txt);
+            this.selector.fetchData();
         }
     }
 
@@ -763,32 +765,35 @@ class Sheet extends Component {
     _updateData(dataInfos, projector) {
         dataInfos.map((dataInfo) => {
             console.log("updating data for sheet: " + this.props.id + " with response id " + dataInfo.response_id);
+            console.log("action type: " + dataInfo.action);
+            console.log(dataInfos);
             // make sure the data is not empty
             let body = document.getElementById(`sheet-${this.props.id}-body`);
             let head = document.getElementById(`sheet-${this.props.id}-head`);
             if (dataInfo.data && dataInfo.data.length){
-                if (dataInfo.action === "replace") {
-                    // we update the Sheet with (potentially empty) values
-                    // creating 'td' elements with ids corresponding to the frame coordinates (and the sheet id);
-                    // this will set up our updateData flow which continually retrieves values from dataFrame regadless
-                    // if the server has returned the request
-                    // NOTE: we use frame origin and corner as much as possible, utilizing properties of Point and avoiding
-                    // potential confusion of axes vs columns/rows
-                    // TODO: this.initializeSheet should be under componentDidUpdate() but for that the Sheet needs
-                    // to have access to the projector
-                    // then we can remove the `action` arg to fetch
-                    this.initializeSheet(projector, body, head);
+                if (dataInfo.action === "clipboardData"){
+                    this.selector.getSelectionClipboard(dataInfo.data);
+                } else {
+                    if (dataInfo.action === "replace") {
+                        // we update the Sheet with (potentially empty) values
+                        // creating 'td' elements with ids corresponding to the frame coordinates (and the sheet id);
+                        // this will set up our updateData flow which continually retrieves values from dataFrame regadless
+                        // if the server has returned the request
+                        // NOTE: we use frame origin and corner as much as possible, utilizing properties of Point and avoiding
+                        // potential confusion of axes vs columns/rows
+                        // TODO: this.initializeSheet should be under componentDidUpdate() but for that the Sheet needs
+                        // to have access to the projector
+                        // then we can remove the `action` arg to fetch
+                        this.initializeSheet(projector, body, head);
+                    }
+                    // load the data into the data with the provided origin
+                    let origin = dataInfo.origin;
+                    this.dataFrame.load(dataInfo.data, [origin.x, origin.y]);
+                    // clean the sheet to make sure no residual data values left
+                    this._updatedDisplayValues(body);
+                    this.selector.clearStyling();
+                    this.selector.addStyling();
                 }
-                // load the data into the data with the provided origin
-                let origin = dataInfo.origin;
-                this.dataFrame.load(dataInfo.data, [origin.x, origin.y]);
-                // clean the sheet to make sure no residual data values left
-                this._updatedDisplayValues(body);
-                this.selector.clearStyling();
-                this.selector.addStyling();
-                // if (this.isSelecting){
-                //    this.selector.addStyling();
-                //}
             }
         });
     }

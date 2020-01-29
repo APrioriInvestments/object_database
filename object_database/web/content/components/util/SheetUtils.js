@@ -113,6 +113,7 @@ Array.prototype.toPoint = function(){
     }
 };
 
+
 class Frame {
     constructor(origin, corner, name=null){
         /* Origin and corner can be any points in the first quadrant. Only those where
@@ -858,6 +859,11 @@ class SelectionFrame extends Frame {
     }
 }
 
+
+/**
+ * I am a kind of Frame that also serves as a key-value
+ * data store. You can .load() and .get() from me.
+ */
 class DataFrame extends Frame {
     constructor(origin, corner){
         /* Origin and corner can be any points in the first quadrant. Only those where
@@ -1002,6 +1008,7 @@ class Selector {
      * selection frame.
      * Note that we use the CSV format for the values,
      * creating line breaks along the y-axis.
+     * @param {array} - arrat of arrays of text-values
      * @returns {string} - A CSV-formatted string
      */
     getSelectionClipboard(data){
@@ -1016,17 +1023,6 @@ class Selector {
                 // This can happen if the user denies clipboard permissions:
                 console.error('Could not copy data: ', err);
             });
-        /*
-        for (let y = this.selectionFrame.origin.y; y <= this.selectionFrame.corner.y; y++){
-            let row = "";
-            this.selectionFrame.sliceCoords(y, "x").map(point => {
-                let value = this.sheet.dataFrame.get(point);
-                row += value + "\t";
-            });
-            clipboard += row + "\n";
-        }
-        return clipboard;
-        */
     }
 
     /* I make WS requests to the server for more data.*/
@@ -1051,7 +1047,7 @@ class Selector {
      * Returns the td element that is mapped to by
      * the given Point.
      * @param {Point} point - The point at which we want
-     * to look up the corresponding td element
+     * to look up the corresponding td elemnt
      * @returns {DOMElement} - A mapped td element
      */
     elementAtPoint(point){
@@ -1444,7 +1440,6 @@ class Selector {
             let firstRow = body.firstChild;
             let originElement = firstRow.firstChild;
             return this.selectionFrame.origin.y === parseInt(originElement.dataset["y"]);
-            // return this.selectionFrame.origin.y === this.sheet.compositeFrame.baseFrame["origin"].y;
         }
         return this.selectionFrame.origin.y === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["frame"]["origin"].y;
     }
@@ -1459,7 +1454,6 @@ class Selector {
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
         return this.selectionFrame.corner.y === parseInt(cornerElement.dataset["y"]);
-        // return this.selectionFrame.corner.y === this.sheet.compositeFrame.baseFrame.corner.y;
     }
 
     /**
@@ -1475,7 +1469,6 @@ class Selector {
             let firstRow = body.firstChild;
             let originElement = firstRow.firstChild;
             return this.selectionFrame.origin.x === parseInt(originElement.dataset["x"]);
-            // return this.selectionFrame.origin.x === this.sheet.compositeFrame.baseFrame["origin"].x;
         }
         return this.selectionFrame.origin.x === this.sheet.compositeFrame.getOverlayFrame("viewFrame")["frame"]["origin"].x;
     }
@@ -1490,7 +1483,6 @@ class Selector {
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
         return this.selectionFrame.corner.x === parseInt(cornerElement.dataset["x"]);
-        // return this.selectionFrame.corner.x === this.sheet.compositeFrame.baseFrame.corner.x;
     }
       /**
      * Returns true if the viewFrame top row matches up with the projected viewFrame top row, meaning

@@ -963,6 +963,7 @@ class Selector {
         this.cursorDown = this.cursorDown.bind(this);
         this.cursorLeft = this.cursorLeft.bind(this);
         this.getSelectionClipboard = this.getSelectionClipboard.bind(this);
+        this.fetchData = this.fetchData.bind(this);
     }
 
     /**
@@ -1003,10 +1004,19 @@ class Selector {
      * creating line breaks along the y-axis.
      * @returns {string} - A CSV-formatted string
      */
-    getSelectionClipboard(){
+    getSelectionClipboard(data){
         // generates a clipboard string from the current points
         // Note: in order to create line breaks we slice along the y-axis
-        let clipboard = "";
+        let clipboard = data.map(item => {return item.join("\t")}).join("\n");
+        navigator.clipboard.writeText(clipboard)
+            .then(() => {
+                console.log('Data copied.');
+            })
+            .catch(err => {
+                // This can happen if the user denies clipboard permissions:
+                console.error('Could not copy data: ', err);
+            });
+        /*
         for (let y = this.selectionFrame.origin.y; y <= this.selectionFrame.corner.y; y++){
             let row = "";
             this.selectionFrame.sliceCoords(y, "x").map(point => {
@@ -1016,6 +1026,25 @@ class Selector {
             clipboard += row + "\n";
         }
         return clipboard;
+        */
+    }
+
+    /* I make WS requests to the server for more data.*/
+    fetchData(){
+        // TODO: maybe we don't need to fetch all the data or need to batch it
+        this.sheet.requestIndex += 1;
+        let frame = this.selectionFrame;
+        let request = JSON.stringify({
+            event: "sheet_needs_data",
+            request_index: this.sheet.requestIndex,
+            target_cell: this.sheet.props.id,
+            frame: {
+                origin: {x: frame.origin.x, y: frame.origin.y},
+                corner: {x: frame.corner.x, y: frame.corner.y},
+            },
+            action: "clipboardData",
+        });
+        cellSocket.sendString(request);
     }
 
     /**

@@ -154,7 +154,6 @@ class Sheet extends Component {
             }
         });
         ro.observe(this.container.parentNode);
-        // window.addEventListener('resize', this.componentDidLoad);
     }
 
     /* I resize the sheet by recalculating the number of columns and rows using the
@@ -434,7 +433,6 @@ class Sheet extends Component {
 
         this.compositeFrame.translate(translation, "viewFrame");
         this.fetchData("update");
-        console.log(this.selector.selectionFrame);
     }
 
     /* I handle arrow triggered navigation of the active_frame and related views */
@@ -555,7 +553,6 @@ class Sheet extends Component {
                 }
             }
         }
-        console.log(this.selector.selectionFrame);
     }
 
     handleSelectorUpdate(direction, amount){
@@ -610,30 +607,11 @@ class Sheet extends Component {
         // Here is where we update the selection
         // information.
         if(this.isSelecting){
-            // let targetCoord = this._idToCoord(event.target.id);
             let targetCoord = [parseInt(event.target.dataset.x), parseInt(event.target.dataset.y)];
             this.selector.fromPointToPoint(
                 this.selector.selectionFrame.cursor,
                 targetCoord
             );
-            // this.selector.clipBoard.setOrigin = this.selector.selectionFrame.origin.copy;
-            // this.selector.clipBoard.setCorner = this.selector.selectionFrame.corner.copy;
-            /*
-            let inLockedColumn = false;
-            let inLockedRow = false;
-            if (this.compositeFrame.getOverlayFrame("lockedColumns") !== null){
-                inLockedColumn = this.compositeFrame.getOverlayFrame("lockedColumns")["frame"].contains(targetCoord);
-            }
-            if (this.compositeFrame.getOverlayFrame("lockedColumns") !== null){
-                inLockedRow = this.compositeFrame.getOverlayFrame("lockedRows")["frame"].contains(targetCoord);
-            }
-            if(!inLockedColumn && !inLockedRow){
-                this.selector.fromPointToPoint(
-                    this.selector.selectionFrame.cursor,
-                    targetCoord
-                );
-            }
-            */
         }
     }
 
@@ -683,8 +661,6 @@ class Sheet extends Component {
      */
     _addLockedElements(body, frame){
         frame.coords.map((p) => {
-            // let x = p.x + offset.x;
-            // let y = p.y + offset.y;
             let td = body.querySelector(`#${this._coordToId("td", [p.x, p.y])}`);
             td.className += " locked";
         });
@@ -765,8 +741,6 @@ class Sheet extends Component {
     _updateData(dataInfos, projector) {
         dataInfos.map((dataInfo) => {
             console.log("updating data for sheet: " + this.props.id + " with response id " + dataInfo.response_id);
-            console.log("action type: " + dataInfo.action);
-            console.log(dataInfos);
             // make sure the data is not empty
             let body = document.getElementById(`sheet-${this.props.id}-body`);
             let head = document.getElementById(`sheet-${this.props.id}-head`);
@@ -824,20 +798,6 @@ class Sheet extends Component {
                 }
             });
         }
-        /*
-        frame.coords.map((p) => {
-            let x = p.x - frame.origin.x;
-            let y = p.y - frame.origin.y;
-            let td = body.querySelector(`#${this._coordToId("td", [x, y])}`);
-            let d = "";
-            if (!clean){
-                d = this.dataFrame.get(p);
-            }
-            td.textContent = d;
-            td.dataset.x = p.x;
-            td.dataset.y = p.y;
-        });
-        */
     }
 
     /* Helper functions to determine a 'reasonable' number of columns and rows
@@ -903,10 +863,6 @@ class SheetRow extends Component {
                 id: item.id,
                 value: item.value,
                 width: this.props.colWidth,
-                /*
-                onMousedown: this.props.onMousedown,
-                onMouseup: this.props.onMouseup,
-                onMouseenter: this.props.onMouseenter*/
             }).build();
         });
         return (

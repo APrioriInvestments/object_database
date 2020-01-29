@@ -631,11 +631,9 @@ class Sheet extends Component {
 
     /* I handle updates to the display header */
     _updateHeader(body, head){
-        let origin = this.selector.selectionFrame.corner;
-        let td = body.querySelector(`#${this._coordToId("td", [origin.x, origin.y])}`);
+        let cursor = this.selector.selectionFrame.cursor;
         let th = head.querySelector(`#sheet-${this.props.id}-head-current`);
-        // TODO: put this back in
-        // th.textContent = `(${td.dataset.x}x${td.dataset.y}): ${td.textContent}`;
+        th.textContent = `(${cursor.x}x${cursor.y}): ${this.dataFrame.get(cursor)}`;
     }
 
     /* Simply resets the `isSelecting` to false, in the

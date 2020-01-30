@@ -31,3 +31,52 @@ class MultiPageTable(CellsTestPage):
             "You should see a table with two columns, "
             "two pages of 50 rows and all fields saying 'hi'"
         )
+
+
+def test_can_find_first_cell(headless_browser):
+    """Ensure that we load and find the first cell
+    value, which is '1'"""
+    root = headless_browser.get_demo_root_for(MultiPageTable)
+    assert root
+    expected_value = "1"
+    first_cell_query = "{} > tbody > tr > td".format(headless_browser.demo_root_selector)
+    first_cell_location = (headless_browser.by.CSS_SELECTOR, first_cell_query)
+    headless_browser.wait(5).until(
+        headless_browser.expect.text_to_be_present_in_element(
+            first_cell_location, expected_value
+        )
+    )
+
+
+def test_can_paginate_forward(headless_browser):
+    """Ensure that we can paginate, then find
+    new value in first cell"""
+    expected_value = "51"
+    query = "{} > thead > tr > th > *:nth-child(3)".format(headless_browser.demo_root_selector)
+    right_btn = headless_browser.find_by_css(query)
+    assert right_btn
+    right_btn.click()
+    first_cell_query = "{} > tbody > tr > td".format(headless_browser.demo_root_selector)
+    first_cell_location = (headless_browser.by.CSS_SELECTOR, first_cell_query)
+    headless_browser.wait(5).until(
+        headless_browser.expect.text_to_be_present_in_element(
+            first_cell_location, expected_value
+        )
+    )
+
+
+def test_can_paginate_back(headless_browser):
+    """Now ensure that we can paginate backward
+    """
+    expected_value = "1"
+    query = "{} > thead > tr > th > :first-child".format(headless_browser.demo_root_selector)
+    left_btn = headless_browser.find_by_css(query)
+    assert left_btn
+    left_btn.click()
+    first_cell_query = "{} > tbody > tr > td".format(headless_browser.demo_root_selector)
+    first_cell_location = (headless_browser.by.CSS_SELECTOR, first_cell_query)
+    headless_browser.wait(5).until(
+        headless_browser.expect.text_to_be_present_in_element(
+            first_cell_location, expected_value
+        )
+    )

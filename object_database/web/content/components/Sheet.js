@@ -210,8 +210,8 @@ class Sheet extends Component {
     }
 
     resizeOrigin(numRows, numColumns){
-        this.compositeFrame.baseFrame.origin.x -= numColumns;
-        this.compositeFrame.baseFrame.origin.y -= numRows;
+        this.compositeFrame.baseFrame.corner.x += numColumns;
+        this.compositeFrame.baseFrame.corner.y += numRows;
         this.compositeFrame.overlayFrames.forEach(frm => {
             let frame = frm["frame"];
             if (frame.name === "viewFrame"){

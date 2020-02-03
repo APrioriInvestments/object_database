@@ -22,8 +22,14 @@ class MultiPageTable(CellsTestPage):
             colFun=lambda: ["Col 1", "Col 2"],
             rowFun=lambda: list(range(100)),
             headerFun=lambda x: x,
-            rendererFun=lambda w, field: "hi",
-            maxRowsPerPage=50,
+            rendererFun=lambda w, field: (
+                f"hi {w}"
+                if field == "Col 1"
+                else f"ho {w}"
+                if field == "Col 2"
+                else f"Unknown field {field}"
+            ),
+            maxRowsPerPage=30,
         )
 
     def text(self):
@@ -51,7 +57,7 @@ def test_can_find_first_cell(headless_browser):
 def test_can_paginate_forward(headless_browser):
     """Ensure that we can paginate, then find
     new value in first cell"""
-    expected_value = "51"
+    expected_value = "31"
     query = "{} > thead > tr > th > *:nth-child(3)".format(headless_browser.demo_root_selector)
     right_btn = headless_browser.find_by_css(query)
     assert right_btn

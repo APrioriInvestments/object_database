@@ -34,8 +34,10 @@ class MultiPageTable(CellsTestPage):
 
     def text(self):
         return (
-            "You should see a table with two columns, "
-            "two pages of 50 rows and all fields saying 'hi'"
+            "You should see a table with two columns, 100 rows, and 30 rows per page"
+            "(so 3 pages of 30 rows and one page of 10 rows). The first column's prefix "
+            "is 'hi', the second column's prefix is 'ho', and each cell is suffixed with "
+            "the row's number [0, 99]."
         )
 
 

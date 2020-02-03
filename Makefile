@@ -127,6 +127,11 @@ black-check: $(VIRTUAL_ENV)
 black-check-local:
 	black --check --target-version=py36  --line-length=95  object_database
 
+.PHONY: cells-test
+cells-test: $(VIRTUAL_ENV)
+	. $(VIRTUAL_ENV)/bin/activate; \
+		./object_database/frontends/object_database_webtest.py
+
 .PHONY: lib
 lib: object_database/_types.cpython-36m-x86_64-linux-gnu.so
 

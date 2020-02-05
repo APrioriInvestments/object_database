@@ -26,3 +26,49 @@ class SimplePopover(CellsTestPage):
             "for example when you're trying to select detailed text in the Popover "
             "in order to copy it to your clipboard."
         )
+
+
+def test_popover_toggle_exists(headless_browser):
+    headless_browser.load_demo_page(SimplePopover)
+    query = '{} [data-toggle="popover"]'.format(headless_browser.demo_root_selector)
+    toggler = headless_browser.find_by_css(query)
+    assert toggler
+
+
+def test_popover_show_on_click(headless_browser):
+    # Test that the popover content
+    # shows on click
+    button = headless_browser.find_by_css(
+        '{} [data-toggle="popover"]'.format(headless_browser.demo_root_selector)
+    )
+    assert button
+    content_location = (headless_browser.by.CSS_SELECTOR, ".popover")
+    button.click()
+    headless_browser.wait(1).until(
+        headless_browser.expect.visibility_of_element_located(content_location)
+    )
+
+
+def test_popover_not_hide_on_content_click(headless_browser):
+    # Test that the popover -- now showing -- does not
+    # hide when clicking in the content area
+    content = headless_browser.find_by_css(".popover")
+    assert content
+    content.click()
+    content_location = (headless_browser.by.CSS_SELECTOR, ".popover")
+    headless_browser.wait(1)
+    headless_browser.expect.visibility_of_element_located(content_location)
+
+
+def test_popover_hides_on_toggle(headless_browser):
+    # Test that the popover content hides
+    # when the button is clicked
+    button = headless_browser.find_by_css(
+        '{} [data-toggle="popover"]'.format(headless_browser.demo_root_selector)
+    )
+    assert button
+    button.click()
+    content_location = (headless_browser.by.CSS_SELECTOR, ".popover")
+    headless_browser.wait(1).until(
+        headless_browser.expect.invisibility_of_element_located(content_location)
+    )

@@ -36,7 +36,6 @@ class NewCellHandler {
         this._sessionId = null;
 
         // Bind component methods
-        this.updatePopovers = this.updatePopovers.bind(this);
         this.showConnectionClosed = this.showConnectionClosed.bind(this);
         this.connectionClosedView = this.connectionClosedView.bind(this);
         this.appendPostscript = this.appendPostscript.bind(this);
@@ -225,10 +224,8 @@ class NewCellHandler {
      * from the socket.
      */
     handlePostscript(message){
-        // Elsewhere, update popovers first
-        // Now we evaluate scripts coming
+        // Evaluate scripts coming
         // across the wire.
-        this.updatePopovers();
         while(this.postscripts.length){
             let postscript = this.postscripts.pop();
             try {
@@ -239,46 +236,6 @@ class NewCellHandler {
             }
         }
     }
-
-    /**
-     * Convenience method that updates
-     * Bootstrap-style popovers on
-     * the DOM.
-     * See inline comments
-     */
-    updatePopovers() {
-        // This function requires
-        // jQuery and perhaps doesn't
-        // belong in this class.
-        // TODO: Figure out a better way
-        // ALSO NOTE:
-        // -----------------
-        // `getChildProp` is a const function
-        // that is declared in a separate
-        // script tag at the bottom of
-        // page.html. That's a no-no!
-        $('[data-toggle="popover"]').popover({
-            html: true,
-            container: 'body',
-            title: function () {
-                return getChildProp(this, 'title');
-            },
-            content: function () {
-                return getChildProp(this, 'content');
-            },
-            placement: function (popperEl, triggeringEl) {
-                let placement = triggeringEl.dataset.placement;
-                if(placement == undefined){
-                    return "bottom";
-                }
-                return placement;
-            }
-        });
-        $('.popover-dismiss').popover({
-            trigger: 'focus'
-        });
-    }
-
 
     /** Private Methods **/
 

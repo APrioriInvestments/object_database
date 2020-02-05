@@ -20,6 +20,9 @@ class Popover extends Component {
         this.makeTitle = this.makeTitle.bind(this);
         this.makeContent = this.makeContent.bind(this);
         this.makeDetail = this.makeDetail.bind(this);
+        this.popoverSetup = this.popoverSetup.bind(this);
+        this.onClickWhenOpen = this.onClickWhenOpen.bind(this);
+        this.onClickInPopover = this.onClickInPopover.bind(this);
     }
 
     build(){
@@ -34,15 +37,18 @@ class Popover extends Component {
                     {
                         href: "#popmain_" + this.props.id,
                         "data-toggle": "popover",
-                        "data-trigger": "focus",
+                        "data-trigger": "manual",
                         "data-bind": "#pop_" + this.props.id,
                         "data-placement": "bottom",
                         role: "button",
-                        class: "btn btn-xs"
+                        class: "btn btn-xs",
+                        afterCreate: this.popoverSetup
                     },
                   [this.makeContent()]
                 ),
-                h('div', {style: "display:none"}, [
+                h('div', {
+                    style: "display:none"
+                }, [
                     h("div", {id: "pop_" + this.props.id}, [
                         h("div", {class: "data-title"}, [this.makeTitle()]),
                         h("div", {class: "data-content"}, [
@@ -66,6 +72,49 @@ class Popover extends Component {
 
     makeTitle(){
         return this.renderChildNamed('title');
+    }
+
+    onClickWhenOpen(event){
+        $('[data-toggle="popover"]').popover('hide');
+    }
+
+    onClickInPopover(event){
+        event.stopPropagation();
+    }
+
+    popoverSetup(element){
+        // Note: we use jQuery here as
+        // it is a requirement of the
+        // Bootstrap popover module
+        $(element).popover({
+            html: true,
+            container: 'body',
+            title: function () {
+                return getChildProp(this, 'title');
+            },
+            content: function () {
+                return getChildProp(this, 'content');
+            },
+            placement: function (popperEl, triggeringEl) {
+                let placement = triggeringEl.dataset.placement;
+                if(placement == undefined){
+                    return "bottom";
+                }
+                return placement;
+            }
+        });
+        $(element).on('click', () => {
+            $(element).popover('toggle');
+            $(element).on('shown.bs.popover', () => {
+                document.addEventListener('click', this.onClickWhenOpen);
+                let el = document.querySelector('.popover');
+                el.addEventListener('click', this.onClickInPopover);
+            });
+            $(element).on('hide.bs.popover', () => {
+                document.removeEventListener('click', this.onClickWhenOpen);
+                document.querySelector('.popover').removeEventListener('click', this.onClickInPopover);
+            });
+        });
     }
 }
 

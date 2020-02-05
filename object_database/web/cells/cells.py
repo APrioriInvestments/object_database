@@ -3116,8 +3116,12 @@ class Sheet(Cell):
         self.totalRows = totalRows
         self.colWidth = colWidth
         self.rowHeight = rowHeight
+        if numLockRows >= totalRows:
+            raise "The number of totalRows must be greater than numLockRows."
         self.numLockRows = numLockRows
         self.numLockColumns = numLockColumns
+        if numLockColumns >= totalColumns:
+            raise "The number of totalColumns must be greater than numLockColumns."
         self.dataInfosToSend = []
 
         self.error = Slot(None)

@@ -805,7 +805,7 @@ class Sheet extends Component {
      */
     _calcMaxNumRows(maxHeight){
         // NOTE: we account for the header row
-        let rowNum = Math.min(this.totalRows, Math.ceil(maxHeight/(this.props.rowHeight * 1.05))) - 1;
+        let rowNum = Math.min(this.totalRows, Math.ceil(maxHeight/(this.props.rowHeight * 1.05)) - 1);
         // make sure to return at least one row
         return Math.max(1, rowNum);
     }

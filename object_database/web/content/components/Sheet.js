@@ -367,12 +367,7 @@ class Sheet extends Component {
                 // make sure we don't run out of data at the right of the page
                 translation.x = Math.min(this.dataFrame.corner.x - viewFrame.corner.x, viewFrame.size.x);
                 if(event.shiftKey){
-                    this.selector.selectionFrame.corner.translate(translation),
-                    this.selector.selectionFrame.fromPointToPoint(
-                        this.selector.selectionFrame.origin,
-                        this.selector.selectionFrame.corner,
-                        false
-                    );
+					this.selector.pageRight(translation.x);
                 } else {
                     this.selector.selectionFrame.translate(translation);
                 }
@@ -380,12 +375,7 @@ class Sheet extends Component {
                 // make sure we don't run out of data at the left
                 translation.x = -1 * Math.min(viewFrame.origin.x - viewOrigin.x, viewFrame.size.x);
                 if(event.shiftKey){
-                    this.selector.selectionFrame.origin.translate(translation),
-                    this.selector.selectionFrame.fromPointToPoint(
-                        this.selector.selectionFrame.origin,
-                        this.selector.selectionFrame.corner,
-                        false
-                    );
+					this.selector.pageLeft(-1 * translation.x);
                 } else {
                     this.selector.selectionFrame.translate(translation);
                 }
@@ -397,12 +387,7 @@ class Sheet extends Component {
                 // make sure we don't run out of data at the bottom of the page
                 translation.y = Math.min(this.dataFrame.corner.y - viewFrame.corner.y, viewFrame.size.y);
                 if(event.shiftKey){
-                    this.selector.selectionFrame.corner.translate(translation),
-                    this.selector.selectionFrame.fromPointToPoint(
-                        this.selector.selectionFrame.origin,
-                        this.selector.selectionFrame.corner,
-                        false
-                    );
+					this.selector.pageDown(translation.y);
                 } else {
                     this.selector.selectionFrame.translate(translation);
                 }
@@ -410,12 +395,7 @@ class Sheet extends Component {
                 // make sure we don't run out of data at the top
                 translation.y = -1 * Math.min(viewFrame.origin.y - viewOrigin.y, viewFrame.size.y);
                 if(event.shiftKey){
-                    this.selector.selectionFrame.origin.translate(translation),
-                    this.selector.selectionFrame.fromPointToPoint(
-                        this.selector.selectionFrame.origin,
-                        this.selector.selectionFrame.corner,
-                        false
-                    );
+					this.selector.pageUp(-1 * translation.y);
                 } else {
                     this.selector.selectionFrame.translate(translation);
                 }

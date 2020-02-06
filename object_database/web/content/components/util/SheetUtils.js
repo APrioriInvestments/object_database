@@ -1289,6 +1289,73 @@ class Selector {
     }
 
     /**
+     * I expand the selection frame one page down
+     */
+    pageDown(amount){
+		let yDiff = amount;
+		if(this.selectionFrame.isAtBottom(this.selectionFrame.cursor)){
+			yDiff = amount + this.selectionFrame.size.y;
+		}
+		let diff = [0, yDiff];
+		let toPoint = this.applyToOppositeCorner(diff);
+		this.fromPointToPoint(
+			this.selectionFrame.cursor,
+			toPoint,
+			false
+		);
+    }
+
+    /**
+     * I expand the selection frame one page up
+     */
+    pageUp(amount){
+		let yDiff = -1 * amount;
+		if(this.selectionFrame.isAtTop(this.selectionFrame.cursor)){
+			yDiff = -1 * (amount + this.selectionFrame.size.y);
+		}
+		let diff = [0, yDiff];
+		let toPoint = this.applyToOppositeCorner(diff);
+		this.fromPointToPoint(
+			this.selectionFrame.cursor,
+			toPoint,
+			false
+		);
+    }
+
+    /**
+     * I expand the selection frame one page right
+     */
+    pageRight(amount){
+		let xDiff = amount;
+		if(this.selectionFrame.isAtRight(this.selectionFrame.cursor)){
+			xDiff = amount + this.selectionFrame.size.x;
+		}
+		let diff = [xDiff, 0];
+		let toPoint = this.applyToOppositeCorner(diff);
+		this.fromPointToPoint(
+			this.selectionFrame.cursor,
+			toPoint,
+			false
+		);
+    }
+
+    /**
+     * I expand the selection frame page left
+     */
+    pageLeft(amount){
+		let xDiff = -1 * amount;
+		if(this.selectionFrame.isAtLeft(this.selectionFrame.cursor)){
+			xDiff = -1 * (amount + this.selectionFrame.size.x);
+		}
+		let diff = [xDiff, 0];
+		let toPoint = this.applyToOppositeCorner(diff);
+		this.fromPointToPoint(
+			this.selectionFrame.cursor,
+			toPoint,
+			false
+		);
+    }
+    /**
      * I move the cursor up by one
      */
     cursorUp(shrinkToCursor){

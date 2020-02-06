@@ -136,17 +136,28 @@ def reload():
 
 
 def selectionPanel(page):
-    availableCells = []
-    for _, category in sorted(getPages().items()):
-        for _, item in sorted(category.items()):
-            displayName = "{}.{}".format(item.category(), item.name())
-            url = "CellsTestService?{}".format(
-                urllib.parse.urlencode(dict(category=item.category(), name=item.name()))
-            )
-            clickable = cells.Clickable(displayName, url, makeBold=item is page)
-            availableCells.append(clickable)
+    substringFilter = cells.Slot("")
+
+    def getAvailableCells():
+        availableCells = []
+        for _, category in sorted(getPages().items()):
+            for _, item in sorted(category.items()):
+                displayName = "{}.{}".format(item.category(), item.name())
+                url = "CellsTestService?{}".format(
+                    urllib.parse.urlencode(dict(category=item.category(), name=item.name()))
+                )
+                clickable = cells.Clickable(displayName, url, makeBold=item is page)
+                # ignore case when filtering
+                if substringFilter.get().lower() in displayName.lower():
+                    availableCells.append(clickable)
+        return availableCells
+
     reloadInput = cells.Button(cells.Octicon("sync"), reload)
+    filterBox = cells.SingleLineTextBox(substringFilter)
+    header = cells.HorizontalSequence([reloadInput, filterBox])
 
     return cells.Panel(
-        cells.Sequence([reloadInput, cells.Flex(cells.Sequence(availableCells))])
+        cells.Sequence(
+            [header, cells.Subscribed(lambda: cells.Flex(cells.Sequence(getAvailableCells())))]
+        )
     )

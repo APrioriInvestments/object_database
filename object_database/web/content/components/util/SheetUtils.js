@@ -1221,6 +1221,74 @@ class Selector {
     }
 
     /**
+     * I expand the selection frame all the way to the bottom
+     */
+    growToBottom(){
+		let yDiff = this.sheet.dataFrame.corner.y - this.selectionFrame.corner.y;
+		if(this.selectionFrame.isAtBottom(this.selectionFrame.cursor)){
+			yDiff = this.sheet.dataFrame.corner.y - this.selectionFrame.origin.y;
+		}
+		let diff = [0, yDiff];
+		let toPoint = this.applyToOppositeCorner(diff);
+		this.fromPointToPoint(
+			this.selectionFrame.cursor,
+			toPoint,
+			false
+		);
+    }
+
+    /**
+     * I expand the selection frame all the way to the top
+     */
+    growToTop(){
+		let yDiff = -1 * this.selectionFrame.origin.y;
+		if(this.selectionFrame.isAtTop(this.selectionFrame.cursor)){
+			yDiff = -1 * this.selectionFrame.corner.y;
+		}
+		let diff = [0, yDiff];
+		let toPoint = this.applyToOppositeCorner(diff);
+		this.fromPointToPoint(
+			this.selectionFrame.cursor,
+			toPoint,
+			false
+		);
+    }
+
+    /**
+     * I expand the selection frame all the way to the right
+     */
+    growToRight(){
+		let xDiff = this.sheet.dataFrame.corner.x - this.selectionFrame.corner.x;
+		if(this.selectionFrame.isAtRight(this.selectionFrame.cursor)){
+			xDiff = this.sheet.dataFrame.corner.x - this.selectionFrame.origin.x;
+		}
+		let diff = [xDiff, 0];
+		let toPoint = this.applyToOppositeCorner(diff);
+		this.fromPointToPoint(
+			this.selectionFrame.cursor,
+			toPoint,
+			false
+		);
+    }
+
+    /**
+     * I expand the selection frame all the way to the left
+     */
+    growToLeft(){
+		let xDiff = -1 * this.selectionFrame.origin.x;
+		if(this.selectionFrame.isAtLeft(this.selectionFrame.cursor)){
+			xDiff = -1 * this.selectionFrame.corner.x;
+		}
+		let diff = [xDiff, 0];
+		let toPoint = this.applyToOppositeCorner(diff);
+		this.fromPointToPoint(
+			this.selectionFrame.cursor,
+			toPoint,
+			false
+		);
+    }
+
+    /**
      * I move the cursor up by one
      */
     cursorUp(shrinkToCursor){

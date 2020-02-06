@@ -3,6 +3,7 @@
  */
 
 import {Component} from './Component';
+import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 class SingleLineTextBox extends Component {
@@ -20,6 +21,7 @@ class SingleLineTextBox extends Component {
                 id: "text_" + this.props.id,
                 type: "text",
                 "data-cell-id": this.props.id,
+                value: (this.props.defaultValue || ""),
                 "data-cell-type": "SingleLineTextBox",
                 onchange: (event) => {this.changeHandler(event.target.value);}
             };
@@ -41,5 +43,12 @@ class SingleLineTextBox extends Component {
         );
     }
 }
+
+SingleLineTextBox.propTypes = {
+    defaultValue: {
+        type: PropTypes.string,
+        description: "Default value to insert into field"
+    }
+};
 
 export {SingleLineTextBox, SingleLineTextBox as default};

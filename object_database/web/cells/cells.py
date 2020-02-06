@@ -2348,6 +2348,7 @@ class SingleLineTextBox(Cell):
     def recalculate(self):
         if self.pattern:
             self.exportData["pattern"] = self.pattern
+        self.exportData["defaultValue"] = self.slot.get()
 
     def onMessage(self, msgFrame):
         self.slot.set(msgFrame["text"])

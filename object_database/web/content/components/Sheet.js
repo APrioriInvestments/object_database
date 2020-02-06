@@ -413,6 +413,10 @@ class Sheet extends Component {
 
         this.compositeFrame.translate(translation, "viewFrame");
         this.fetchData("update");
+		console.log("selector frame");
+		console.log(`origin: (${this.selector.selectionFrame.origin.x}, ${this.selector.selectionFrame.origin.y})`);
+		console.log(`corner: (${this.selector.selectionFrame.corner.x}, ${this.selector.selectionFrame.corner.y})`);
+		console.log(`cursor: (${this.selector.selectionFrame.cursor.x}, ${this.selector.selectionFrame.cursor.y})`);
     }
 
     /* I handle arrow triggered navigation of the active_frame and related views */

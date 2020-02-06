@@ -421,7 +421,7 @@ class Cells:
 
         updatedNodesToSend = set()
         for node in createdAndUpdated:
-            stableParent = self.findStableParent(node)
+            stableParent = node.stableParent()
             updatedNodesToSend.add(stableParent)
 
         for nodeToSend in list(updatedNodesToSend):
@@ -491,6 +491,11 @@ class Cells:
         old_queue = self._transactionQueue
         self._transactionQueue = queue.Queue()
 
+        if self._dirtyNodes:
+            import web_pdb
+
+            web_pdb.set_trace()
+
         try:
             while True:
                 self._handleTransaction(*old_queue.get_nowait())
@@ -510,15 +515,6 @@ class Cells:
                 for node in nodesAtThisLevel:
                     if not node.garbageCollected:
                         self._recalculateSingleCell(node)
-
-        # Any Subscribeds that are set to broadcast
-        # and that have been updated should also
-        # make sure their parent Cell is updated.
-        for node in self._nodesToBroadcast:
-            node_to_check = node
-            while node_to_check and isinstance(node_to_check, Subscribed):
-                node_to_check = node_to_check.parent
-                node_to_check.wasUpdated = True
 
     def _recalculateSingleCell(self, node):
         if node.wasDataUpdated:
@@ -1024,6 +1020,17 @@ class Cell:
         self.visitAllChildren(visitor)
 
         return res
+
+    def stableParent(self):
+        """Find either myself or
+        a parent Cell that is stable
+        enough to send in an update
+        message"""
+        if not self.parent:
+            return self
+        if self.parent.wasUpdated or self.parent.wasCreated or self.isMergedIntoParent():
+            return self.parent.stableParent()
+        return self
 
     def childByIndex(self, ix):
         return self.children[sorted(self.children)[ix]]
@@ -1968,6 +1975,7 @@ class Subscribed(Cell):
                     newCell.prepareForReuse()
 
                 self.children["content"] = newCell
+
             except SubscribeAndRetry:
                 raise
             except Exception:
@@ -2344,11 +2352,30 @@ class SingleLineTextBox(Cell):
         super().__init__()
         self.pattern = None
         self.slot = slot
+        self.defaultValue = self.slot.get()
+        self.exportData["defaultValue"] = self.defaultValue
 
     def recalculate(self):
         if self.pattern:
             self.exportData["pattern"] = self.pattern
-        self.exportData["defaultValue"] = self.slot.get()
+
+    def subscribedSlotChanged(self, slot):
+        """Override the way we respond to a slot changing.
+
+        Instead of recalculating, which would rebuild the component, we
+        simply send a message to the server. Eventually this will used the 'data changed'
+        channel
+        """
+        pass
+
+    def subscribedOdbValueChanges(self, odbKey):
+        """Override the way we respond to an odb value changing.
+
+        Instead of recalculating, which would rebuild the component, we
+        simply send a message to the server. Eventually this will used the 'data changed'
+        channel
+        """
+        pass
 
     def onMessage(self, msgFrame):
         self.slot.set(msgFrame["text"])

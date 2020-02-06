@@ -1293,9 +1293,9 @@ class Selector {
      */
     pageDown(amount){
 		let yDiff = amount;
-		if(this.selectionFrame.isAtBottom(this.selectionFrame.cursor)){
-			yDiff = amount + this.selectionFrame.size.y;
-		}
+		// if(this.selectionFrame.isAtBottom(this.selectionFrame.cursor)){
+		//	yDiff = amount + this.selectionFrame.size.y;
+		//}
 		let diff = [0, yDiff];
 		let toPoint = this.applyToOppositeCorner(diff);
 		this.fromPointToPoint(
@@ -1310,9 +1310,9 @@ class Selector {
      */
     pageUp(amount){
 		let yDiff = -1 * amount;
-		if(this.selectionFrame.isAtTop(this.selectionFrame.cursor)){
-			yDiff = -1 * (amount + this.selectionFrame.size.y);
-		}
+		// if(this.selectionFrame.isAtTop(this.selectionFrame.cursor)){
+		//	yDiff = -1 * (amount + this.selectionFrame.size.y);
+		//}
 		let diff = [0, yDiff];
 		let toPoint = this.applyToOppositeCorner(diff);
 		this.fromPointToPoint(
@@ -1327,9 +1327,9 @@ class Selector {
      */
     pageRight(amount){
 		let xDiff = amount;
-		if(this.selectionFrame.isAtRight(this.selectionFrame.cursor)){
-			xDiff = amount + this.selectionFrame.size.x;
-		}
+		// if(this.selectionFrame.isAtRight(this.selectionFrame.cursor)){
+		//	xDiff = amount + this.selectionFrame.size.x;
+		// }
 		let diff = [xDiff, 0];
 		let toPoint = this.applyToOppositeCorner(diff);
 		this.fromPointToPoint(
@@ -1344,9 +1344,9 @@ class Selector {
      */
     pageLeft(amount){
 		let xDiff = -1 * amount;
-		if(this.selectionFrame.isAtLeft(this.selectionFrame.cursor)){
-			xDiff = -1 * (amount + this.selectionFrame.size.x);
-		}
+		// if(this.selectionFrame.isAtLeft(this.selectionFrame.cursor)){
+		//	xDiff = -1 * (amount + this.selectionFrame.size.x);
+		//}
 		let diff = [xDiff, 0];
 		let toPoint = this.applyToOppositeCorner(diff);
 		this.fromPointToPoint(

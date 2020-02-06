@@ -186,9 +186,11 @@ def _resolveExpandedChild(parent_id, cell_or_list, name_in_parent):
         return [
             _resolveExpandedChild(parent_id, cell, name_in_parent) for cell in cell_or_list
         ]
+    """
     if cell_or_list.__class__.__name__ == "Subscribed":
         next_child = cell_or_list.children["content"]
         return _resolveExpandedChild(parent_id, next_child, name_in_parent)
+    """
 
     return _getExpandedStructure(parent_id, cell_or_list, name_in_parent)
 
@@ -229,9 +231,11 @@ def _resolveUpdateChild(name_in_parent, child_or_list, parent_cell):
 
     # If the child is a Subscribed, we attempt to
     # "see through" it by moving onto its content
+    """
     if child_or_list.__class__.__name__ == "Subscribed":
         next_child = child_or_list.children["content"]
         return _resolveUpdateChild(name_in_parent, next_child, parent_cell)
+    """
 
     # If the child was just created, recursively grab
     # the whole subtree for it

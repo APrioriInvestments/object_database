@@ -38,6 +38,7 @@ import {Sequence} from './components/Sequence';
 import {Scrollable} from './components/Scrollable';
 import {SingleLineTextBox} from './components/SingleLineTextBox';
 import {Span} from './components/Span';
+import {Subscribed} from './components/Subscribed';
 import {SubscribedSequence} from './components/SubscribedSequence';
 import {Table} from './components/Table';
 import {Tabs} from './components/Tabs';
@@ -90,6 +91,7 @@ const ComponentRegistry = {
     Scrollable,
     SingleLineTextBox,
     Span,
+    Subscribed,
     SubscribedSequence,
     Table,
     Tabs,

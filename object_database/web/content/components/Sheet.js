@@ -449,11 +449,7 @@ class Sheet extends Component {
                 translation.y = viewOrigin.y - viewFrame.origin.y;
                 this.compositeFrame.translate(translation, "lockedColumns");
                 if(event.shiftKey){
-                    this.selector.fromPointToPoint(
-                        [this.selector.selectionFrame.origin.x, 0], // Note: we might want this to be viewOrigin.y
-                        this.selector.selectionFrame.corner,
-                        false
-                    );
+					this.selector.growToTop();
                 } else {
                     // Ensure that cursor moves to the
                     // top of the current view frame
@@ -468,11 +464,7 @@ class Sheet extends Component {
                 translation.y = this.dataFrame.corner.y - viewFrame.corner.y;
                 this.compositeFrame.translate(translation, "lockedColumns");
                 if(event.shiftKey){
-                    this.selector.fromPointToPoint(
-                        this.selector.selectionFrame.origin,
-                        [this.selector.selectionFrame.corner.x, this.dataFrame.corner.y],
-                        false
-                    );
+					this.selector.growToBottom();
                  } else {
                     // Ensure that the cursor moves to the
                     // bottom of the current view frame
@@ -486,11 +478,7 @@ class Sheet extends Component {
                 translation.x = this.dataFrame.corner.x - viewFrame.corner.x;
                 this.compositeFrame.translate(translation, "lockedRows");
                 if(event.shiftKey){
-                    this.selector.fromPointToPoint(
-                        this.selector.selectionFrame.origin,
-                        [this.dataFrame.corner.x, this.selector.selectionFrame.corner.y],
-                        false
-                    );
+					this.selector.growToRight();
                 } else {
                     // Ensure that the cursor moves to the
                     // right side of the current view frame
@@ -504,11 +492,7 @@ class Sheet extends Component {
                 translation.x = viewOrigin.x - viewFrame.origin.x;
                 this.compositeFrame.translate(translation, "lockedRows");
                 if(event.shiftKey){
-                    this.selector.fromPointToPoint(
-                        [0, this.selector.selectionFrame.origin.y], // Note: we might want this to be viewOrigin.x
-                        this.selector.selectionFrame.corner,
-                        false
-                    );
+					this.selector.growToLeft();
                 } else {
                     // Ensure that the cursor moves to the
                     // left side of the current view frame
@@ -765,6 +749,9 @@ class Sheet extends Component {
                     this._updatedDisplayValues(body);
                     this.selector.clearStyling();
                     this.selector.addStyling();
+
+					// display the contents in the top header line
+					this._updateHeader(body, head);
                 }
             }
         });

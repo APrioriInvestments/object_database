@@ -1312,7 +1312,7 @@ class Selector {
     }
 
     /**
-     * I expand the selection frame one page up
+     * I expand the selection frame one page up.
      */
     pageUp(amount){
 		let yDiff = -1 * amount;
@@ -1617,15 +1617,15 @@ class Selector {
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
-		let firstRow = body.firstChild;
-		let originElement = firstRow.firstChild;
+		let originElement = body.querySelectorAll("td:not(.locked)")[0];
 		let translation = new Point([0, 0]);
 		if (this.cursorAboveView()){
 			translation.y = this.selectionFrame.cursor.y - parseInt(originElement.dataset.y);
 53
-		} else if (this.cursorBelowView()){
+		} if (this.cursorBelowView()){
 			translation.y = this.selectionFrame.cursor.y - parseInt(cornerElement.dataset.y);
-		} else if (this.cursorRightOfView()){
+		}
+		if (this.cursorRightOfView()){
 			translation.x = this.selectionFrame.cursor.x - parseInt(cornerElement.dataset.x);
 
 		} else if (this.cursorLeftOfView()){
@@ -1738,8 +1738,7 @@ class Selector {
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
-		let firstRow = body.firstChild;
-		let originElement = firstRow.firstChild;
+		let originElement = body.querySelectorAll("td:not(.locked)")[0];
         let originX = parseInt(originElement.dataset["x"]);
         let originY = parseInt(originElement.dataset["y"]);
         let cornerX = parseInt(cornerElement.dataset["x"]);
@@ -1754,8 +1753,7 @@ class Selector {
 	 */
 	cursorAboveView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
-		let firstRow = body.firstChild;
-		let originElement = firstRow.firstChild;
+		let originElement = body.querySelectorAll("td:not(.locked)")[0];
 		let y = this.selectionFrame.cursor.y;
         return y < parseInt(originElement.dataset["y"]);
 	}
@@ -1776,8 +1774,7 @@ class Selector {
 	 */
 	cursorLeftOfView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
-		let firstRow = body.firstChild;
-		let originElement = firstRow.firstChild;
+		let originElement = body.querySelectorAll("td:not(.locked)")[0];
 		let x = this.selectionFrame.cursor.x;
         return x < parseInt(originElement.dataset["x"]);
 	}

@@ -368,19 +368,14 @@ class Sheet extends Component {
                 translation.x = Math.min(this.dataFrame.corner.x - viewFrame.corner.x, viewFrame.size.x);
                 if(event.shiftKey){
 					this.selector.pageRight(translation.x);
-                } else {
-                    this.selector.selectionFrame.translate(translation);
                 }
             } else if (event.key === "PageUp") {
                 // make sure we don't run out of data at the left
                 translation.x = -1 * Math.min(viewFrame.origin.x - viewOrigin.x, viewFrame.size.x);
                 if(event.shiftKey){
 					this.selector.pageLeft(-1 * translation.x);
-                } else {
-                    this.selector.selectionFrame.translate(translation);
                 }
             }
-            this.compositeFrame.translate(translation, "lockedRows");
         } else {
             // offset by fixed rows/columns
             if (event.key === "PageDown"){
@@ -388,31 +383,37 @@ class Sheet extends Component {
                 translation.y = Math.min(this.dataFrame.corner.y - viewFrame.corner.y, viewFrame.size.y);
                 if(event.shiftKey){
 					this.selector.pageDown(translation.y);
-                } else {
-                    this.selector.selectionFrame.translate(translation);
                 }
             } else if (event.key === "PageUp"){
                 // make sure we don't run out of data at the top
                 translation.y = -1 * Math.min(viewFrame.origin.y - viewOrigin.y, viewFrame.size.y);
                 if(event.shiftKey){
 					this.selector.pageUp(-1 * translation.y);
-                } else {
-                    this.selector.selectionFrame.translate(translation);
                 }
             }
-            this.compositeFrame.translate(translation, "lockedColumns");
         }
 
-        // If there is a current selection,
+
+        // If there is a current selection, translate it and
         // shrink it to the cursor unless the navigation is
         // combined with selector expansion.
         if (!event.shiftKey){
+			// if the cursor is out of view we translate the view to the cursor
+			// and do nothing else!
+			if (!this.selector.cursorInView()){
+				this.selector.shiftViewToCursor();
+				return;
+			}
+			this.selector.selectionFrame.translate(translation);
             this.selector.clearStyling();
             this.selector.shrinkToCursor();
         }
 
-        this.compositeFrame.translate(translation, "viewFrame");
-        this.fetchData("update");
+		this.compositeFrame.translate(translation, "viewFrame");
+		this.compositeFrame.translate([translation.x, 0], "lockedRows");
+		this.compositeFrame.translate([0, translation.y], "lockedColumns");
+		this.fetchData("update");
+
 		console.log("selector frame");
 		console.log(`origin: (${this.selector.selectionFrame.origin.x}, ${this.selector.selectionFrame.origin.y})`);
 		console.log(`corner: (${this.selector.selectionFrame.corner.x}, ${this.selector.selectionFrame.corner.y})`);

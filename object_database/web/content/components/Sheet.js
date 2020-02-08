@@ -342,9 +342,12 @@ class Sheet extends Component {
             event.clipboardData.clearData();
 			console.log("fetching clipboard data");
             this.selector.fetchData();
-			window.setTimeout(console.log, 1000, 'done waiting');
-			let txt = this.selector.getSelectionClipboard();
-            event.clipboardData.setData('text/plain', txt);
+			window.setTimeout(() => {
+				let txt = this.selector.getSelectionClipboard();
+				event.clipboardData.setData('text/plain', txt);
+			}, 1000);
+			// let txt = this.selector.getSelectionClipboard();
+            // event.clipboardData.setData('text/plain', txt);
         }
     }
 

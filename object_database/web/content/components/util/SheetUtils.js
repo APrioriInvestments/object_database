@@ -1046,6 +1046,8 @@ class Selector {
             });
             clipboard += row + "\n";
         }
+		console.log("copying to clipboard");
+		// event.clipboardData.setData('text/plain',clipboard);
         return clipboard;
     }
 
@@ -1065,7 +1067,6 @@ class Selector {
             action: "clipboardData",
         });
         cellSocket.sendString(request);
-		window.setTimeout(() => {return Promise.resolve("clipboard data fetched")}, 2000);
     }
 
     /**

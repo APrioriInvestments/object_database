@@ -339,7 +339,12 @@ class Sheet extends Component {
             // arrives before we copy the elements to the clipboard.
             event.preventDefault();
             event.stopPropagation();
+            event.clipboardData.clearData();
+			console.log("fetching clipboard data");
             this.selector.fetchData();
+			window.setTimeout(console.log, 1000, 'done waiting');
+			let txt = this.selector.getSelectionClipboard();
+            event.clipboardData.setData('text/plain', txt);
         }
     }
 
@@ -713,7 +718,11 @@ class Sheet extends Component {
             let head = document.getElementById(`sheet-${this.props.id}-head`);
             if (dataInfo.data && dataInfo.data.length){
                 if (dataInfo.action === "clipboardData"){
-                    this.selector.getSelectionClipboard(dataInfo.data);
+					console.log("got clipboard data");
+                    let origin = dataInfo.origin;
+                    this.dataFrame.load(dataInfo.data, [origin.x, origin.y]);
+					console.log("done loading clipboard data");
+                    // this.selector.getSelectionClipboard(dataInfo.data);
                 } else {
                     if (dataInfo.action === "replace") {
                         // we update the Sheet with (potentially empty) values

@@ -1017,7 +1017,7 @@ class Selector {
      * @param {array} - arrat of arrays of text-values
      * @returns {string} - A CSV-formatted string
      */
-    getSelectionClipboard(data){
+    getSelectionClipboardNEW(data){
         // generates a clipboard string from the current points
         // Note: in order to create line breaks we slice along the y-axis
         let clipboard = data.map(item => {return item.join("\t")}).join("\n");
@@ -1029,6 +1029,24 @@ class Selector {
                 // This can happen if the user denies clipboard permissions:
                 console.error('Could not copy data: ', err);
             });
+    }
+
+    getSelectionClipboard(){
+        // generates a clipboard string from the current points
+        // Note: in order to create line breaks we slice along the y-axis
+        let clipboard = "";
+        for (let y = this.selectionFrame.origin.y; y <= this.selectionFrame.corner.y; y++){
+            let row = "";
+            this.selectionFrame.sliceCoords(y, "x").map(point => {
+                // let id = this.sheet._coordToId("td", [point.x, point.y]);
+                // let td = document.getElementById(id);
+                // row += td.textContent + "\t";
+				let textContent = this.sheet.dataFrame.get(point);
+                row += textContent + "\t";
+            });
+            clipboard += row + "\n";
+        }
+        return clipboard;
     }
 
     /* I make WS requests to the server for more data.*/
@@ -1047,6 +1065,7 @@ class Selector {
             action: "clipboardData",
         });
         cellSocket.sendString(request);
+		window.setTimeout(() => {return Promise.resolve("clipboard data fetched")}, 2000);
     }
 
     /**

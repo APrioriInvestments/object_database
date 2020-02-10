@@ -325,11 +325,15 @@ class Sheet extends Component {
             this.arrowUpDownLeftRight(body, event);
             // display the contents in the top header line
             this._updateHeader(body, head);
-        }
+        } else if(event.key === "c"){
+			if(event.ctrlKey){
+				this.copyToClipboad();
+			}
+		}
     }
 
     /* I copy the current this.selector cell values to the clipboard. */
-    copyToClipboad(event){
+    copyToClipboad(){
         let size = this.selector.selectionFrame.size;
         if ((size.x + 1) * (size.y + 1) > 10000){
             alert("copy is limited to 10,000 cells");
@@ -337,15 +341,15 @@ class Sheet extends Component {
             // NOTE: we need to first fetch the data which means send a
             // WS data request with action==="clipboardData" so that the data
             // arrives before we copy the elements to the clipboard.
-            event.preventDefault();
-            event.stopPropagation();
-            event.clipboardData.clearData();
+            // event.preventDefault();
+            // event.stopPropagation();
+            // event.clipboardData.clearData();
 			console.log("fetching clipboard data");
             this.selector.fetchData();
-			window.setTimeout(() => {
-				let txt = this.selector.getSelectionClipboard();
-				event.clipboardData.setData('text/plain', txt);
-			}, 1000);
+			// window.setTimeout(() => {
+			//	let txt = this.selector.getSelectionClipboard();
+			//	event.clipboardData.setData('text/plain', txt);
+			//}, 1000);
 			// let txt = this.selector.getSelectionClipboard();
             // event.clipboardData.setData('text/plain', txt);
         }
@@ -353,13 +357,13 @@ class Sheet extends Component {
 
     /* I add the copy event listener, when the current sheet is in focus. */
     onFocus(event){
-        document.addEventListener('copy', this.copyToClipboad)
+        // document.addEventListener('copy', this.copyToClipboad)
     };
 
 
     /* I remove the copy event listener, when the current sheet is out of focus. */
     onBlur(event){
-        document.removeEventListener('copy', this.copyToClipboad);
+        // document.removeEventListener('copy', this.copyToClipboad);
     }
 
     /* I handle page Up/Down of the view */
@@ -722,10 +726,10 @@ class Sheet extends Component {
             if (dataInfo.data && dataInfo.data.length){
                 if (dataInfo.action === "clipboardData"){
 					console.log("got clipboard data");
-                    let origin = dataInfo.origin;
-                    this.dataFrame.load(dataInfo.data, [origin.x, origin.y]);
-					console.log("done loading clipboard data");
-                    // this.selector.getSelectionClipboard(dataInfo.data);
+                    // let origin = dataInfo.origin;
+                    // this.dataFrame.load(dataInfo.data, [origin.x, origin.y]);
+					// console.log("done loading clipboard data");
+                    this.selector.getSelectionClipboard(dataInfo.data);
                 } else {
                     if (dataInfo.action === "replace") {
                         // we update the Sheet with (potentially empty) values

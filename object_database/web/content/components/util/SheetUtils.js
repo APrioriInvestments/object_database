@@ -1021,7 +1021,8 @@ class Selector {
         // generates a clipboard string from the current points
         // Note: in order to create line breaks we slice along the y-axis
         let clipboard = data.map(item => {return item.join("\t")}).join("\n");
-		let inputEl = document.createElement("input");
+		console.log(clipboard);
+		let inputEl = document.createElement("textarea");
 		inputEl.style.position = 'absolute';
 		inputEl.style.top = '-10000px';
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);

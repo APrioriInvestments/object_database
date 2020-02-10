@@ -1017,21 +1017,32 @@ class Selector {
      * @param {array} - arrat of arrays of text-values
      * @returns {string} - A CSV-formatted string
      */
-    getSelectionClipboardNEW(data){
+    getSelectionClipboard(data){
         // generates a clipboard string from the current points
         // Note: in order to create line breaks we slice along the y-axis
         let clipboard = data.map(item => {return item.join("\t")}).join("\n");
+		let inputEl = document.createElement("input");
+		inputEl.style.position = 'absolute';
+		inputEl.style.top = '-10000px';
+        let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
+		body.appendChild(inputEl);
+		inputEl.value = clipboard;
+		inputEl.select();
+		document.execCommand("copy");
+		inputEl.remove();
+		/*
         navigator.clipboard.writeText(clipboard)
             .then(() => {
-                console.log('Data copied.');
+                console.log('Data copied.')R
             })
             .catch(err => {
                 // This can happen if the user denies clipboard permissions:
                 console.error('Could not copy data: ', err);
             });
+			*/
     }
 
-    getSelectionClipboard(){
+    getSelectionClipboardOLD(){
         // generates a clipboard string from the current points
         // Note: in order to create line breaks we slice along the y-axis
         let clipboard = "";

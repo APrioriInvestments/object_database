@@ -62,6 +62,7 @@ class Sheet extends Component {
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
+		this.handleMouseWheel = this.handleMouseWheel.bind(this);
         this.handleClick = this.handleClick.bind(this);
         this.handleTableMouseleave = this.handleTableMouseleave.bind(this);
         this.handleCellMousedown = this.handleCellMousedown.bind(this);
@@ -332,6 +333,32 @@ class Sheet extends Component {
 		}
     }
 
+	handleMouseWheel(event){
+        let body = document.getElementById(`sheet-${this.props.id}-body`);
+        if (this.selector){
+            let shrinkToCursor = !event.altKey;
+            if (event.deltaY < 0){
+                event.preventDefault();
+                if(event.shiftKey){
+					this.selector.clearStyling();
+                    this.selector.growUp();
+					this.selector.addStyling();
+                } else {
+                    this.selector.cursorUp(shrinkToCursor);
+                }
+            } else if (event.deltaY > 0){
+                event.preventDefault();
+                if(event.shiftKey){
+					this.selector.clearStyling();
+                    this.selector.growDown();
+					this.selector.addStyling();
+                } else {
+                    this.selector.cursorDown(shrinkToCursor);
+                }
+            }
+        }
+	}
+
     /* I copy the current this.selector cell values to the clipboard. */
     copyToClipboad(){
         let size = this.selector.selectionFrame.size;
@@ -354,12 +381,14 @@ class Sheet extends Component {
     /* I add the copy event listener, when the current sheet is in focus. */
     onFocus(event){
         // document.addEventListener('copy', this.copyToClipboad)
+        document.addEventListener('mousewheel', this.handleMouseWheel)
     };
 
 
     /* I remove the copy event listener, when the current sheet is out of focus. */
     onBlur(event){
         // document.removeEventListener('copy', this.copyToClipboad);
+        document.removeEventListener('mousewheel', this.handleMouseWheel)
     }
 
     /* I handle page Up/Down of the view */
@@ -537,6 +566,7 @@ class Sheet extends Component {
                     this.selector.cursorRight(shrinkToCursor);
                 }
             }
+			this.selector.addStyling();
         }
     }
 

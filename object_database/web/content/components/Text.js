@@ -19,9 +19,8 @@ class Text extends Component {
                 id: this.getElementId(),
                 style: this.style,
                 "data-cell-id": `${this.props.id}`,
-                "data-fuck-you": "asshole",
                 "data-cell-type": "Text"
-            }, [this.props.rawText])
+            }, [this.props.rawText ? this.props.rawText.toString() : null])
         );
     }
 }

@@ -945,7 +945,6 @@ class Selector {
         this.elementAtPoint = this.elementAtPoint.bind(this);
         this.clearStyling = this.clearStyling.bind(this);
         this.addStyling = this.addStyling.bind(this);
-        this.fromPointToPoint = this.fromPointToPoint.bind(this);
         this.applyToOppositeCorner = this.applyToOppositeCorner.bind(this);
         this.shrinkToCursor = this.shrinkToCursor.bind(this);
         this.triggerNeedsUpdate = this.triggerNeedsUpdate.bind(this);
@@ -1031,36 +1030,6 @@ class Selector {
 		inputEl.select();
 		document.execCommand("copy");
 		inputEl.remove();
-		/*
-        navigator.clipboard.writeText(clipboard)
-            .then(() => {
-                console.log('Data copied.')R
-            })
-            .catch(err => {
-                // This can happen if the user denies clipboard permissions:
-                console.error('Could not copy data: ', err);
-            });
-			*/
-    }
-
-    getSelectionClipboardOLD(){
-        // generates a clipboard string from the current points
-        // Note: in order to create line breaks we slice along the y-axis
-        let clipboard = "";
-        for (let y = this.selectionFrame.origin.y; y <= this.selectionFrame.corner.y; y++){
-            let row = "";
-            this.selectionFrame.sliceCoords(y, "x").map(point => {
-                // let id = this.sheet._coordToId("td", [point.x, point.y]);
-                // let td = document.getElementById(id);
-                // row += td.textContent + "\t";
-				let textContent = this.sheet.dataFrame.get(point);
-                row += textContent + "\t";
-            });
-            clipboard += row + "\n";
-        }
-		console.log("copying to clipboard");
-		// event.clipboardData.setData('text/plain',clipboard);
-        return clipboard;
     }
 
     /* I make WS requests to the server for more data.*/
@@ -1205,7 +1174,7 @@ class Selector {
         if(!this.isAtViewTop(true)){
             let diff = [0, -1];
             let toPoint = this.applyToOppositeCorner(diff);
-            this.fromPointToPoint(
+            this.selectionFrame.fromPointToPoint(
                 this.selectionFrame.cursor,
                 toPoint,
                 false
@@ -1220,7 +1189,7 @@ class Selector {
         if(!this.isAtViewRight()){
             let diff = [1, 0];
             let toPoint = this.applyToOppositeCorner(diff);
-            this.fromPointToPoint(
+            this.selectionFrame.fromPointToPoint(
                 this.selectionFrame.cursor,
                 toPoint,
                 false
@@ -1235,7 +1204,7 @@ class Selector {
         if(!this.isAtViewBottom()){
             let diff = [0, 1];
             let toPoint = this.applyToOppositeCorner(diff);
-            this.fromPointToPoint(
+            this.selectionFrame.fromPointToPoint(
                 this.selectionFrame.cursor,
                 toPoint,
                 false
@@ -1250,7 +1219,7 @@ class Selector {
         if(!this.isAtViewLeft(true)){
             let diff = [-1, 0];
             let toPoint = this.applyToOppositeCorner(diff);
-            this.fromPointToPoint(
+            this.selectionFrame.fromPointToPoint(
                 this.selectionFrame.cursor,
                 toPoint,
                 false
@@ -1268,7 +1237,7 @@ class Selector {
 		}
 		let diff = [0, yDiff];
 		let toPoint = this.applyToOppositeCorner(diff);
-		this.fromPointToPoint(
+		this.selectionFrame.fromPointToPoint(
 			this.selectionFrame.cursor,
 			toPoint,
 			false
@@ -1285,7 +1254,7 @@ class Selector {
 		}
 		let diff = [0, yDiff];
 		let toPoint = this.applyToOppositeCorner(diff);
-		this.fromPointToPoint(
+		this.selectionFrame.fromPointToPoint(
 			this.selectionFrame.cursor,
 			toPoint,
 			false
@@ -1302,7 +1271,7 @@ class Selector {
 		}
 		let diff = [xDiff, 0];
 		let toPoint = this.applyToOppositeCorner(diff);
-		this.fromPointToPoint(
+		this.selectionFrame.fromPointToPoint(
 			this.selectionFrame.cursor,
 			toPoint,
 			false
@@ -1319,7 +1288,7 @@ class Selector {
 		}
 		let diff = [xDiff, 0];
 		let toPoint = this.applyToOppositeCorner(diff);
-		this.fromPointToPoint(
+		this.selectionFrame.fromPointToPoint(
 			this.selectionFrame.cursor,
 			toPoint,
 			false
@@ -1336,7 +1305,7 @@ class Selector {
 		//}
 		let diff = [0, yDiff];
 		let toPoint = this.applyToOppositeCorner(diff);
-		this.fromPointToPoint(
+		this.selectionFrame.fromPointToPoint(
 			this.selectionFrame.cursor,
 			toPoint,
 			false
@@ -1353,7 +1322,7 @@ class Selector {
 		//}
 		let diff = [0, yDiff];
 		let toPoint = this.applyToOppositeCorner(diff);
-		this.fromPointToPoint(
+		this.selectionFrame.fromPointToPoint(
 			this.selectionFrame.cursor,
 			toPoint,
 			false
@@ -1370,7 +1339,7 @@ class Selector {
 		// }
 		let diff = [xDiff, 0];
 		let toPoint = this.applyToOppositeCorner(diff);
-		this.fromPointToPoint(
+		this.selectionFrame.fromPointToPoint(
 			this.selectionFrame.cursor,
 			toPoint,
 			false
@@ -1387,7 +1356,7 @@ class Selector {
 		//}
 		let diff = [xDiff, 0];
 		let toPoint = this.applyToOppositeCorner(diff);
-		this.fromPointToPoint(
+		this.selectionFrame.fromPointToPoint(
 			this.selectionFrame.cursor,
 			toPoint,
 			false
@@ -1615,21 +1584,6 @@ class Selector {
         if(this.onNeedsUpdate){
             this.onNeedsUpdate(direction, shift);
         }
-    }
-
-    /**
-     * I am a wrapper for my selection frame's
-     * fromPointToPoint method.
-     * I first clear all styling before the
-     * underlying call, and then add styling
-     * once the frame has been translated.
-     * See SelectionFrame.fromPointToPoint()
-     * for more detail.
-     */
-    fromPointToPoint(from, to, updateCursor = true){
-        this.clearStyling();
-        this.selectionFrame.fromPointToPoint(from, to, updateCursor);
-        this.addStyling();
     }
 
 	/**

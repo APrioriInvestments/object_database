@@ -344,14 +344,10 @@ class Sheet extends Component {
             // event.preventDefault();
             // event.stopPropagation();
             // event.clipboardData.clearData();
-			console.log("fetching clipboard data");
-            this.selector.fetchData();
-			// window.setTimeout(() => {
-			//	let txt = this.selector.getSelectionClipboard();
-			//	event.clipboardData.setData('text/plain', txt);
-			//}, 1000);
 			// let txt = this.selector.getSelectionClipboard();
             // event.clipboardData.setData('text/plain', txt);
+			// console.log("fetching clipboard data");
+            this.selector.fetchData();
         }
     }
 
@@ -417,10 +413,10 @@ class Sheet extends Component {
 				return;
 			}
 			this.selector.selectionFrame.translate(translation);
-            this.selector.clearStyling();
             this.selector.shrinkToCursor();
         }
 
+		this.selector.clearStyling();
 		this.compositeFrame.translate(translation, "viewFrame");
 		this.compositeFrame.translate([translation.x, 0], "lockedRows");
 		this.compositeFrame.translate([0, translation.y], "lockedColumns");
@@ -446,6 +442,7 @@ class Sheet extends Component {
                 translation.y = viewOrigin.y - viewFrame.origin.y;
                 this.compositeFrame.translate(translation, "lockedColumns");
                 if(event.shiftKey){
+					this.selector.clearStyling();
 					this.selector.growToTop();
                 } else {
                     // Ensure that cursor moves to the
@@ -461,6 +458,7 @@ class Sheet extends Component {
                 translation.y = this.dataFrame.corner.y - viewFrame.corner.y;
                 this.compositeFrame.translate(translation, "lockedColumns");
                 if(event.shiftKey){
+					this.selector.clearStyling();
 					this.selector.growToBottom();
                  } else {
                     // Ensure that the cursor moves to the
@@ -475,6 +473,7 @@ class Sheet extends Component {
                 translation.x = this.dataFrame.corner.x - viewFrame.corner.x;
                 this.compositeFrame.translate(translation, "lockedRows");
                 if(event.shiftKey){
+					this.selector.clearStyling();
 					this.selector.growToRight();
                 } else {
                     // Ensure that the cursor moves to the
@@ -489,6 +488,7 @@ class Sheet extends Component {
                 translation.x = viewOrigin.x - viewFrame.origin.x;
                 this.compositeFrame.translate(translation, "lockedRows");
                 if(event.shiftKey){
+					this.selector.clearStyling();
 					this.selector.growToLeft();
                 } else {
                     // Ensure that the cursor moves to the
@@ -507,6 +507,7 @@ class Sheet extends Component {
             if (event.key === "ArrowUp"){
                 event.preventDefault();
                 if(event.shiftKey){
+					this.selector.clearStyling();
                     this.selector.growUp();
                 } else {
                     this.selector.cursorUp(shrinkToCursor);
@@ -514,6 +515,7 @@ class Sheet extends Component {
             } else if (event.key === "ArrowDown"){
                 event.preventDefault();
                 if(event.shiftKey){
+					this.selector.clearStyling();
                     this.selector.growDown();
                 } else {
                     this.selector.cursorDown(shrinkToCursor);
@@ -521,6 +523,7 @@ class Sheet extends Component {
             } else if (event.key === "ArrowLeft"){
                 event.preventDefault();
                 if(event.shiftKey){
+					this.selector.clearStyling();
                     this.selector.growLeft();
                 } else {
                     this.selector.cursorLeft(shrinkToCursor);
@@ -528,6 +531,7 @@ class Sheet extends Component {
             } else if (event.key === "ArrowRight"){
                 event.preventDefault();
                 if(event.shiftKey){
+					this.selector.clearStyling();
                     this.selector.growRight();
                 } else {
                     this.selector.cursorRight(shrinkToCursor);
@@ -589,10 +593,12 @@ class Sheet extends Component {
         // information.
         if(this.isSelecting){
             let targetCoord = [parseInt(event.target.dataset.x), parseInt(event.target.dataset.y)];
-            this.selector.fromPointToPoint(
+			this.selector.clearStyling();
+            this.selector.selectionFrame.fromPointToPoint(
                 this.selector.selectionFrame.cursor,
                 targetCoord
             );
+			this.selector.addStyling();
         }
     }
 
@@ -725,9 +731,6 @@ class Sheet extends Component {
             let head = document.getElementById(`sheet-${this.props.id}-head`);
             if (dataInfo.data && dataInfo.data.length){
                 if (dataInfo.action === "clipboardData"){
-					console.log("got clipboard data");
-                    // let origin = dataInfo.origin;
-                    // this.dataFrame.load(dataInfo.data, [origin.x, origin.y]);
 					// console.log("done loading clipboard data");
                     this.selector.getSelectionClipboard(dataInfo.data);
                 } else {

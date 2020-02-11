@@ -1,5 +1,6 @@
+beautifulsoup4
 boto3
-sortedcontainers
+flaky
 flask
 flask-cors
 flask-login
@@ -7,10 +8,16 @@ flask-sockets
 flask-wtf
 gevent
 gevent-websocket
-typed_python
-greenlet
 ldap3
+nodeenv
+numpy
+psutil
+pytest-lazy-fixture
+pytz
 pyyaml
 redis
 requests
+selenium
+sortedcontainers
+typed_python
 wtforms

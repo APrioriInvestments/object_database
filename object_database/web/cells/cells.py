@@ -1295,7 +1295,7 @@ class CollapsiblePanel(Cell):
 class Text(Cell):
     def __init__(self, text, text_color=None, sortAs=None):
         super().__init__()
-        self.text = text
+        self.text = str(text)
         self._sortAs = sortAs if sortAs is not None else text
         self.text_color = text_color
 

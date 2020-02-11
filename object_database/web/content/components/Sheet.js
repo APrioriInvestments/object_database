@@ -338,7 +338,6 @@ class Sheet extends Component {
         if (this.selector){
             let shrinkToCursor = !event.altKey;
             if (event.deltaY < 0){
-                event.preventDefault();
                 if(event.shiftKey){
 					this.selector.clearStyling();
                     this.selector.growUp();
@@ -347,7 +346,6 @@ class Sheet extends Component {
                     this.selector.cursorUp(shrinkToCursor);
                 }
             } else if (event.deltaY > 0){
-                event.preventDefault();
                 if(event.shiftKey){
 					this.selector.clearStyling();
                     this.selector.growDown();

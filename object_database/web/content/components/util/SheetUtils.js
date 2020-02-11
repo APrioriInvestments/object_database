@@ -971,6 +971,7 @@ class Selector {
 		this.cursorBelowView = this.cursorBelowView.bind(this);
 		this.cursorLeftOfView = this.cursorLeftOfView.bind(this);
 		this.cursorRightOfView = this.cursorRightOfView.bind(this);
+		this.cursorInLockedArea = this.cursorInLockedArea.bind(this);
 		this.shiftViewToCursor = this.shiftViewToCursor.bind(this);
         this.cursorLeft = this.cursorLeft.bind(this);
         this.getSelectionClipboard = this.getSelectionClipboard.bind(this);
@@ -1416,10 +1417,13 @@ class Selector {
      * Defaults to false.
      */
     shiftUp(amount = 1, shrinkToCursor = false){
-		if (this.cursorInView()){
+		if (this.cursorInView() || this.cursorInLockedArea()){
+			console.log("CURSOR IN VIEW");
 			let shift = [0, (amount * -1)];
 			if(this.isAtDataTop()){
+				console.log("AT DATA TOP");
 				if(!this.isAtViewTop(true)){
+					console.log("NOT AT ABSOLUTE VIEW TOP");
 					this.clearStyling(true);
 					this.selectionFrame.translate(shift);
 					if(shrinkToCursor){
@@ -1466,7 +1470,7 @@ class Selector {
      * Defaults to false.
      */
     shiftDown(amount = 1, shrinkToCursor = false){
-		if (this.cursorInView()){
+		if (this.cursorInView() || this.cursorInLockedArea()){
 			let shift = [0, amount * 1];
 			if (!this.isAtDataBottom()){
 				if(this.isAtViewBottom()){
@@ -1507,7 +1511,7 @@ class Selector {
      * Defaults to false.
      */
     shiftRight(amount = 1, shrinkToCursor = false){
-		if (this.cursorInView()){
+		if (this.cursorInView() || this.cursorInLockedArea()){
 			let shift = [amount * 1, 0];
 			if (!this.isAtDataRight()){
 				if(this.isAtViewRight()){
@@ -1548,7 +1552,7 @@ class Selector {
      * Defaults to false.
      */
     shiftLeft(amount = 1, shrinkToCursor = false){
-		if (this.cursorInView()){
+		if (this.cursorInView() || this.cursorInLockedArea()){
 			let shift = [amount * -1, 0];
 			if(this.isAtDataLeft()){
 				if(!this.isAtViewLeft(true)){
@@ -1575,7 +1579,7 @@ class Selector {
 					this.addStyling();
 				}
 			}
-		} else {
+		} else if (!this.cursorInLockedArea()){
 			this.shiftViewToCursor();
 		}
     }
@@ -1716,6 +1720,17 @@ class Selector {
     isAtDataRight(){
         return this.selectionFrame.corner.x === this.sheet.dataFrame.corner.x;
     }
+
+	/**
+	 * Returns true if the cursor is in any of the locked areas.
+	 */
+	cursorInLockedArea(){
+		let lockRowsY = Math.max(0, this.sheet.props.numLockRows - 1);
+		let lockColumnsX = Math.max(this.sheet.props.numLockColumns - 1);
+		let x = this.selectionFrame.cursor.x;
+		let y = this.selectionFrame.cursor.y;
+		return (x >= 0) && (x <= lockColumnsX) || (y >= 0) && (y <= lockRowsY);
+	}
 
 	/**
 	 * Returns true if the cursor is in the current view.

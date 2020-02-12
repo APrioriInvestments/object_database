@@ -491,11 +491,6 @@ class Cells:
         old_queue = self._transactionQueue
         self._transactionQueue = queue.Queue()
 
-        if self._dirtyNodes:
-            import web_pdb
-
-            web_pdb.set_trace()
-
         try:
             while True:
                 self._handleTransaction(*old_queue.get_nowait())
@@ -2352,12 +2347,14 @@ class SingleLineTextBox(Cell):
         super().__init__()
         self.pattern = None
         self.slot = slot
-        self.defaultValue = self.slot.get()
-        self.exportData["defaultValue"] = self.defaultValue
+        self.defaultValue = None
 
     def recalculate(self):
         if self.pattern:
             self.exportData["pattern"] = self.pattern
+        if not self.defaultValue:
+            self.defaultValue = self.getDefaultText()
+            self.exportData["defaultValue"] = self.defaultValue
 
     def subscribedSlotChanged(self, slot):
         """Override the way we respond to a slot changing.
@@ -2376,6 +2373,14 @@ class SingleLineTextBox(Cell):
         channel
         """
         pass
+
+    def getDefaultText(self):
+        with ComputingCellContext(self):
+            with self.view() as v:
+                try:
+                    return self.slot.get()
+                finally:
+                    self._resetSubscriptionsToViewReads(v)
 
     def onMessage(self, msgFrame):
         self.slot.set(msgFrame["text"])

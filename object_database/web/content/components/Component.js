@@ -10,10 +10,6 @@ import {h} from 'maquette';
 const render = (aComponent) => {
     let velement = aComponent.render();
     aComponent.numRenders += 1;
-    // For debugging purposes,
-    // Add the number of renders of this
-    // component as a data attribute
-    velement.properties['data-num-renders'] = aComponent.numRenders.toString();
     return velement;
 };
 

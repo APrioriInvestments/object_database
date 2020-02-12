@@ -93,6 +93,14 @@ class Component {
     render() {
         let velement = this.build();
 
+        // If the component's parent is a Subscribed,
+        // we need to give the velement the data
+        // attribute that maps to its Subscribed
+        if(this.parent && this.parent.isSubscribed){
+            let parentId = this.parent.props.id.toString();
+            velement.properties['data-subscribed-to'] = parentId;
+        }
+
         // All components that have a flexChild
         // property should add the class to their
         // root hyperscript's CSS.

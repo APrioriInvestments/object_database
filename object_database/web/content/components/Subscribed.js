@@ -15,6 +15,7 @@ import {h} from 'maquette';
 class Subscribed extends Component {
     constructor(props, ...args){
         super(props, ...args);
+        this.isSubscribed = true;
     }
 
     build(){

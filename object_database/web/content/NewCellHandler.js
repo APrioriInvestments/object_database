@@ -44,6 +44,7 @@ class NewCellHandler {
         this.cellUpdated = this.cellUpdated.bind(this);
         this.cellDiscarded = this.cellDiscarded.bind(this);
         this.doesNotUnderstand = this.doesNotUnderstand.bind(this);
+        this._updateSubscribedComponent = this.updateSubscribedComponent.bind(this);
         this._getUpdatedComponent = this._getUpdatedComponent.bind(this);
         this._createAndUpdate = this._createAndUpdate.bind(this);
         this._updateComponentProps = this._updateComponentProps.bind(this);
@@ -154,9 +155,15 @@ class NewCellHandler {
 
         let velement = render(component);
         let domElement = component.getDOMElement();
-        this.projector.replace(domElement, () => {
-            return velement;
-        });
+
+        if(component.isSubscribed){
+            this.updateSubscribedComponent(component);
+        } else {
+            this.projector.replace(domElement, () => {
+                return velement;
+            });
+        }
+
         this._callDidLoadForNew();
         this._callDidUpdate();
 
@@ -203,9 +210,14 @@ class NewCellHandler {
     cellDiscarded(message){
         let found = this.activeComponents[message.id];
         if(found){
-            found.componentWillUnload()
-
+            found.componentWillUnload();
             delete this.activeComponents[message.id];
+            // Try to find the corresponding element
+            // in the DOM and remove if present
+            let foundEl = found.getDOMElement();
+            if(foundEl){
+                foundEl.remove();
+            }
         }
         return found;
     }
@@ -240,6 +252,29 @@ class NewCellHandler {
     /** Private Methods **/
 
     /**
+     * Handles specific Subscribed actions that
+     * are needed to update a component. See
+     * inline comments below.
+     */
+    updateSubscribedComponent(aSubscribed){
+        // First, we see if there is already an element
+        // in the DOM that is subscribed to this
+        // component
+        let oldSubscribedElement = document.querySelector(`[data-subscribed-to="${aSubscribed.props.id}"]`);
+        let newSubscribedVElement = aSubscribed.renderContent();
+        let subscribedHolderEl = aSubscribed.getDOMElement();
+        if(oldSubscribedElement){
+            this.projector.replace(oldSubscribedElement, () => {
+                return newSubscribedVElement;
+            });
+        } else {
+            this.projector.insertBefore(subscribedHolderEl, () => {
+                return newSubscribedVElement;
+            });
+        }
+    }
+
+    /**
      * Attempts to find or create a component based
      * on a description of the corresponding Cell
      * present in a message object.
@@ -265,7 +300,6 @@ class NewCellHandler {
         let component = this.activeComponents[description.id];
         this._updateComponentProps(component, description);
         this._updateNamedChildren(component, description);
-        //this._updatedComponents.push(component);
         component._wasUpdated = true;
         return component;
     }

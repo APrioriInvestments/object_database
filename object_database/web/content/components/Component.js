@@ -198,6 +198,13 @@ class Component {
      */
     renderChildNamed(key){
         let foundChild = this.props.namedChildren[key];
+        /*if(foundChild && foundChild.isSubscribed){
+            let subVElement = render(foundChild);
+            let contentVElement = foundChild.renderContent();
+            contentVElement.key = `subscribedTo${foundChild.props.id}`;
+            subVElement.key = foundChild;
+            return [contentVElement, subVElement];
+        }*/
         if(foundChild){
             let velement = render(foundChild);
             velement.key = foundChild;
@@ -218,13 +225,17 @@ class Component {
         if(foundChildren){
             return this._recursivelyMapNamedChildren(foundChildren, child => {
                 let velement = render(child);
-
                 // In some cases velement
                 // will be null, as in non-display
                 // components.
                 if(velement){
                     velement.key = child;
                 }
+                /*if(child.isSubscribed){
+                    let contentVElement = child.renderContent();
+                    contentVElement.key = `subscribedTo${child.props.id}`;
+                    return [contentVElement, velement];
+                }*/
                 return velement;
             });
         }

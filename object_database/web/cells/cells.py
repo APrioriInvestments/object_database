@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import json
 import queue
 import os
 import html
@@ -799,8 +798,6 @@ class Cell:
         self._identity = None
         self._tag = None
         self._nowrap = None
-        self._height = None
-        self._width = None
         self._overflow = None
         self.postscript = None
         self.garbageCollected = False
@@ -1098,49 +1095,12 @@ class Cell:
     def sortsAs(self):
         return None
 
-    def _divStyle(self, existing=None):
-        if existing:
-            res = [existing]
-        else:
-            res = []
-
-        if self._nowrap:
-            res.append("display:inline-block")
-
-        if self._width is not None:
-            if isinstance(self._width, int) or self._width.isdigit():
-                res.append("width:%spx" % self._width)
-            else:
-                res.append("width:%s" % self._width)
-
-        if self._height is not None:
-            if isinstance(self._height, int) or self._height.isdigit():
-                res.append("height:%spx" % self._height)
-            else:
-                res.append("height:%s" % self._height)
-
-        if self._overflow is not None:
-            res.append("overflow:%s" % self._overflow)
-
-        if not res:
-            return ""
-        else:
-            return ";".join(res)
-
     def nowrap(self):
         self._nowrap = True
         return self
 
-    def width(self, width):
-        self._width = width
-        return self
-
     def overflow(self, overflow):
         self._overflow = overflow
-        return self
-
-    def height(self, height):
-        self._height = height
         return self
 
     def isActive(self):
@@ -2984,96 +2944,6 @@ class CodeEditor(Cell):
         self.exportData["keybindings"] = [k for k in self.keybindings.keys()]
 
 
-class OldSheet(Cell):
-    """A spreadsheet viewer. The dataset needs to be static."""
-
-    def __init__(self, columnNames, rowCount, rowFun, colWidth=200, onCellDblClick=None):
-        """
-        columnNames:
-            names to go in column Header
-        rowCount:
-            number of rows in table
-        rowFun:
-            function taking integer row as argument that returns list of values
-            to populate that row of the table
-        colWidth:
-            width of columns
-        onCellDblClick:
-            function to run after user double clicks a cell. It takes as keyword
-            arguments row, col, and sheet where row and col represent the row and
-            column clicked and sheet is the Sheet object. Clicks on row(col)
-            headers will return row(col) values of -1
-        """
-        super().__init__()
-
-        self.columnNames = columnNames
-        self.rowCount = rowCount
-        # for a row, the value of all the columns in a list.
-        self.rowFun = rowFun
-        self.colWidth = colWidth
-        self.error = Slot(None)
-        self._overflow = "auto"
-        self.rowsSent = set()
-
-        self._hookfns = {}
-        if onCellDblClick is not None:
-
-            def _makeOnCellDblClick(func):
-                def _onMessage(sheet, msgFrame):
-                    return onCellDblClick(
-                        sheet=sheet, row=msgFrame["row"], col=msgFrame["col"]
-                    )
-
-                return _onMessage
-
-            self._hookfns["onCellDblClick"] = _makeOnCellDblClick(onCellDblClick)
-
-    def _addHandsontableOnCellDblClick(self):
-        pass
-
-    def recalculate(self):
-        errorCell = Subscribed(
-            lambda: Traceback(self.error.get()) if self.error.get() is not None else Text("")
-        )
-        self.children["error"] = errorCell
-
-        # Deleted the postscript that was here.
-        # Should now be implemented completely
-        # in the JS side component.
-
-        self.exportData["divStyle"] = self._divStyle()
-        self.exportData["columnNames"] = [x for x in self.columnNames]
-        self.exportData["rowCount"] = self.rowCount
-        self.exportData["columnWidth"] = self.colWidth
-        self.exportData["handlesDoubleClick"] = "onCellDblClick" in self._hookfns
-
-    def onMessage(self, msgFrame):
-        """TODO: We will need to update the Cell lifecycle
-        and data handling before we can move this
-        to the JS side"""
-
-        if msgFrame["event"] == "sheet_needs_data":
-            row = msgFrame["data"]
-
-            rowData = self.rowFun(row)
-
-            self.triggerPostscript(
-                """
-                var hot = handsOnTables["__identity__"].table
-
-                hot.getSettings().data.cache[__row__] = __data__
-
-                handsOnTables["__identity__"].component.dataChanged()
-                """.replace(
-                    "__row__", str(row)
-                )
-                .replace("__identity__", self._identity)
-                .replace("__data__", json.dumps(rowData))
-            )
-        else:
-            return self._hookfns[msgFrame["event"]](self, msgFrame)
-
-
 class Sheet(Cell):
     """A spreadsheet viewer. The dataset must be static."""
 
@@ -3395,7 +3265,6 @@ class Panel(Cell):
         self.applyBorder = border
 
     def recalculate(self):
-        self.exportData["divStyle"] = self._divStyle()
         self.exportData["applyBorder"] = self.applyBorder
         self.children["content"] = Cell.makeCell(self.content)
 

@@ -22,7 +22,6 @@ class Panel extends Component {
             id: this.props.id,
             "data-cell-id": this.props.id,
             "data-cell-type": "Panel",
-            style: this.props.divStyle,
             class: this.getClasses()
         }, [this.renderChildNamed('content')]);
     }

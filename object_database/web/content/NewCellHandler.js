@@ -156,13 +156,9 @@ class NewCellHandler {
         let velement = render(component);
         let domElement = component.getDOMElement();
 
-        if(component.isSubscribed){
-            this.updateSubscribedComponent(component);
-        } else {
-            this.projector.replace(domElement, () => {
-                return velement;
-            });
-        }
+        this.projector.replace(domElement, () => {
+            return velement;
+        });
 
         this._callDidLoadForNew();
         this._callDidUpdate();
@@ -212,12 +208,6 @@ class NewCellHandler {
         if(found){
             found.componentWillUnload();
             delete this.activeComponents[message.id];
-            // Try to find the corresponding element
-            // in the DOM and remove if present
-            let foundEl = found.getDOMElement();
-            if(foundEl){
-                foundEl.remove();
-            }
         }
         return found;
     }

@@ -43,7 +43,6 @@ from object_database.web.cells import (
     Tabs,
     Grid,
     Flex,
-    OldSheet,
     ensureSubscribedType,
     SubscribeAndRetry,
     Expands,
@@ -288,8 +287,6 @@ class GraphDisplayService(ServiceBase):
                         {},
                     )
                 )
-                .width(600)
-                .height(400)
                 + Code("HI")
             ),
             AGrid=Grid(
@@ -298,17 +295,6 @@ class GraphDisplayService(ServiceBase):
                 headerFun=lambda x: x,
                 rowLabelFun=None,
                 rendererFun=lambda row, col: row + col,
-            ),
-            ASheet=OldSheet(
-                ["A", "B", "C"],
-                1000000,
-                lambda rowIx: ["(%s) ts" % rowIx, rowIx, rowIx + 1, rowIx + 2],
-            )
-            .width("calc(100vw - 70px)")
-            .height("calc(100vh - 150px)"),
-            Timestamps=(
-                Button("Add a point!", GraphDisplayService.addAPoint)
-                + Card(Plot(GraphDisplayService.chartData)).width(600).height(400)
             ),
             Twinned=Subscribed(twinned),
             feigenbaum=(
@@ -326,7 +312,7 @@ class GraphDisplayService(ServiceBase):
                     list(range(100, 10000, 100)),
                     lambda polyVal: setattr(Feigenbaum.lookupAny(), "density", float(polyVal)),
                 )
-                + Card(GraphDisplayService.makeFeigenbaum(depth)).width(600).height(400)
+                + Card(GraphDisplayService.makeFeigenbaum(depth))
             ),
         )
 

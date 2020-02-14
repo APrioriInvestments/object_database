@@ -270,7 +270,15 @@ class SubprocessServiceManager(ServiceManager):
                 for identity, workerProcess in toCheck:
                     serviceInstance = service_schema.ServiceInstance.fromIdentity(identity)
 
-                    if (
+                    if not serviceInstance.exists():
+                        if workerProcess:
+                            self._logger.warning(
+                                f"Worker Process '{identity}' shutting down because the "
+                                f"server removed its serviceInstance entirely. "
+                                f"Sending KILL signal."
+                            )
+                            self._killWorkerProcess(identity, workerProcess)
+                    elif (
                         serviceInstance.shouldShutdown
                         and time.time() - serviceInstance.shutdownTimestamp
                         > self.shutdownTimeout
@@ -280,14 +288,6 @@ class SubprocessServiceManager(ServiceManager):
                                 f"Worker Process '{identity}' failed to gracefully terminate"
                                 + f" within {self.shutdownTimeout} seconds."
                                 + " Sending KILL signal."
-                            )
-                            self._killWorkerProcess(identity, workerProcess)
-                    elif not serviceInstance.exists():
-                        if workerProcess:
-                            self._logger.warning(
-                                f"Worker Process '{identity}' shutting down because the "
-                                f"server removed its serviceInstance entirely. "
-                                f"Sending KILL signal."
                             )
                             self._killWorkerProcess(identity, workerProcess)
 

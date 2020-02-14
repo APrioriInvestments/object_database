@@ -35,6 +35,10 @@ class NewCellHandler {
         // Private properties
         this._sessionId = null;
 
+        // Debugging. Delete this
+        // and references to it.
+        this._deleted = {};
+
         // Bind component methods
         this.showConnectionClosed = this.showConnectionClosed.bind(this);
         this.connectionClosedView = this.connectionClosedView.bind(this);
@@ -44,7 +48,6 @@ class NewCellHandler {
         this.cellUpdated = this.cellUpdated.bind(this);
         this.cellDiscarded = this.cellDiscarded.bind(this);
         this.doesNotUnderstand = this.doesNotUnderstand.bind(this);
-        this._updateSubscribedComponent = this.updateSubscribedComponent.bind(this);
         this._getUpdatedComponent = this._getUpdatedComponent.bind(this);
         this._createAndUpdate = this._createAndUpdate.bind(this);
         this._updateComponentProps = this._updateComponentProps.bind(this);
@@ -160,6 +163,7 @@ class NewCellHandler {
             return velement;
         });
 
+        // Call lifecycle methods
         this._callDidLoadForNew();
         this._callDidUpdate();
 
@@ -208,6 +212,7 @@ class NewCellHandler {
         if(found){
             found.componentWillUnload();
             delete this.activeComponents[message.id];
+            this._deleted[found.props.id] = found;
         }
         return found;
     }
@@ -240,29 +245,6 @@ class NewCellHandler {
     }
 
     /** Private Methods **/
-
-    /**
-     * Handles specific Subscribed actions that
-     * are needed to update a component. See
-     * inline comments below.
-     */
-    updateSubscribedComponent(aSubscribed){
-        // First, we see if there is already an element
-        // in the DOM that is subscribed to this
-        // component
-        let oldSubscribedElement = document.querySelector(`[data-subscribed-to="${aSubscribed.props.id}"]`);
-        let newSubscribedVElement = aSubscribed.renderContent();
-        let subscribedHolderEl = aSubscribed.getDOMElement();
-        if(oldSubscribedElement){
-            this.projector.replace(oldSubscribedElement, () => {
-                return newSubscribedVElement;
-            });
-        } else {
-            this.projector.insertBefore(subscribedHolderEl, () => {
-                return newSubscribedVElement;
-            });
-        }
-    }
 
     /**
      * Attempts to find or create a component based
@@ -434,6 +416,10 @@ class NewCellHandler {
         // freshly creating it. So we start the cycle over again
         childComponent = this._getUpdatedComponent(childDescription);
         childComponent.parent = parentComponent;
+        if(parentComponent.isSubscribed){
+            childComponent.prevSubscribedTo = childComponent.subscribedTo;
+            childComponent.subscribedTo = parentComponent.props.id;
+        }
         return childComponent;
     }
 

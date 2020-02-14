@@ -262,16 +262,6 @@ td.row-index-item {
     flex: 1;
  }
 
- .expands[data-is-open="false"] > .expands-content-area:hover,
- .expands[data-is-open="true"] > .expands-content-area > * > *:hover {
-     background-color: rgba(200, 200, 200, 0.1);
-     cursor: pointer;
- }
-
- .expands-content-area:hover button {
-     background-color: transparent;
- }
-
 /* Modals (bypasses Bootstrap implementation)
 * =============================================================*/
 

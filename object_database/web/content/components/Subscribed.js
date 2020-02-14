@@ -27,7 +27,6 @@ class Subscribed extends Component {
             // so we render the placeholder
             // that will not be displayed in
             // layouts
-            console.log(`Building ${this.props.id} using placeholder`);
             return(
                 h('div', {
                     id: this.props.id,
@@ -38,29 +37,44 @@ class Subscribed extends Component {
                 }, [])
              );
         } else {
-            console.log(`Building ${this.props.id} using child content`);
             // There is valid child content,
             // so we render that by proxy
             // with a reference data attribute
-            let velement = this.renderContent();
-            velement.properties['data-subscribed-to'] = this.props.id;
+            let velement = this.renderChildNamed('content');
             return velement;
         }
     }
 
     getDOMElement(){
         // Override the normal behavior.
-        // Here we return the element that is
-        // being subscribed to, if present.
-        // Otherwise we return the placeholder
-        // element.
-        let subscribedTo = `[data-subscribed-to="${this.props.id}"]`;
-        let subscribedToEl = document.querySelector(subscribedTo);
+        // We need to find where the insert
+        // any changed content. This can be one
+        // of several DOM elements, based on
+        // nested Subscribeds and which "thing"
+        // (placeholder or content) a given
+        // Subscribed is currently displaying.
+        // Order of search is as follows:
+        // 1. Look for this component's
+        // placeholder element and return if present;
+        // 2. Look for this component's direct
+        // subscribed-to element, and return if present;
+        // 3. Get the top SubscribedChain ancestor
+        // and call its getDOMElement, which should
+        // return something.
+        // 4. Throw error.
+        let placeholder = document.querySelector(`[data-cell-id="${this.props.id}"]`);
+        if(placeholder){
+            return placeholder;
+        }
+        let subscribedToEl = document.querySelector(`[data-subscribed-to="${this.props.id}"]`);
         if(subscribedToEl){
             return subscribedToEl;
-        } else {
-            return document.querySelector(`[data-cell-id="${this.props.id}"]`);
         }
+        let topAncestor = this.getTopSubscribedAncestor();
+        if(topAncestor){
+            return topAncestor.getDOMElement();
+        }
+        throw new Error(`Could not find Element for Subscribed(${this.props.id})`);
     }
 
     renderContent(){

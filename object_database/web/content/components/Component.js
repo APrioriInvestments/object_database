@@ -25,6 +25,8 @@ class Component {
         // in NewCellHandler.
         this.isSubscribed = false;
         this.isWrappingComponent = false;
+        this.subscribedTo = null;
+        this.prevSubscribedTo = null;
 
         // Lifecycle handlers used by the
         // CellHandler
@@ -60,6 +62,9 @@ class Component {
         this.namedChildrenDo = this.namedChildrenDo.bind(this);
         this.renderChildNamed = this.renderChildNamed.bind(this);
         this.renderChildrenNamed = this.renderChildrenNamed.bind(this);
+        this.getInheritanceChain = this.getInheritanceChain.bind(this);
+        this.getSubscribedChain = this.getSubscribedChain.bind(this);
+        this.getTopSubscribedAncestor = this.getTopSubscribedAncestor.bind(this);
         this._setupChildRelationships = this._setupChildRelationships.bind(this);
         this._updateProps = this._updateProps.bind(this);
         this._updateData = this._updateData.bind(this);
@@ -92,10 +97,11 @@ class Component {
         // If the component's parent is a Subscribed,
         // we need to give the velement the data
         // attribute that maps to its Subscribed
-        if(this.parent && this.parent.isSubscribed){
-            let parentId = this.parent.props.id.toString();
-            velement.properties['data-subscribed-to'] = parentId;
+
+        if(this.subscribedTo){
+            velement.properties['data-subscribed-to'] = this.subscribedTo;
         }
+
 
         // All components that have a flexChild
         // property should add the class to their
@@ -311,6 +317,48 @@ class Component {
             let child = this.props.namedChildren[key];
             callback(key, child);
         });
+    }
+
+    /**
+     * Responds with an array of all ancestor
+     * components to the current one.
+     */
+    getInheritanceChain(){
+        let result = [];
+        let parent = this.parent;
+        while(parent){
+            result.push(parent);
+            parent = parent.parent;
+        }
+        return result;
+    }
+
+    /**
+     * Similar to getInheritanceChain,
+     * but only adds Components that are
+     * of type Subscribed
+     */
+    getSubscribedChain(){
+        let result = [];
+        let parent = this.parent;
+        while(parent && parent.isSubscribed){
+            result.push(parent);
+            parent = parent.parent;
+        }
+        return result;
+    }
+
+    /**
+     * Responds with a Component representing
+     * the top ancestor in the SubcribedChain.
+     * See #getSubscribedChain for more information.
+     */
+    getTopSubscribedAncestor(){
+        let result = this.getSubscribedChain();
+        if(result.length){
+            return result.pop();
+        }
+        return null;
     }
 
     /** Private Util Methods **/

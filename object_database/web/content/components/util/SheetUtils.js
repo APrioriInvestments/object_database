@@ -1602,6 +1602,7 @@ class Selector {
 	 * right-most column of the shifted view.
 	 */
 	shiftViewToCursor(){
+		return;
 		// we always shrink to cursor here
 		this.shrinkToCursor();
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);

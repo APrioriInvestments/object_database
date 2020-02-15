@@ -435,10 +435,10 @@ class Sheet extends Component {
         if (!event.shiftKey){
 			// if the cursor is out of view we translate the view to the cursor
 			// and do nothing else!
-			if (!this.selector.cursorInView()){
-				this.selector.shiftViewToCursor();
-				return;
-			}
+			// if (!this.selector.cursorInView()){
+			//	this.selector.shiftViewToCursor();
+			//	return;
+			//}
 			this.selector.selectionFrame.translate(translation);
             this.selector.shrinkToCursor();
         }

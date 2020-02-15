@@ -966,13 +966,13 @@ class Selector {
         this.cursorUp = this.cursorUp.bind(this);
         this.cursorRight = this.cursorRight.bind(this);
         this.cursorDown = this.cursorDown.bind(this);
-		this.cursorInView = this.cursorInView.bind(this);
-		this.cursorAboveView = this.cursorAboveView.bind(this);
-		this.cursorBelowView = this.cursorBelowView.bind(this);
-		this.cursorLeftOfView = this.cursorLeftOfView.bind(this);
-		this.cursorRightOfView = this.cursorRightOfView.bind(this);
-		this.cursorInLockedArea = this.cursorInLockedArea.bind(this);
-		this.shiftViewToCursor = this.shiftViewToCursor.bind(this);
+        this.cursorInView = this.cursorInView.bind(this);
+        this.cursorAboveView = this.cursorAboveView.bind(this);
+        this.cursorBelowView = this.cursorBelowView.bind(this);
+        this.cursorLeftOfView = this.cursorLeftOfView.bind(this);
+        this.cursorRightOfView = this.cursorRightOfView.bind(this);
+        this.cursorInLockedArea = this.cursorInLockedArea.bind(this);
+        this.shiftViewToCursor = this.shiftViewToCursor.bind(this);
         this.cursorLeft = this.cursorLeft.bind(this);
         this.getSelectionClipboard = this.getSelectionClipboard.bind(this);
         this.fetchData = this.fetchData.bind(this);
@@ -1021,16 +1021,16 @@ class Selector {
         // generates a clipboard string from the current points
         // Note: in order to create line breaks we slice along the y-axis
         let clipboard = data.map(item => {return item.join("\t")}).join("\n");
-		console.log(clipboard);
-		let inputEl = document.createElement("textarea");
-		inputEl.style.position = 'absolute';
-		inputEl.style.top = '-10000px';
+        // console.log(clipboard);
+        let inputEl = document.createElement("textarea");
+        inputEl.style.position = 'absolute';
+        inputEl.style.top = '-10000px';
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
-		body.appendChild(inputEl);
-		inputEl.value = clipboard;
-		inputEl.select();
-		document.execCommand("copy");
-		inputEl.remove();
+        body.appendChild(inputEl);
+        inputEl.value = clipboard;
+        inputEl.select();
+        document.execCommand("copy");
+        inputEl.remove();
     }
 
     /* I make WS requests to the server for more data.*/
@@ -1232,136 +1232,136 @@ class Selector {
      * I expand the selection frame all the way to the bottom
      */
     growToBottom(){
-		let yDiff = this.sheet.dataFrame.corner.y - this.selectionFrame.corner.y;
-		if(this.selectionFrame.isAtBottom(this.selectionFrame.cursor)){
-			yDiff = this.sheet.dataFrame.corner.y - this.selectionFrame.origin.y;
-		}
-		let diff = [0, yDiff];
-		let toPoint = this.applyToOppositeCorner(diff);
-		this.selectionFrame.fromPointToPoint(
-			this.selectionFrame.cursor,
-			toPoint,
-			false
-		);
+        let yDiff = this.sheet.dataFrame.corner.y - this.selectionFrame.corner.y;
+        if(this.selectionFrame.isAtBottom(this.selectionFrame.cursor)){
+            yDiff = this.sheet.dataFrame.corner.y - this.selectionFrame.origin.y;
+        }
+        let diff = [0, yDiff];
+        let toPoint = this.applyToOppositeCorner(diff);
+        this.selectionFrame.fromPointToPoint(
+            this.selectionFrame.cursor,
+            toPoint,
+            false
+        );
     }
 
     /**
      * I expand the selection frame all the way to the top
      */
     growToTop(){
-		let yDiff = -1 * this.selectionFrame.origin.y;
-		if(this.selectionFrame.isAtTop(this.selectionFrame.cursor)){
-			yDiff = -1 * this.selectionFrame.corner.y;
-		}
-		let diff = [0, yDiff];
-		let toPoint = this.applyToOppositeCorner(diff);
-		this.selectionFrame.fromPointToPoint(
-			this.selectionFrame.cursor,
-			toPoint,
-			false
-		);
+        let yDiff = -1 * this.selectionFrame.origin.y;
+        if(this.selectionFrame.isAtTop(this.selectionFrame.cursor)){
+            yDiff = -1 * this.selectionFrame.corner.y;
+        }
+        let diff = [0, yDiff];
+        let toPoint = this.applyToOppositeCorner(diff);
+        this.selectionFrame.fromPointToPoint(
+            this.selectionFrame.cursor,
+            toPoint,
+            false
+        );
     }
 
     /**
      * I expand the selection frame all the way to the right
      */
     growToRight(){
-		let xDiff = this.sheet.dataFrame.corner.x - this.selectionFrame.corner.x;
-		if(this.selectionFrame.isAtRight(this.selectionFrame.cursor)){
-			xDiff = this.sheet.dataFrame.corner.x - this.selectionFrame.origin.x;
-		}
-		let diff = [xDiff, 0];
-		let toPoint = this.applyToOppositeCorner(diff);
-		this.selectionFrame.fromPointToPoint(
-			this.selectionFrame.cursor,
-			toPoint,
-			false
-		);
+        let xDiff = this.sheet.dataFrame.corner.x - this.selectionFrame.corner.x;
+        if(this.selectionFrame.isAtRight(this.selectionFrame.cursor)){
+            xDiff = this.sheet.dataFrame.corner.x - this.selectionFrame.origin.x;
+        }
+        let diff = [xDiff, 0];
+        let toPoint = this.applyToOppositeCorner(diff);
+        this.selectionFrame.fromPointToPoint(
+            this.selectionFrame.cursor,
+            toPoint,
+            false
+        );
     }
 
     /**
      * I expand the selection frame all the way to the left
      */
     growToLeft(){
-		let xDiff = -1 * this.selectionFrame.origin.x;
-		if(this.selectionFrame.isAtLeft(this.selectionFrame.cursor)){
-			xDiff = -1 * this.selectionFrame.corner.x;
-		}
-		let diff = [xDiff, 0];
-		let toPoint = this.applyToOppositeCorner(diff);
-		this.selectionFrame.fromPointToPoint(
-			this.selectionFrame.cursor,
-			toPoint,
-			false
-		);
+        let xDiff = -1 * this.selectionFrame.origin.x;
+        if(this.selectionFrame.isAtLeft(this.selectionFrame.cursor)){
+            xDiff = -1 * this.selectionFrame.corner.x;
+        }
+        let diff = [xDiff, 0];
+        let toPoint = this.applyToOppositeCorner(diff);
+        this.selectionFrame.fromPointToPoint(
+            this.selectionFrame.cursor,
+            toPoint,
+            false
+        );
     }
 
     /**
      * I expand the selection frame one page down
      */
     pageDown(amount){
-		let yDiff = amount;
-		// if(this.selectionFrame.isAtBottom(this.selectionFrame.cursor)){
-		//	yDiff = amount + this.selectionFrame.size.y;
-		//}
-		let diff = [0, yDiff];
-		let toPoint = this.applyToOppositeCorner(diff);
-		this.selectionFrame.fromPointToPoint(
-			this.selectionFrame.cursor,
-			toPoint,
-			false
-		);
+        let yDiff = amount;
+        // if(this.selectionFrame.isAtBottom(this.selectionFrame.cursor)){
+        //	yDiff = amount + this.selectionFrame.size.y;
+        //}
+        let diff = [0, yDiff];
+        let toPoint = this.applyToOppositeCorner(diff);
+        this.selectionFrame.fromPointToPoint(
+            this.selectionFrame.cursor,
+            toPoint,
+            false
+        );
     }
 
     /**
      * I expand the selection frame one page up.
      */
     pageUp(amount){
-		let yDiff = -1 * amount;
-		// if(this.selectionFrame.isAtTop(this.selectionFrame.cursor)){
-		//	yDiff = -1 * (amount + this.selectionFrame.size.y);
-		//}
-		let diff = [0, yDiff];
-		let toPoint = this.applyToOppositeCorner(diff);
-		this.selectionFrame.fromPointToPoint(
-			this.selectionFrame.cursor,
-			toPoint,
-			false
-		);
+        let yDiff = -1 * amount;
+        // if(this.selectionFrame.isAtTop(this.selectionFrame.cursor)){
+        //	yDiff = -1 * (amount + this.selectionFrame.size.y);
+        //}
+        let diff = [0, yDiff];
+        let toPoint = this.applyToOppositeCorner(diff);
+        this.selectionFrame.fromPointToPoint(
+            this.selectionFrame.cursor,
+            toPoint,
+            false
+        );
     }
 
     /**
      * I expand the selection frame one page right
      */
     pageRight(amount){
-		let xDiff = amount;
-		// if(this.selectionFrame.isAtRight(this.selectionFrame.cursor)){
-		//	xDiff = amount + this.selectionFrame.size.x;
-		// }
-		let diff = [xDiff, 0];
-		let toPoint = this.applyToOppositeCorner(diff);
-		this.selectionFrame.fromPointToPoint(
-			this.selectionFrame.cursor,
-			toPoint,
-			false
-		);
+        let xDiff = amount;
+        // if(this.selectionFrame.isAtRight(this.selectionFrame.cursor)){
+        //	xDiff = amount + this.selectionFrame.size.x;
+        // }
+        let diff = [xDiff, 0];
+        let toPoint = this.applyToOppositeCorner(diff);
+        this.selectionFrame.fromPointToPoint(
+            this.selectionFrame.cursor,
+            toPoint,
+            false
+        );
     }
 
     /**
      * I expand the selection frame page left
      */
     pageLeft(amount){
-		let xDiff = -1 * amount;
-		// if(this.selectionFrame.isAtLeft(this.selectionFrame.cursor)){
-		//	xDiff = -1 * (amount + this.selectionFrame.size.x);
-		//}
-		let diff = [xDiff, 0];
-		let toPoint = this.applyToOppositeCorner(diff);
-		this.selectionFrame.fromPointToPoint(
-			this.selectionFrame.cursor,
-			toPoint,
-			false
-		);
+        let xDiff = -1 * amount;
+        // if(this.selectionFrame.isAtLeft(this.selectionFrame.cursor)){
+        //	xDiff = -1 * (amount + this.selectionFrame.size.x);
+        //}
+        let diff = [xDiff, 0];
+        let toPoint = this.applyToOppositeCorner(diff);
+        this.selectionFrame.fromPointToPoint(
+            this.selectionFrame.cursor,
+            toPoint,
+            false
+        );
     }
     /**
      * I move the cursor up by one
@@ -1404,10 +1404,10 @@ class Selector {
      * specified number of points. I can
      * optionally shrink the frame to fit
      * the cursor after doing so.
-	 * Before I do any shifting, I check that the
-	 * cursor is in the current view. If it's not
-	 * I trigger a translation of the entire view
-	 * to where the cursor is located.
+     * Before I do any shifting, I check that the
+     * cursor is in the current view. If it's not
+     * I trigger a translation of the entire view
+     * to where the cursor is located.
      * @param {number} amount - The number of
      * points to shift in the up direction.
      * Defaults to 1.
@@ -1417,39 +1417,39 @@ class Selector {
      * Defaults to false.
      */
     shiftUp(amount = 1, shrinkToCursor = false){
-		if (this.cursorInView() || this.cursorInLockedArea()){
-			console.log("CURSOR IN VIEW");
-			let shift = [0, (amount * -1)];
-			if(this.isAtDataTop()){
-				console.log("AT DATA TOP");
-				if(!this.isAtViewTop(true)){
-					console.log("NOT AT ABSOLUTE VIEW TOP");
-					this.clearStyling(true);
-					this.selectionFrame.translate(shift);
-					if(shrinkToCursor){
-						this.shrinkToCursor();
-					}
-					this.addStyling();
-				}
-			} else {
-				if(this.isAtViewTop()){
-					this.selectionFrame.translate(shift);
-					this.triggerNeedsUpdate('up', amount);
-					if(shrinkToCursor){
-						this.shrinkToCursor();
-					}
-				} else {
-					this.selectionFrame.translate(shift);
-					this.clearStyling(true);
-					if(shrinkToCursor){
-						this.shrinkToCursor();
-					}
-					this.addStyling();
-				}
-			}
-		} else {
-			this.shiftViewToCursor();
-		}
+        if (this.cursorInView() || this.cursorInLockedArea()){
+            console.log("CURSOR IN VIEW");
+            let shift = [0, (amount * -1)];
+            if(this.isAtDataTop()){
+                console.log("AT DATA TOP");
+                if(!this.isAtViewTop(true)){
+                    console.log("NOT AT ABSOLUTE VIEW TOP");
+                    this.clearStyling(true);
+                    this.selectionFrame.translate(shift);
+                    if(shrinkToCursor){
+                        this.shrinkToCursor();
+                    }
+                    this.addStyling();
+                }
+            } else {
+                if(this.isAtViewTop()){
+                    this.selectionFrame.translate(shift);
+                    this.triggerNeedsUpdate('up', amount);
+                    if(shrinkToCursor){
+                        this.shrinkToCursor();
+                    }
+                } else {
+                    this.selectionFrame.translate(shift);
+                    this.clearStyling(true);
+                    if(shrinkToCursor){
+                        this.shrinkToCursor();
+                    }
+                    this.addStyling();
+                }
+            }
+        } else {
+            this.shiftViewToCursor();
+        }
     }
 
     /**
@@ -1457,10 +1457,10 @@ class Selector {
      * specified number of points. I can
      * optionally shrink the frame to fit
      * the cursor after doing so.
-	 * Before I do any shifting, I check that the
-	 * cursor is in the current view. If it's not
-	 * I trigger a translation of the entire view
-	 * to where the cursor is located.
+     * Before I do any shifting, I check that the
+     * cursor is in the current view. If it's not
+     * I trigger a translation of the entire view
+     * to where the cursor is located.
      * @param {number} amount - The number of
      * points to shift in the down direction.
      * Defaults to 1.
@@ -1470,27 +1470,27 @@ class Selector {
      * Defaults to false.
      */
     shiftDown(amount = 1, shrinkToCursor = false){
-		if (this.cursorInView() || this.cursorInLockedArea()){
-			let shift = [0, amount * 1];
-			if (!this.isAtDataBottom()){
-				if(this.isAtViewBottom()){
-					this.triggerNeedsUpdate('down', amount);
-					this.selectionFrame.translate(shift);
-					if(shrinkToCursor){
-						this.shrinkToCursor();
-					}
-				} else {
-					this.selectionFrame.translate(shift);
-					this.clearStyling(true);
-					if(shrinkToCursor){
-						this.shrinkToCursor();
-					}
-					this.addStyling();
-				}
-			}
-		} else {
-			this.shiftViewToCursor();
-		}
+        if (this.cursorInView() || this.cursorInLockedArea()){
+            let shift = [0, amount * 1];
+            if (!this.isAtDataBottom()){
+                if(this.isAtViewBottom()){
+                    this.triggerNeedsUpdate('down', amount);
+                    this.selectionFrame.translate(shift);
+                    if(shrinkToCursor){
+                        this.shrinkToCursor();
+                    }
+                } else {
+                    this.selectionFrame.translate(shift);
+                    this.clearStyling(true);
+                    if(shrinkToCursor){
+                        this.shrinkToCursor();
+                    }
+                    this.addStyling();
+                }
+            }
+        } else {
+            this.shiftViewToCursor();
+        }
     }
 
     /**
@@ -1498,10 +1498,10 @@ class Selector {
      * specified number of points. I can
      * optionally shrink the frame to fit
      * the cursor after doing so.
-	 * Before I do any shifting, I check that the
-	 * cursor is in the current view. If it's not
-	 * I trigger a translation of the entire view
-	 * to where the cursor is located.
+     * Before I do any shifting, I check that the
+     * cursor is in the current view. If it's not
+     * I trigger a translation of the entire view
+     * to where the cursor is located.
      * @param {number} amount - The number of
      * points to shift in the right direction.
      * Defaults to 1.
@@ -1511,27 +1511,27 @@ class Selector {
      * Defaults to false.
      */
     shiftRight(amount = 1, shrinkToCursor = false){
-		if (this.cursorInView() || this.cursorInLockedArea()){
-			let shift = [amount * 1, 0];
-			if (!this.isAtDataRight()){
-				if(this.isAtViewRight()){
-					this.triggerNeedsUpdate('right', amount);
-					this.selectionFrame.translate(shift);
-					if(shrinkToCursor){
-						this.shrinkToCursor();
-					}
-				} else {
-					this.selectionFrame.translate(shift);
-					this.clearStyling(true);
-					if(shrinkToCursor){
-						this.shrinkToCursor();
-					}
-					this.addStyling();
-				}
-			}
-		} else {
-			this.shiftViewToCursor();
-		}
+        if (this.cursorInView() || this.cursorInLockedArea()){
+            let shift = [amount * 1, 0];
+            if (!this.isAtDataRight()){
+                if(this.isAtViewRight()){
+                    this.triggerNeedsUpdate('right', amount);
+                    this.selectionFrame.translate(shift);
+                    if(shrinkToCursor){
+                        this.shrinkToCursor();
+                    }
+                } else {
+                    this.selectionFrame.translate(shift);
+                    this.clearStyling(true);
+                    if(shrinkToCursor){
+                        this.shrinkToCursor();
+                    }
+                    this.addStyling();
+                }
+            }
+        } else {
+            this.shiftViewToCursor();
+        }
     }
 
     /**
@@ -1539,10 +1539,10 @@ class Selector {
      * specified number of points. I can
      * optionally shrink the frame to fit
      * the cursor after doing so.
-	 * Before I do any shifting, I check that the
-	 * cursor is in the current view. If it's not
-	 * I trigger a translation of the entire view
-	 * to where the cursor is located.
+     * Before I do any shifting, I check that the
+     * cursor is in the current view. If it's not
+     * I trigger a translation of the entire view
+     * to where the cursor is located.
      * @param {number} amount - The number of
      * points to shift in the left direction.
      * Defaults to 1.
@@ -1552,81 +1552,79 @@ class Selector {
      * Defaults to false.
      */
     shiftLeft(amount = 1, shrinkToCursor = false){
-		if (this.cursorInView() || this.cursorInLockedArea()){
-			let shift = [amount * -1, 0];
-			if(this.isAtDataLeft()){
-				if(!this.isAtViewLeft(true)){
-					this.clearStyling(true);
-					this.selectionFrame.translate(shift);
-					if(shrinkToCursor){
-						this.shrinkToCursor();
-					}
-					this.addStyling();
-				}
-			} else {
-				if(this.isAtViewLeft()){
-					this.selectionFrame.translate(shift);
-					this.triggerNeedsUpdate('left', amount);
-					if(shrinkToCursor){
-						this.shrinkToCursor();
-					}
-				} else {
-					this.selectionFrame.translate(shift);
-					this.clearStyling(true);
-					if(shrinkToCursor){
-						this.shrinkToCursor();
-					}
-					this.addStyling();
-				}
-			}
-		} else if (!this.cursorInLockedArea()){
-			this.shiftViewToCursor();
-		}
-    }
 
-    triggerNeedsUpdate(direction, shift){
-        if(this.onNeedsUpdate){
-            this.onNeedsUpdate(direction, shift);
+        if (this.cursorInView() || this.cursorInLockedArea()){
+  			let shift = [amount * -1, 0];
+            if(this.isAtDataLeft()){
+                if(!this.isAtViewLeft(true)){
+                    this.clearStyling(true);
+                    this.selectionFrame.translate(shift);
+                    if(shrinkToCursor){
+                        this.shrinkToCursor();
+                    }
+                    this.addStyling();
+                }
+            } else {
+                if(this.isAtViewLeft()){
+                    this.selectionFrame.translate(shift);
+                    this.triggerNeedsUpdate('left', amount);
+                    if(shrinkToCursor){
+                        this.shrinkToCursor();
+                    }
+                } else {
+                    this.selectionFrame.translate(shift);
+                    this.clearStyling(true);
+                    if(shrinkToCursor){
+                        this.shrinkToCursor();
+                    }
+                    this.addStyling();
+                }
+            }
+        } else if (!this.cursorInLockedArea()){
+            this.shiftViewToCursor();
         }
     }
 
-	/**
-	 * I shift the entire view to the location of the cursor.
-	 * If the cursor is above the current view I place it at the
-	 * top row of the shifted view.
-	 * If the cursor is below the current view I place it at the
-	 * bottom row of the shifted view.
-	 * If the cursor is to left of the current view I place it at the
-	 * left-left most column of the shifted view.
-	 * If the cursor is to the right of the current view I place it at the
-	 * right-most column of the shifted view.
-	 */
-	shiftViewToCursor(){
-		return;
-		// we always shrink to cursor here
-		this.shrinkToCursor();
+      triggerNeedsUpdate(direction, shift){
+          if(this.onNeedsUpdate){
+              this.onNeedsUpdate(direction, shift);
+          }
+    }
+
+  	/**
+  	 * I shift the entire view to the location of the cursor.
+  	 * If the cursor is above the current view I place it at the
+  	 * top row of the shifted view.
+  	 * If the cursor is below the current view I place it at the
+  	 * bottom row of the shifted view.
+  	 * If the cursor is to left of the current view I place it at the
+  	 * left-left most column of the shifted view.
+  	 * If the cursor is to the right of the current view I place it at the
+  	 * right-most column of the shifted view.
+  	 */
+  	shiftViewToCursor(){
+        // we always shrink to cursor here
+  		  this.shrinkToCursor();
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
-		let originElement = body.querySelectorAll("td:not(.locked)")[0];
-		let translation = new Point([0, 0]);
-		if (this.cursorAboveView()){
-			translation.y = this.selectionFrame.cursor.y - parseInt(originElement.dataset.y);
-53
-		} if (this.cursorBelowView()){
-			translation.y = this.selectionFrame.cursor.y - parseInt(cornerElement.dataset.y);
-		}
-		if (this.cursorRightOfView()){
-			translation.x = this.selectionFrame.cursor.x - parseInt(cornerElement.dataset.x);
-
-		} else if (this.cursorLeftOfView()){
-			translation.x = this.selectionFrame.cursor.x - parseInt(originElement.dataset.x);
-		}
-		this.sheet.compositeFrame.translate(translation, "viewFrame");
-		this.sheet.compositeFrame.translate([0, translation.y], "lockedColumns");
-		this.sheet.compositeFrame.translate([translation.x, 0], "lockedRows");
-		this.sheet.fetchData("update");
-	}
+        let originElement = body.querySelectorAll("td:not(.locked)")[0];
+        let translation = new Point([0, 0]);
+        if (this.cursorAboveView()){
+            translation.y = this.selectionFrame.cursor.y - parseInt(originElement.dataset.y);
+        } if (this.cursorBelowView()){
+            translation.y = this.selectionFrame.cursor.y - parseInt(cornerElement.dataset.y);
+        }
+        if (this.cursorRightOfView()){
+            translation.x = this.selectionFrame.cursor.x - parseInt(cornerElement.dataset.x);
+        } else if (this.cursorLeftOfView()){
+            translation.x = this.selectionFrame.cursor.x - parseInt(originElement.dataset.x);
+        }
+        this.sheet.compositeFrame.translate(translation, "viewFrame");
+        this.sheet.compositeFrame.translate([0, translation.y], "lockedColumns");
+        this.sheet.compositeFrame.translate([translation.x, 0], "lockedRows");
+        this.sheet.fetchData("update");
+    }
 
     /**
      * Returns true if the selection frame's cursor
@@ -1722,75 +1720,74 @@ class Selector {
         return this.selectionFrame.corner.x === this.sheet.dataFrame.corner.x;
     }
 
-	/**
-	 * Returns true if the cursor is in any of the locked areas.
-	 */
-	cursorInLockedArea(){
-		let lockRowsY = Math.max(0, this.sheet.props.numLockRows - 1);
-		let lockColumnsX = Math.max(this.sheet.props.numLockColumns - 1);
-		let x = this.selectionFrame.cursor.x;
-		let y = this.selectionFrame.cursor.y;
-		return (x >= 0) && (x <= lockColumnsX) || (y >= 0) && (y <= lockRowsY);
-	}
+  	/**
+  	 * Returns true if the cursor is in any of the locked areas.
+  	 */
+  	cursorInLockedArea(){
+  		let lockRowsY = Math.max(0, this.sheet.props.numLockRows - 1);
+  		let lockColumnsX = Math.max(this.sheet.props.numLockColumns - 1);
+  		let x = this.selectionFrame.cursor.x;
+  		let y = this.selectionFrame.cursor.y;
+  		return (x >= 0) && (x <= lockColumnsX) || (y >= 0) && (y <= lockRowsY);
+  	}
 
-	/**
-	 * Returns true if the cursor is in the current view.
-	 */
-	cursorInView(){
+  	/**
+  	 * Returns true if the cursor is in the current view.
+  	 */
+  	cursorInView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
-		let originElement = body.querySelectorAll("td:not(.locked)")[0];
+        let originElement = body.querySelectorAll("td:not(.locked)")[0];
         let originX = parseInt(originElement.dataset["x"]);
         let originY = parseInt(originElement.dataset["y"]);
         let cornerX = parseInt(cornerElement.dataset["x"]);
         let cornerY = parseInt(cornerElement.dataset["y"]);
-		let x = this.selectionFrame.cursor.x;
-		let y = this.selectionFrame.cursor.y;
-		return (x >= originX) && (x <= cornerX) && (y >= originY) && (y <= cornerY);
-	}
+        let x = this.selectionFrame.cursor.x;
+        let y = this.selectionFrame.cursor.y;
+        return (x >= originX) && (x <= cornerX) && (y >= originY) && (y <= cornerY);
+    }
 
-	/**
-	 * Returns true if the cursor is above the current view.
-	 */
-	cursorAboveView(){
+  	/**
+  	 * Returns true if the cursor is above the current view.
+  	 */
+  	cursorAboveView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
-		let originElement = body.querySelectorAll("td:not(.locked)")[0];
-		let y = this.selectionFrame.cursor.y;
+        let originElement = body.querySelectorAll("td:not(.locked)")[0];
+        let y = this.selectionFrame.cursor.y;
         return y < parseInt(originElement.dataset["y"]);
-	}
+  	}
 
-	/**
-	 * Returns true if the cursor is below the current view.
-	 */
-	cursorBelowView(){
+  	/**
+  	 * Returns true if the cursor is below the current view.
+  	 */
+  	cursorBelowView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
-		let y = this.selectionFrame.cursor.y;
+        let y = this.selectionFrame.cursor.y;
         return y > parseInt(cornerElement.dataset["y"]);
-	}
+  	}
 
-	/**
-	 * Returns true if the cursor is left of the current view.
-	 */
-	cursorLeftOfView(){
+  	/**
+  	 * Returns true if the cursor is left of the current view.
+  	 */
+  	cursorLeftOfView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
-		let originElement = body.querySelectorAll("td:not(.locked)")[0];
-		let x = this.selectionFrame.cursor.x;
+        let originElement = body.querySelectorAll("td:not(.locked)")[0];
+        let x = this.selectionFrame.cursor.x;
         return x < parseInt(originElement.dataset["x"]);
-	}
-
-	/**
-	 * Returns true if the cursor is right of the current view.
-	 */
-	cursorRightOfView(){
+    }
+  	/**
+  	 * Returns true if the cursor is right of the current view.
+  	 */
+  	cursorRightOfView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
-		let x = this.selectionFrame.cursor.x;
+        let x = this.selectionFrame.cursor.x;
         return x > parseInt(cornerElement.dataset["x"]);
-	}
+  	}
 }
 
 

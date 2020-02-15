@@ -62,7 +62,7 @@ class Sheet extends Component {
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this._updatedDisplayValues = this._updatedDisplayValues.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
-		this.handleMouseWheel = this.handleMouseWheel.bind(this);
+        this.handleMouseWheel = this.handleMouseWheel.bind(this);
         this.handleClick = this.handleClick.bind(this);
         this.handleTableMouseleave = this.handleTableMouseleave.bind(this);
         this.handleCellMousedown = this.handleCellMousedown.bind(this);
@@ -327,35 +327,36 @@ class Sheet extends Component {
             // display the contents in the top header line
             this._updateHeader(body, head);
         } else if(event.key === "c"){
-			if(event.ctrlKey){
-				this.copyToClipboad();
-			}
-		}
+            if(event.ctrlKey){
+                this.copyToClipboad();
+            }
+        }
     }
 
-	handleMouseWheel(event){
+    /* I listen for the mousewheel and scroll up/down. */
+    handleMouseWheel(event){
         let body = document.getElementById(`sheet-${this.props.id}-body`);
         if (this.selector){
             let shrinkToCursor = !event.altKey;
             if (event.deltaY < 0){
                 if(event.shiftKey){
-					this.selector.clearStyling();
+                    this.selector.clearStyling();
                     this.selector.growUp();
-					this.selector.addStyling();
+                    this.selector.addStyling();
                 } else {
                     this.selector.cursorUp(shrinkToCursor);
                 }
             } else if (event.deltaY > 0){
                 if(event.shiftKey){
-					this.selector.clearStyling();
+                    this.selector.clearStyling();
                     this.selector.growDown();
-					this.selector.addStyling();
+                    this.selector.addStyling();
                 } else {
                     this.selector.cursorDown(shrinkToCursor);
                 }
             }
         }
-	}
+    }
 
     /* I copy the current this.selector cell values to the clipboard. */
     copyToClipboad(){
@@ -369,9 +370,9 @@ class Sheet extends Component {
             // event.preventDefault();
             // event.stopPropagation();
             // event.clipboardData.clearData();
-			// let txt = this.selector.getSelectionClipboard();
+            // let txt = this.selector.getSelectionClipboard();
             // event.clipboardData.setData('text/plain', txt);
-			// console.log("fetching clipboard data");
+            // console.log("fetching clipboard data");
             this.selector.fetchData();
         }
     }
@@ -402,13 +403,13 @@ class Sheet extends Component {
                 // make sure we don't run out of data at the right of the page
                 translation.x = Math.min(this.dataFrame.corner.x - viewFrame.corner.x, viewFrame.size.x);
                 if(event.shiftKey){
-					this.selector.pageRight(translation.x);
+                    this.selector.pageRight(translation.x);
                 }
             } else if (event.key === "PageUp") {
                 // make sure we don't run out of data at the left
                 translation.x = -1 * Math.min(viewFrame.origin.x - viewOrigin.x, viewFrame.size.x);
                 if(event.shiftKey){
-					this.selector.pageLeft(-1 * translation.x);
+                    this.selector.pageLeft(-1 * translation.x);
                 }
             }
         } else {
@@ -417,42 +418,40 @@ class Sheet extends Component {
                 // make sure we don't run out of data at the bottom of the page
                 translation.y = Math.min(this.dataFrame.corner.y - viewFrame.corner.y, viewFrame.size.y);
                 if(event.shiftKey){
-					this.selector.pageDown(translation.y);
+                    this.selector.pageDown(translation.y);
                 }
             } else if (event.key === "PageUp"){
                 // make sure we don't run out of data at the top
                 translation.y = -1 * Math.min(viewFrame.origin.y - viewOrigin.y, viewFrame.size.y);
                 if(event.shiftKey){
-					this.selector.pageUp(-1 * translation.y);
+                    this.selector.pageUp(-1 * translation.y);
                 }
             }
         }
-
 
         // If there is a current selection, translate it and
         // shrink it to the cursor unless the navigation is
         // combined with selector expansion.
         if (!event.shiftKey){
-			// if the cursor is out of view we translate the view to the cursor
-			// and do nothing else!
-			if (!this.selector.cursorInView()){
-				this.selector.shiftViewToCursor();
-				return;
-			}
-			this.selector.selectionFrame.translate(translation);
+            // if the cursor is out of view we translate the view to the cursor
+            // and do nothing else!
+            if (!this.selector.cursorInView()){
+                this.selector.shiftViewToCursor();
+                return;
+            }
+            this.selector.selectionFrame.translate(translation);
             this.selector.shrinkToCursor();
         }
+        this.selector.clearStyling();
+        this.compositeFrame.translate(translation, "viewFrame");
+        this.compositeFrame.translate([translation.x, 0], "lockedRows");
+        this.compositeFrame.translate([0, translation.y], "lockedColumns");
+        this.fetchData("update");
 
-		this.selector.clearStyling();
-		this.compositeFrame.translate(translation, "viewFrame");
-		this.compositeFrame.translate([translation.x, 0], "lockedRows");
-		this.compositeFrame.translate([0, translation.y], "lockedColumns");
-		this.fetchData("update");
-
-		console.log("selector frame");
-		console.log(`origin: (${this.selector.selectionFrame.origin.x}, ${this.selector.selectionFrame.origin.y})`);
-		console.log(`corner: (${this.selector.selectionFrame.corner.x}, ${this.selector.selectionFrame.corner.y})`);
-		console.log(`cursor: (${this.selector.selectionFrame.cursor.x}, ${this.selector.selectionFrame.cursor.y})`);
+        console.log("selector frame");
+        console.log(`origin: (${this.selector.selectionFrame.origin.x}, ${this.selector.selectionFrame.origin.y})`);
+        console.log(`corner: (${this.selector.selectionFrame.corner.x}, ${this.selector.selectionFrame.corner.y})`);
+        console.log(`cursor: (${this.selector.selectionFrame.cursor.x}, ${this.selector.selectionFrame.cursor.y})`);
     }
 
     /* I handle arrow triggered navigation of the active_frame and related views */
@@ -469,8 +468,10 @@ class Sheet extends Component {
                 translation.y = viewOrigin.y - viewFrame.origin.y;
                 this.compositeFrame.translate(translation, "lockedColumns");
                 if(event.shiftKey){
-					this.selector.clearStyling();
-					this.selector.growToTop();
+
+                    this.selector.clearStyling();
+
+                    this.selector.growToTop();
                 } else {
                     // Ensure that cursor moves to the
                     // top of the current view frame
@@ -485,8 +486,10 @@ class Sheet extends Component {
                 translation.y = this.dataFrame.corner.y - viewFrame.corner.y;
                 this.compositeFrame.translate(translation, "lockedColumns");
                 if(event.shiftKey){
-					this.selector.clearStyling();
-					this.selector.growToBottom();
+
+                    this.selector.clearStyling();
+
+                    this.selector.growToBottom();
                  } else {
                     // Ensure that the cursor moves to the
                     // bottom of the current view frame
@@ -500,8 +503,8 @@ class Sheet extends Component {
                 translation.x = this.dataFrame.corner.x - viewFrame.corner.x;
                 this.compositeFrame.translate(translation, "lockedRows");
                 if(event.shiftKey){
-					this.selector.clearStyling();
-					this.selector.growToRight();
+                    this.selector.clearStyling();
+                    this.selector.growToRight();
                 } else {
                     // Ensure that the cursor moves to the
                     // right side of the current view frame
@@ -515,8 +518,8 @@ class Sheet extends Component {
                 translation.x = viewOrigin.x - viewFrame.origin.x;
                 this.compositeFrame.translate(translation, "lockedRows");
                 if(event.shiftKey){
-					this.selector.clearStyling();
-					this.selector.growToLeft();
+                    this.selector.clearStyling();
+                    this.selector.growToLeft();
                 } else {
                     // Ensure that the cursor moves to the
                     // left side of the current view frame
@@ -534,7 +537,7 @@ class Sheet extends Component {
             if (event.key === "ArrowUp"){
                 event.preventDefault();
                 if(event.shiftKey){
-					this.selector.clearStyling();
+                    this.selector.clearStyling();
                     this.selector.growUp();
                 } else {
                     this.selector.cursorUp(shrinkToCursor);
@@ -542,7 +545,7 @@ class Sheet extends Component {
             } else if (event.key === "ArrowDown"){
                 event.preventDefault();
                 if(event.shiftKey){
-					this.selector.clearStyling();
+                    this.selector.clearStyling();
                     this.selector.growDown();
                 } else {
                     this.selector.cursorDown(shrinkToCursor);
@@ -550,7 +553,7 @@ class Sheet extends Component {
             } else if (event.key === "ArrowLeft"){
                 event.preventDefault();
                 if(event.shiftKey){
-					this.selector.clearStyling();
+                    this.selector.clearStyling();
                     this.selector.growLeft();
                 } else {
                     this.selector.cursorLeft(shrinkToCursor);
@@ -558,13 +561,13 @@ class Sheet extends Component {
             } else if (event.key === "ArrowRight"){
                 event.preventDefault();
                 if(event.shiftKey){
-					this.selector.clearStyling();
+                    this.selector.clearStyling();
                     this.selector.growRight();
                 } else {
                     this.selector.cursorRight(shrinkToCursor);
                 }
             }
-			this.selector.addStyling();
+            this.selector.addStyling();
         }
     }
 
@@ -759,7 +762,6 @@ class Sheet extends Component {
             let head = document.getElementById(`sheet-${this.props.id}-head`);
             if (dataInfo.data && dataInfo.data.length){
                 if (dataInfo.action === "clipboardData"){
-					// console.log("done loading clipboard data");
                     this.selector.getSelectionClipboard(dataInfo.data);
                 } else {
                     if (dataInfo.action === "replace") {

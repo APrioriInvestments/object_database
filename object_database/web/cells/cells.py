@@ -3055,6 +3055,7 @@ class Sheet(Cell):
                 "action": msgFrame["action"],
                 "origin": frame["origin"],
                 "corner": frame["corner"],
+                "name": frame.get("name"),
                 "response_id": msgFrame["request_index"],
             }
             # stage this piece of data to be sent when we recalculate

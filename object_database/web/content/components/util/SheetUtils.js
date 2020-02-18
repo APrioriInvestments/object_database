@@ -1045,6 +1045,7 @@ class Selector {
             frame: {
                 origin: {x: frame.origin.x, y: frame.origin.y},
                 corner: {x: frame.corner.x, y: frame.corner.y},
+                name: "selector"  // TODO: maybe we want to set this name as an attribute
             },
             action: "clipboardData",
         });

@@ -37,6 +37,9 @@ class Sheet extends Component {
         this.maxNumRows = null;
         this.maxNumColumns = null;
         this.requestIndex = 0;
+        // helps keep track of each outgoing and incoming request
+        // see useage in this.fetchData and this._updateData below
+        this.fetchBlock = [];
 
         // frames
         this.compositeFrame = null;
@@ -435,10 +438,10 @@ class Sheet extends Component {
         if (!event.shiftKey){
             // if the cursor is out of view we translate the view to the cursor
             // and do nothing else!
-            // if (!this.selector.cursorInView()){
-            //    this.selector.shiftViewToCursor();
-            //    return;
-            //}
+            if (this.fetchBlock.length === 0 && !this.selector.cursorInView()){
+                this.selector.shiftViewToCursor();
+                return;
+            }
             this.selector.selectionFrame.translate(translation);
             this.selector.shrinkToCursor();
         }
@@ -703,13 +706,16 @@ class Sheet extends Component {
         // frame = this._padFrame(frame, new Point([2, 2]));
         // We don't want to replace for every overlayFrame, so in the case that the action
         // = `replace` we keep a counter and flip action to `update` after the first call.
+        this.fetchBlock = [];
         let replaceCounter = 0;
         this.compositeFrame.overlayFrames.forEach(frm  => {
+            this.requestIndex += 1;
+            // add the requestIndex to this.fetchBlock
+            this.fetchBlock.push(this.requestIndex);
             if (replaceCounter){
                 action = "update";
             }
             let frame = frm["frame"];
-            this.requestIndex += 1;
             let request = JSON.stringify({
                 event: "sheet_needs_data",
                 request_index: this.requestIndex,
@@ -717,6 +723,7 @@ class Sheet extends Component {
                 frame: {
                     origin: {x: frame.origin.x, y: frame.origin.y},
                     corner: {x: frame.corner.x, y: frame.corner.y},
+                    name: frame.name
                 },
                 action: action,
             });
@@ -784,8 +791,14 @@ class Sheet extends Component {
                     this.selector.clearStyling();
                     this.selector.addStyling();
 
-					// display the contents in the top header line
-					this._updateHeader(body, head);
+                    // display the contents in the top header line
+                    this._updateHeader(body, head);
+
+                    // remove the id from this.fetchBlock
+                    let index = this.fetchBlock.indexOf(dataInfo.response_id);
+                    if (index > -1){
+                        this.fetchBlock.splice(index, 1);
+                    }
                 }
             }
         });

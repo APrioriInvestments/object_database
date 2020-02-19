@@ -364,8 +364,8 @@ class Sheet extends Component {
     /* I copy the current this.selector cell values to the clipboard. */
     copyToClipboad(){
         let size = this.selector.selectionFrame.size;
-        if ((size.x + 1) * (size.y + 1) > 10000){
-            alert("copy is limited to 10,000 cells");
+        if ((size.x + 1) * (size.y + 1) > 1000000){
+            alert("copy is limited to 1,000,000 cells");
         } else {
             // NOTE: we need to first fetch the data which means send a
             // WS data request with action==="clipboardData" so that the data

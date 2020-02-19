@@ -2352,29 +2352,9 @@ class SingleLineTextBox(Cell):
     def recalculate(self):
         if self.pattern:
             self.exportData["pattern"] = self.pattern
-        if not self.defaultValue:
-            self.defaultValue = self.getDefaultText()
-            self.exportData["defaultValue"] = self.defaultValue
+        self.exportData["defaultValue"] = self.getText()
 
-    def subscribedSlotChanged(self, slot):
-        """Override the way we respond to a slot changing.
-
-        Instead of recalculating, which would rebuild the component, we
-        simply send a message to the server. Eventually this will used the 'data changed'
-        channel
-        """
-        pass
-
-    def subscribedOdbValueChanges(self, odbKey):
-        """Override the way we respond to an odb value changing.
-
-        Instead of recalculating, which would rebuild the component, we
-        simply send a message to the server. Eventually this will used the 'data changed'
-        channel
-        """
-        pass
-
-    def getDefaultText(self):
+    def getText(self):
         with ComputingCellContext(self):
             with self.view() as v:
                 try:

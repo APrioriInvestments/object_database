@@ -56,29 +56,6 @@ class CellsSubscribedTests(unittest.TestCase):
 
         self.assertEqual(sub.children["content"].text, "True")
 
-    def test_subscribed_not_in_desc(self):
-        slot = Slot(True)
-        trueContent = Button("Hello", lambda: None)
-        falseContent = Text("False")
-        sub = Subscribed(lambda: trueContent if slot.get() else falseContent)
-        self.cells.withRoot(sub)
-        res = self.cells.renderMessages()
-
-        self.assertEqual(len(res), 1)
-        self.assertEqual(res[0]["cellType"], "RootCell")
-        rootChild = res[0]["namedChildren"]["child"]
-        self.assertEqual(rootChild["cellType"], "Button")
-        self.assertEqual(rootChild["id"], trueContent.identity)
-
-        slot.set(False)
-        res = self.cells.renderMessages()
-
-        self.assertEqual(res[0]["type"], "#cellUpdated")
-        self.assertEqual(res[0]["cellType"], "RootCell")
-        nextRootChild = res[0]["namedChildren"]["child"]
-        self.assertEqual(nextRootChild["cellType"], "Text")
-        self.assertEqual(nextRootChild["id"], falseContent.identity)
-
     def test_basic_subscribed_lifecycle(self):
         slot = Slot(True)
         trueContent = Button("Hello", lambda: None)
@@ -100,7 +77,7 @@ class CellsSubscribedTests(unittest.TestCase):
         slot.set(False)
         self.cells._recalculateCells()
 
-        self.assertTrue(container.wasUpdated)
+        self.assertFalse(container.wasUpdated)
         self.assertTrue(sub.wasUpdated)
         self.assertTrue(trueContent.wasRemoved)
         self.assertTrue(falseContent.wasCreated)

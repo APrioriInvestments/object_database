@@ -436,6 +436,7 @@ class Sheet extends Component {
         // shrink it to the cursor unless the navigation is
         // combined with selector expansion.
         if (!event.shiftKey){
+
             // if the cursor is out of view we translate the view to the cursor
             // and do nothing else!
             if (this.fetchBlock.length === 0 && !this.selector.cursorInView()){

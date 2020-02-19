@@ -1553,7 +1553,6 @@ class Selector {
      * Defaults to false.
      */
     shiftLeft(amount = 1, shrinkToCursor = false){
-
         if (this.cursorInView() || this.cursorInLockedArea()){
   			let shift = [amount * -1, 0];
             if(this.isAtDataLeft()){

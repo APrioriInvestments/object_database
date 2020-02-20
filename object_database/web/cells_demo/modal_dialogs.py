@@ -59,3 +59,38 @@ class ModalWithUpdateField(CellsTestPage):
             "You should see a button that lets you edit the "
             "'Some Text' text in a modal popup."
         )
+
+
+class ModalWithUpdateFieldAndCancel(CellsTestPage):
+    def cell(self):
+        isShowing = cells.Slot(False)
+        pageContent = cells.Slot("Some Text")
+        modalContent = cells.Slot("Some Text")
+
+        def buttonClick():
+            modalContent.set(pageContent.get())
+            isShowing.set(True)
+
+        def updateClick():
+            pageContent.set(modalContent.get())
+            isShowing.set(False)
+
+        def cancelClick():
+            isShowing.set(False)
+
+        button = cells.Button("Open Modal", buttonClick)
+        textDisplay = cells.Subscribed(lambda: cells.Text(pageContent.get()))
+        modal = cells.Modal(
+            "Text Updater",
+            cells.SingleLineTextBox(modalContent),
+            show=isShowing,
+            Cancel=cancelClick,
+            Update=updateClick,
+        )
+        return cells.Card(button + textDisplay + modal)
+
+    def text(self):
+        return (
+            "You should see a button that lets you edit the "
+            "'Some Text' text in a modal popup."
+        )

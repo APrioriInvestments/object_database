@@ -22,7 +22,7 @@ class Columns extends Component {
         return (
             h('div', {
                 class: "cell container-fluid",
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Columns",
             }, [

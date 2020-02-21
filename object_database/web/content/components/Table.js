@@ -32,7 +32,7 @@ class Table extends Component {
     build(){
         return(
             h('table', {
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Table",
                 class: "cell table-hscroll table-sm table-striped"

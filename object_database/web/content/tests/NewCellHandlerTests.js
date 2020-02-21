@@ -6,10 +6,16 @@ const maquette = require('maquette');
 const h = maquette.h;
 const NewCellHandler = require('../NewCellHandler.js').default;
 const AllComponents = require('../ComponentRegistry').default;
+const Component = require('../components/Component').default;
 const chai = require('chai');
 const assert = chai.assert;
 let projector = maquette.createProjector();
 const registry = require('../ComponentRegistry').ComponentRegistry;
+
+const findComponentElementById = (id) => {
+    let query = `${Component.elementIdPrefix}${id}`;
+    return document.getElementById(query);
+};
 
 /* Example Messages and Structures */
 let simpleRoot = {
@@ -127,7 +133,7 @@ describe("Basic Test DOM Tests", () => {
         let root = document.createElement('div');
         root.id = "page_root";
         document.body.append(root);
-        let found = document.getElementById('page_root');
+        let found = document.getElementById("page_root");
         assert.exists(found);
         assert.equal(found, root);
     });
@@ -553,7 +559,7 @@ describe("Basic Structure Handling DOM Tests", () => {
             let textChild = pageRoot.firstElementChild;
             assert.exists(textChild);
             assert.equal(textChild.textContent, "FARTS");
-            assert.equal(textChild.id, 8);
+            assert.equal(textChild.dataset.cellId, 8);
         });
     });
 });
@@ -588,7 +594,7 @@ describe("Properties Update Tests", () => {
         });
         let updateMessage = makeUpdateMessage(parent);
         handler.receive(updateMessage);
-        let el = document.getElementById(newText.id);
+        let el = findComponentElementById(newText.id);
         assert.exists(el);
         assert.equal(el.textContent, "HELLO");
     });
@@ -609,7 +615,7 @@ describe("Properties Update Tests", () => {
         handler.receive(updateMessage);
         let root = document.getElementById('page_root');
         assert.equal(root.children.length, 1);
-        let textChild = document.getElementById(newText.id);
+        let textChild = findComponentElementById(newText.id);
         assert.equal(textChild.textContent, "WORLD");
     });
 });
@@ -673,7 +679,7 @@ describe("Pre-render Additions Tests", () => {
         });
         let updateMessage = makeUpdateMessage(parent);
         handler.receive(updateMessage);
-        let el = document.getElementById(target.id);
+        let el = findComponentElementById(target.id);
         assert.isTrue(el.classList.contains('flex-child'));
     });
 
@@ -709,7 +715,7 @@ describe("Pre-render Additions Tests", () => {
         });
         let updateMessage = makeUpdateMessage(parent);
         handler.receive(updateMessage);
-        let el = document.getElementById(target.id);
+        let el = findComponentElementById(target.id);
         assert.exists(el.attributes.style);
         assert.equal(el.style.color, 'brown');
         assert.equal(el.style.width, '100%');
@@ -742,7 +748,7 @@ describe("Pre-render Additions Tests", () => {
         });
         let updateMessage = makeUpdateMessage(parent);
         handler.receive(updateMessage);
-        let el = document.getElementById(target.id);
+        let el = findComponentElementById(target.id);
         assert.exists(el.getAttribute('data-tag'));
         assert.equal(el.dataset.tag, "test");
     });

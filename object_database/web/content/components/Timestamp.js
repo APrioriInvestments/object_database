@@ -31,7 +31,7 @@ class Timestamp extends Component {
             {
                 class: "cell",
                 style: this.style,
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Timestamp",
                 onmouseover: this.handleMouseover

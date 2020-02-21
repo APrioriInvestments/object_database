@@ -30,7 +30,7 @@ class _NavTab extends Component {
         }
         return (
             h('li', {
-                id: this.props.id,
+                id: this.getElementId(),
                 class: "nav-item",
                 "data-cell-id": this.props.id,
                 "data-cell-type": "_NavTab"

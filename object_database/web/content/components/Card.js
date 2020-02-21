@@ -37,7 +37,7 @@ class Card extends Component {
         return h('div',
             {
                 class: "cell card",
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Card"
             }, [headerArea, bodyArea]);

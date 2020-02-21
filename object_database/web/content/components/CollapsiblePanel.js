@@ -29,7 +29,7 @@ class CollapsiblePanel extends Component {
         return (
             h('div', {
                 class: "cell collapsible-panel",
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "CollapsiblePanel",
                 "data-is-expanded": (this.props.isExpanded == true)

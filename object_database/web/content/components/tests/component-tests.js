@@ -18,7 +18,8 @@ class SubComponent extends Component {
     build(){
         return (
             h('div', {
-                id: this.props.id,
+                id: this.getElementId(),
+                'data-cell-id': `${this.props.id}`,
                 class: "test-component subcomponent"
             }, [`Child: ${this.props.id}`])
         );
@@ -92,7 +93,7 @@ describe("Base Component Class", () => {
             let component = new SubComponent({id: 'component'});
             let result = component.render();
             assert.exists(result);
-            assert.equal(result.properties.id, 'component');
+            assert.equal(result.properties['data-cell-id'], 'component');
         });
     });
 
@@ -122,7 +123,7 @@ describe("Base Component Class", () => {
             });
             let result = parent.renderedChildren;
             result.forEach((childHyperscript) => {
-                let id = childHyperscript.properties.id;
+                let id = childHyperscript.properties['data-cell-id'];
                 assert.propertyVal(childHyperscript.properties, 'key', `parent1-child-${id}`);
             });
         });
@@ -146,7 +147,7 @@ describe("Module `render` function", () => {
     it("Can render a component", () => {
         let result = render(component);
         assert.exists(result);
-        assert.equal(result.properties.id, 'subcomponent');
+        assert.equal(result.properties['data-cell-id'], 'subcomponent');
     });
     it("Should have only rendered once for now", () => {
         assert.equal(component.numRenders, 1);

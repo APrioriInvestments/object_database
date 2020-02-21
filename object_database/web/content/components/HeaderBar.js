@@ -26,7 +26,7 @@ class HeaderBar extends Component {
     build(){
         return (
             h('div', {
-                id: this.props.id,
+                id: this.getElementId(),
                 class: "cell header-bar bg-light",
                 "data-cell-id": this.props.id,
                 "data-cell-type": "HeaderBar"

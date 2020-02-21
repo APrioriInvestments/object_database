@@ -22,7 +22,7 @@ class Octicon extends Component {
         return(
             h('span', {
                 class: this._getHTMLClasses(),
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Octicon",
                 "aria-hidden": true,

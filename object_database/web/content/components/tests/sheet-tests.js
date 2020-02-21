@@ -1102,7 +1102,7 @@ describe.skip("Sheet and Update Data Tests", () => {
         handler.receive(createMessage);
     });
     after(() => {
-        let rootEl = document.getElementById('page_root');
+        let rootEl = document.querySelector('[data-cell-id="page_root"]');
         if(rootEl){
             rootEl.remove();
         }
@@ -1122,7 +1122,7 @@ describe.skip("Sheet and Update Data Tests", () => {
         handler.receive(updateMessage);
         let stored = handler.activeComponents[child.id];
         assert.exists(stored);
-        let sheet = document.getElementById(simpleSheet.id);
+        let sheet = document.querySelector(`[data-cell-id="${simpleSheet.id}"]`);
         assert.exists(sheet);
         let head = document.getElementById(`sheet-${simpleSheet.id}-head`);
         assert.exists(head);

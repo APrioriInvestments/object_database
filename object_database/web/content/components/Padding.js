@@ -13,7 +13,7 @@ class Padding extends Component {
     build(){
         return (
             h('span', {
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Padding",
                 class: "px-2"

@@ -24,7 +24,7 @@ class HorizontalSequence extends Component {
     build(){
         return (
             h('div', {
-                id: this.props.id,
+                id: this.getElementId(),
                 class: this.makeClasses(),
                 'data-cell-id': this.props.id,
                 'data-cell-type': "HorizontalSequence"

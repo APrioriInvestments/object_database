@@ -1586,7 +1586,7 @@ class Selector {
         }
     }
 
-      triggerNeedsUpdate(direction, shift){
+    triggerNeedsUpdate(direction, shift){
           if(this.onNeedsUpdate){
               this.onNeedsUpdate(direction, shift);
           }

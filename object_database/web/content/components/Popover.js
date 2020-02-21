@@ -25,6 +25,18 @@ class Popover extends Component {
         this.onClickInPopover = this.onClickInPopover.bind(this);
     }
 
+    componentWillUnload(){
+        // If there is an open rendered
+        // popover on the screen, remove
+        // it.
+        let query = `[data-cell-target="${this.props.id}"].popover`;
+        let found = document.querySelector(query);
+        console.log(found);
+        if(found){
+            $(found).popover('hide');
+        }
+    }
+
     build(){
         return h('div',
             {
@@ -82,10 +94,15 @@ class Popover extends Component {
         event.stopPropagation();
     }
 
+    get template(){
+        return `<div class="popover" role="tooltip" data-cell-target="${this.props.id}"><div class="arrow"></div><h3 class="popover-header"></h3><div class="popover-body"></div></div>`;
+    }
+
     popoverSetup(element){
         // Note: we use jQuery here as
         // it is a requirement of the
         // Bootstrap popover module
+        let thisTemplate = this.template;
         $(element).popover({
             html: true,
             container: 'body',
@@ -101,7 +118,8 @@ class Popover extends Component {
                     return "bottom";
                 }
                 return placement;
-            }
+            },
+            template: thisTemplate
         });
         $(element).on('click', () => {
             $(element).popover('toggle');

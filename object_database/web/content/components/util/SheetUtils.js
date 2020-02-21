@@ -1553,9 +1553,8 @@ class Selector {
      * Defaults to false.
      */
     shiftLeft(amount = 1, shrinkToCursor = false){
-
         if (this.cursorInView() || this.cursorInLockedArea()){
-  			let shift = [amount * -1, 0];
+            let shift = [amount * -1, 0];
             if(this.isAtDataLeft()){
                 if(!this.isAtViewLeft(true)){
                     this.clearStyling(true);
@@ -1603,9 +1602,9 @@ class Selector {
   	 * If the cursor is to the right of the current view I place it at the
   	 * right-most column of the shifted view.
   	 */
-  	shiftViewToCursor(){
+    shiftViewToCursor(){
         // we always shrink to cursor here
-  		  this.shrinkToCursor();
+        this.shrinkToCursor();
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;

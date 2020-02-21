@@ -18,7 +18,7 @@ class SingleLineTextBox extends Component {
         let attrs =
             {
                 class: "cell",
-                id: this.props.id.toString(),
+                id: this.getElementId().toString(),
                 type: "text",
                 "data-cell-id": this.props.id,
                 value: (this.props.defaultValue || ""),

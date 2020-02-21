@@ -62,6 +62,7 @@ class Component {
         this.namedChildrenDo = this.namedChildrenDo.bind(this);
         this.renderChildNamed = this.renderChildNamed.bind(this);
         this.renderChildrenNamed = this.renderChildrenNamed.bind(this);
+        this.getElementId = this.getElementId.bind(this);
         this.getInheritanceChain = this.getInheritanceChain.bind(this);
         this.getSubscribedChain = this.getSubscribedChain.bind(this);
         this.getTopSubscribedAncestor = this.getTopSubscribedAncestor.bind(this);
@@ -178,7 +179,7 @@ class Component {
      * I am consumed by updates in the handler.
      */
     getDOMElement(){
-        return document.getElementById(this.props.id);
+        return document.getElementById(this.getElementId());
     }
 
     /**
@@ -194,6 +195,18 @@ class Component {
                 this.constructor.propTypes
             );
         }
+    }
+
+    /**
+     * Respond with a string-formatted
+     * DOM valid id that can be used
+     * as the actual element id. Note
+     * that this is different from
+     * `data-cell-id`, which is just
+     * the true id.
+     */
+    getElementId(){
+        return `${this.constructor.elementIdPrefix}${this.props.id}`;
     }
 
     /**
@@ -415,6 +428,9 @@ class Component {
         });
     }
 };
+
+Component.elementIdPrefix = "cell-";
+
 
 /**
  * Given a dictionary of `customStyles`

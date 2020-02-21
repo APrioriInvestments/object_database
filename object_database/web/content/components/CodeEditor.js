@@ -118,7 +118,7 @@ class CodeEditor extends Component {
             return h('div',
             {
                 class: "cell code-editor",
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "CodeEditor",
                 key: this

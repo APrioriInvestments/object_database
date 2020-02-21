@@ -42,7 +42,7 @@ class ResizablePanel extends Component {
         }
         return (
             h('div', {
-                id: this.props.id,
+                id: this.getElementId(),
                 class: `cell resizable-panel${classString}`,
                 'data-cell-type': 'ResizablePanel',
                 'data-cell-id': this.props.id,

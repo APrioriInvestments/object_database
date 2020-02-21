@@ -22,7 +22,7 @@ class Code extends Component {
         return h('pre',
                  {
                      class: "cell code",
-                     id: this.props.id,
+                     id: this.getElementId(),
                      "data-cell-type": "Code"
                  }, [
                      h("code", {}, [this.makeCode()])

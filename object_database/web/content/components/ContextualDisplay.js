@@ -22,7 +22,7 @@ class ContextualDisplay extends Component {
         return h('div',
             {
                 class: "cell contextual-display",
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "ContextualDisplay",
                 "data-context-object": this.props.objectType

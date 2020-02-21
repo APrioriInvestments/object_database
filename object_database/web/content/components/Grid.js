@@ -31,7 +31,7 @@ class Grid extends Component {
         }
         return (
             h('table', {
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Grid",
                 class: "cell table-sm table-striped cell-grid"

@@ -21,7 +21,7 @@ class Main extends Component {
     build(){
         return (
             h('main', {
-                id: this.props.id,
+                id: this.getElementId(),
                 class: "py-md-2",
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Main"

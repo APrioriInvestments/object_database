@@ -22,7 +22,7 @@ class Badge extends Component {
         return(
             h('span', {
                 class: `cell badge badge-${this.props.badgeStyle}`,
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Badge"
             }, [this.makeInner()])

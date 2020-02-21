@@ -21,7 +21,7 @@ class ButtonGroup extends Component {
     build(){
         return(
             h('div', {
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "ButtonGroup",
                 class: "btn-group",

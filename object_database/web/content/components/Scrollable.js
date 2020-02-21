@@ -26,7 +26,7 @@ class Scrollable extends Component {
         }
         return (
             h('div', {
-                id: this.props.id,
+                id: this.getElementId(),
                 class: "cell overflow",
                 style: style,
                 "data-cell-id": this.props.id,

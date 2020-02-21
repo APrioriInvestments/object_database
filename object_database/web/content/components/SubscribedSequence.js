@@ -24,7 +24,7 @@ class SubscribedSequence extends Component {
         return h('div',
             {
                 class: this.makeClass(),
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "SubscribedSequence"
             }, this.makeChildren()

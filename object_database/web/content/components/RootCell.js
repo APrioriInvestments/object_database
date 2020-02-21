@@ -18,6 +18,12 @@ class RootCell extends Component {
         this.makeChild = this.makeChild.bind(this);
     }
 
+    getDOMElement(){
+        // Override default behavior, since
+        // id is always "root_cell"
+        return document.getElementById(this.props.id);
+    }
+
     build(){
         return (
             h('div', {

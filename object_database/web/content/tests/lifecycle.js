@@ -163,7 +163,7 @@ describe("Component Lifecycle Tests", () => {
             document.body.append(rootEl);
         });
         after(() => {
-            let rootEl = document.getElementById('page_root');
+            let rootEl = document.querySelector('[data-cell-id="page_root"]');
             rootEl.remove();
         });
         it('Calls #componentDidLoad', () => {
@@ -198,7 +198,7 @@ describe("Component Lifecycle Tests", () => {
             document.body.append(rootEl);
         });
         after(() => {
-            let rootEl = document.getElementById('page_root');
+            let rootEl = document.querySelector('[data-cell-id="page_root"]');
             rootEl.remove();
         });
         it('Did not call #componentDidLoad', () => {
@@ -242,7 +242,7 @@ describe("Component Lifecycle Tests", () => {
             document.body.append(rootEl);
         });
         after(() => {
-            let rootEl = document.getElementById('page_root');
+            let rootEl = document.querySelector('[data-cell-id="page_root"]');
             rootEl.remove();
         });
 

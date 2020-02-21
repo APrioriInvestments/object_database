@@ -86,8 +86,7 @@ class Sheet extends Component {
     }
 
     componentDidLoad(){
-        console.log(`#componentDidLoad called for Sheet ${this.props.id}`);
-        this.container = document.getElementById(this.props.id).parentNode;
+        this.container = this.getDOMElement().parentNode;
         this.maxNumColumns = this._calcMaxNumColumns(this.container.offsetWidth);
         this.maxNumRows = this._calcMaxNumRows(this.container.offsetHeight);
         // new
@@ -290,7 +289,7 @@ class Sheet extends Component {
         ];
         return (
             h("div", {
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Sheet",
                 class: "cell sheet-wrapper",
@@ -915,7 +914,7 @@ class SheetRow extends Component {
         });
         return (
             h("tr",
-                {id: this.props.id, class: "sheet-row", style: this.style},
+                {id: this.getElementId(), class: "sheet-row", style: this.style},
                 rowData
             )
         );
@@ -959,7 +958,7 @@ class SheetCell extends Component {
         return (
             h("td",
                 {
-                    id: this.props.id,
+                    id: this.getElementId(),
                     class: this.class,
                     style: this.style
                 },

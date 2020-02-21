@@ -16,9 +16,10 @@ class Text extends Component {
         return(
             h('div', {
                 class: "cell",
-                id: this.props.id,
+                id: this.getElementId(),
                 style: this.style,
-                "data-cell-id": this.props.id,
+                "data-cell-id": `${this.props.id}`,
+                "data-fuck-you": "asshole",
                 "data-cell-type": "Text"
             }, [this.props.rawText])
         );

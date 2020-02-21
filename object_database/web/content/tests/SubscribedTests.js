@@ -86,7 +86,7 @@ describe("Subscribed Tests", () => {
             document.body.append(rootEl);
         });
         after(() => {
-            let rootEl = document.getElementById('page_root');
+            let rootEl = document.querySelector('[data-cell-id="page_root"]');
             rootEl.remove();
         });
         it("Can create components for basic structure", () => {
@@ -209,7 +209,7 @@ describe("Subscribed Tests", () => {
             document.body.append(rootEl);
         });
         after(() => {
-            let rootEl = document.getElementById('page_root');
+            let rootEl = document.querySelector('[data-cell-id="page_root"]');
             rootEl.remove();
         });
         var childSub = Object.assign({}, subscribedTemplate, {
@@ -268,7 +268,7 @@ describe("Subscribed Tests", () => {
         it("The present placeholder should have the child Subscribed's id", () => {
             let placeholder = document.querySelector('[data-cell-type="Subscribed"]');
             assert.exists(placeholder);
-            assert.equal(placeholder.id, childSub.id);
+            assert.equal(placeholder.dataset.cellId, childSub.id);
         });
 
         it("The present placeholder should have a subscribed-to attr mapped to parent Subscribed", () => {
@@ -319,7 +319,7 @@ describe("Subscribed Tests", () => {
         it("There should be a single Text in the DOM with the proper id", () => {
             let foundTexts = document.querySelectorAll('[data-cell-type="Text"]');
             assert.equal(1, foundTexts.length);
-            assert.equal(foundTexts[0].id, '5');
+            assert.equal(foundTexts[0].dataset.cellId, '5');
         });
 
         it("Can update the Text of the parent Subscribed, overwriting child", () => {
@@ -337,7 +337,7 @@ describe("Subscribed Tests", () => {
         it("There should be a single Text in the DOM with the proper id", () => {
             let foundTexts = document.querySelectorAll('[data-cell-type="Text"]');
             assert.equal(1, foundTexts.length);
-            assert.equal(foundTexts[0].id, text1.id);
+            assert.equal(foundTexts[0].dataset.cellId, text1.id);
         });
 
         it("There should be no Subscribed placeholders in the DOM", () => {
@@ -358,7 +358,7 @@ describe("Subscribed Tests", () => {
         it("Has a single placeholder corresponding to the parent Subscribed", () => {
             let placeholders = document.querySelectorAll('[data-cell-type="Subscribed"]');
             assert.equal(1, placeholders.length);
-            assert.equal(placeholders[0].id, parentSub.id);
+            assert.equal(placeholders[0].dataset.cellId, parentSub.id);
         });
 
         it("There are no subscribed-to elements in the DOM", () => {

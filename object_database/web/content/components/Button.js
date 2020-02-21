@@ -24,7 +24,7 @@ class Button extends Component {
     build(){
         return(
             h('button', {
-                id: this.props.id,
+                id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Button",
                 class: this._getHTMLClasses(),

@@ -1551,7 +1551,7 @@ class Selector {
      * to shrink the selection frame to be just
      * the size of the cursor after shifting.
      * Defaults to false.
-     */
+     **/
     shiftLeft(amount = 1, shrinkToCursor = false){
         if (this.cursorInView() || this.cursorInLockedArea()){
             let shift = [amount * -1, 0];
@@ -1719,22 +1719,20 @@ class Selector {
     isAtDataRight(){
         return this.selectionFrame.corner.x === this.sheet.dataFrame.corner.x;
     }
-
-  	/**
-  	 * Returns true if the cursor is in any of the locked areas.
-  	 */
-  	cursorInLockedArea(){
-  		let lockRowsY = Math.max(0, this.sheet.props.numLockRows - 1);
-  		let lockColumnsX = Math.max(this.sheet.props.numLockColumns - 1);
-  		let x = this.selectionFrame.cursor.x;
-  		let y = this.selectionFrame.cursor.y;
-  		return (x >= 0) && (x <= lockColumnsX) || (y >= 0) && (y <= lockRowsY);
-  	}
-
-  	/**
-  	 * Returns true if the cursor is in the current view.
-  	 */
-  	cursorInView(){
+    /**
+     * Returns true if the cursor is in any of the locked areas.
+     **/
+    cursorInLockedArea(){
+        let lockRowsY = Math.max(0, this.sheet.props.numLockRows - 1);
+        let lockColumnsX = Math.max(this.sheet.props.numLockColumns - 1);
+        let x = this.selectionFrame.cursor.x;
+        let y = this.selectionFrame.cursor.y;
+        return (x >= 0) && (x <= lockColumnsX) || (y >= 0) && (y <= lockRowsY);
+    }
+    /**
+     * Returns true if the cursor is in the current view.
+     **/
+    cursorInView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
@@ -1747,49 +1745,46 @@ class Selector {
         let y = this.selectionFrame.cursor.y;
         return (x >= originX) && (x <= cornerX) && (y >= originY) && (y <= cornerY);
     }
-
-  	/**
-  	 * Returns true if the cursor is above the current view.
-  	 */
-  	cursorAboveView(){
+    /*
+     *
+     * Returns true if the cursor is above the current view.
+     **/
+    cursorAboveView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let originElement = body.querySelectorAll("td:not(.locked)")[0];
         let y = this.selectionFrame.cursor.y;
         return y < parseInt(originElement.dataset["y"]);
-  	}
-
-  	/**
-  	 * Returns true if the cursor is below the current view.
-  	 */
-  	cursorBelowView(){
+    }
+    /**
+     * Returns true if the cursor is below the current view.
+     **/
+    cursorBelowView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
         let y = this.selectionFrame.cursor.y;
         return y > parseInt(cornerElement.dataset["y"]);
-  	}
-
-  	/**
-  	 * Returns true if the cursor is left of the current view.
-  	 */
-  	cursorLeftOfView(){
+    }
+    /**
+     * Returns true if the cursor is left of the current view.
+     **/
+    cursorLeftOfView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let originElement = body.querySelectorAll("td:not(.locked)")[0];
         let x = this.selectionFrame.cursor.x;
         return x < parseInt(originElement.dataset["x"]);
     }
-  	/**
-  	 * Returns true if the cursor is right of the current view.
-  	 */
-  	cursorRightOfView(){
+    /**
+     * Returns true if the cursor is right of the current view.
+     **/
+    cursorRightOfView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
         let x = this.selectionFrame.cursor.x;
         return x > parseInt(cornerElement.dataset["x"]);
-  	}
+    }
 }
-
 
 export {
     Point,

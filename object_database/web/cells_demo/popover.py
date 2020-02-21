@@ -14,6 +14,7 @@
 
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
+import threading
 
 
 class SimplePopover(CellsTestPage):
@@ -71,4 +72,63 @@ def test_popover_hides_on_toggle(headless_browser):
     content_location = (headless_browser.by.CSS_SELECTOR, ".popover")
     headless_browser.wait(1).until(
         headless_browser.expect.invisibility_of_element_located(content_location)
+    )
+
+
+class DelayedRemoval(CellsTestPage):
+    def cell(self):
+        slot = cells.Slot(True)
+        text_slot = cells.Slot("On")
+        popover = cells.Popover("Outer", "Title", "Inner")
+        sub = cells.Subscribed(lambda: popover if slot.get() else cells.Text("empty"))
+        text_sub = cells.Subscribed(lambda: cells.Text(text_slot.get()))
+
+        def worker(event):
+            event.wait(2)
+            slot.set(False)
+
+        def toggle():
+            if slot.get():
+                event = threading.Event()
+                thread = threading.Thread(target=worker, args=(event,))
+                thread.start()
+                # slot.set(False)
+                text_slot.set("Off")
+            else:
+                slot.set(True)
+                text_slot.set("On")
+
+        button = cells.Button("Click", toggle)
+
+        return cells.Card((button + text_sub) >> sub)
+
+    def text(self):
+        return "The button will make the popover vanish after 2 seconds"
+
+
+def test_dynamic_popover_exists(headless_browser):
+    headless_browser.load_demo_page(DelayedRemoval)
+    query = '{} [data-toggle="popover"]'.format(headless_browser.demo_root_selector)
+    toggler = headless_browser.find_by_css(query)
+    assert toggler
+
+
+def test_dynamic_click_and_delay(headless_browser):
+    # Find both the popover anchor and the button
+    popover_link = headless_browser.find_by_css(
+        '{} [data-cell-type="Popover"] > a'.format(headless_browser.demo_root_selector)
+    )
+    assert popover_link
+    button = headless_browser.find_by_css(
+        '{} [data-cell-type="Button"]'.format(headless_browser.demo_root_selector)
+    )
+    assert button
+
+    # Now ensure that after the timer (3 seconds)
+    # the popover content is not showing in the DOM
+    pop_content_location = (headless_browser.by.CSS_SELECTOR, '[role="tooltip"].popover')
+    button.click()
+    popover_link.click()
+    headless_browser.wait(4).until(
+        headless_browser.expect.invisibility_of_element_located(pop_content_location)
     )

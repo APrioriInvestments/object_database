@@ -149,3 +149,39 @@ class BiggerSheetLockedRowsColumns(CellsTestPage):
 
     def text(self):
         return "You should see a bigger sheet."
+
+
+class TwoColumnSheetLockedRowsColumns(CellsTestPage):
+    def cell(self):
+        num_columns = 2
+        num_rows = 10000
+
+        def rowFun(
+            start_row,
+            end_row,
+            start_column,
+            end_column,
+            num_rows=num_rows,
+            num_columns=num_columns,
+        ):
+            rows = []
+            if start_row >= num_rows or start_column > num_columns:
+                return rows
+            end_column = min(end_column, num_columns)
+            end_row = min(end_row, num_rows)
+            for i in range(start_row, end_row + 1):
+                r = ["entry_%s_%s" % (j, i) for j in range(start_column, end_column + 1)]
+                rows.append(r)
+            return rows
+
+        return cells.Sheet(
+            rowFun,
+            colWidth=80,
+            totalColumns=num_columns,
+            totalRows=num_rows,
+            numLockRows=1,
+            numLockColumns=1,
+        )
+
+    def text(self):
+        return "You should see a bigger sheet."

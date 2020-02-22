@@ -815,6 +815,7 @@ class Sheet extends Component {
                     }
                 }
             }
+            console.log(this.selector);
         });
     }
 

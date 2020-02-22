@@ -438,7 +438,7 @@ class Sheet extends Component {
         if (!event.shiftKey){
             // if the cursor is out of view we translate the view to the cursor
             // and do nothing else!
-            if (this.fetchBlock.length === 0 && !this.selector.cursorInView()){
+            if (this.fetchBlock.length === 0 && !this.selector.cursorInView() && !this.selector.cursorInLockedArea()){
                 this.selector.shiftViewToCursor();
                 return;
             }
@@ -815,7 +815,6 @@ class Sheet extends Component {
                     }
                 }
             }
-            console.log(this.selector);
         });
     }
 

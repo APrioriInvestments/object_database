@@ -133,7 +133,7 @@
 .sheet-cell {
     border: solid 1px lightblue;
     text-align: center;
-    overflow: ellipsis;
+    overflow: hidden;
     text-overflow: ellipsis;
     padding-right: 2px;
     padding-left: 2px;
@@ -199,18 +199,13 @@ td.locked {
 
 .sheet-wrapper th {
     background-color: #dcdcdc75;
-    text-overflow: ellipsis;
-    text-align: left;
+    font-size: .8rem;
     padding-left: 5px;
-    border-right: 2px solid #568eca;
-}
-
-.sheet-wrapper thead {
     border-bottom: 2px solid #568eca;
 }
 
 th.header-info{
-    text-align: center;
+    text-align: right;
     padding-right: 5px;
 }
 

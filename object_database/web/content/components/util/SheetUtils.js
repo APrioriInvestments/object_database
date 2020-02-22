@@ -986,11 +986,8 @@ class Selector {
      * clear the styling of the td element
      * that maps to the current selection frame
      * cursor.
-     * @param {boolean} clearCursor - Whether or not
-     * to clear the cursor styling too. Defaults to
-     * true
      */
-    clearStyling(clearCursor = false){
+    clearStyling(){
         // Clears all styling on the
         // current selectionFrame and
         // cursor.
@@ -1121,7 +1118,7 @@ class Selector {
      * the selection frame cursor
      */
     cursorTo(aPoint){
-        this.clearStyling(true);
+        this.clearStyling();
         this.shrinkToCursor();
         this.selectionFrame.fromPointToPoint(
             aPoint,
@@ -1425,7 +1422,7 @@ class Selector {
                 console.log("AT DATA TOP");
                 if(!this.isAtViewTop(true)){
                     console.log("NOT AT ABSOLUTE VIEW TOP");
-                    this.clearStyling(true);
+                    this.clearStyling();
                     this.selectionFrame.translate(shift);
                     if(shrinkToCursor){
                         this.shrinkToCursor();
@@ -1441,7 +1438,7 @@ class Selector {
                     }
                 } else {
                     this.selectionFrame.translate(shift);
-                    this.clearStyling(true);
+                    this.clearStyling();
                     if(shrinkToCursor){
                         this.shrinkToCursor();
                     }
@@ -1480,9 +1477,12 @@ class Selector {
                     if(shrinkToCursor){
                         this.shrinkToCursor();
                     }
-                } else {
+                // NOTE: we make sure that data is not being fetched since
+                // this can cause a race condition where the cursor could move
+                // off view
+                } else if (this.sheet.fetchBlock.length === 0) {
                     this.selectionFrame.translate(shift);
-                    this.clearStyling(true);
+                    this.clearStyling();
                     if(shrinkToCursor){
                         this.shrinkToCursor();
                     }
@@ -1523,7 +1523,7 @@ class Selector {
                     }
                 } else {
                     this.selectionFrame.translate(shift);
-                    this.clearStyling(true);
+                    this.clearStyling();
                     if(shrinkToCursor){
                         this.shrinkToCursor();
                     }
@@ -1551,13 +1551,14 @@ class Selector {
      * to shrink the selection frame to be just
      * the size of the cursor after shifting.
      * Defaults to false.
-     **/
+     */
     shiftLeft(amount = 1, shrinkToCursor = false){
+
         if (this.cursorInView() || this.cursorInLockedArea()){
-            let shift = [amount * -1, 0];
+  			let shift = [amount * -1, 0];
             if(this.isAtDataLeft()){
                 if(!this.isAtViewLeft(true)){
-                    this.clearStyling(true);
+                    this.clearStyling();
                     this.selectionFrame.translate(shift);
                     if(shrinkToCursor){
                         this.shrinkToCursor();
@@ -1573,7 +1574,7 @@ class Selector {
                     }
                 } else {
                     this.selectionFrame.translate(shift);
-                    this.clearStyling(true);
+                    this.clearStyling();
                     if(shrinkToCursor){
                         this.shrinkToCursor();
                     }
@@ -1585,26 +1586,26 @@ class Selector {
         }
     }
 
-    triggerNeedsUpdate(direction, shift){
+      triggerNeedsUpdate(direction, shift){
           if(this.onNeedsUpdate){
               this.onNeedsUpdate(direction, shift);
           }
     }
 
-    /**
-     * I shift the entire view to the location of the cursor.
-     * If the cursor is above the current view I place it at the
-     * top row of the shifted view.
-     * If the cursor is below the current view I place it at the
-     * bottom row of the shifted view.
-     * If the cursor is to left of the current view I place it at the
-     * left-left most column of the shifted view.
-     * If the cursor is to the right of the current view I place it at the
-     * right-most column of the shifted view.
-     **/
-    shiftViewToCursor(){
+  	/**
+  	 * I shift the entire view to the location of the cursor.
+  	 * If the cursor is above the current view I place it at the
+  	 * top row of the shifted view.
+  	 * If the cursor is below the current view I place it at the
+  	 * bottom row of the shifted view.
+  	 * If the cursor is to left of the current view I place it at the
+  	 * left-left most column of the shifted view.
+  	 * If the cursor is to the right of the current view I place it at the
+  	 * right-most column of the shifted view.
+  	 */
+  	shiftViewToCursor(){
         // we always shrink to cursor here
-        this.shrinkToCursor();
+  		  this.shrinkToCursor();
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
@@ -1720,20 +1721,21 @@ class Selector {
         return this.selectionFrame.corner.x === this.sheet.dataFrame.corner.x;
     }
 
-    /**
-     * Returns true if the cursor is in any of the locked areas.
-     **/
-    cursorInLockedArea(){
-        let lockRowsY = Math.max(0, this.sheet.props.numLockRows - 1);
-        let lockColumnsX = Math.max(this.sheet.props.numLockColumns - 1);
-        let x = this.selectionFrame.cursor.x;
-        let y = this.selectionFrame.cursor.y;
-        return (x >= 0) && (x <= lockColumnsX) || (y >= 0) && (y <= lockRowsY);
-    }
-    /**
-     * Returns true if the cursor is in the current view.
-     **/
-    cursorInView(){
+  	/**
+  	 * Returns true if the cursor is in any of the locked areas.
+  	 */
+  	cursorInLockedArea(){
+  		let lockRowsY = Math.max(0, this.sheet.props.numLockRows - 1);
+  		let lockColumnsX = Math.max(this.sheet.props.numLockColumns - 1);
+  		let x = this.selectionFrame.cursor.x;
+  		let y = this.selectionFrame.cursor.y;
+  		return (x >= 0) && (x <= lockColumnsX) || (y >= 0) && (y <= lockRowsY);
+  	}
+
+  	/**
+  	 * Returns true if the cursor is in the current view.
+  	 */
+  	cursorInView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
@@ -1746,46 +1748,49 @@ class Selector {
         let y = this.selectionFrame.cursor.y;
         return (x >= originX) && (x <= cornerX) && (y >= originY) && (y <= cornerY);
     }
-    /*
-     *
-     * Returns true if the cursor is above the current view.
-     **/
-    cursorAboveView(){
+
+  	/**
+  	 * Returns true if the cursor is above the current view.
+  	 */
+  	cursorAboveView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let originElement = body.querySelectorAll("td:not(.locked)")[0];
         let y = this.selectionFrame.cursor.y;
         return y < parseInt(originElement.dataset["y"]);
-    }
-    /**
-     * Returns true if the cursor is below the current view.
-     **/
-    cursorBelowView(){
+  	}
+
+  	/**
+  	 * Returns true if the cursor is below the current view.
+  	 */
+  	cursorBelowView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
         let y = this.selectionFrame.cursor.y;
         return y > parseInt(cornerElement.dataset["y"]);
-    }
-    /**
-     * Returns true if the cursor is left of the current view.
-     **/
-    cursorLeftOfView(){
+  	}
+
+  	/**
+  	 * Returns true if the cursor is left of the current view.
+  	 */
+  	cursorLeftOfView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let originElement = body.querySelectorAll("td:not(.locked)")[0];
         let x = this.selectionFrame.cursor.x;
         return x < parseInt(originElement.dataset["x"]);
     }
-    /**
-     * Returns true if the cursor is right of the current view.
-     **/
-    cursorRightOfView(){
+  	/**
+  	 * Returns true if the cursor is right of the current view.
+  	 */
+  	cursorRightOfView(){
         let body = document.getElementById(`sheet-${this.sheet.props.id}-body`);
         let bottomRow = body.lastChild;
         let cornerElement = bottomRow.lastChild;
         let x = this.selectionFrame.cursor.x;
         return x > parseInt(cornerElement.dataset["x"]);
-    }
+  	}
 }
+
 
 export {
     Point,

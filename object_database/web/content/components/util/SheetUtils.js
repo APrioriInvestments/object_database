@@ -1086,13 +1086,21 @@ class Selector {
                     element.classList.add('active-selection');
                 }
                 if(this.selectionFrame.isAtLeft(elementPoint)){
-                    element.classList.add('active-selection-left');
+                    // if we are at the absolute left of the sheet we don't add
+                    // border-left to match the border-top behavior below
+                    if (elementPoint.x > 0) {
+                        element.classList.add('active-selection-left');
+                    }
                 }
                 if(this.selectionFrame.isAtRight(elementPoint)){
                     element.classList.add('active-selection-right');
                 }
                 if(this.selectionFrame.isAtTop(elementPoint)){
-                    element.classList.add('active-selection-top');
+                    // if we are at the absolute top of the sheet we don't add
+                    // the border-top since it interfeces with the header
+                    if (elementPoint.y > 0) {
+                        element.classList.add('active-selection-top');
+                    }
                 }
                 if(this.selectionFrame.isAtBottom(elementPoint)){
                     element.classList.add('active-selection-bottom');
@@ -1591,17 +1599,17 @@ class Selector {
           }
     }
 
-  	/**
-  	 * I shift the entire view to the location of the cursor.
-  	 * If the cursor is above the current view I place it at the
-  	 * top row of the shifted view.
-  	 * If the cursor is below the current view I place it at the
-  	 * bottom row of the shifted view.
-  	 * If the cursor is to left of the current view I place it at the
-  	 * left-left most column of the shifted view.
-  	 * If the cursor is to the right of the current view I place it at the
-  	 * right-most column of the shifted view.
-  	 */
+    /**
+     * I shift the entire view to the location of the cursor.
+     * If the cursor is above the current view I place it at the
+     * top row of the shifted view.
+     * If the cursor is below the current view I place it at the
+     * bottom row of the shifted view.
+     * If the cursor is to left of the current view I place it at the
+     * left-left most column of the shifted view.
+     * If the cursor is to the right of the current view I place it at the
+     * right-most column of the shifted view.
+     **/
     shiftViewToCursor(){
         // we always shrink to cursor here
         this.shrinkToCursor();
@@ -1719,6 +1727,7 @@ class Selector {
     isAtDataRight(){
         return this.selectionFrame.corner.x === this.sheet.dataFrame.corner.x;
     }
+
     /**
      * Returns true if the cursor is in any of the locked areas.
      **/

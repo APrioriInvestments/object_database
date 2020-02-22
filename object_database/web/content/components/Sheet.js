@@ -627,12 +627,12 @@ class Sheet extends Component {
         // information.
         if(this.isSelecting){
             let targetCoord = [parseInt(event.target.dataset.x), parseInt(event.target.dataset.y)];
-			this.selector.clearStyling();
+            this.selector.clearStyling();
             this.selector.selectionFrame.fromPointToPoint(
                 this.selector.selectionFrame.cursor,
                 targetCoord
             );
-			this.selector.addStyling();
+            this.selector.addStyling();
         }
     }
 

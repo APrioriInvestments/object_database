@@ -1170,8 +1170,14 @@ class Selector {
      * I expand the selection frame up by one
      */
     growUp(){
+        let amount = 1;
+        let diff = [0, -1 * amount];
         if(!this.isAtViewTop(true)){
-            let diff = [0, -1];
+            // if I am at the top of the view but there is data
+            // above I'll trigger a scroll up
+            if (this.isAtViewTop() && !this.isAtDataTop()){
+                this.triggerNeedsUpdate('up', amount);
+            }
             let toPoint = this.applyToOppositeCorner(diff);
             this.selectionFrame.fromPointToPoint(
                 this.selectionFrame.cursor,
@@ -1185,38 +1191,52 @@ class Selector {
      * I expand the selection frame right by one
      */
     growRight(){
-        if(!this.isAtViewRight()){
-            let diff = [1, 0];
-            let toPoint = this.applyToOppositeCorner(diff);
-            this.selectionFrame.fromPointToPoint(
-                this.selectionFrame.cursor,
-                toPoint,
-                false
-            );
+        let amount = 1;
+        let diff = [amount, 0];
+        if(this.isAtViewRight()){
+            if (!this.isAtDataRight()){
+                this.triggerNeedsUpdate('right', amount);
+            }
         }
+        let toPoint = this.applyToOppositeCorner(diff);
+        this.selectionFrame.fromPointToPoint(
+            this.selectionFrame.cursor,
+            toPoint,
+            false
+        );
     }
 
     /**
      * I expand the selection frame down by one
      */
     growDown(){
-        if(!this.isAtViewBottom()){
-            let diff = [0, 1];
-            let toPoint = this.applyToOppositeCorner(diff);
-            this.selectionFrame.fromPointToPoint(
-                this.selectionFrame.cursor,
-                toPoint,
-                false
-            );
+        let amount = 1;
+        let diff = [0, amount];
+        if(this.isAtViewBottom()){
+            if (!this.isAtDataBottom()){
+                this.triggerNeedsUpdate('down', amount);
+            }
         }
+        let toPoint = this.applyToOppositeCorner(diff);
+        this.selectionFrame.fromPointToPoint(
+            this.selectionFrame.cursor,
+            toPoint,
+            false
+        );
     }
 
     /**
      * I expand the selection frame left by one
      */
     growLeft(){
+        let amount = 1;
+        let diff = [-1 * amount, 0];
         if(!this.isAtViewLeft(true)){
-            let diff = [-1, 0];
+            // if I am at the left of the view but there is data
+            // left I'll trigger a scroll up
+            if (this.isAtViewLeft() && !this.isAtDataLeft()){
+                this.triggerNeedsUpdate('left', amount);
+            }
             let toPoint = this.applyToOppositeCorner(diff);
             this.selectionFrame.fromPointToPoint(
                 this.selectionFrame.cursor,

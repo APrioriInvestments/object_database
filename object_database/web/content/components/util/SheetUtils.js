@@ -1541,7 +1541,10 @@ class Selector {
                     if(shrinkToCursor){
                         this.shrinkToCursor();
                     }
-                } else {
+                // NOTE: we make sure that data is not being fetched since
+                // this can cause a race condition where the cursor could move
+                // off view
+                } else if (this.sheet.fetchBlock.length === 0) {
                     this.selectionFrame.translate(shift);
                     this.clearStyling();
                     if(shrinkToCursor){

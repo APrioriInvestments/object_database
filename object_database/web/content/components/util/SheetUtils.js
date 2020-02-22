@@ -1086,21 +1086,13 @@ class Selector {
                     element.classList.add('active-selection');
                 }
                 if(this.selectionFrame.isAtLeft(elementPoint)){
-                    // if we are at the absolute left of the sheet we don't add
-                    // border-left to match the border-top behavior below
-                    if (elementPoint.x > 0) {
-                        element.classList.add('active-selection-left');
-                    }
+                    element.classList.add('active-selection-left');
                 }
                 if(this.selectionFrame.isAtRight(elementPoint)){
                     element.classList.add('active-selection-right');
                 }
                 if(this.selectionFrame.isAtTop(elementPoint)){
-                    // if we are at the absolute top of the sheet we don't add
-                    // the border-top since it interfeces with the header
-                    if (elementPoint.y > 0) {
-                        element.classList.add('active-selection-top');
-                    }
+                    element.classList.add('active-selection-top');
                 }
                 if(this.selectionFrame.isAtBottom(elementPoint)){
                     element.classList.add('active-selection-bottom');

@@ -234,10 +234,8 @@ class Sheet extends Component {
      */
     initializeSheet(projector, body, head){
         // make sure the header spans the entire width
-        let headerCurrentCoordinate = head.querySelector(`#sheet-${this.props.id}-head-current-coordinate`);
-        headerCurrentCoordinate.colSpan = this.maxNumColumns - 1;
-        let headerCurrentValue = head.querySelector(`#sheet-${this.props.id}-head-current-value`);
-        headerCurrentValue.colSpan = this.maxNumColumns - 1;
+        let headerCurrent = head.querySelector(`#sheet-${this.props.id}-head-current`);
+        headerCurrent.colSpan = this.maxNumColumns - 1;
         let headerInfo = head.querySelector(`#sheet-${this.props.id}-head-info`);
         headerInfo.colSpan = 1;
         headerInfo.textContent = `${this.totalColumns}x${this.totalRows}`;
@@ -286,11 +284,8 @@ class Sheet extends Component {
         let rows = ["Just a sec..."];
         let header = [
             h("tr", {style: `height: ${this.props.rowHeight}px`}, [
-                h("th", {id: `sheet-${this.props.id}-head-current-coordinate`}, []),
-                h("th", {id: `sheet-${this.props.id}-head-info`, "rowSpan": 2, class: "header-info"}, [])
-            ]),
-            h("tr", {style: `height: ${this.props.rowHeight}px`}, [
-                h("th", {id: `sheet-${this.props.id}-head-current-value`}, []),
+                h("th", {id: `sheet-${this.props.id}-head-current`}, []),
+                h("th", {id: `sheet-${this.props.id}-head-info`, class: "header-info"}, [])
             ])
         ];
         return (
@@ -658,21 +653,21 @@ class Sheet extends Component {
     /* I handle updates to the display header */
     _updateHeader(body, head){
         let cursor = this.selector.selectionFrame.cursor;
-        let thCoord = head.querySelector(`#sheet-${this.props.id}-head-current-coordinate`);
-        let thValue = head.querySelector(`#sheet-${this.props.id}-head-current-value`);
+        let th = head.querySelector(`#sheet-${this.props.id}-head-current`);
         let content = this.dataFrame.get(cursor);
+        let coordinates = `(${cursor.x}x${cursor.y}): `;
         if (content !== undefined){
-            let fontSize = parseFloat(window.getComputedStyle(thValue).getPropertyValue("font-size"));
-            let newFontSize = '.8rem';
-            if (fontSize * content.length > (this.props.colWidth - 5)){
-                newFontSize = `${this.props.colWidth/(content.length)}px`;
+            let fontSize = parseFloat(window.getComputedStyle(th).getPropertyValue("font-size"));
+            let newFontSize = '.8em';
+            let contentLength = content.length + coordinates.length;
+            if (fontSize * contentLength > (this.props.colWidth - 5)){
+                newFontSize = `${2 * (this.props.colWidth)/(contentLength)}px`;
             }
-            // th.style.fontSize = newFontSize;
+            th.style.fontSize = newFontSize;
         } else {
             content = "";
         }
-        thCoord.textContent = `(${cursor.x}, ${cursor.y})`;
-        thValue.textContent = `${content}`;
+        th.textContent = `${coordinates}${content}`;
     }
 
     /* Simply resets the `isSelecting` to false, in the

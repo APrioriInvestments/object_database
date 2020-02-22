@@ -656,17 +656,18 @@ class Sheet extends Component {
         let th = head.querySelector(`#sheet-${this.props.id}-head-current`);
         let content = this.dataFrame.get(cursor);
         let coordinates = `(${cursor.x}x${cursor.y}): `;
-        if (content !== undefined){
-            let fontSize = parseFloat(window.getComputedStyle(th).getPropertyValue("font-size"));
-            let newFontSize = '.8em';
-            let contentLength = content.length + coordinates.length;
-            if (fontSize * contentLength > (this.props.colWidth - 5)){
-                newFontSize = `${2 * (this.props.colWidth)/(contentLength)}px`;
+        let fontSize = '.8rem';
+        if (th.colSpan < 2){
+            if (content === undefined){
+                content = "undefined";
             }
-            th.style.fontSize = newFontSize;
-        } else {
-            content = "";
+            let computedFontSize = parseFloat(window.getComputedStyle(th).getPropertyValue("font-size"));
+            let contentLength = content.length + coordinates.length;
+            if (computedFontSize * contentLength > (this.props.colWidth - 5)){
+                fontSize = `${2 * (this.props.colWidth)/(contentLength)}px`;
+            }
         }
+        th.style.fontSize = fontSize;
         th.textContent = `${coordinates}${content}`;
     }
 

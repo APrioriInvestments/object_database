@@ -914,7 +914,7 @@ class SheetRow extends Component {
         });
         return (
             h("tr",
-                {id: this.getElementId(), class: "sheet-row", style: this.style},
+                {id: this.props.id, class: "sheet-row", style: this.style},
                 rowData
             )
         );
@@ -958,7 +958,7 @@ class SheetCell extends Component {
         return (
             h("td",
                 {
-                    id: this.getElementId(),
+                    id: this.props.id,
                     class: this.class,
                     style: this.style
                 },

@@ -53,10 +53,9 @@ def test_basic_sheet_display(headless_browser):
     # Ensures we can load the demo page element
     demo_root = headless_browser.get_demo_root_for(BasicSheet)
     assert demo_root
-    headless_browser.load_demo_page(BasicSheet)
-    query = '{} [data-cell-type="Sheet"]'.format(headless_browser.demo_root_selector)
-    location = (headless_browser.by.CSS_SELECTOR, query)
-    headless_browser.expect.presence_of_element_located(location)
+    query = '[data-cell-type="Sheet"]'
+    sheet = headless_browser.find_by_css(query)
+    assert sheet
 
 
 class BiggerSheet(CellsTestPage):
@@ -92,9 +91,9 @@ def test_bigger_sheet_display(headless_browser):
     # Ensures we can load the demo page element
     demo_root = headless_browser.get_demo_root_for(BiggerSheet)
     assert demo_root
-    query = '{} [data-cell-type="Sheet"]'.format(headless_browser.demo_root_selector)
-    location = (headless_browser.by.CSS_SELECTOR, query)
-    headless_browser.expect.presence_of_element_located(location)
+    query = '[data-cell-type="Sheet"]'
+    sheet = headless_browser.find_by_css(query)
+    assert sheet
 
 
 class BasicSheetLockedRowsColumns(CellsTestPage):
@@ -138,9 +137,9 @@ def test_basic_sheet_locked_rows_columnsdisplay(headless_browser):
     # Ensures we can load the demo page element
     demo_root = headless_browser.get_demo_root_for(BasicSheetLockedRowsColumns)
     assert demo_root
-    query = '{} [data-cell-type="Sheet"]'.format(headless_browser.demo_root_selector)
-    location = (headless_browser.by.CSS_SELECTOR, query)
-    headless_browser.expect.presence_of_element_located(location)
+    query = '[data-cell-type="Sheet"]'
+    sheet = headless_browser.find_by_css(query)
+    assert sheet
 
 
 class BiggerSheetLockedRowsColumns(CellsTestPage):
@@ -183,9 +182,9 @@ def test_bigger_sheet_locked_rows_columnsdisplay(headless_browser):
     # Ensures we can load the demo page element
     demo_root = headless_browser.get_demo_root_for(BiggerSheetLockedRowsColumns)
     assert demo_root
-    query = '{} [data-cell-type="Sheet"]'.format(headless_browser.demo_root_selector)
-    location = (headless_browser.by.CSS_SELECTOR, query)
-    headless_browser.expect.presence_of_element_located(location)
+    query = '[data-cell-type="Sheet"]'
+    sheet = headless_browser.find_by_css(query)
+    assert sheet
 
 
 class TwoColumnSheetLockedRowsColumns(CellsTestPage):
@@ -228,6 +227,6 @@ def test_two_column_sheet_locked_rows_columnsdisplay(headless_browser):
     # Ensures we can load the demo page element
     demo_root = headless_browser.get_demo_root_for(TwoColumnSheetLockedRowsColumns)
     assert demo_root
-    query = '{} [data-cell-type="Sheet"]'.format(headless_browser.demo_root_selector)
-    location = (headless_browser.by.CSS_SELECTOR, query)
-    headless_browser.expect.presence_of_element_located(location)
+    query = '[data-cell-type="Sheet"]'
+    sheet = headless_browser.find_by_css(query)
+    assert sheet

@@ -26,11 +26,12 @@ class Table extends Component {
         this.makeRows = this.makeRows.bind(this);
         this.makeFirstRow = this.makeFirstRow.bind(this);
         this._makeRowElements = this._makeRowElements.bind(this);
-        this._getRowDisplayElements = this._getRowDisplayElements.bind(this);
+        this._getPageDisplayElements = this._getPageDisplayElements.bind(this);
         this._currentPage = this._currentPage.bind(this);
         this._totalPages = this._totalPages.bind(this);
         this.fetchPage = this.fetchPage.bind(this);
         this.handleKeydown = this.handleKeydown.bind(this);
+        this.page = this.page.bind(this);
     }
 
     build(){
@@ -61,6 +62,21 @@ class Table extends Component {
                 }
             }
         }
+    }
+
+    page(event){
+        let direction = event.target.dataset.direction;
+        let clickable = event.target.dataset.clickable;
+        if (clickable === "true"){
+            let nextPage = parseInt(this.props.currentPage);
+            if (direction === "left"){
+                nextPage -= 1;
+            } else if (direction === "right"){
+                nextPage += 1;
+            }
+            this.fetchPage(nextPage);
+        }
+
     }
 
     makeHeaderElements(){
@@ -99,21 +115,37 @@ class Table extends Component {
 
     makeFirstRow(){
         let headerElements = this.makeHeaderElements();
+        if (this.props.totalPages > 1){
+            headerElements.unshift(h('th', {}, [...this._getPageDisplayElements()]));
+        }
         return(
-            h('tr', {}, [
-                h('th', {}, [...this._getRowDisplayElements()]),
-                ...headerElements
-            ])
+            h('tr', {}, headerElements)
         );
     }
 
-    _getRowDisplayElements(){
+    _getPageDisplayElements(){
         return [
-            this.renderChildNamed('left'),
+            this._pageArrows('left'),
             this._currentPage(),
             this._totalPages(),
-            this.renderChildNamed('right')
+            this._pageArrows('right')
         ];
+    }
+
+    _pageArrows(direction){
+        let style = "";
+        let clickable = ((direction === 'left' && parseInt(this.props.currentPage) > 1) || (direction === 'right' && parseInt(this.props.currentPage) < this.props.totalPages));
+        if (!clickable){
+            style = "color: lightgray";
+        }
+        let classes = `cell octicon octicon-triangle-${direction}`;
+        return h('span', {
+            class: classes,
+            style: style,
+            'data-direction': direction,
+            'data-clickable': clickable.toString(),
+            onclick: this.page
+        }, []);
     }
 
     _currentPage(){

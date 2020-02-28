@@ -27,7 +27,10 @@ class Table extends Component {
         this.makeFirstRow = this.makeFirstRow.bind(this);
         this._makeRowElements = this._makeRowElements.bind(this);
         this._getRowDisplayElements = this._getRowDisplayElements.bind(this);
-        this._getPageInfo = this._getPageInfo.bind(this);
+        this._currentPage = this._currentPage.bind(this);
+        this._totalPages = this._totalPages.bind(this);
+        this.fetchPage = this.fetchPage.bind(this);
+        this.handleKeydown = this.handleKeydown.bind(this);
     }
 
     build(){
@@ -36,6 +39,7 @@ class Table extends Component {
         return(
             h('table', {
                 id: this.getElementId(),
+                onkeydown: this.handleKeydown,
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Table",
                 class: "cell cell-table table-hscroll table-sm table-striped"
@@ -46,6 +50,17 @@ class Table extends Component {
                 h('tbody', {}, this.makeRows())
             ])
         );
+    }
+
+    handleKeydown(event){
+        if (event.target.id === `table-${this.props.id}-page`){
+            if (event.key === "Enter"){
+                let page = parseInt(event.target.value);
+                if (!isNaN(page)){
+                    this.fetchPage(page);
+                }
+            }
+        }
     }
 
     makeHeaderElements(){
@@ -95,14 +110,34 @@ class Table extends Component {
     _getRowDisplayElements(){
         return [
             this.renderChildNamed('left'),
-            this._getPageInfo(),
+            this._currentPage(),
+            this._totalPages(),
             this.renderChildNamed('right')
         ];
     }
 
-    _getPageInfo(){
-        let count = `${this.props.currentPage} of ${this.props.totalPages}`;
-        return h('div', {class: 'cell-table-page-info'}, [count]);
+    _currentPage(){
+        return h('input', {
+            id: `table-${this.props.id}-page`,
+            value: this.props.currentPage,
+            size: this.props.currentPage.length,
+            oninput: this.handleKeydown
+        }, [])
+    }
+
+    _totalPages(){
+        return h('span', {class: "cell-table-pages"}, [`of ${this.props.totalPages}`]);
+    }
+
+    fetchPage(page){
+        cellSocket.sendString(
+            JSON.stringify(
+                {
+                    event: "table-set-page",
+                    target_cell: this.props.id,
+                    page: page
+                }
+            ));
     }
 }
 

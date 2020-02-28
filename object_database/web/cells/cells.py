@@ -2572,13 +2572,7 @@ class Table(Cell):
 
             self._resetSubscriptionsToViewReads(v)
 
-        new_named_children = {
-            "headers": [],
-            "dataCells": [],
-            "page": None,
-            "right": None,
-            "left": None,
-        }
+        new_named_children = {"headers": [], "dataCells": [], "page": None}
         seen = set()
 
         for col_ix, col in enumerate(self.cols):
@@ -2625,33 +2619,6 @@ class Table(Cell):
                 del self.existingItems[i]
 
         totalPages = (len(self.filteredRows) - 1) // self.maxRowsPerPage + 1
-
-        if totalPages <= 1:
-            pageCell = Cell.makeCell(totalPages).nowrap()
-            self.children["page"] = pageCell
-        else:
-            pageCell = SingleLineTextBox(self.curPage, pattern="[0-9]+").nowrap()
-            self.children["page"] = pageCell
-        if self.curPage.get() == "1":
-            leftCell = Octicon("triangle-left", color="lightgray").nowrap()
-            self.children["left"] = leftCell
-        else:
-            leftCell = Clickable(
-                Octicon("triangle-left"),
-                lambda: self.curPage.set(str(int(self.curPage.get()) - 1)),
-            ).nowrap()
-            self.children["left"] = leftCell
-        if self.curPage.get() == str(totalPages):
-            rightCell = Octicon("triangle-right", color="lightgray").nowrap()
-            self.children["right"] = rightCell
-        else:
-            rightCell = Clickable(
-                Octicon("triangle-right"),
-                lambda: self.curPage.set(str(int(self.curPage.get()) + 1)),
-            ).nowrap()
-            self.children["right"] = rightCell
-
-        # temporary js WS refactoring data
         self.exportData["totalPages"] = totalPages
         self.exportData["numColumns"] = len(self.cols)
         self.exportData["numRows"] = len(self.rows)

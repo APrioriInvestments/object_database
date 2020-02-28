@@ -80,12 +80,21 @@ class Table extends Component {
     }
 
     makeHeaderElements(){
-        return this.renderChildrenNamed('headers').map((replacement, idx) => {
+        return this.props.columns.map((name) => {
             return h('th', {
                 style: "vertical-align:top;",
-                key: `${this.props.id}-table-header-${idx}`
-            }, [replacement]);
+                key: `${this.props.id}-table-header-${name}`
+            }, [this._makeHeaderElement(name)]);
         });
+    }
+
+    _makeHeaderElement(name){
+        return h("span", {}, [
+            h("span", {class: "cell octicon octicon-arrow-down"}, []),
+            h("span", {}, [name]),
+            h("input", {}, []),
+            h("span", {class: "cell octicon octicon-search"}, []),
+        ]);
     }
 
     makeRows(){
@@ -134,7 +143,11 @@ class Table extends Component {
 
     _pageArrows(direction){
         let style = "";
-        let clickable = ((direction === 'left' && parseInt(this.props.currentPage) > 1) || (direction === 'right' && parseInt(this.props.currentPage) < this.props.totalPages));
+        let clickable = (
+        (direction === 'left' && parseInt(this.props.currentPage) > 1)
+            ||
+            (direction === 'right' && parseInt(this.props.currentPage) < this.props.totalPages)
+        );
         if (!clickable){
             style = "color: lightgray";
         }
@@ -182,9 +195,9 @@ Table.propTypes = {
         type: PropTypes.number,
         description: "The current page number being displayed"
     },
-    numColumns: {
-        type: PropTypes.number,
-        description: "The total number of columns the table has"
+    columns: {
+        type: PropTypes.array,
+        description: "Array of column names"
     },
     numRows: {
         type: PropTypes.number,

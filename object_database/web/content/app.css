@@ -302,6 +302,11 @@ td.row-index-item {
     margin-right: 10px;
 }
 
+.cell-table-pages {
+    margin-right: 6px;
+    margin-left: 3px;
+}
+
 /* Expands
  * ============================================================*/
  .expands,

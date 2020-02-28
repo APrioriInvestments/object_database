@@ -2526,6 +2526,13 @@ class Table(Cell):
 
         return Panel(res)
 
+    def onMessage(self, msgFrame):
+        if msgFrame["event"] == "table-set-page":
+            totalPages = (len(self.filteredRows) - 1) // self.maxRowsPerPage + 1
+            page = int(msgFrame["page"])
+            if page > 0 and page <= totalPages:
+                self.curPage.set(str(msgFrame["page"]))
+
     def recalculate(self):
         with self.view() as v:
             try:
@@ -2607,12 +2614,7 @@ class Table(Cell):
             pageCell = Cell.makeCell(totalPages).nowrap()
             self.children["page"] = pageCell
         else:
-            pageCell = (
-                SingleLineTextBox(self.curPage, pattern="[0-9]+")
-                .width(10 * len(str(totalPages)) + 6)
-                .height(20)
-                .nowrap()
-            )
+            pageCell = SingleLineTextBox(self.curPage, pattern="[0-9]+").nowrap()
             self.children["page"] = pageCell
         if self.curPage.get() == "1":
             leftCell = Octicon("triangle-left", color="lightgray").nowrap()

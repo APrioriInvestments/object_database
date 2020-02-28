@@ -2620,7 +2620,7 @@ class Table(Cell):
 
         totalPages = (len(self.filteredRows) - 1) // self.maxRowsPerPage + 1
         self.exportData["totalPages"] = totalPages
-        self.exportData["numColumns"] = len(self.cols)
+        self.exportData["columns"] = self.cols
         self.exportData["numRows"] = len(self.rows)
         self.exportData["currentPage"] = self.curPage.get()
         self.exportData["rowsPerPage"] = self.maxRowsPerPage

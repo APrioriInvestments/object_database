@@ -58,6 +58,29 @@ def test_basic_sheet_display(headless_browser):
     assert sheet
 
 
+def test_basic_sheet_selector(headless_browser):
+    # Ensures we can load the demo page element
+    demo_root = headless_browser.get_demo_root_for(BasicSheet)
+    assert demo_root
+    query_0_0 = '[data-x="0"][data-y="0"]'
+    element_0_0 = headless_browser.find_by_css(query_0_0)
+    query_0_1 = '[data-x="0"][data-y="1"]'
+    element_0_1 = headless_browser.find_by_css(query_0_1)
+    # make sure the element is selected by default
+    selector_class = (
+        "sheet-cell custom-tooltip active active-selection-left "
+        + "active-selection-right active-selection-top "
+        + "active-selection-bottom"
+    )
+    sheet_element_class = "sheet-cell custom-tooltip"
+    assert element_0_0.get_attribute("class") == selector_class
+    assert element_0_1.get_attribute("class") == sheet_element_class
+    # click on another sheet cell and make sure it becomes the selector
+    element_0_1.click()
+    assert element_0_1.get_attribute("class") == selector_class
+    assert element_0_0.get_attribute("class") == sheet_element_class
+
+
 class BiggerSheet(CellsTestPage):
     def cell(self):
         num_columns = 300
@@ -185,6 +208,30 @@ def test_bigger_sheet_locked_rows_columnsdisplay(headless_browser):
     query = '[data-cell-type="Sheet"]'
     sheet = headless_browser.find_by_css(query)
     assert sheet
+
+
+def test_bigger_sheet_locked_selector(headless_browser):
+    # Ensures we can load the demo page element
+    demo_root = headless_browser.get_demo_root_for(BiggerSheetLockedRowsColumns)
+    assert demo_root
+    query_0_0 = '[data-x="0"][data-y="0"]'
+    element_0_0 = headless_browser.find_by_css(query_0_0)
+    query_0_1 = '[data-x="0"][data-y="1"]'
+    element_0_1 = headless_browser.find_by_css(query_0_1)
+    # make sure the element is selected by default
+    selector_class = (
+        "sheet-cell custom-tooltip locked active "
+        + "active-selection-left "
+        + "active-selection-right active-selection-top "
+        + "active-selection-bottom"
+    )
+    sheet_element_class = "sheet-cell custom-tooltip locked"
+    assert element_0_0.get_attribute("class") == selector_class
+    assert element_0_1.get_attribute("class") == sheet_element_class
+    # click on another sheet cell and make sure it becomes the selector
+    element_0_1.click()
+    assert element_0_1.get_attribute("class") == selector_class
+    assert element_0_0.get_attribute("class") == sheet_element_class
 
 
 class TwoColumnSheetLockedRowsColumns(CellsTestPage):

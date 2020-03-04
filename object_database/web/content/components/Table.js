@@ -33,6 +33,8 @@ class Table extends Component {
         this.handleKeydown = this.handleKeydown.bind(this);
         this.page = this.page.bind(this);
         this.toggleSearchInput = this.toggleSearchInput.bind(this);
+        this.sortColumn = this.sortColumn.bind(this);
+        this.filterColumn = this.filterColumn.bind(this);
     }
 
     build(){
@@ -91,12 +93,23 @@ class Table extends Component {
 
     _makeHeaderElement(name){
         return h("span", {}, [
-            h("span", {class: "cell octicon octicon-arrow-down"}, []),
+            h("span", {
+                class: "cell octicon octicon-arrow-down",
+                id: `table-${this.props.id}-${name}-column-sort`,
+                onclick: this.sortColumn,
+                style: "color: gray",
+                "data-column": name,
+                "data-direction": "down",
+                "data-type": "column-sort"
+            }, []),
             h("span", {class: "column-name"}, [name]),
             h("input", {
                 id: `table-${this.props.id}-${name}-search-input`,
                 class: "search-input",
-                style: "visibility: hidden"
+                style: "visibility: hidden",
+                "data-type": "column-filter",
+                "data-column": name,
+                oninput: this.filterColumn
             }, []),
             h("span", {
                 id: `table-${this.props.id}-${name}-search`,
@@ -104,6 +117,50 @@ class Table extends Component {
                 onclick: this.toggleSearchInput
             }, []),
         ]);
+    }
+
+    filterColumn(event){
+        let element = event.target;
+        // call the  server
+        cellSocket.sendString(
+            JSON.stringify(
+                {
+                    event: "table-filter-column",
+                    target_cell: this.props.id,
+                    column: element.dataset.column,
+                    expression: element.value
+                }
+            ));
+    }
+
+    sortColumn(event){
+        let element = event.target;
+        let direction = element.dataset.direction;
+        if (direction === "down"){
+            element.classList.remove("octicon-arrow-down");
+            element.classList.add("octicon-arrow-up");
+            element.dataset.direction = "up";
+        } else {
+            element.classList.remove("octicon-arrow-up");
+            element.classList.add("octicon-arrow-down");
+            element.dataset.direction = "down";
+        }
+        // make sure all the other sort octicons are gray'd out
+        this.getDOMElement().querySelectorAll("[data-type='column-sort']").forEach(el => {
+            el.style.color="gray";
+        });
+        // color our element black
+        element.style.color = "black";
+        // call the  server
+        cellSocket.sendString(
+            JSON.stringify(
+                {
+                    event: "table-sort-column",
+                    target_cell: this.props.id,
+                    column: element.dataset.column,
+                    direction: element.dataset.direction
+                }
+            ));
     }
 
     toggleSearchInput(event) {
@@ -116,6 +173,12 @@ class Table extends Component {
             input.style.visibility = "";
             event.target.style.fontWeight = "bold";
         }
+        // make sure all the other sort octicons are gray'd out
+        this.getDOMElement().querySelectorAll("[data-type='column-filter']").forEach(el => {
+            if (!el.isSameNode(input)){
+                el.style.visibility = "hidden";
+            }
+        });
     }
 
     makeRows(){

@@ -125,7 +125,7 @@ class Table extends Component {
         cellSocket.sendString(
             JSON.stringify(
                 {
-                    event: "table-filter-column",
+                    event: "table-column-filter",
                     target_cell: this.props.id,
                     column: element.dataset.column,
                     expression: element.value
@@ -155,7 +155,7 @@ class Table extends Component {
         cellSocket.sendString(
             JSON.stringify(
                 {
-                    event: "table-sort-column",
+                    event: "table-column-sort",
                     target_cell: this.props.id,
                     column: element.dataset.column,
                     direction: element.dataset.direction

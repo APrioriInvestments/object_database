@@ -2548,6 +2548,12 @@ class Table(Cell):
             page = int(msgFrame["page"])
             if page > 0 and page <= totalPages:
                 self.curPage.set(str(msgFrame["page"]))
+        elif msgFrame["event"] == "table-column-filter":
+            self._logger.info("FILTERING ROWS")
+            self.filterRows([1, 2, 3])
+            self.markDirty()
+        elif msgFrame["event"] == "table-column-sort":
+            self._logger.info("SORTING ROWS")
 
     def recalculate(self):
         with self.view() as v:

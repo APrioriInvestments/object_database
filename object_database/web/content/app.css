@@ -307,6 +307,29 @@ td.row-index-item {
     margin-left: 3px;
 }
 
+.cell-table .search-input {
+    margin-right: 3px;
+    margin-left: 3px;
+    width: 70%;
+}
+
+.cell-table .octicon {
+    vertical-align: middle;
+}
+
+.cell-table .column-name{
+    text-overflow: ellipsis;
+    width: 15%;
+    white-space: nowrap;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.cell-table .octicon.search:active{
+    font-weight: bold;
+}
+
 /* Expands
  * ============================================================*/
  .expands,

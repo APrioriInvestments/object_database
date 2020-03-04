@@ -32,6 +32,7 @@ class Table extends Component {
         this.fetchPage = this.fetchPage.bind(this);
         this.handleKeydown = this.handleKeydown.bind(this);
         this.page = this.page.bind(this);
+        this.toggleSearchInput = this.toggleSearchInput.bind(this);
     }
 
     build(){
@@ -91,10 +92,30 @@ class Table extends Component {
     _makeHeaderElement(name){
         return h("span", {}, [
             h("span", {class: "cell octicon octicon-arrow-down"}, []),
-            h("span", {}, [name]),
-            h("input", {}, []),
-            h("span", {class: "cell octicon octicon-search"}, []),
+            h("span", {class: "column-name"}, [name]),
+            h("input", {
+                id: `table-${this.props.id}-${name}-search-input`,
+                class: "search-input",
+                style: "visibility: hidden"
+            }, []),
+            h("span", {
+                id: `table-${this.props.id}-${name}-search`,
+                class: "cell octicon octicon-search",
+                onclick: this.toggleSearchInput
+            }, []),
         ]);
+    }
+
+    toggleSearchInput(event) {
+        let id = event.target.id;
+        let input = document.getElementById(id + "-input");
+        if (input.style.visibility !== "hidden"){
+            input.style.visibility = "hidden";
+            event.target.style.fontWeight = "";
+        } else {
+            input.style.visibility = "";
+            event.target.style.fontWeight = "bold";
+        }
     }
 
     makeRows(){

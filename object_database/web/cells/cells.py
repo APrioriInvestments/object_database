@@ -1244,6 +1244,17 @@ class Modal(Cell):
         )
         self.exportData["show"] = self.show.get()
 
+    def onMessage(self, messageFrame):
+        if messageFrame["event"] == "close":
+            self.show.set(False)
+        elif messageFrame["event"] == "accept":
+            # First, run the default action,
+            # which should be the one associated
+            # with the *first* button
+            if len(self.buttons) > 1:
+                self.buttons[0].onClick()
+            self.show.set(False)
+
 
 class Octicon(Cell):
     def __init__(self, which, color="black"):

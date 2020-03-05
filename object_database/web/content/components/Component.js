@@ -14,9 +14,13 @@ const render = (aComponent) => {
 };
 
 class Component {
-    constructor(props = {}, replacements = []){
+    constructor(props = {}, handler = null){
         this.isComponent = true;
         this._updateProps(props);
+
+        // If we have passed in a handler
+        // use it
+        this.handler = handler;
 
         // Whether or not the the component
         // is a Subscribed. We do this
@@ -62,6 +66,7 @@ class Component {
         this.namedChildrenDo = this.namedChildrenDo.bind(this);
         this.renderChildNamed = this.renderChildNamed.bind(this);
         this.renderChildrenNamed = this.renderChildrenNamed.bind(this);
+        this.sendMessage = this.sendMessage.bind(this);
         this.getElementId = this.getElementId.bind(this);
         this.getInheritanceChain = this.getInheritanceChain.bind(this);
         this.getSubscribedChain = this.getSubscribedChain.bind(this);
@@ -70,10 +75,6 @@ class Component {
         this._updateProps = this._updateProps.bind(this);
         this._updateData = this._updateData.bind(this);
         this._recursivelyMapNamedChildren = this._recursivelyMapNamedChildren.bind(this);
-    }
-
-    get usesReplacements(){
-        throw Error('#usesReplacements is now deprecated!');
     }
 
     build(){
@@ -207,6 +208,21 @@ class Component {
      */
     getElementId(){
         return `${this.constructor.elementIdPrefix}${this.props.id}`;
+    }
+
+    /**
+     * Send a message over the socket registered
+     * with the current handler. There must be
+     * a handler associated with this component
+     * and the handler must be bound to a socket.
+     * See NewCellHandler >> #sendMessageFor for
+     * more details, since that is what gets
+     * called here.
+     */
+    sendMessage(message){
+        if(this.handler){
+            this.handler.sendMessageFor(message, this.props.id);
+        }
     }
 
     /**

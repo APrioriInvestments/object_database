@@ -135,6 +135,7 @@ def test_modal_with_update_field(headless_browser):
     - modal is initially hidden
     - read the text on the card
     - click on the button to make the modal appear
+    - check that the SingleLineTextBox is in focus
     - check that the text in the SingleLineTextBox matches the text on the card
     - modify the text in the SingleLineTextBox
     - click on the modal button to hide the modal and update the card text
@@ -165,9 +166,12 @@ def test_modal_with_update_field(headless_browser):
         )
     )
 
-    # the text in the SingleLineTextBox matches the text on the card
+    # Check that the SLTB is in focus (it should be after showing)
     modal_text_query = modal_query + ' [data-cell-type="SingleLineTextBox"]'
     text_box = headless_browser.find_by_css(modal_text_query)
+    assert text_box == headless_browser.webdriver.switch_to.active_element
+
+    # the text in the SingleLineTextBox matches the text on the card
     assert text_box.get_attribute("value") == slot_text
 
     # modify the text in the SingleLineTextBox

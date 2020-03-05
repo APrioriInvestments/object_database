@@ -21,6 +21,7 @@ import {h} from 'maquette';
 class Table extends Component {
     constructor(props, ...args){
         super(props, ...args);
+        console.log(this.props);
 
         // Bind context to methods
         this.makeRows = this.makeRows.bind(this);
@@ -83,38 +84,44 @@ class Table extends Component {
     }
 
     makeHeaderElements(){
-        return this.props.columns.map((name) => {
+        return this.props.columns.map((name, colIdx) => {
             return h('th', {
                 style: "vertical-align:top;",
-                key: `${this.props.id}-table-header-${name}`
-            }, [this._makeHeaderElement(name)]);
+                key: `${this.props.id}-table-header-${colIdx}`
+            }, [this._makeHeaderElement(name, colIdx.toString())]);
         });
     }
 
-    _makeHeaderElement(name){
+    _makeHeaderElement(name, colIdx){
         return h("span", {}, [
             h("span", {
+                id: `table-${this.props.id}-${colIdx}-column-name`,
+                "data-column": colIdx,
+                class: "column-name"
+            }, [name]),
+            h("span", {
                 class: "cell octicon octicon-arrow-down",
-                id: `table-${this.props.id}-${name}-column-sort`,
+                id: `table-${this.props.id}-${colIdx}-column-sort`,
                 onclick: this.sortColumn,
                 style: "color: gray",
-                "data-column": name,
+                "data-column": colIdx,
                 "data-direction": "down",
                 "data-type": "column-sort"
             }, []),
-            h("span", {class: "column-name"}, [name]),
-            h("input", {
-                id: `table-${this.props.id}-${name}-search-input`,
-                class: "search-input",
-                style: "visibility: hidden",
-                "data-type": "column-filter",
-                "data-column": name,
-                oninput: this.filterColumn
-            }, []),
             h("span", {
-                id: `table-${this.props.id}-${name}-search`,
+                id: `table-${this.props.id}-${colIdx}-search`,
                 class: "cell octicon octicon-search",
+                "data-column": colIdx,
                 onclick: this.toggleSearchInput
+            }, []),
+            h("input", {
+                id: `table-${this.props.id}-${colIdx}-search-input`,
+                class: "search-input",
+                style: "display: none",
+                type: "text",
+                "data-type": "column-filter",
+                "data-column": colIdx,
+                oninput: this.filterColumn
             }, []),
         ]);
     }
@@ -136,6 +143,7 @@ class Table extends Component {
     sortColumn(event){
         let element = event.target;
         let direction = element.dataset.direction;
+        let column = element.dataset.column;
         if (direction === "down"){
             element.classList.remove("octicon-arrow-down");
             element.classList.add("octicon-arrow-up");
@@ -149,8 +157,17 @@ class Table extends Component {
         this.getDOMElement().querySelectorAll("[data-type='column-sort']").forEach(el => {
             el.style.color="gray";
         });
+        // indicate which column we are talking about
+        this.getDOMElement().querySelectorAll(`[data-columm='${column}']`).forEach(el => {
+            el.classList.add("active");
+        });
         // color our element black
         element.style.color = "black";
+        // make sure we know what column is being sorted
+        let body = this.getDOMElement().querySelector("tbody");
+        body.querySelectorAll(`[data-column='${column}']`).forEach(el => {
+            el.classList.add("active-column");
+        });
         // call the  server
         cellSocket.sendString(
             JSON.stringify(
@@ -164,19 +181,32 @@ class Table extends Component {
     }
 
     toggleSearchInput(event) {
+        let body = this.getDOMElement().querySelector("tbody");
         let id = event.target.id;
         let input = document.getElementById(id + "-input");
-        if (input.style.visibility !== "hidden"){
-            input.style.visibility = "hidden";
+        let columnName = document.getElementById(
+            `table-${this.props.id}-${input.dataset.column}-column-name`
+        )
+        let colIdx = columnName.dataset.column;
+        if (input.style.display !== "none"){
+            input.style.display = "none";
             event.target.style.fontWeight = "";
+            columnName.classList.remove("column-name-small");
+            body.querySelectorAll(`[data-column='${colIdx}']`).forEach(el => {
+                el.classList.remove("active-column");
+            });
         } else {
-            input.style.visibility = "";
+            input.style.display = "inherit";
             event.target.style.fontWeight = "bold";
+            columnName.classList.add("column-name-small");
+            body.querySelectorAll(`[data-column='${colIdx}']`).forEach(el => {
+                el.classList.add("active-column");
+            });
         }
         // make sure all the other sort octicons are gray'd out
         this.getDOMElement().querySelectorAll("[data-type='column-filter']").forEach(el => {
             if (!el.isSameNode(input)){
-                el.style.visibility = "hidden";
+                el.style.display = "none";
             }
         });
     }
@@ -193,7 +223,8 @@ class Table extends Component {
             let columns = row.map((childElement, colIdx) => {
                 return (
                     h('td', {
-                        key: `${this.props.id}-td-${rowIdx}-${colIdx}`
+                        key: `${this.props.id}-td-${rowIdx}-${colIdx}`,
+                        "data-column": `${colIdx}`
                     }, [childElement])
                 );
             });
@@ -210,6 +241,8 @@ class Table extends Component {
         let headerElements = this.makeHeaderElements();
         if (this.props.totalPages > 1){
             headerElements.unshift(h('th', {}, [...this._getPageDisplayElements()]));
+        } else {
+            headerElements.unshift(h('th', {}, []));
         }
         return(
             h('tr', {}, headerElements)

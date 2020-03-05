@@ -291,7 +291,7 @@ td.row-index-item {
     border-bottom: solid thin black;
 }
 
-.cell-table > thead th:first-child {
+.cell-table th {
     /*display: flex;*/
     align-items: center;
     justify-content: flex-start;
@@ -310,7 +310,9 @@ td.row-index-item {
 .cell-table .search-input {
     margin-right: 3px;
     margin-left: 3px;
-    width: 70%;
+    max-width: 70%!important;
+    vertical-align: middle;
+    font-size: .7rem;
 }
 
 .cell-table .octicon {
@@ -318,8 +320,13 @@ td.row-index-item {
 }
 
 .cell-table .column-name{
+    margin-right: 3px;
+    vertical-align: middle;
+}
+
+.cell-table .column-name-small{
     text-overflow: ellipsis;
-    width: 15%;
+    max-width: 15%;
     white-space: nowrap;
     overflow: hidden;
     display: inline-block;
@@ -328,6 +335,10 @@ td.row-index-item {
 
 .cell-table .octicon.search:active{
     font-weight: bold;
+}
+
+.cell-table .active-column {
+    box-shadow: -1px 0 0 0 #568eca, 1px 0 0 0 #568eca;
 }
 
 /* Expands

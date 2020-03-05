@@ -18,20 +18,69 @@ class Modal extends Component {
     constructor(props, ...args){
         super(props, ...args);
 
+        // Track the component show/hide
+        // state outside of the props
+        // for callback purposes
+        this.isShowing = this.props.show || false;
+
         // Bind component methods
         this.makeHeader = this.makeHeader.bind(this);
         this.makeBody = this.makeBody.bind(this);
         this.makeFooter = this.makeFooter.bind(this);
         this.makeClasses = this.makeClasses.bind(this);
         this.focusFirstInput = this.focusFirstInput.bind(this);
+        this.beforeShow = this.beforeShow.bind(this);
+        this.beforeHide = this.beforeHide.bind(this);
+        this.onShow = this.onShow.bind(this);
+        this.onHide = this.onHide.bind(this);
+        this.onEnterKey = this.onEnterKey.bind(this);
+        this.onEscapeKey = this.onEscapeKey.bind(this);
     }
 
     componentDidLoad(){
         this.focusFirstInput();
+        if(!this.isShowing && this.props.show){
+            // Then we have "shown" the Modal now.
+            // Call onShow method
+            this.onShow();
+        }
+        this.isShowing = this.props.show;
     }
 
     componentDidUpdate(){
         this.focusFirstInput();
+        if(!this.isShowing && this.props.show){
+            // In this case, we have gone from
+            // hidden to showing, so call
+            // onShow
+            this.onShow();
+        }
+        if(this.isShowing && !this.props.show){
+            // In this case we have gone from
+            // showing to hiding, so call
+            // onHide
+            this.onHide();
+        }
+    }
+
+    componentWillReceiveProps(oldProps, newProps){
+        // If we are going from showing to not
+        // showing, trigger the beforeHide method
+        if(oldProps.show && !newProps.show){
+            this.beforeHide();
+        }
+
+        // If we are going from not showing to
+        // showing, trigger the beforeShow method
+        if(oldProps.show == false && newProps.show){
+            this.beforeShow();
+        }
+
+        return newProps;
+    }
+
+    componentWillUnload(){
+        this.onHide();
     }
 
     build(){
@@ -93,6 +142,44 @@ class Modal extends Component {
             if(firstInputField){
                 firstInputField.select();
             }
+        }
+    }
+
+    beforeHide(){
+        // Nothing for now
+    }
+
+    beforeShow(){
+        // Nothing for now
+    }
+
+    onShow(){
+        // Bind global event listeners for
+        // Enter and Escape keys
+        document.addEventListener('keydown', this.onEnterKey);
+        document.addEventListener('keydown', this.onEscapeKey);
+    }
+
+    onHide(){
+        document.removeEventListener('keydown', this.onEnterKey);
+        document.removeEventListener('keydown', this.onEscapeKey);
+    }
+
+    onEnterKey(event){
+        if(event.key == 'Enter'){
+            console.log("Enter pushed in modal");
+            this.sendMessage({event: 'accept'});
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }
+
+    onEscapeKey(event){
+        if(event.key == 'Escape'){
+            console.log("Escape pushed in modal");
+            this.sendMessage({event: 'close'});
+            event.preventDefault();
+            event.stopPropagation();
         }
     }
 }

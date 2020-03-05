@@ -13,7 +13,7 @@ import {
 } from './components/util/NamedChildren';
 
 class NewCellHandler {
-    constructor(h, projector, components){
+    constructor(h, projector, components, socket=null){
         // A constructor for
         // hyperscript objects
         this.h = h;
@@ -21,6 +21,10 @@ class NewCellHandler {
         // A Maquette VDOM
         // projector instance
         this.projector = projector;
+
+        // If we passed in a socket
+        // (CellSocket), make it the prop
+        this.socket = socket;
 
         // A dictionary of available
         // Cell Components by name
@@ -44,6 +48,7 @@ class NewCellHandler {
         this.connectionClosedView = this.connectionClosedView.bind(this);
         this.appendPostscript = this.appendPostscript.bind(this);
         this.handlePostscript = this.handlePostscript.bind(this);
+        this.sendMessageFor = this.sendMessageFor.bind(this);
         this.receive = this.receive.bind(this);
         this.cellUpdated = this.cellUpdated.bind(this);
         this.cellDiscarded = this.cellDiscarded.bind(this);
@@ -244,6 +249,13 @@ class NewCellHandler {
         }
     }
 
+    sendMessageFor(message, cellId){
+        if(this.socket){
+            message['target_cell'] = cellId.toString();
+            this.socket.sendString(JSON.stringify(message));
+        }
+    }
+
     /** Private Methods **/
 
     /**
@@ -323,7 +335,7 @@ class NewCellHandler {
             id: message.id,
             extraData: message.extraData
         });
-        let newComponent = new componentClass(componentProps);
+        let newComponent = new componentClass(componentProps, this);
         this._updateNamedChildren(newComponent, message);
         this.activeComponents[newComponent.props.id] = newComponent;
         return newComponent;

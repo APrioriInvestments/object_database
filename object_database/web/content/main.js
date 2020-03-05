@@ -39,7 +39,7 @@ const initialRender = function(){
  **/
 let projector = maquette.createProjector();
 const cellSocket = new CellSocket();
-const cellHandler = new CellHandler(h, projector, ComponentRegistry);
+const cellHandler = new CellHandler(h, projector, ComponentRegistry, cellSocket);
 window._cellHandler = cellHandler;
 cellSocket.onPostscripts(cellHandler.handlePostscript);
 cellSocket.onMessage(cellHandler.receive);

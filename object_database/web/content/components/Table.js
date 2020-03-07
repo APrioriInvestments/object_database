@@ -86,14 +86,13 @@ class Table extends Component {
     makeHeaderElements(){
         return this.props.columns.map((name, colIdx) => {
             return h('th', {
-                style: "vertical-align:top;",
                 key: `${this.props.id}-table-header-${colIdx}`
-            }, [this._makeHeaderElement(name, colIdx.toString())]);
+            }, this._makeHeaderElement(name, colIdx.toString()));
         });
     }
 
     _makeHeaderElement(name, colIdx){
-        return h("span", {}, [
+        return [
             h("span", {
                 id: `table-${this.props.id}-${colIdx}-column-name`,
                 "data-column": colIdx,
@@ -123,7 +122,7 @@ class Table extends Component {
                 "data-column": colIdx,
                 oninput: this.filterColumn
             }, []),
-        ]);
+        ];
     }
 
     filterColumn(event){
@@ -165,6 +164,9 @@ class Table extends Component {
         element.style.color = "black";
         // make sure we know what column is being sorted
         let body = this.getDOMElement().querySelector("tbody");
+        body.querySelectorAll("td").forEach(el => {
+            el.classList.remove("active-column");
+        });
         body.querySelectorAll(`[data-column='${column}']`).forEach(el => {
             el.classList.add("active-column");
         });
@@ -188,13 +190,13 @@ class Table extends Component {
             `table-${this.props.id}-${input.dataset.column}-column-name`
         )
         let colIdx = columnName.dataset.column;
+        body.querySelectorAll("td").forEach(el => {
+            el.classList.remove("active-column");
+        });
         if (input.style.display !== "none"){
             input.style.display = "none";
             event.target.style.fontWeight = "";
             columnName.classList.remove("column-name-small");
-            body.querySelectorAll(`[data-column='${colIdx}']`).forEach(el => {
-                el.classList.remove("active-column");
-            });
         } else {
             input.style.display = "inherit";
             event.target.style.fontWeight = "bold";

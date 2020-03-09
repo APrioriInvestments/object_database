@@ -2534,12 +2534,20 @@ class Table(Cell):
                 self.curPage.set(str(msgFrame["page"]))
         elif msgFrame["event"] == "table-column-filter":
             self._logger.info("FILTERING ROWS")
-            self.filterRows([1, 2, 3])
+            expression = msgFrame["expression"]
+            column = msgFrame["columnName"]
+            self.columnFilters[column] = Slot(expression)
             self.markDirty()
         elif msgFrame["event"] == "table-column-sort":
             self._logger.info("SORTING ROWS")
+            column = msgFrame["columnName"]
+            self.sortColumn = Slot(column)
+            self.markDirty()
 
     def recalculate(self):
+        self._logger.info("COLUMN")
+        self._logger.info(self.sortColumn.get())
+
         with self.view() as v:
             try:
                 self.cols = list(self.colFun())

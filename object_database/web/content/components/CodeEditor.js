@@ -29,6 +29,7 @@ class CodeEditor extends Component {
         // any global KeyListener instance
         this._onBlur = this._onBlur.bind(this);
         this._onFocus = this._onFocus.bind(this);
+        this.onScroll = this.onScroll.bind(this);
         this.disableEventFiring = false;
     }
 
@@ -123,7 +124,10 @@ class CodeEditor extends Component {
                 "data-cell-type": "CodeEditor",
                 key: this
             },
-                 [h('div', { id: "editor" + this.props.id, class: "code-editor-inner" }, [])
+                 [h('div', {
+                     id: "editor" + this.props.id,
+                     class: "code-editor-inner"
+                 }, [])
         ]);
         }
     }
@@ -142,6 +146,7 @@ class CodeEditor extends Component {
         // force a focus. it would be better to pick a better way to trigger
         // this from the serverside after an action
         this.editor.focus();
+
     }
 
     setTextFromServer(iteration, newBufferText) {
@@ -206,6 +211,18 @@ class CodeEditor extends Component {
         }, this.SERVER_UPDATE_DELAY_MS + 2); //note the 2ms grace period
     }
 
+    onScroll(event){
+        console.log(this.editor.getFirstVisibleRow());
+        let responseData = {
+            event: 'scrolling',
+            'target_cell': this.props.id,
+            'firstVisibleRow': this.editor.getFirstVisibleRow() + 1,
+            'lastVisibleRow': this.editor.getLastVisibleRow() + 1
+        };
+
+        cellSocket.sendString(JSON.stringify(responseData));
+    }
+
     installChangeHandlers() {
         //this.editor.on('focus', this._onFocus);
         //this.editor.on('blur', this._onBlur);
@@ -214,6 +231,7 @@ class CodeEditor extends Component {
         this.editor.selection.on("changeCursor", this.onChange)
         this.editor.selection.on("changeSelection", this.onChange)
         this.editor.session.on("change", this.onChange);
+        this.editor.session.on("changeScrollTop", this.onScroll);
     }
 
     setupKeybindings() {

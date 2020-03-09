@@ -96,6 +96,7 @@ class Table extends Component {
             h("span", {
                 id: `table-${this.props.id}-${colIdx}-column-name`,
                 "data-column": colIdx,
+                "data-column-name": name,
                 class: "column-name"
             }, [name]),
             h("span", {
@@ -104,6 +105,7 @@ class Table extends Component {
                 onclick: this.sortColumn,
                 style: "color: gray",
                 "data-column": colIdx,
+                "data-column-name": name,
                 "data-direction": "down",
                 "data-type": "column-sort"
             }, []),
@@ -111,6 +113,7 @@ class Table extends Component {
                 id: `table-${this.props.id}-${colIdx}-search`,
                 class: "cell octicon octicon-search",
                 "data-column": colIdx,
+                "data-column-name": name,
                 onclick: this.toggleSearchInput
             }, []),
             h("input", {
@@ -120,6 +123,7 @@ class Table extends Component {
                 type: "text",
                 "data-type": "column-filter",
                 "data-column": colIdx,
+                "data-column-name": name,
                 oninput: this.filterColumn
             }, []),
         ];
@@ -134,6 +138,7 @@ class Table extends Component {
                     event: "table-column-filter",
                     target_cell: this.props.id,
                     column: element.dataset.column,
+                    columnName: element.dataset.columnName,
                     expression: element.value
                 }
             ));
@@ -177,6 +182,7 @@ class Table extends Component {
                     event: "table-column-sort",
                     target_cell: this.props.id,
                     column: element.dataset.column,
+                    columnName: element.dataset.columnName,
                     direction: element.dataset.direction
                 }
             ));

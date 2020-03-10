@@ -2834,6 +2834,7 @@ class CodeEditor(Cell):
         autocomplete=True,
         onTextChange=None,
         textToDisplayFunction=lambda: "",
+        firstVisibleRow=1,
     ):
         """Create a code editor
 
@@ -2858,6 +2859,7 @@ class CodeEditor(Cell):
         self.noScroll = noScroll
         self.fontSize = fontSize
         self.minLines = minLines
+        self.firstVisibleRow = firstVisibleRow
         self.readOnly = readOnly
         self.autocomplete = autocomplete
         self.onTextChange = onTextChange
@@ -2886,6 +2888,26 @@ class CodeEditor(Cell):
                     self.currentIteration = msgFrame["iteration"]
 
                 self.selectionSlot.set(msgFrame["selection"])
+        elif msgFrame["event"] == "scrolling":
+            self.firstVisibleRow = msgFrame["firstVisibleRow"]
+
+    def setFirstVisibleRow(self, rowNum):
+        """ Send a message to set the first visible row of the editor to
+        rowNum.
+
+        Parameters
+        ----------
+        rowNum : int
+        """
+        dataInfo = {"firstVisibleRow": rowNum}
+        # stage this piece of data to be sent when we recalculate
+        if self.exportData.get("dataInfo") is None:
+            self.exportData["dataInfo"] = [dataInfo]
+        else:
+            self.exportData["dataInfo"].append(dataInfo)
+
+        self.wasDataUpdated = True
+        self.markDirty()
 
     def setCurrentTextFromServer(self, text):
         if text is None:
@@ -2969,6 +2991,7 @@ class CodeEditor(Cell):
             self.exportData["fontSize"] = self.fontSize
         if self.minLines is not None:
             self.exportData["minLines"] = self.minLines
+        self.exportData["firstVisibleRow"] = self.firstVisibleRow
 
         self.exportData["keybindings"] = [k for k in self.keybindings.keys()]
 

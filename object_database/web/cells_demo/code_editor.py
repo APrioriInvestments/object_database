@@ -194,7 +194,7 @@ class CodeEditorBasicHorizSequence(CellsTestPage):
         )
 
 
-class CodeEditoriSetFirstVisibleRow(CellsTestPage):
+class CodeEditorSetFirstVisibleRow(CellsTestPage):
     def cell(self):
         contents = cells.Slot("No Text Entered Yet!")
         text = """def cell(self):
@@ -216,11 +216,21 @@ class CodeEditoriSetFirstVisibleRow(CellsTestPage):
             contents.set(content)
 
         return cells.CodeEditor(
-            onTextChange=onTextChange, textToDisplayFunction=lambda: text, firstVisibleRow=30
+            onTextChange=onTextChange, textToDisplayFunction=lambda: text, firstVisibleRow=5
         )
 
     def text(self):
-        return "Should see a CodeEditor and its content with the first row set to " "30"
+        return "Should see a CodeEditor and its content with the first row set to " "5"
+
+
+def test_set_first_row(headless_browser):
+    # Test that we can find the editor and
+    # add text to it.
+    demo_root = headless_browser.get_demo_root_for(CodeEditorSetFirstVisibleRow)
+    assert demo_root
+    first_line = headless_browser.find_by_css(".ace_gutter-active-line")
+    assert first_line
+    assert first_line.text == "5"
 
 
 class CodeEditorInSplitView(CellsTestPage):

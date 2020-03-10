@@ -194,6 +194,35 @@ class CodeEditorBasicHorizSequence(CellsTestPage):
         )
 
 
+class CodeEditoriSetFirstVisibleRow(CellsTestPage):
+    def cell(self):
+        contents = cells.Slot("No Text Entered Yet!")
+        text = """def cell(self):
+        contents = cells.Slot("No Text Entered Yet!")
+
+        textToDisplayFunction = lambda: "some text"
+
+        def onTextChange(content, selection):
+            contents.set(content)
+
+        return cells.CodeEditor(
+                textToDisplayFunction=textToDisplayFunction,
+                onTextChange=onTextChange, firstVisibleRow=5
+                )
+        """
+        text *= 5
+
+        def onTextChange(content, selection):
+            contents.set(content)
+
+        return cells.CodeEditor(
+            onTextChange=onTextChange, textToDisplayFunction=lambda: text, firstVisibleRow=5
+        )
+
+    def text(self):
+        return "Should see a CodeEditor and its content with the first row set to " "5"
+
+
 class CodeEditorInSplitView(CellsTestPage):
     def cell(self):
         contents = cells.Slot("")

@@ -43,7 +43,7 @@ class CodeEditor extends Component {
             this.editor.last_edit_millis = Date.now();
             this.editor.setTheme("ace/theme/textmate");
             this.editor.session.setMode("ace/mode/python");
-            this.editor.setAutoScrollEditorIntoView(true);
+            // this.editor.setAutoScrollEditorIntoView(true);
             this.editor.session.setUseSoftTabs(true);
 
 
@@ -80,6 +80,14 @@ class CodeEditor extends Component {
                 this.editor.setOption("minLines", this.props.minLines);
             } else {
                 this.editor.setOption("minLines", Infinity);
+            }
+
+            if (this.props.firstVisibleRow !== undefined){
+                this.editor.resize(true);
+                this.editor.scrollToRow(this.props.firstVisibleRow)
+                this.editor.scrollToLine(this.props.firstVisibleRow, true, true, function () {});
+                this.editor.gotoLine(this.props.firstVisibleRow, 0, true);
+                // this.editor.clearSelection();
             }
 
             this.setupKeybindings();
@@ -212,7 +220,6 @@ class CodeEditor extends Component {
     }
 
     onScroll(event){
-        console.log(this.editor.getFirstVisibleRow());
         let responseData = {
             event: 'scrolling',
             'target_cell': this.props.id,
@@ -309,6 +316,11 @@ CodeEditor.propTypes = {
     fontSize: {
         description: "Set the font size for the Ace Editor",
         type: PropTypes.oneOf([PropTypes.number, PropTypes.string])
+    },
+
+    firstVisibleRow: {
+        description: "Set the first visible row of the Editor",
+        type: PropTypes.number
     },
 
     minLines: {

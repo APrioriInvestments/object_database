@@ -155,6 +155,19 @@ class CodeEditor extends Component {
 
     }
 
+    /* I handle data updating for the CodeEditor.
+     */
+    _updateData(dataInfos, projector) {
+        dataInfos.map((dataInfo) => {
+            if (dataInfo.firstVisibleRow){
+                let row = parseInt(dataInfo.firstVisibleRow);
+                this.editor.resize(true);
+                this.editor.scrollToRow(row - 1)
+                this.editor.gotoLine(row, 0, true);
+            }
+        })
+    }
+
     setTextFromServer(iteration, newBufferText) {
         this.editor.last_edit_millis = Date.now();
         this.editor.current_iteration = iteration;

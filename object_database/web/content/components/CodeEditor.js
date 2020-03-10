@@ -84,10 +84,8 @@ class CodeEditor extends Component {
 
             if (this.props.firstVisibleRow !== undefined){
                 this.editor.resize(true);
-                this.editor.scrollToRow(this.props.firstVisibleRow)
-                this.editor.scrollToLine(this.props.firstVisibleRow, true, true, function () {});
+                this.editor.scrollToRow(this.props.firstVisibleRow - 1)
                 this.editor.gotoLine(this.props.firstVisibleRow, 0, true);
-                // this.editor.clearSelection();
             }
 
             this.setupKeybindings();

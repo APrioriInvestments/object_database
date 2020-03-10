@@ -2423,7 +2423,7 @@ class Table(Cell):
             if filterString:
                 new_rows = []
                 for row in rows:
-                    filterAs = self.cachedRenderFun(row, col).sortsAs()
+                    filterAs = Cell.makeCell(self.cachedRenderFun(row, col)).sortsAs()
 
                     if filterAs is None:
                         filterAs = ""
@@ -2592,12 +2592,7 @@ class Table(Cell):
             pageCell = Cell.makeCell(totalPages).nowrap()
             self.children["page"] = pageCell
         else:
-            pageCell = (
-                SingleLineTextBox(self.curPage, pattern="[0-9]+")
-                .width(10 * len(str(totalPages)) + 6)
-                .height(20)
-                .nowrap()
-            )
+            pageCell = SingleLineTextBox(self.curPage, pattern="[0-9]+")
             self.children["page"] = pageCell
         if self.curPage.get() == "1":
             leftCell = Octicon("triangle-left", color="lightgray").nowrap()

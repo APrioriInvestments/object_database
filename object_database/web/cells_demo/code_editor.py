@@ -216,11 +216,11 @@ class CodeEditoriSetFirstVisibleRow(CellsTestPage):
             contents.set(content)
 
         return cells.CodeEditor(
-            onTextChange=onTextChange, textToDisplayFunction=lambda: text, firstVisibleRow=5
+            onTextChange=onTextChange, textToDisplayFunction=lambda: text, firstVisibleRow=30
         )
 
     def text(self):
-        return "Should see a CodeEditor and its content with the first row set to " "5"
+        return "Should see a CodeEditor and its content with the first row set to " "30"
 
 
 class CodeEditorInSplitView(CellsTestPage):

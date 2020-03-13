@@ -41,6 +41,8 @@ import {Span} from './components/Span';
 import {Subscribed} from './components/Subscribed';
 import {SubscribedSequence} from './components/SubscribedSequence';
 import {Table} from './components/Table';
+import {TableHeader} from './components/TableHeader';
+import {TablePaginator} from './components/TablePaginator';
 import {Tabs} from './components/Tabs';
 import {Text} from './components/Text';
 import {Traceback} from './components/Traceback';

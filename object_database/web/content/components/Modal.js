@@ -3,6 +3,7 @@
  */
 
 import {Component} from './Component';
+import {PropTypes} from './util/PropertyValidator';
 import {h} from 'maquette';
 
 /**
@@ -17,11 +18,69 @@ class Modal extends Component {
     constructor(props, ...args){
         super(props, ...args);
 
+        // Track the component show/hide
+        // state outside of the props
+        // for callback purposes
+        this.isShowing = this.props.show || false;
+
         // Bind component methods
         this.makeHeader = this.makeHeader.bind(this);
         this.makeBody = this.makeBody.bind(this);
         this.makeFooter = this.makeFooter.bind(this);
         this.makeClasses = this.makeClasses.bind(this);
+        this.focusFirstInput = this.focusFirstInput.bind(this);
+        this.beforeShow = this.beforeShow.bind(this);
+        this.beforeHide = this.beforeHide.bind(this);
+        this.onShow = this.onShow.bind(this);
+        this.onHide = this.onHide.bind(this);
+        this.onEnterKey = this.onEnterKey.bind(this);
+        this.onEscapeKey = this.onEscapeKey.bind(this);
+    }
+
+    componentDidLoad(){
+        this.focusFirstInput();
+        if(!this.isShowing && this.props.show){
+            // Then we have "shown" the Modal now.
+            // Call onShow method
+            this.onShow();
+        }
+        this.isShowing = this.props.show;
+    }
+
+    componentDidUpdate(){
+        this.focusFirstInput();
+        if(!this.isShowing && this.props.show){
+            // In this case, we have gone from
+            // hidden to showing, so call
+            // onShow
+            this.onShow();
+        }
+        if(this.isShowing && !this.props.show){
+            // In this case we have gone from
+            // showing to hiding, so call
+            // onHide
+            this.onHide();
+        }
+    }
+
+    componentWillReceiveProps(oldProps, newProps){
+        // If we are going from showing to not
+        // showing, trigger the beforeHide method
+        if(oldProps.show && !newProps.show){
+            this.beforeHide();
+        }
+
+        // If we are going from not showing to
+        // showing, trigger the beforeShow method
+        if(oldProps.show == false && newProps.show){
+            this.beforeShow();
+        }
+
+        return newProps;
+    }
+
+    componentWillUnload(){
+        this.onHide();
     }
 
     build(){
@@ -31,7 +90,7 @@ class Modal extends Component {
                 'data-cell-id': this.props.id,
                 'data-cell-type': "Modal",
                 class: this.makeClasses(),
-                tabindex: "-1",
+                //tabindex: "-1",
                 role: "dialog"
             }, [
                 h('div', {class: "modal-dialog", role: "document"}, [
@@ -71,6 +130,65 @@ class Modal extends Component {
         }
         return null;
     }
+
+    focusFirstInput(){
+        // If there are any input fields present
+        // in the Modal, find the first one of them
+        // and give it the focus, as long as the
+        // modal is currently being shown.
+        if(this.props.show){
+            console.log("Setting focus to first available input field");
+            let firstInputField = this.getDOMElement().querySelector('input[type="text"]');
+            if(firstInputField){
+                firstInputField.select();
+            }
+        }
+    }
+
+    beforeHide(){
+        // Nothing for now
+    }
+
+    beforeShow(){
+        // Nothing for now
+    }
+
+    onShow(){
+        // Bind global event listeners for
+        // Enter and Escape keys
+        document.addEventListener('keydown', this.onEnterKey);
+        document.addEventListener('keydown', this.onEscapeKey);
+    }
+
+    onHide(){
+        document.removeEventListener('keydown', this.onEnterKey);
+        document.removeEventListener('keydown', this.onEscapeKey);
+    }
+
+    onEnterKey(event){
+        if(event.key == 'Enter'){
+            console.log("Enter pushed in modal");
+            this.sendMessage({event: 'accept'});
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }
+
+    onEscapeKey(event){
+        if(event.key == 'Escape'){
+            console.log("Escape pushed in modal");
+            this.sendMessage({event: 'close'});
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }
 }
+
+Modal.propTypes = {
+    show: {
+        type: PropTypes.boolean,
+        description: "Whether or not the Modal should be displayed"
+    }
+};
 
 export {Modal, Modal as default}

@@ -1245,6 +1245,17 @@ class Modal(Cell):
         )
         self.exportData["show"] = self.show.get()
 
+    def onMessage(self, messageFrame):
+        if messageFrame["event"] == "close":
+            self.show.set(False)
+        elif messageFrame["event"] == "accept":
+            # First, run the default action,
+            # which should be the one associated
+            # with the *first* button
+            if len(self.buttons) > 1:
+                self.buttons[0].onClick()
+            self.show.set(False)
+
 
 class Octicon(Cell):
     def __init__(self, which, color="black"):
@@ -1295,7 +1306,7 @@ class CollapsiblePanel(Cell):
 class Text(Cell):
     def __init__(self, text, text_color=None, sortAs=None):
         super().__init__()
-        self.text = text
+        self.text = str(text)
         self._sortAs = sortAs if sortAs is not None else text
         self.text_color = text_color
 
@@ -2444,7 +2455,7 @@ class Table(Cell):
             if filterString:
                 new_rows = []
                 for row in rows:
-                    filterAs = self.cachedRenderFun(row, col).sortsAs()
+                    filterAs = Cell.makeCell(self.cachedRenderFun(row, col)).sortsAs()
 
                     if filterAs is None:
                         filterAs = ""
@@ -2617,6 +2628,33 @@ class Table(Cell):
                 del self.existingItems[i]
 
         totalPages = (len(self.filteredRows) - 1) // self.maxRowsPerPage + 1
+
+        if totalPages <= 1:
+            pageCell = Cell.makeCell(totalPages).nowrap()
+            self.children["page"] = pageCell
+        else:
+            pageCell = SingleLineTextBox(self.curPage, pattern="[0-9]+")
+            self.children["page"] = pageCell
+        if self.curPage.get() == "1":
+            leftCell = Octicon("triangle-left", color="lightgray").nowrap()
+            self.children["left"] = leftCell
+        else:
+            leftCell = Clickable(
+                Octicon("triangle-left"),
+                lambda: self.curPage.set(str(int(self.curPage.get()) - 1)),
+            ).nowrap()
+            self.children["left"] = leftCell
+        if self.curPage.get() == str(totalPages):
+            rightCell = Octicon("triangle-right", color="lightgray").nowrap()
+            self.children["right"] = rightCell
+        else:
+            rightCell = Clickable(
+                Octicon("triangle-right"),
+                lambda: self.curPage.set(str(int(self.curPage.get()) + 1)),
+            ).nowrap()
+            self.children["right"] = rightCell
+
+        # temporary js WS refactoring data
         self.exportData["totalPages"] = totalPages
         self.exportData["columns"] = self.cols
         self.exportData["numRows"] = len(self.rows)

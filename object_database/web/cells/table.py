@@ -12,7 +12,18 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 import traceback
-from .cells import Cell, Slot, Octicon, SubscribeAndRetry, DisplayLineTextBox, Panel, Traceback
+from .cells import (
+    Cell,
+    Slot,
+    Octicon,
+    SubscribeAndRetry,
+    DisplayLineTextBox,
+    Panel,
+    Traceback,
+    Clickable,
+    SingleLineTextBox,
+    Span,
+)
 from .children import Children
 
 
@@ -57,6 +68,7 @@ class NewTable(Cell):
 
 class TableHeader(Cell):
     def __init__(self, columnKeys, headerLabeller, paginatorCell):
+        super().__init__()
         self.keys = columnKeys
         self.headerLabeller = headerLabeller
         self.paginator = paginatorCell
@@ -97,13 +109,34 @@ class TableHeader(Cell):
 
 class TablePaginator(Cell):
     def __init__(self, currentPageSlot, totalPagesSlot):
+        super().__init__()
         self.currentPageSlot = currentPageSlot
         self.totalPagesSlot = totalPagesSlot
+        self.children = Children()
 
     def recalculate(self):
-        self.exportData["currentPage"] = self.currentPageSlot.get()
-        self.exportData["totalPages"] = self.totalPagesSlot.get()
-
-    def onMessage(self, messageFrame):
-        if messageFrame["event"] == "table-set-page":
-            self.currentPageSlot.set(messageFrame["page"])
+        total_pages = int(self.totalPagesSlot.get())
+        current_page = int(self.currentPageSlot.get())
+        if total_pages <= 1:
+            self.children["page"] = Cell.makeCell(Span(str(total_pages)))
+        else:
+            page_cell = SingleLineTextBox(self.currentPageSlot, pattern="[0-9]+").nowrap()
+            self.children["page"] = page_cell
+        if current_page == 1:
+            left_cell = Octicon("triangle-left", color="lightgray")
+            self.children["left"] = left_cell
+        else:
+            left_cell = Clickable(
+                Octicon("triangle-left"), lambda: self.currentPageSlot.set(current_page - 1)
+            )
+            self.children["left"] = left_cell
+        if current_page == total_pages:
+            right_cell = Octicon("triangle-right", color="lightgray")
+            self.children["right"] = right_cell
+        else:
+            right_cell = Clickable(
+                Octicon("triangle-right"), lambda: self.currentPageSlot.set(current_page + 1)
+            )
+            self.children["right"] = right_cell
+        self.exportData["currentPage"] = current_page
+        self.exportData["totalPages"] = total_pages

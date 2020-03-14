@@ -99,6 +99,8 @@ const ComponentRegistry = {
     Subscribed,
     SubscribedSequence,
     Table,
+    TableHeader,
+    TablePaginator,
     Tabs,
     Text,
     Traceback,

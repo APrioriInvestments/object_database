@@ -341,6 +341,13 @@ td.row-index-item {
     box-shadow: -1px 0 0 0 #568eca, 1px 0 0 0 #568eca;
 }
 
+/* TablePaginator
+ * ============================================================*/
+.table-paginator > input {
+    width: 2rem;
+    text-align: center;
+}
+
 /* Expands
  * ============================================================*/
  .expands,

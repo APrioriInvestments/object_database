@@ -233,6 +233,55 @@ def test_set_first_row(headless_browser):
     assert first_line.text == "5"
 
 
+def test_scroll_first_row(headless_browser):
+    """Scroll the first row of the editor and watch for corresponding WS
+    message"""
+    # Test that we can find the editor and
+    # add text to it.
+    demo_root = headless_browser.get_demo_root_for(CodeEditorSetFirstVisibleRow)
+    assert demo_root
+    first_line = headless_browser.find_by_css(".ace_gutter-active-line")
+    assert first_line
+    assert first_line.text == "5"
+    from websocket import create_connection
+
+    ws = create_connection("ws://localhost:8000/socket/services/CellsTestService")
+    # root_id = demo_root.get_attribute("id")
+    script = "document.querySelector('.code-editor-inner').scrollTo(0, 1000)"
+    headless_browser.webdriver.execute_script(script)
+    message = ws.recv()
+    assert message.event != ""
+
+
+def test_change_first_row(headless_browser):
+    """Change the first row of the editor using the
+    CodeEditor.CodeEditorSetFirstVisibleRow method."""
+    # Test that we can find the editor and
+    # add text to it.
+    demo_root = headless_browser.get_demo_root_for(CodeEditorSetFirstVisibleRow)
+    assert demo_root
+    first_line = headless_browser.find_by_css(".ace_gutter-active-line")
+    assert first_line
+    assert first_line.text == "5"
+    import json
+    from websocket import create_connection
+
+    ws = create_connection("ws://localhost:8000/socket/services/CellsTestService")
+    rowNum = 7
+    dataInfo = {"firstVisibleRow": rowNum}
+    editor_id = demo_root.get_property("id").replace("cell-", "")
+    basic_message = {
+        "channel": "#main",
+        "type": "#cellDataUpdated",
+        "id": editor_id,
+        "dataInfo": [dataInfo],
+    }
+    ws.send(json.dumps(basic_message))
+    first_line = headless_browser.find_by_css(".ace_gutter-active-line")
+    assert first_line
+    assert first_line.text == "7"
+
+
 class CodeEditorInSplitView(CellsTestPage):
     def cell(self):
         contents = cells.Slot("")

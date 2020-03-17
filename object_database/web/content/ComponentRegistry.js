@@ -44,6 +44,8 @@ import {Table} from './components/Table';
 import {TableColumn} from './components/TableColumn';
 import {TableColumnSorter} from './components/TableColumnSorter';
 import {TableHeader} from './components/TableHeader';
+import {TableRow} from './components/TableRow';
+import {TablePage} from './components/TablePage';
 import {TablePaginator} from './components/TablePaginator';
 import {Tabs} from './components/Tabs';
 import {Text} from './components/Text';
@@ -105,6 +107,8 @@ const ComponentRegistry = {
     TableColumnSorter,
     TableHeader,
     NewTableHeader: TableHeader,
+    TableRow,
+    TablePage,
     TablePaginator,
     Tabs,
     Text,

@@ -27,45 +27,6 @@ from .cells import (
 from .children import Children
 
 
-class NewTable(Cell):
-    """Table Cell
-
-    This acts as a reactive table of rows, complete with
-    pagination, sorting, and filtering
-
-    Properties
-    ----------
-    colFun: Function
-            A function that returns a list of keys for each column
-    headerFun: Function
-            A function that will return a Cell that corrsponds to each
-            column header. Takes each result of the colFun as the main
-            argument
-    rowFun: Function
-            A function that returns a list of keys for each row
-    rendererFun: Function
-            A function that returns a Cell for each combination of
-            row key and column key. Takes the row key and column key
-            as the two arguments. Note that these are created by the
-            rowFun and colFun respectively
-    maxRowsPerPage: int
-            The maximum number of rows to show for each page
-    currentPage: Slot
-            A Slot holding an int that says which page is currently
-            the active page being viewed
-    """
-
-    def __init__(self, colFun, rowFun, headerFun, rendererFun, maxRowsPerPage=20):
-        self.colFun = colFun
-        self.rowFun = (rowFun,)
-        self.headerFun = headerFun
-        self.rendererFun = rendererFun
-        self.maxRowsPerPage = maxRowsPerPage
-
-    def recalculate(self):
-        pass
-
-
 class TableColumn(Cell):
     def __init__(self, key, label, filterSlot, sortSlot=None):
         super().__init__()
@@ -238,3 +199,100 @@ class TablePaginator(Cell):
             self.children["right"] = right_cell
         self.exportData["currentPage"] = current_page
         self.exportData["totalPages"] = total_pages
+
+
+class TableRow(Cell):
+    def __init__(self, index, elements):
+        super().__init__()
+        self.index = index
+        self.elements = elements
+
+    def recalculate(self):
+        self.children["elements"] = self.elements
+        self.exportData["index"] = self.index
+
+
+class TablePage(Cell):
+    """Each TablePage gets the full list of filtered rows
+    from the parent Table, and knows how to divide this up
+    based on the pagination data"""
+
+    def __init__(self, rows, currentPageSlot, totalPagesSlot, maxRows):
+        super().__init__()
+        self.rows = rows
+        self.display_rows = []
+        self.current_page = currentPageSlot
+        self.total_pages = totalPagesSlot
+        self.max_rows = maxRows
+
+    def recalculate(self):
+        self.calculatePageRows()
+        self.exportData["maxRows"] = self.max_rows
+        self.exportData["rowSize"] = len(self.display_rows)
+        self.exportData["pageNum"] = self.current_page.get()
+        self.children["rows"] = self.display_rows
+
+    def calculatePageRows(self):
+        """Determine the rows that should actually
+        be displayed given the current page number and
+        size of each row"""
+        # Note we force the page num here to be
+        # 0-indexed for easier calculation
+        current_page_num = int(self.current_page.get()) - 1
+        start_index = current_page_num * self.max_rows
+        end_index = start_index + self.max_rows
+
+        # If the total number of rows we have is
+        # less than a single page max size, we
+        # display all of them and update the page
+        # number slots.
+        if len(self.rows) <= self.max_rows:
+            self.display_rows = self.rows
+            self.current_page.set(1)
+            self.total_pages.set(1)
+        elif end_index >= len(self.rows):
+            self.display_rows = self.rows[start_index:]
+        else:
+            self.display_rows = self.rows[start_index:end_index]
+
+
+class NewTable(Cell):
+    """Table Cell
+
+    This acts as a reactive table of rows, complete with
+    pagination, sorting, and filtering
+
+    Properties
+    ----------
+    colFun: Function
+            A function that returns a list of keys for each column
+    headerFun: Function
+            A function that will return a Cell that corrsponds to each
+            column header. Takes each result of the colFun as the main
+            argument
+    rowFun: Function
+            A function that returns a list of keys for each row
+    rendererFun: Function
+            A function that returns a Cell for each combination of
+            row key and column key. Takes the row key and column key
+            as the two arguments. Note that these are created by the
+            rowFun and colFun respectively
+    maxRowsPerPage: int
+            The maximum number of rows to show for each page
+    currentPage: Slot
+            A Slot holding an int that says which page is currently
+            the active page being viewed
+    """
+
+    def __init__(self, colFun, rowFun, headerFun, rendererFun, maxRowsPerPage=20):
+        self.column_getter = colFun
+        self.row_getter = rowFun
+        self.header_mapper = headerFun
+        self.element_renderer = rendererFun
+        self.max_page_size = maxRowsPerPage
+
+        self.rows = []
+        self.filteredRows = []
+
+    def recalculate(self):
+        pass

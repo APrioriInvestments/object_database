@@ -73,6 +73,8 @@ from object_database.web.cells.table import (
     TableColumn,
     TableColumnSorter,
     NewTableHeader,
+    TableRow,
+    TablePage,
 )
 
 from object_database.web.cells.views.split_view import SplitView

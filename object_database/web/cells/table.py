@@ -14,7 +14,6 @@
 import traceback
 from .cells import (
     Cell,
-    Slot,
     Octicon,
     SubscribeAndRetry,
     DisplayLineTextBox,
@@ -67,9 +66,11 @@ class NewTable(Cell):
 
 
 class TableHeader(Cell):
-    def __init__(self, columnKeys, headerLabeller, paginatorCell):
+    """columnDict is a dict of column keys to slots"""
+
+    def __init__(self, columnDict, headerLabeller, paginatorCell):
         super().__init__()
-        self.keys = columnKeys
+        self.columnDict = columnDict
         self.headerLabeller = headerLabeller
         self.paginator = paginatorCell
         self.children = Children()
@@ -81,7 +82,7 @@ class TableHeader(Cell):
         octicon = Octicon("search", color="black")
         clearOcticon = Octicon("x", color="red")
         displayLine = DisplayLineTextBox(
-            Slot(""),
+            self.columnDict[header_key],
             displayText=header_name,
             octicon=octicon,
             clearOcticon=clearOcticon,
@@ -92,7 +93,7 @@ class TableHeader(Cell):
 
     def recalculate(self):
         new_children_dict = {"headerItems": []}
-        for column_index, column_key in enumerate(self.keys):
+        for column_index, column_key in enumerate(self.columnDict.keys()):
             try:
                 header_cell = self.makeHeaderCell(column_index, column_key)
                 new_children_dict["headerItems"].append(header_cell)

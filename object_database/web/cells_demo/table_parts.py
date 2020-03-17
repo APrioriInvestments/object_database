@@ -24,3 +24,41 @@ class BasicTablePaginator(CellsTestPage):
 
     def text(self):
         return "You should see a TablePaginator with 10 pages"
+
+
+class BasicTableHeader(CellsTestPage):
+    def cell(self):
+        current_page = cells.Slot(1)
+        total_pages = cells.Slot(10)
+        paginator = cells.TablePaginator(current_page, total_pages)
+
+        first_slot = cells.Slot("")
+        second_slot = cells.Slot("")
+        third_slot = cells.Slot("")
+        fourth_slot = cells.Slot("")
+        column_dict = {
+            "One": first_slot,
+            "Two": second_slot,
+            "Three": third_slot,
+            "Four": fourth_slot,
+        }
+
+        def label_maker(header_name):
+            return header_name
+
+        header = cells.TableHeader(column_dict, label_maker, paginator)
+        slot_display_area = cells.Panel(
+            cells.Sequence(
+                [
+                    cells.Subscribed(lambda: current_page.get()),
+                    cells.Subscribed(lambda: second_slot.get()),
+                    cells.Subscribed(lambda: third_slot.get()),
+                    cells.Subscribed(lambda: fourth_slot.get()),
+                ]
+            )
+        )
+
+        return cells.Panel(header) + slot_display_area
+
+    def text(self):
+        return "You should see a TableHeader with a 10 page paginator"

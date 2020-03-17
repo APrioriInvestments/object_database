@@ -22,6 +22,7 @@ from .cells import (
     Clickable,
     SingleLineTextBox,
     Span,
+    Subscribed,
 )
 from .children import Children
 
@@ -63,6 +64,69 @@ class NewTable(Cell):
 
     def recalculate(self):
         pass
+
+
+class TableColumn(Cell):
+    def __init__(self, key, label, filterSlot, sortSlot):
+        super().__init__()
+        self.key = key
+        self.label = label
+        self.filter_slot = filterSlot
+        self.sort_slot = sortSlot
+
+    def recalculate(self):
+        octicon = Octicon("search", color="black")
+        clear_octicon = Octicon("x", color="red")
+        display_line = DisplayLineTextBox(
+            self.filter_slot,
+            displayText=self.label,
+            octicon=octicon,
+            clearOcticon=clear_octicon,
+            initialValue="",
+        )
+        self.children["display"] = Panel(display_line)
+
+
+class TableColumnSorter(Cell):
+    def __init__(self, columnKey, currentSortSlot):
+        """currentSortSlot represents a tuple with
+        the first element as the key of the column
+        that is currently sorted on and the second
+        being a direction (ascending/descending)
+        If the slot is None there is no sorting anywhere
+        """
+        super().__init__()
+        self.key = columnKey
+        self.sort_slot = currentSortSlot
+
+    def recalculate(self):
+        sorter = Subscribed(self.getIcon)
+        button = Clickable(sorter, self.onClick, makeBold=True)
+        self.children["button"] = button
+
+    def onClick(self):
+        slot_val = self.sort_slot.get()
+        if slot_val and slot_val[0] == self.key:
+            self.sort_slot.set([self.key, self.toggleDirectionFrom(slot_val[1])])
+        else:
+            self.sort_slot.set([self.key, "descending"])
+
+    def getIcon(self):
+        slot_val = self.sort_slot.get()
+        if slot_val and slot_val[0] == self.key:
+            if slot_val[1] == "ascending":
+                return Octicon("arrow-down")
+            elif slot_val[1] == "descending":
+                return Octicon("arrow-up")
+        return Octicon("arrow-down", color="gainsboro")
+
+    def toggleDirectionFrom(self, current_direction):
+        if current_direction == "ascending":
+            return "descending"
+        elif current_direction == "descending":
+            return "ascending"
+
+        return current_direction
 
 
 class TableHeader(Cell):

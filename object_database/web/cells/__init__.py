@@ -67,7 +67,12 @@ from object_database.web.cells.cells import (
     DisplayLineTextBox
 )
 
-from object_database.web.cells.table import TableHeader, TablePaginator
+from object_database.web.cells.table import (
+    TableHeader,
+    TablePaginator,
+    TableColumn,
+    TableColumnSorter,
+)
 
 from object_database.web.cells.views.split_view import SplitView
 

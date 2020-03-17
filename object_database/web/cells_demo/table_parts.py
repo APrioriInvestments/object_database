@@ -26,6 +26,46 @@ class BasicTablePaginator(CellsTestPage):
         return "You should see a TablePaginator with 10 pages"
 
 
+class BasicTableColumn(CellsTestPage):
+    def cell(self):
+        filter_slot = cells.Slot("")
+        sort_slot = cells.Slot(0)
+        table_column = cells.TableColumn("one", "First", filter_slot, sort_slot)
+        display_area = cells.Panel(
+            cells.Sequence(
+                [
+                    cells.Subscribed(lambda: filter_slot.get()),
+                    cells.Subscribed(lambda: sort_slot.get()),
+                ]
+            )
+        )
+        return cells.Panel(table_column) + display_area
+
+    def text(self):
+        return "You should see a single TableColumn with displayed slot values"
+
+
+class BasicTableColumnSorter(CellsTestPage):
+    def cell(self):
+        first_name = "First Column"
+        second_name = "Second Column"
+        slot = cells.Slot([None, None])
+        first_sorter = cells.TableColumnSorter(first_name, slot)
+        second_sorter = cells.TableColumnSorter(second_name, slot)
+        first = cells.Panel(cells.Text(first_name) >> first_sorter)
+        second = cells.Panel(cells.Text(second_name) >> second_sorter)
+        display_area = cells.Panel(
+            cells.Subscribed(lambda: slot.get()[0]) >> cells.Subscribed(lambda: slot.get()[1])
+        )
+        return cells.HorizontalSequence([first, second]) + display_area
+
+    def text(self):
+        return (
+            "You should see two TableColumnSorters that interact and "
+            "display the current sort properties"
+        )
+
+
 class BasicTableHeader(CellsTestPage):
     def cell(self):
         current_page = cells.Slot(1)

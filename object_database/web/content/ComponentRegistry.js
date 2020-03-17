@@ -104,6 +104,7 @@ const ComponentRegistry = {
     TableColumn,
     TableColumnSorter,
     TableHeader,
+    NewTableHeader: TableHeader,
     TablePaginator,
     Tabs,
     Text,

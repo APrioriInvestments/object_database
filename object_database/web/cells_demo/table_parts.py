@@ -102,3 +102,115 @@ class BasicTableHeader(CellsTestPage):
 
     def text(self):
         return "You should see a TableHeader with a 10 page paginator"
+
+
+class BasicNewTableHeader(CellsTestPage):
+    def cell(self):
+        # Paginator slots and Cell
+        current_page = cells.Slot(1)
+        total_pages = cells.Slot(10)
+        paginator = cells.TablePaginator(current_page, total_pages)
+
+        # Sort Slot and Display
+        sort_slot = cells.Slot([None, None])
+        sort_display = cells.Panel(
+            cells.Subscribed(lambda: sort_slot.get()[0])
+            >> cells.Subscribed(lambda: sort_slot.get()[1])
+        )
+
+        # Columns
+        first_slot = cells.Slot("")
+        second_slot = cells.Slot("")
+        third_slot = cells.Slot("")
+        fourth_slot = cells.Slot("")
+        columns = [
+            cells.TableColumn("First", "First", first_slot),
+            cells.TableColumn("Second", "Second", second_slot),
+            cells.TableColumn("Third", "Third", third_slot),
+            cells.TableColumn("Fourth", "Fourth", fourth_slot),
+        ]
+
+        # Filter Displays
+        first_display = cells.Panel(
+            cells.Text("First") + cells.Subscribed(lambda: first_slot.get())
+        )
+        second_display = cells.Panel(
+            cells.Text("Second") + cells.Subscribed(lambda: second_slot.get())
+        )
+        third_display = cells.Panel(
+            cells.Text("Third") + cells.Subscribed(lambda: third_slot.get())
+        )
+        fourth_display = cells.Panel(
+            cells.Text("Fourth") + cells.Subscribed(lambda: fourth_slot.get())
+        )
+
+        # NewTableHeader
+        header = cells.NewTableHeader(columns, lambda key: key, paginator, sort_slot)
+
+        return cells.Sequence(
+            [
+                header,
+                cells.HorizontalSequence(
+                    [
+                        sort_display,
+                        first_display,
+                        second_display,
+                        third_display,
+                        fourth_display,
+                    ]
+                ),
+            ]
+        )
+
+    def text(self):
+        return (
+            "You should see a NewTableHeader made up of TableColumn and "
+            "TableColumnSorter cells that have appropriately reactive "
+            "slot interactions, along with displays of slot values"
+        )
+
+
+class AltBasicNewTable(CellsTestPage):
+    def cell(self):
+        # Pagination slots and Paginator
+        current_page = cells.Slot(1)
+        total_pages = cells.Slot(10)
+        paginator = cells.TablePaginator(current_page, total_pages)
+
+        # Sort Slot and Display
+        sort_slot = cells.Slot([None, None])
+        sort_display = cells.Panel(
+            cells.Subscribed(lambda: sort_slot.get()[0])
+            + cells.Subscribed(lambda: sort_slot.get()[1])
+        )
+
+        # Column Filter Slots and Keys / TableColumns
+        column_slots = {
+            "First": cells.Slot(""),
+            "Second": cells.Slot(""),
+            "Third": cells.Slot(""),
+            "Fourth": cells.Slot(""),
+        }
+        columns = []
+        for key, val in column_slots.items():
+            columns.append(cells.TableColumn(key, key, val))
+
+        # Filter Display Area
+        filter_displays = []
+        for key, val in column_slots.items():
+            filter_displays.append(
+                cells.Panel(cells.Text(key) + cells.Subscribed(lambda: val.get()))
+            )
+
+        # NewTableHeader
+        header = cells.NewTableHeader(columns, lambda key: key, paginator, sort_slot)
+
+        # Final structure
+        return header + (sort_display >> cells.HorizontalSequence(filter_displays))
+
+    def text(self):
+        return (
+            "You should see a NewTableHeader made up of TableColumn and "
+            "TableColumnSorter cells that have appropriately reactive "
+            "slot interactions, along with displays of slot values"
+        )

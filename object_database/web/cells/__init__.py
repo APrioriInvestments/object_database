@@ -72,6 +72,7 @@ from object_database.web.cells.table import (
     TablePaginator,
     TableColumn,
     TableColumnSorter,
+    NewTableHeader,
 )
 
 from object_database.web.cells.views.split_view import SplitView

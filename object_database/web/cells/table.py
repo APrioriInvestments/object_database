@@ -67,7 +67,7 @@ class NewTable(Cell):
 
 
 class TableColumn(Cell):
-    def __init__(self, key, label, filterSlot, sortSlot):
+    def __init__(self, key, label, filterSlot, sortSlot=None):
         super().__init__()
         self.key = key
         self.label = label
@@ -84,7 +84,7 @@ class TableColumn(Cell):
             clearOcticon=clear_octicon,
             initialValue="",
         )
-        self.children["display"] = Panel(display_line)
+        self.children["display"] = display_line
 
 
 class TableColumnSorter(Cell):
@@ -127,6 +127,39 @@ class TableColumnSorter(Cell):
             return "ascending"
 
         return current_direction
+
+
+class NewTableHeader(Cell):
+    """columns is a list of TableColumn cells"""
+
+    def __init__(self, columns, labelFunc, paginator, sortSlot):
+        super().__init__()
+        self.columns = columns
+        self.label_maker = labelFunc
+        self.paginator = paginator
+        self.sort_slot = sortSlot
+
+    def makeHeaderCell(self, column_index, column_cell):
+        header_name = self.label_maker(column_cell.key)
+        column_cell.label = header_name
+        sorter = TableColumnSorter(column_cell.key, self.sort_slot)
+        return Panel(column_cell >> sorter)
+
+    def recalculate(self):
+        new_children_dict = {"headerItems": []}
+        for column_index, column in enumerate(self.columns):
+            try:
+                header_cell = self.makeHeaderCell(column_index, column)
+                new_children_dict["headerItems"].append(header_cell)
+            except SubscribeAndRetry:
+                raise
+            except Exception:
+                traceback_cell = Traceback(traceback.format_exc())
+                new_children_dict["headerItems"].append(traceback_cell)
+
+        new_children_dict["paginator"] = self.paginator
+        self.children = Children()
+        self.children.addFromDict(new_children_dict)
 
 
 class TableHeader(Cell):

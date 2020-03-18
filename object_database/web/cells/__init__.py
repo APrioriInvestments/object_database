@@ -75,6 +75,7 @@ from object_database.web.cells.table import (
     NewTableHeader,
     TableRow,
     TablePage,
+    NewTable,
 )
 
 from object_database.web.cells.views.split_view import SplitView

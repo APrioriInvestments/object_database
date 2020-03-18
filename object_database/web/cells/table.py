@@ -22,9 +22,11 @@ from .cells import (
     Clickable,
     SingleLineTextBox,
     Span,
+    Slot,
     Subscribed,
 )
 from .children import Children
+from math import ceil
 
 
 class TableColumn(Cell):
@@ -285,6 +287,7 @@ class NewTable(Cell):
     """
 
     def __init__(self, colFun, rowFun, headerFun, rendererFun, maxRowsPerPage=20):
+        super().__init__()
         self.column_getter = colFun
         self.row_getter = rowFun
         self.header_mapper = headerFun
@@ -292,7 +295,93 @@ class NewTable(Cell):
         self.max_page_size = maxRowsPerPage
 
         self.rows = []
-        self.filteredRows = []
+        self.columns = []
+        self.filtered_rows = []
+        self.sorted_rows = []
+        self.column_filters = {}
+
+        # Various slots we will use for composition
+        self.sort_slot = Slot([None, None])
+        self.page_info = self.getPageInfo()
 
     def recalculate(self):
-        pass
+        self.getColumns()
+        self.getRows()
+        self.updateTotalPagesFor(self.sorted_rows)
+        header_paginator = TablePaginator(
+            self.page_info["current_page"], self.page_info["total_pages"]
+        )
+        header = NewTableHeader(
+            self.columns, self.header_mapper, header_paginator, self.sort_slot
+        )
+        page = TablePage(
+            self.sorted_rows,
+            self.page_info["current_page"],
+            self.page_info["total_pages"],
+            self.max_page_size,
+        )
+        self.children["header"] = header
+        self.children["page"] = page
+
+    def getRows(self):
+        try:
+            raw_rows = list(self.row_getter())
+            self.rows = []
+            for row_index, raw_row in enumerate(raw_rows):
+                elements = []
+                for column in self.columns:
+                    elements.append(self.element_renderer(raw_row, column.key))
+                self.rows.append(TableRow(row_index, elements))
+            self.filtered_rows = self.filter_rows(self.rows)
+            self.sorted_rows = self.sort_rows(self.filtered_rows)
+        except SubscribeAndRetry:
+            raise
+        except Exception:
+            self._logger.exception("Row create function calculation threw exception:")
+            self.rows = []
+
+    def getColumns(self):
+        try:
+            raw_columns = list(self.column_getter())
+            self.columns = []
+            # If we don't have a filter slot for
+            # the given column key yet, go ahead
+            # and create a blank one
+            for column_key in raw_columns:
+                filter_slot = Slot(None)
+                if column_key not in self.column_filters:
+                    self.column_filters[column_key] = filter_slot
+                else:
+                    filter_slot = self.column_filters[column_key]
+                self.columns.append(TableColumn(column_key, column_key, filter_slot))
+
+        except SubscribeAndRetry:
+            raise
+        except Exception:
+            self._logger.exception("Column create function calculation threw exception:")
+            self.columns = []
+
+    def getPageInfo(self):
+        # We initialize with a current page
+        # and total num pages of 1
+        return {"current_page": Slot(1), "total_pages": Slot(1)}
+
+    def sort_rows(self, rows_to_sort):
+        # Doing nothing for now
+        return [row for row in rows_to_sort]
+
+    def filter_rows(self, rows_to_filter):
+        # Doing nothing for now
+        return [row for row in rows_to_filter]
+
+    def updateTotalPagesFor(self, rows):
+        """Determine the total number of pages needed
+        to display the number of rows provided, based on
+        the max_page_size. We pass the new total pages
+        value to the current paginator"""
+        num_rows = len(rows)
+        if num_rows <= self.max_page_size:
+            self.page_info["total_pages"].set(1)
+        else:
+            new_total = ceil(float(num_rows) / float(self.max_page_size))
+            self.page_info["total_pages"].set(new_total)

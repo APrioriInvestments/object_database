@@ -125,4 +125,49 @@ class TableWithEditStructure(CellsTestPage):
             "a delete button on each row, and an edit box on each cell's text. "
             "If you change the text and hit enter, you should see the page re-sort."
         )
->>>>>>> Add a table demo, and fix a couple of very minor bugs.
+
+
+class NewTableWithEditStructure(CellsTestPage):
+    def cell(self):
+        rows = cells.Slot((1, 2, 3))
+        rowData = {1: cells.Slot("hi"), 2: cells.Slot("bye"), 3: cells.Slot("yoyo")}
+
+        def renderFun(rowLabel, fieldname):
+            data = rowData.setdefault(rowLabel, cells.Slot("empty"))
+
+            if fieldname == "Delete":
+                return cells.Button(
+                    cells.Octicon("trashcan"),
+                    lambda: rows.set(tuple(x for x in rows.get() if x != rowLabel)),
+                )
+            if fieldname == "Edit":
+                return cells.SingleLineTextBox(data)
+            if fieldname == "Contents":
+                return cells.Subscribed(lambda: data.get())
+
+        return cells.Button(
+            "new", lambda: rows.set(rows.get() + (max(rows.get()) + 1,))
+        ) + cells.ResizablePanel(
+            cells.NewTable(
+                colFun=lambda: ["Delete", "Edit", "Contents"],
+                rowFun=lambda: rows.get(),
+                headerFun=lambda x: x,
+                rendererFun=renderFun,
+                maxRowsPerPage=50,
+            ),
+            cells.NewTable(
+                colFun=lambda: ["Delete", "Edit", "Contents"],
+                rowFun=lambda: rows.get(),
+                headerFun=lambda x: x,
+                rendererFun=renderFun,
+                maxRowsPerPage=50,
+            ),
+        )
+
+    def text(self):
+        return (
+            "You should see a NewTable with several rows, a button to add new rows, "
+            "a delete button on each row, and an edit box on each cell's text. "
+            "If you change the text and hit enter, you should see the page re-sort."
+        )
+>>>>>>> Initial working version of NewTable with demo

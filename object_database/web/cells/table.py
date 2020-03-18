@@ -204,14 +204,86 @@ class TablePaginator(Cell):
 
 
 class TableRow(Cell):
-    def __init__(self, index, elements):
+    def __init__(self, index, key, columnKeys, renderer, filterer=None):
         super().__init__()
         self.index = index
-        self.elements = elements
+        self.key = key
+        self.column_keys = columnKeys
+        self.filterer = filterer
+        self.renderer = renderer
+        self.elements_cache = [None] * len(columnKeys)
 
     def recalculate(self):
-        self.children["elements"] = self.elements
+        self.children["elements"] = self.allElements()
         self.exportData["index"] = self.index
+
+    def filter(self, filter_terms):
+        """Attemps to determine if the current
+        row should be matched when each element
+        is compared to the filter term for its
+        corresponding column
+        Attempst to use the set self.filterer,
+        if present.
+        Otherwise defaults to self.defaultFilter
+        """
+        if self.filterer:
+            return self.filterer(filter_terms, self.elements)
+        return self.defaultFilter(filter_terms)
+
+    def defaultFilter(self, filter_terms):
+        """Loops through all the elements and filter
+        terms and determines if any of the column/filter
+        combinations does not match the corresponding
+        filter term. If *any* do not match, we return False.
+        Otherwise (at least one matched) we return True"""
+        for element_index, filter_term in enumerate(filter_terms):
+            element_result = self.defaultFilterSingle(element_index, filter_term)
+            if element_result is False:
+                return False
+        return True
+
+    def defaultFilterSingle(self, element_index, filter_term):
+        """Returns True when one of the following
+        conditions is met:
+        1. A given column filter is None, meaning
+        there is no filter at all
+        Returns False in all other cases
+        """
+        if not filter_term:
+            return True
+        element = self.getElementAtIndex(element_index)
+        element_filter = element.sortAs()
+        if element_filter is None:
+            element_filter = ""
+        else:
+            element_filter = str(element_filter)
+        if filter_term in element_filter:
+            return True
+
+        return False
+
+    def getElementAtIndex(self, index):
+        """Attempt to retrieve the created
+        Cell at the column index from the
+        cache. If the value in the cache is
+        None, create the element using the
+        renderer function"""
+        found = self.elements_cache[index]
+        if found is None:
+            column_key = self.column_keys[index]
+            new_element = Cell.makeCell(self.renderer(self.key, column_key))
+            self.elements_cache[index] = new_element
+            return new_element
+
+        return found
+
+    def allElements(self):
+        """Return a list of all rendered
+        elements"""
+        result = []
+        for index, _ in enumerate(self.column_keys):
+            result.append(self.getElementAtIndex(index))
+        return result
 
 
 class TablePage(Cell):
@@ -273,7 +345,7 @@ class NewTable(Cell):
             column header. Takes each result of the colFun as the main
             argument
     rowFun: Function
-            A function that returns a list of keys for each row
+            A function that returns a list of row indices (integers)
     rendererFun: Function
             A function that returns a Cell for each combination of
             row key and column key. Takes the row key and column key
@@ -294,6 +366,7 @@ class NewTable(Cell):
         self.element_renderer = rendererFun
         self.max_page_size = maxRowsPerPage
 
+        self.row_keys = []
         self.rows = []
         self.columns = []
         self.filtered_rows = []
@@ -305,9 +378,15 @@ class NewTable(Cell):
         self.page_info = self.getPageInfo()
 
     def recalculate(self):
-        self.getColumns()
-        self.getRows()
+        with self.view() as v:
+            self.makeColumnCells()
+            self.makeRowCells()
+            self._resetSubscriptionsToViewReads(v)
+
+        self.filtered_rows = self.filter_rows(self.rows)
+        self.sorted_rows = self.sort_rows(self.filtered_rows)
         self.updateTotalPagesFor(self.sorted_rows)
+
         header_paginator = TablePaginator(
             self.page_info["current_page"], self.page_info["total_pages"]
         )
@@ -323,24 +402,24 @@ class NewTable(Cell):
         self.children["header"] = header
         self.children["page"] = page
 
-    def getRows(self):
+    def makeRowCells(self):
         try:
-            raw_rows = list(self.row_getter())
-            self.rows = []
-            for row_index, raw_row in enumerate(raw_rows):
-                elements = []
-                for column in self.columns:
-                    elements.append(self.element_renderer(raw_row, column.key))
-                self.rows.append(TableRow(row_index, elements))
-            self.filtered_rows = self.filter_rows(self.rows)
-            self.sorted_rows = self.sort_rows(self.filtered_rows)
+            row_cells = []
+            column_keys = [column.key for column in self.columns]
+            self.row_keys = list(self.row_getter())
+            for row_index, row_key in enumerate(self.row_keys):
+                row_cells.append(
+                    TableRow(row_index, row_key, column_keys, self.element_renderer)
+                )
+            self.rows = row_cells
+
         except SubscribeAndRetry:
             raise
         except Exception:
             self._logger.exception("Row create function calculation threw exception:")
             self.rows = []
 
-    def getColumns(self):
+    def makeColumnCells(self):
         try:
             raw_columns = list(self.column_getter())
             self.columns = []
@@ -348,12 +427,13 @@ class NewTable(Cell):
             # the given column key yet, go ahead
             # and create a blank one
             for column_key in raw_columns:
-                filter_slot = Slot(None)
-                if column_key not in self.column_filters:
+                filter_slot = Slot("")
+                if column_key not in self.column_filters.keys():
                     self.column_filters[column_key] = filter_slot
                 else:
                     filter_slot = self.column_filters[column_key]
-                self.columns.append(TableColumn(column_key, column_key, filter_slot))
+                column_label = self.header_mapper(column_key)
+                self.columns.append(TableColumn(column_key, column_label, filter_slot))
 
         except SubscribeAndRetry:
             raise
@@ -371,8 +451,18 @@ class NewTable(Cell):
         return [row for row in rows_to_sort]
 
     def filter_rows(self, rows_to_filter):
-        # Doing nothing for now
-        return [row for row in rows_to_filter]
+        # Rows is a list of TableRow Cells
+        filtered_rows = []
+        for row in rows_to_filter:
+            filter_terms = []
+            for column in self.columns:
+                filter_term = self.column_filters[column.key].get()
+                filter_terms.append(filter_term)
+            row_does_match = row.filter(filter_terms)
+            if row_does_match:
+                filtered_rows.append(row)
+
+        return filtered_rows
 
     def updateTotalPagesFor(self, rows):
         """Determine the total number of pages needed

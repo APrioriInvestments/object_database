@@ -868,6 +868,13 @@ class Cell:
     def isMergedIntoParent(self):
         return False
 
+    def sortAs(self):
+        """Default implementation returns None.
+        This is used for filtering or sorting the
+        given Cell instance
+        """
+        return None
+
     def rootSequenceOfOrientation(self, orientation):
         """Are we (or are we contained within) a sequence of a given orientation?
 

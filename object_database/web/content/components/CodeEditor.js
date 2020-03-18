@@ -23,6 +23,8 @@ class CodeEditor extends Component {
         this.setTextFromServer = this.setTextFromServer.bind(this);
         this.lastSentText = null;
         this.mouseoverTimeout = null;
+        // keeps track of any highlight related markers
+        this.highlightMarker = null;
 
         // A cached version of the created
         // DOM node will be put here for
@@ -31,10 +33,11 @@ class CodeEditor extends Component {
 
         // Used to register and deregister
         // any global KeyListener instance
+        this.disableEventFiring = false;
         this._onBlur = this._onBlur.bind(this);
         this._onFocus = this._onFocus.bind(this);
         this.onScroll = this.onScroll.bind(this);
-        this.disableEventFiring = false;
+        this._highlight = this._highlight.bind(this);
     }
 
     componentDidLoad() {
@@ -99,8 +102,14 @@ class CodeEditor extends Component {
                 }
             }
 
-            this.setupKeybindings();
+            if (this.props.highlightRange !== undefined){
+                let startRow = this.props.highlightRange["startRow"] || 1;
+                let endRow = this.props.highlightRange["endRow"] || 1;
+                let highlightColor = this.props.highlightRange["color"] || "red";
+                this._highlight(startRow, endRow, highlightColor);
+            }
 
+            this.setupKeybindings();
             this.installChangeHandlers();
         }
 
@@ -122,7 +131,6 @@ class CodeEditor extends Component {
         newEditor.setSession(this.editor.session);
         this.editor = newEditor;
     }
-
 
     build(){
         if(this.hasRenderedBefore){
@@ -205,6 +213,16 @@ class CodeEditor extends Component {
                 this.editor.resize(true);
                 this.editor.scrollToRow(row - 1)
                 this.editor.gotoLine(row, 0, true);
+            } else if(dataInfo.highlight === true) {
+                let startRow = this.dataInfo.startRow || 1;
+                let endRow = this.dataInfo.endRow || 1;
+                let highlightColor = this.dataInfo.color || "red";
+                this._highlight(startRow, endRow, highlightColor);
+            } else if (dataInfo.highlight === false){
+                // remove the highlighting
+                if (this.highlightMarker !== null){
+                    this.session.removeMarker(this.highlightMarker);
+                }
             }
         })
     }
@@ -332,6 +350,21 @@ class CodeEditor extends Component {
             this.constructor.keyListener.pause();
         }
     }
+
+    /* I highlight rows by specififying their background color.
+     * Note: I use the ace.addMarker API which limits me to adding
+     * specific css classes, so as of writing the available colors are
+     * 'red' 'blue' and 'green.'
+     */
+    _highlight(startRow, endRow, color){
+        let Range = ace.require('ace/range').Range;
+        let highlightRange = new Range(startRow - 1, 0, endRow - 1, 0);
+        this.highlightMarker = this.editor.session.addMarker(
+             highlightRange,
+            `ace_active-line highlight-${color}`,
+            "fullLine"
+        );
+    }
 }
 
 CodeEditor.propTypes = {
@@ -383,6 +416,11 @@ CodeEditor.propTypes = {
     minLines: {
         description: "Sets the minimum number of lines in the Ace Editor",
         type: PropTypes.number
+    },
+
+    highlightRange: {
+        description: "A dictionary object containing 'startRow' 'startColumn' 'endRow' 'endColumn' for code highlighting",
+        type: PropTypes.object
     }
 };
 

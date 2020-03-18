@@ -439,6 +439,18 @@ td.row-index-item {
     height: 100%;
 }
 
+.highlight-red {
+    background-color: red!important;
+}
+
+.highlight-blue {
+    background-color: #007bff!important;
+}
+
+.highlight-green {
+    background-color: green!important;
+}
+
 .code-editor-inner {
     width: 100%;
     min-height: 100%;

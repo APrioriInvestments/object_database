@@ -2930,10 +2930,15 @@ class CodeEditor(Cell):
         textToDisplayFunction=lambda: "",
         mouseoverTimeout=1000,
         onMouseover=None,
+        highlightRange=None,
     ):
         """Create a code editor
 
-        keybindings - map from keycode to a lambda function that will receive
+        Parameters
+        ----------
+
+        keybindings: map
+            map from keycode to a lambda function that will receive
             the current buffer and the current selection range when the user
             types ctrl-X and 'X' is a valid keycode. Common values here are also
             'Enter' and 'space'
@@ -2941,21 +2946,28 @@ class CodeEditor(Cell):
         You may call 'setContents' to override the current contents of the editor.
         This version is not robust to mutiple users editing at the same time.
 
-        onTextChange - called when the text buffer changes with the new buffer
+        onTextChange: func
+            called when the text buffer changes with the new buffer
             and a json selection.
 
-        textToDisplayFunction - a function of no arguments that should return
+        textToDisplayFunction: func
+            a function of no arguments that should return
             the current text we _ought_ to be displaying.
 
         onFirstRowChange - a function that is called when the first visible row
-        changes. It takes one argument which is said row.
+            changes. It takes one argument which is said row.
 
         mouseoverTimeout - timeout for mouseover callback WS message in
-        milliseconds
+            milliseconds
 
         onMouseover = a function which is called subsequent to the mouseover
-        event fires on the client side and corresponding WS message is
-        received.The entire message is passed to the function.
+            event fires on the client side and corresponding WS message is
+            received.The entire message is passed to the function.
+
+        highlightRange : dict or None
+            dict should contain 'startRow' and 'endRow' int values setting the
+            highlight range. Additional you can add a "color" key with values
+            of "red" "blue" or "green" to change the highlight background-color.
         """
         super().__init__()
         # contains (current_iteration_number: int, text: str)
@@ -2964,6 +2976,7 @@ class CodeEditor(Cell):
         self.noScroll = noScroll
         self.fontSize = fontSize
         self.minLines = minLines
+        self.highlightRange = highlightRange
         self.readOnly = readOnly
         self.autocomplete = autocomplete
         self.onTextChange = onTextChange
@@ -3044,20 +3057,44 @@ class CodeEditor(Cell):
         """
         assert isinstance(selection, dict)
         selection = dict(
-            start=dict(
-                row=selection['start']['row'],
-                column=selection['start']['column'],
-            ),
-            end=dict(
-                row=selection['end']['row'],
-                column=selection['end']['column'],
-            )
+            start=dict(row=selection["start"]["row"], column=selection["start"]["column"]),
+            end=dict(row=selection["end"]["row"], column=selection["end"]["column"]),
         )
 
         self.selectionSlot.set(selection)
 
         dataInfo = {"selection": selection}
 
+        if self.exportData.get("dataInfo") is None:
+            self.exportData["dataInfo"] = [dataInfo]
+        else:
+            self.exportData["dataInfo"].append(dataInfo)
+
+        self.wasDataUpdated = True
+        self.markDirty()
+
+    def addRowHighlight(self, startRow, endRow):
+        """ Send a message to highlight row range.
+
+        Parameters
+        ----------
+        startRow : int
+        endRow : int
+        """
+        dataInfo = {"startRow": startRow, "endRow": endRow, "highlight": True}
+        # stage this piece of data to be sent when we recalculate
+        if self.exportData.get("dataInfo") is None:
+            self.exportData["dataInfo"] = [dataInfo]
+        else:
+            self.exportData["dataInfo"].append(dataInfo)
+
+        self.wasDataUpdated = True
+        self.markDirty()
+
+    def removeRowHighlight(self):
+        """ Send a message to remove all row highlighting.
+        """
+        dataInfo = {"highlight": False}
         # stage this piece of data to be sent when we recalculate
         if self.exportData.get("dataInfo") is None:
             self.exportData["dataInfo"] = [dataInfo]
@@ -3155,10 +3192,15 @@ class CodeEditor(Cell):
             self.exportData["fontSize"] = self.fontSize
         if self.minLines is not None:
             self.exportData["minLines"] = self.minLines
+
         self.exportData[
             "firstVisibleRow"
         ] = self.firstVisibleRowSlot.getWithoutRegisteringDependency()
+
         self.exportData["mouseoverTimeout"] = self.mouseoverTimeout
+
+        if self.highlightRange is not None:
+            self.exportData["highlightRange"] = self.highlightRange
 
         self.exportData["keybindings"] = [k for k in self.keybindings.keys()]
 

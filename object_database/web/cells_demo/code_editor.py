@@ -335,6 +335,92 @@ def test_set_first_row(headless_browser):
     assert first_line.text == "5"
 
 
+class CodeEditorHighlightRows(CellsTestPage):
+    def cell(self):
+        contents = cells.Slot("No Text Entered Yet!")
+        text = """def cell(self):
+        contents = cells.Slot("No Text Entered Yet!")
+
+        textToDisplayFunction = lambda: "some text"
+
+        def onTextChange(content, selection):
+            contents.set(content)
+
+        return cells.CodeEditor(
+                textToDisplayFunction=textToDisplayFunction,
+                onTextChange=onTextChange, firstVisibleRow=5
+                )
+        """
+        text *= 5
+
+        def onTextChange(content, selection):
+            contents.set(content)
+
+        highlightRange = {"startRow": 5, "endRow": 10}
+
+        return cells.CodeEditor(
+            onTextChange=onTextChange,
+            textToDisplayFunction=lambda: text,
+            highlightRange=highlightRange,
+        )
+
+    def text(self):
+        return "Should see a CodeEditor and its content with rows 5-10 " "highlighted"
+
+
+def test_adding_highlight(headless_browser):
+    # Test that we can find the editor and
+    # add text to it.
+    demo_root = headless_browser.get_demo_root_for(CodeEditorHighlightRows)
+    assert demo_root
+    marker_line = headless_browser.find_by_css(".ace_active-line")
+    assert marker_line
+    marker_line = headless_browser.find_by_css(".highlight-red")
+    assert marker_line
+
+
+class CodeEditorHighlightRowsInColor(CellsTestPage):
+    def cell(self):
+        contents = cells.Slot("No Text Entered Yet!")
+        text = """def cell(self):
+        contents = cells.Slot("No Text Entered Yet!")
+
+        textToDisplayFunction = lambda: "some text"
+
+        def onTextChange(content, selection):
+            contents.set(content)
+
+        return cells.CodeEditor(
+                textToDisplayFunction=textToDisplayFunction,
+                onTextChange=onTextChange, firstVisibleRow=5
+                )
+        """
+        text *= 5
+
+        def onTextChange(content, selection):
+            contents.set(content)
+
+        highlightRange = {"startRow": 5, "endRow": 10, "color": "blue"}
+
+        return cells.CodeEditor(
+            onTextChange=onTextChange,
+            textToDisplayFunction=lambda: text,
+            highlightRange=highlightRange,
+        )
+
+    def text(self):
+        return "Should see a CodeEditor and its content with rows 5-10 " "highlighted"
+
+
+def test_adding_highlight_color(headless_browser):
+    # Test that we can find the editor and
+    # add text to it.
+    demo_root = headless_browser.get_demo_root_for(CodeEditorHighlightRowsInColor)
+    assert demo_root
+    marker_line = headless_browser.find_by_css(".highlight-blue")
+    assert marker_line
+
+
 class CodeEditorInSplitView(CellsTestPage):
     def cell(self):
         contents = cells.Slot("")

@@ -230,13 +230,14 @@ class TableRow(Cell):
             return self.filterer(filter_terms, self.elements)
         return self.defaultFilter(filter_terms)
 
-    def defaultFilter(self, filter_terms):
+    def defaultFilter(self, filter_slots):
         """Loops through all the elements and filter
-        terms and determines if any of the column/filter
+        slots and determines if any of the column/filter
         combinations does not match the corresponding
         filter term. If *any* do not match, we return False.
         Otherwise (at least one matched) we return True"""
-        for element_index, filter_term in enumerate(filter_terms):
+        for element_index, filter_slot in enumerate(filter_slots):
+            filter_term = filter_slot.get()
             element_result = self.defaultFilterSingle(element_index, filter_term)
             if element_result is False:
                 return False
@@ -454,15 +455,20 @@ class NewTable(Cell):
         # Rows is a list of TableRow Cells
         filtered_rows = []
         for row in rows_to_filter:
-            filter_terms = []
+            filter_slots = []
             for column in self.columns:
-                filter_term = self.column_filters[column.key].get()
-                filter_terms.append(filter_term)
-            row_does_match = row.filter(filter_terms)
+                filter_slot = self.column_filters[column.key]
+                filter_slots.append(filter_slot)
+            row_does_match = row.filter(filter_slots)
             if row_does_match:
                 filtered_rows.append(row)
 
         return filtered_rows
+
+    def subscribedSlotChanged(self, slot):
+        filter_slots = [s for s in self.column_filters.values()]
+        if slot not in filter_slots:
+            self.markDirty()
 
     def updateTotalPagesFor(self, rows):
         """Determine the total number of pages needed

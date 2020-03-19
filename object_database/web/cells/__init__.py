@@ -68,7 +68,6 @@ from object_database.web.cells.cells import (
 )
 
 from object_database.web.cells.table import (
-    TableHeader,
     TablePaginator,
     TableColumn,
     TableColumnSorter,

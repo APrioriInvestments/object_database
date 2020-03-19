@@ -125,49 +125,6 @@ class NewTableHeader(Cell):
         self.children.addFromDict(new_children_dict)
 
 
-class TableHeader(Cell):
-    """columnDict is a dict of column keys to slots"""
-
-    def __init__(self, columnDict, headerLabeller, paginatorCell):
-        super().__init__()
-        self.columnDict = columnDict
-        self.headerLabeller = headerLabeller
-        self.paginator = paginatorCell
-        self.children = Children()
-
-    def makeHeaderCell(self, header_index, header_key):
-        # TODO: Check for presence in some column filters
-        # structure
-        header_name = self.headerLabeller(header_key)
-        octicon = Octicon("search", color="black")
-        clearOcticon = Octicon("x", color="red")
-        displayLine = DisplayLineTextBox(
-            self.columnDict[header_key],
-            displayText=header_name,
-            octicon=octicon,
-            clearOcticon=clearOcticon,
-            initialValue="",
-        )
-
-        return Panel(displayLine)
-
-    def recalculate(self):
-        new_children_dict = {"headerItems": []}
-        for column_index, column_key in enumerate(self.columnDict.keys()):
-            try:
-                header_cell = self.makeHeaderCell(column_index, column_key)
-                new_children_dict["headerItems"].append(header_cell)
-            except SubscribeAndRetry:
-                raise
-            except Exception:
-                traceback_cell = Traceback(traceback.format_exc())
-                new_children_dict["headersItems"].append(traceback_cell)
-
-        new_children_dict["paginator"] = self.paginator
-        self.children = Children()
-        self.children.addFromDict(new_children_dict)
-
-
 class TablePaginator(Cell):
     def __init__(self, currentPageSlot, totalPagesSlot):
         super().__init__()
@@ -230,18 +187,30 @@ class TableRow(Cell):
             return self.filterer(filter_terms, self.elements)
         return self.defaultFilter(filter_terms)
 
-    def defaultFilter(self, filter_slots):
+    def defaultFilter(self, filter_terms):
         """Loops through all the elements and filter
-        slots and determines if any of the column/filter
+        terms and determines if any of the column/filter
         combinations does not match the corresponding
         filter term. If *any* do not match, we return False.
         Otherwise (at least one matched) we return True"""
-        for element_index, filter_slot in enumerate(filter_slots):
-            filter_term = filter_slot.get()
-            element_result = self.defaultFilterSingle(element_index, filter_term)
-            if element_result is False:
-                return False
-        return True
+        assert len(filter_terms) == len(self.elements_cache)
+        results = []
+        for column_index, filter_term in enumerate(filter_terms):
+            # If the incoming filter term is None, this means
+            # there is no filter for the column at that index.
+            # We simply pass this one
+            if filter_term is None:
+                pass
+
+            # Get the corresponding element at the column
+            # index (same as the element index)
+            element = self.getElementAtIndex(column_index)
+            element_term = element.sortAs()
+            if element_term is not None:
+                element_term = str(element_term)
+                results.append(filter_term in element_term)
+
+        return all(results)
 
     def defaultFilterSingle(self, element_index, filter_term):
         """Returns True when one of the following
@@ -250,6 +219,8 @@ class TableRow(Cell):
         there is no filter at all
         Returns False in all other cases
         """
+        # TODO: Debugging. Remove
+        self._logger.info("\n\nHELLOTHERE\n\n")
         if not filter_term:
             return True
         element = self.getElementAtIndex(element_index)
@@ -258,6 +229,12 @@ class TableRow(Cell):
             element_filter = ""
         else:
             element_filter = str(element_filter)
+        # TODO: Debugging. Remove
+        self._logger.info(
+            "\n\n [{}][{}]{} ===> {}\n\n".format(
+                element.__class__.__name__, element_index, element_filter, filter_term
+            )
+        )
         if filter_term in element_filter:
             return True
 
@@ -288,24 +265,67 @@ class TableRow(Cell):
 
 
 class TablePage(Cell):
-    """Each TablePage gets the full list of filtered rows
-    from the parent Table, and knows how to divide this up
-    based on the pagination data"""
+    """Update this comment"""
 
-    def __init__(self, rows, currentPageSlot, totalPagesSlot, maxRows):
+    def __init__(self, row_getter, columns, page_info, renderer, sort_slot, max_rows):
         super().__init__()
-        self.rows = rows
+        self.row_getter = row_getter
+        self.element_renderer = renderer
+        self.rows = []
         self.display_rows = []
-        self.current_page = currentPageSlot
-        self.total_pages = totalPagesSlot
-        self.max_rows = maxRows
+        self.columns = columns
+        self.current_page = page_info["current_page"]
+        self.total_pages = page_info["total_pages"]
+        self.sort_slot = sort_slot
+        self.max_rows = max_rows
 
     def recalculate(self):
+        self.makeRows()
         self.calculatePageRows()
+        self.updateTotalPagesFor(self.rows)
         self.exportData["maxRows"] = self.max_rows
         self.exportData["rowSize"] = len(self.display_rows)
         self.exportData["pageNum"] = self.current_page.get()
         self.children["rows"] = self.display_rows
+
+    def makeRows(self):
+        column_keys = []
+        column_filter_terms = []
+        for column in self.columns:
+            column_keys.append(column.key)
+            column_filter_terms.append(column.filter_slot.get())
+
+        row_keys = list(self.row_getter())
+        self.rows = []
+        for row_index, row_key in enumerate(row_keys):
+            self.rows.append(TableRow(row_index, row_key, column_keys, self.element_renderer))
+        filtered_rows = self.filterRows(self.rows, column_filter_terms)
+        sorted_rows = self.sortRows(filtered_rows)
+        self.rows = sorted_rows
+
+    def filterRows(self, rows_to_filter, filter_terms):
+        filtered_rows = []
+        for row in rows_to_filter:
+            row_does_match = row.filter(filter_terms)
+            if row_does_match:
+                filtered_rows.append(row)
+
+        return filtered_rows
+
+    def sortRows(self, rows_to_sort):
+        return [row for row in rows_to_sort]
+
+    def updateTotalPagesFor(self, rows):
+        """Determine the total number of pages needed
+        to display the number of rows provided, based on
+        the max_rows. We pass the new total pages
+        value to the current paginator"""
+        num_rows = len(rows)
+        if num_rows <= self.max_rows:
+            self.total_pages.set(1)
+        else:
+            new_total = ceil(float(num_rows) / float(self.max_rows))
+            self.total_pages.set(new_total)
 
     def calculatePageRows(self):
         """Determine the rows that should actually
@@ -381,12 +401,7 @@ class NewTable(Cell):
     def recalculate(self):
         with self.view() as v:
             self.makeColumnCells()
-            self.makeRowCells()
             self._resetSubscriptionsToViewReads(v)
-
-        self.filtered_rows = self.filter_rows(self.rows)
-        self.sorted_rows = self.sort_rows(self.filtered_rows)
-        self.updateTotalPagesFor(self.sorted_rows)
 
         header_paginator = TablePaginator(
             self.page_info["current_page"], self.page_info["total_pages"]
@@ -395,9 +410,11 @@ class NewTable(Cell):
             self.columns, self.header_mapper, header_paginator, self.sort_slot
         )
         page = TablePage(
-            self.sorted_rows,
-            self.page_info["current_page"],
-            self.page_info["total_pages"],
+            self.row_getter,
+            self.columns,
+            self.page_info,
+            self.element_renderer,
+            self.sort_slot,
             self.max_page_size,
         )
         self.children["header"] = header
@@ -464,20 +481,3 @@ class NewTable(Cell):
                 filtered_rows.append(row)
 
         return filtered_rows
-
-    def subscribedSlotChanged(self, slot):
-        filter_slots = [s for s in self.column_filters.values()]
-        if slot not in filter_slots:
-            self.markDirty()
-
-    def updateTotalPagesFor(self, rows):
-        """Determine the total number of pages needed
-        to display the number of rows provided, based on
-        the max_page_size. We pass the new total pages
-        value to the current paginator"""
-        num_rows = len(rows)
-        if num_rows <= self.max_page_size:
-            self.page_info["total_pages"].set(1)
-        else:
-            new_total = ceil(float(num_rows) / float(self.max_page_size))
-            self.page_info["total_pages"].set(new_total)

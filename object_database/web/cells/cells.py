@@ -2833,11 +2833,12 @@ class CodeEditor(Cell):
         readOnly=False,
         autocomplete=True,
         onTextChange=None,
-        firstVisibleRow=None,
+        firstVisibleRow=1,
         onFirstRowChange=None,
         textToDisplayFunction=lambda: "",
         mouseoverTimeout=1000,
         onMouseover=None,
+        customCompleterFunction=None,
     ):
         """Create a code editor
 
@@ -2855,6 +2856,9 @@ class CodeEditor(Cell):
         textToDisplayFunction - a function of no arguments that should return
             the current text we _ought_ to be displaying.
 
+        customCompleterFunction - function that returns a list of autocomplete
+        suggestions
+
         onFirstRowChange - a function that is called when the first visible row
         changes. It takes one argument which is said row.
 
@@ -2864,6 +2868,8 @@ class CodeEditor(Cell):
         onMouseover = a function which is called subsequent to the mouseover
         event fires on the client side and corresponding WS message is
         received.The entire message is passed to the function.
+        customCompleterFunction - function that returns a list of autocomplete
+        suggestions
         """
         super().__init__()
         # contains (current_iteration_number: int, text: str)
@@ -2873,11 +2879,16 @@ class CodeEditor(Cell):
         self.fontSize = fontSize
         self.minLines = minLines
         self.readOnly = readOnly
+        if customCompleterFunction is not None:
+            assert autocomplete, (
+                "you must have autocomplete=True to set a " "customCompleterFunction"
+            )
         self.autocomplete = autocomplete
         self.onTextChange = onTextChange
         self.textToDisplayFunction = textToDisplayFunction
         self.mouseoverTimeout = mouseoverTimeout
         self.onMouseover = onMouseover
+        self.customCompleterFunction = customCompleterFunction
 
         # All CodeEditors will be
         # flexed inside of Sequences,
@@ -2908,7 +2919,6 @@ class CodeEditor(Cell):
                     self.currentIteration = msgFrame["iteration"]
 
                 self.selectionSlot.set(msgFrame["selection"])
-
         elif msgFrame["event"] == "scrolling":
             self.firstVisibleRowSlot.set(msgFrame["firstVisibleRow"])
             if self.onFirstRowChange is not None:
@@ -2916,6 +2926,23 @@ class CodeEditor(Cell):
         elif msgFrame["event"] == "mouseover":
             if self.onMouseover is not None:
                 self.onMouseover(msgFrame)
+        elif msgFrame["event"] == "autocomplete":
+            s = msgFrame["string"]
+            if self.customCompleterFunction is None:
+                dataInfo = {"error": "No custom completer defined."}
+            else:
+                dataInfo = {
+                    "action": "autocomplete",
+                    "suggestions": self.customCompleterFunction(s),
+                }
+            # stage this piece of data to be sent when we recalculate
+            if self.exportData.get("dataInfo") is None:
+                self.exportData["dataInfo"] = [dataInfo]
+            else:
+                self.exportData["dataInfo"].append(dataInfo)
+
+            self.wasDataUpdated = True
+            self.markDirty()
 
     def setFirstVisibleRow(self, rowNum):
         """ Send a message to set the first visible row of the editor to
@@ -2927,7 +2954,7 @@ class CodeEditor(Cell):
         """
         self.firstVisibleRowSlot.set(rowNum)
 
-        dataInfo = {"firstVisibleRow": rowNum}
+        dataInfo = {"action": "setFirstVisibleRow", "firstVisibleRow": rowNum}
         # stage this piece of data to be sent when we recalculate
         if self.exportData.get("dataInfo") is None:
             self.exportData["dataInfo"] = [dataInfo]
@@ -3031,6 +3058,8 @@ class CodeEditor(Cell):
             "firstVisibleRow"
         ] = self.firstVisibleRowSlot.getWithoutRegisteringDependency()
         self.exportData["mouseoverTimeout"] = self.mouseoverTimeout
+        if self.customCompleterFunction is not None:
+            self.exportData["customCompleter"] = True
 
         self.exportData["keybindings"] = [k for k in self.keybindings.keys()]
 
@@ -3407,7 +3436,7 @@ class WSMessageTester(Cell):
             self.methodToRun(**self.kwargs)
             # ... and let the client know what you ran
             dataInfo = {
-                "event": "WSTest",
+                "action": "WSTest",
                 "method": str(self.methodToRun),
                 "args": self.kwargs,
             }

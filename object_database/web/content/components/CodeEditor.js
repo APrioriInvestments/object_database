@@ -23,11 +23,16 @@ class CodeEditor extends Component {
         this.setTextFromServer = this.setTextFromServer.bind(this);
         this.lastSentText = null;
         this.mouseoverTimeout = null;
+        this.autocompleteSuggestions = null;
 
         // A cached version of the created
         // DOM node will be put here for
         // later reference
         this._cachedDOMNode = null;
+
+        // The autocomplete method used when completions are coming from the
+        // server side
+        this.suggestCompletion = this.suggestCompletion.bind(this);
 
         // Used to register and deregister
         // any global KeyListener instance
@@ -64,8 +69,20 @@ class CodeEditor extends Component {
             }
 
             if (this.props.autocomplete) {
-                this.editor.setOptions({enableBasicAutocompletion: true});
                 this.editor.setOptions({enableLiveAutocompletion: true});
+                // if a custom server-side auto completion function is available set that
+                // to be the ONLY completer; otherwise use the Ace default basic.
+                if (this.props.customCompleter){
+                    let customAceEditorCompleter = {
+                        getCompletions: (editor, session, caretPosition2d, prefix, callback) => {
+                            callback(null, this.suggestCompletion());
+                        }
+                    }
+                    // this.editor.setOptions({enableBasicAutocompletion: [customAceEditorCompleter]});
+                    this.editor.completers = [customAceEditorCompleter];
+                } else {
+                    this.editor.setOptions({enableBasicAutocompletion: true});
+                }
             }
 
             if (this.props.noScroll) {
@@ -108,6 +125,7 @@ class CodeEditor extends Component {
             this._cachedDOMNode = this.getDOMElement();
         }
     }
+
 
     componentDidUpdate(projector){
         // Replace the placeholder with the cached
@@ -195,20 +213,6 @@ class CodeEditor extends Component {
 
     }
 
-    /* I handle data updating for the CodeEditor.
-     */
-    _updateData(dataInfos, projector) {
-        dataInfos.map((dataInfo) => {
-            if (dataInfo.firstVisibleRow){
-                console.log("CodeEditor updating first visible row to " + dataInfo.firstVisibleRow)
-                let row = parseInt(dataInfo.firstVisibleRow);
-                this.editor.resize(true);
-                this.editor.scrollToRow(row - 1)
-                this.editor.gotoLine(row, 0, true);
-            }
-        })
-    }
-
     setTextFromServer(iteration, newBufferText) {
         this.editor.last_edit_millis = Date.now();
         this.editor.current_iteration = iteration;
@@ -241,7 +245,8 @@ class CodeEditor extends Component {
         this.editor.last_edit_millis = Date.now();
 
         //schedule a function to run in 'SERVER_UPDATE_DELAY_MS'ms
-        //that will update the server, but only if the user has stopped typing.
+        //that will update the server, and ask for custom autocompletion if this has been defined,
+        //but only if the user has stopped typing.
         window.setTimeout(() => {
             if (Date.now() - this.editor.last_edit_millis >= this.SERVER_UPDATE_DELAY_MS) {
                 //save our current state to the remote buffer
@@ -267,6 +272,29 @@ class CodeEditor extends Component {
                 };
 
                 cellSocket.sendString(JSON.stringify(responseData));
+
+                // if a customCompleter has been defined on the server side ask for suggestions
+                if (this.props.customCompleter){
+                    if (bufferToSend){
+                        let text = bufferToSend;
+                        // if the buffer includes new lines make sure to take the last one
+                        if (bufferToSend.includes("\n")){
+                            let text_list = bufferToSend.split("\n");
+                            text = text_list[text_list.length - 1];
+                        }
+                        let s_list = text.split(" ");
+                        let s = s_list[s_list.length - 1];
+                        if (s.length > 0){
+                            let responseData = {
+                                event: 'autocomplete',
+                                'target_cell': this.props.id,
+                                string: s,
+                            };
+
+                            cellSocket.sendString(JSON.stringify(responseData));
+                        }
+                    }
+                }
             }
         }, this.SERVER_UPDATE_DELAY_MS + 2); //note the 2ms grace period
     }
@@ -321,6 +349,40 @@ class CodeEditor extends Component {
         });
     }
 
+    /* I return autcomplete suggestions.
+     */
+    suggestCompletion(){
+        let toSuggest = {};
+        if (this.autocompleteSuggestions){
+            toSuggest = this.autocompleteSuggestions.map((s) => {
+                // unfortunately Ace treats `#` as special case, we have to remove `#` from suggestions or it will be duplicated
+                // const methodName = s.methodName.replace("#", "")
+                //// const returnType = ProcessUtils.humanReadableType(s.refClazz)
+                //// return {name: methodName, value: methodName, score: 1, meta: returnType, description: s.description, parameters: s.parameters, returnType: returnType}
+                return {caption: s, value: s};
+                }
+            )
+        }
+        return toSuggest;
+    }
+
+    /* I handle data updating for CodeEditor. In particular I handle updating
+     * the autocomplete suggestions.
+     */
+    _updateData(dataInfos, projector) {
+        dataInfos.map((dataInfo) => {
+            if (dataInfo.action === "autocomplete"){
+                this.autocompleteSuggestions = dataInfo.suggestions;
+                console.log(this.autocompleteSuggestions);
+            } else if (dataInfo.action === "setFirstVisibleRow"){
+                let row = parseInt(dataInfo.firstVisibleRow);
+                this.editor.resize(true);
+                this.editor.scrollToRow(row - 1)
+                this.editor.gotoLine(row, 0, true);
+            }
+        })
+    }
+
     _onBlur(event){
         if(this.constructor.keyListener){
             this.constructor.keyListener.start();
@@ -352,6 +414,11 @@ CodeEditor.propTypes = {
 
     autocomplete: {
         description: "Whether or not the Ace Editor should enable autocomplete mode",
+        type: PropTypes.boolean
+    },
+
+    customCompleter: {
+        description: "Whether or not the Ace Editor should use a custom (server-side) completer",
         type: PropTypes.boolean
     },
 

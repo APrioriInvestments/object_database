@@ -368,6 +368,11 @@ class ServerSideSetFirstVisibleRow(CellsTestPage):
         contents = cells.Slot("No Text Entered Yet!")
 
         textToDisplayFunction = lambda: "some text"
+        class CodeEditorCustomCompleter(CellsTestPage):
+            def cell(self):
+                contents = cells.Slot("No Text Entered Yet!")
+                customCompleterFunction = lambda s: "complete ME!"
+        customCompleterFunction = lambda s: ["complete ME1!", "complete ME2!"]
 
         def onTextChange(content, selection):
             contents.set(content)
@@ -415,3 +420,28 @@ def test_set_first_row_serverside(headless_browser):
 
     headless_browser.wait(10).until(textIsTen)
     assert textIsTen()
+
+    def text(self):
+        return (
+            "Should see a CodeEditor and its content. Try typing to see the"
+            " custom completer function in action."
+        )
+
+
+class CodeEditorCustomCompleterMoreAdvanced(CellsTestPage):
+    def cell(self):
+        contents = cells.Slot("No Text Entered Yet!")
+        customCompleterFunction = lambda s: [item for item in globals().keys() if s in item]
+
+        def onTextChange(content, selection):
+            contents.set(content)
+
+        return cells.CodeEditor(
+            onTextChange=onTextChange, customCompleterFunction=customCompleterFunction
+        )
+
+    def text(self):
+        return (
+            "Should see a CodeEditor and its content. Try typing to see the"
+            " custom completer function in action."
+        )

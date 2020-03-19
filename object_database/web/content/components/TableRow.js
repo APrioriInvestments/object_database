@@ -37,9 +37,16 @@ class TableRow extends Component {
      * in a td
      */
     makeElements(){
-        return this.renderChildrenNamed('elements').map(velement => {
+        let childElements = this.renderChildrenNamed('elements').map(velement => {
             return h('td', {}, [velement]);
         });
+
+        // We add a td at the beginning representing
+        // the row index. This occupies the first
+        // column.
+        let firstElement = h('td', {}, [this.props.index.toString()]);
+        childElements.unshift(firstElement);
+        return childElements;
     }
 }
 

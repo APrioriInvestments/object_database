@@ -56,7 +56,11 @@ class TableColumnSorter(Cell):
         the first element as the key of the column
         that is currently sorted on and the second
         being a direction (ascending/descending)
-        If the slot is None there is no sorting anywhere
+        If the slot is None there is no sorting
+        anywhere.
+        Note that the second element in the tuple
+        is a boolean. If true, we are sorted by
+        ascending. If false, descending.
         """
         super().__init__()
         self.key = columnKey
@@ -70,26 +74,20 @@ class TableColumnSorter(Cell):
     def onClick(self):
         slot_val = self.sort_slot.get()
         if slot_val and slot_val[0] == self.key:
-            self.sort_slot.set([self.key, self.toggleDirectionFrom(slot_val[1])])
+            self.sort_slot.set((self.key, not slot_val[1]))
         else:
-            self.sort_slot.set([self.key, "descending"])
+            self.sort_slot.set((self.key, False))
 
     def getIcon(self):
         slot_val = self.sort_slot.get()
-        if slot_val and slot_val[0] == self.key:
-            if slot_val[1] == "ascending":
+        sorted_on = slot_val[0]
+        is_ascending = slot_val[1]
+        if slot_val and sorted_on == self.key:
+            if is_ascending:
                 return Octicon("arrow-down")
-            elif slot_val[1] == "descending":
+            elif not is_ascending == "descending":
                 return Octicon("arrow-up")
         return Octicon("arrow-down", color="gainsboro")
-
-    def toggleDirectionFrom(self, current_direction):
-        if current_direction == "ascending":
-            return "descending"
-        elif current_direction == "descending":
-            return "ascending"
-
-        return current_direction
 
 
 class NewTableHeader(Cell):
@@ -212,34 +210,6 @@ class TableRow(Cell):
 
         return all(results)
 
-    def defaultFilterSingle(self, element_index, filter_term):
-        """Returns True when one of the following
-        conditions is met:
-        1. A given column filter is None, meaning
-        there is no filter at all
-        Returns False in all other cases
-        """
-        # TODO: Debugging. Remove
-        self._logger.info("\n\nHELLOTHERE\n\n")
-        if not filter_term:
-            return True
-        element = self.getElementAtIndex(element_index)
-        element_filter = element.sortsAs()
-        if element_filter is None:
-            element_filter = ""
-        else:
-            element_filter = str(element_filter)
-        # TODO: Debugging. Remove
-        self._logger.info(
-            "\n\n [{}][{}]{} ===> {}\n\n".format(
-                element.__class__.__name__, element_index, element_filter, filter_term
-            )
-        )
-        if filter_term in element_filter:
-            return True
-
-        return False
-
     def getElementAtIndex(self, index):
         """Attempt to retrieve the created
         Cell at the column index from the
@@ -254,6 +224,16 @@ class TableRow(Cell):
             return new_element
 
         return found
+
+    def getElementAtColumnKey(self, key):
+        """Attempt to return this TableRow's
+        element that is present at the given
+        column key. If we cannot find the column
+        or the element, returns None"""
+        column_index = self.column_keys.index(key)
+        if column_index:
+            return self.getElementAtIndex(column_index)
+        return None
 
     def allElements(self):
         """Return a list of all rendered
@@ -324,7 +304,29 @@ class TablePage(Cell):
         return filtered_rows
 
     def sortRows(self, rows_to_sort):
-        return [row for row in rows_to_sort]
+        sort_info = self.sort_slot.get()
+        column_key = sort_info[0]
+        is_ascending = sort_info[1]
+
+        # If no column is set to be sort, then
+        # we just return the original list
+        if column_key is None:
+            return rows_to_sort
+
+        # Otherwise, for each row we get the element
+        # it has at the column index and sort by
+        # its sortsAs value
+        sort_term_rows = []  # A tuple of sortsAs values and TableRow
+        for row in rows_to_sort:
+            sort_val = None
+            element = row.getElementAtColumnKey(column_key)
+            if element:
+                sort_val = element.sortsAs()
+
+            sort_term_rows.append((sort_val, row))
+
+        sort_term_rows.sort(key=lambda tup: tup[0], reverse=(not is_ascending))
+        return [tup[1] for tup in sort_term_rows]
 
     def updateTotalPagesFor(self, rows):
         """Determine the total number of pages needed
@@ -360,6 +362,14 @@ class TablePage(Cell):
             self.display_rows = self.rows[start_index:]
         else:
             self.display_rows = self.rows[start_index:end_index]
+
+    def prepareForReuse(self):
+        if not self.garbageCollected:
+            return False
+        self._clearSubscriptions()
+        self.rows = []
+        self.display_ows = []
+        super().prepareForReuse()
 
 
 class NewTable(Cell):

@@ -195,9 +195,6 @@ class TableRow(Cell):
         Otherwise (at least one matched) we return True"""
         assert len(filter_terms) == len(self.elements_cache)
         results = []
-        import web_pdb
-
-        web_pdb.set_trace()
         for column_index, filter_term in enumerate(filter_terms):
             # If the incoming filter term is None, this means
             # there is no filter for the column at that index.

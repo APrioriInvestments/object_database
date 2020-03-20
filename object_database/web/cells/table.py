@@ -195,6 +195,9 @@ class TableRow(Cell):
         Otherwise (at least one matched) we return True"""
         assert len(filter_terms) == len(self.elements_cache)
         results = []
+        import web_pdb
+
+        web_pdb.set_trace()
         for column_index, filter_term in enumerate(filter_terms):
             # If the incoming filter term is None, this means
             # there is no filter for the column at that index.
@@ -205,7 +208,7 @@ class TableRow(Cell):
             # Get the corresponding element at the column
             # index (same as the element index)
             element = self.getElementAtIndex(column_index)
-            element_term = element.sortAs()
+            element_term = element.sortsAs()
             if element_term is not None:
                 element_term = str(element_term)
                 results.append(filter_term in element_term)
@@ -224,7 +227,7 @@ class TableRow(Cell):
         if not filter_term:
             return True
         element = self.getElementAtIndex(element_index)
-        element_filter = element.sortAs()
+        element_filter = element.sortsAs()
         if element_filter is None:
             element_filter = ""
         else:
@@ -280,6 +283,17 @@ class TablePage(Cell):
         self.max_rows = max_rows
 
     def recalculate(self):
+        with self.view() as v:
+            try:
+                self.makeRows()
+            except SubscribeAndRetry:
+                raise
+            except Exception:
+                self._logger.exception("TablePage makeRows exception:")
+                self.rows = []
+                self.display_rows = []
+            self._resetSubscriptionsToViewReads(v)
+
         self.makeRows()
         self.calculatePageRows()
         self.updateTotalPagesFor(self.rows)

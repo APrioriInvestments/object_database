@@ -868,7 +868,7 @@ class Cell:
     def isMergedIntoParent(self):
         return False
 
-    def sortAs(self):
+    def sortsAs(self):
         """Default implementation returns None.
         This is used for filtering or sorting the
         given Cell instance
@@ -1107,9 +1107,6 @@ class Cell:
                 self.parent.prepare()
             self.serializationContext = self.parent.serializationContext
 
-    def sortsAs(self):
-        return None
-
     def nowrap(self):
         self._nowrap = True
         return self
@@ -1155,7 +1152,7 @@ class Cell:
     @staticmethod
     def makeCell(x):
         if isinstance(x, (str, float, int, bool)):
-            return Text(str(x), sortAs=x)
+            return Text(str(x), sortsAs=x)
         if x is None:
             return Span("")
         if isinstance(x, Cell):
@@ -1316,14 +1313,14 @@ class CollapsiblePanel(Cell):
 
 
 class Text(Cell):
-    def __init__(self, text, text_color=None, sortAs=None):
+    def __init__(self, text, text_color=None, sortsAs=None):
         super().__init__()
         self.text = str(text)
-        self._sortAs = sortAs if sortAs is not None else text
+        self._sortsAs = sortsAs if sortsAs is not None else text
         self.text_color = text_color
 
     def sortsAs(self):
-        return self._sortAs
+        return self._sortsAs
 
     def recalculate(self):
         escapedText = html.escape(str(self.text)) if self.text else " "
@@ -1500,9 +1497,9 @@ class HorizontalSequence(Cell):
         self.exportData["wrap"] = self.wrap
         self.children["elements"] = self.elements
 
-    def sortAs(self):
+    def sortsAs(self):
         if self.elements:
-            return self.elements[0].sortAs()
+            return self.elements[0].sortsAs()
         return None
 
 
@@ -2162,9 +2159,9 @@ class SubscribedSequence(Cell):
 
         self.children["elements"] = new_children
 
-    def sortAs(self):
+    def sortsAs(self):
         if len(self.children["elements"]):
-            return self.children["elements"][0].sortAs()
+            return self.children["elements"][0].sortsAs()
 
     def _getItems(self):
         """Retrieves the items using itemsFunc
@@ -2202,7 +2199,7 @@ def VSubscribedSequence(itemsFun, rendererFun):
 
 class Popover(Cell):
     # TODO: Does title actually need to be a cell here? What about detail?
-    # What is the purpose of the sortAs method here and why are we using
+    # What is the purpose of the sortsAs method here and why are we using
     # it on the title cell?
     def __init__(self, contents, title, detail, width=400):
         super().__init__()
@@ -2220,7 +2217,7 @@ class Popover(Cell):
 
     def sortsAs(self):
         if self.children.hasChildNamed("title"):
-            return self.children["title"].sortAs()
+            return self.children["title"].sortsAs()
 
 
 class Grid(Cell):

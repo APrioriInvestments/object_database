@@ -271,7 +271,6 @@ class TablePage(Cell):
                 self.display_rows = []
             self._resetSubscriptionsToViewReads(v)
 
-        self.makeRows()
         self.calculatePageRows()
         self.updateTotalPagesFor(self.rows)
         self.exportData["maxRows"] = self.max_rows
@@ -322,6 +321,8 @@ class TablePage(Cell):
             element = row.getElementAtColumnKey(column_key)
             if element:
                 sort_val = element.sortsAs()
+            if sort_val is None:
+                sort_val = 0
 
             sort_term_rows.append((sort_val, row))
 

@@ -170,4 +170,26 @@ class NewTableWithEditStructure(CellsTestPage):
             "a delete button on each row, and an edit box on each cell's text. "
             "If you change the text and hit enter, you should see the page re-sort."
         )
->>>>>>> Initial working version of NewTable with demo
+
+
+class HugeNewTable(CellsTestPage):
+    def cell(self):
+        rows = [i for i in range(1000)]
+
+        def renderer(rowLabel, columnLabel):
+            return cells.Cell.makeCell("{}-{}".format(columnLabel, rowLabel))
+
+        return cells.NewTable(
+            colFun=lambda: ["Col1", "Col2", "Col3", "Col4", "Col5"],
+            rowFun=lambda: rows,
+            headerFun=lambda columnLabel: columnLabel,
+            rendererFun=renderer,
+            maxRowsPerPage=100,
+        )
+
+    def text(self):
+        return (
+            "You should see an enormous table of row indices etc "
+            "that you should be able to sort and filter"
+        )
+>>>>>>> [WIP] Sorting now working. Added new example with large data

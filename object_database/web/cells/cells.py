@@ -432,14 +432,19 @@ class Cells:
             res.append(Messenger.cellDataUpdated(node))
             node.updateLifecycleState()
 
-        # make messages for discarding
-        for n in self._nodesToDiscard:
-            if n.cells is not None:
-                assert n.cells == self
-                res.append(Messenger.cellDiscarded(n))
+        # Make the compound message
+        # listing all the nodes that
+        # will be discarded
+        finalNodesToDiscard = []
+        for node in self._nodesToDiscard:
+            if node.cells is not None:
+                assert node.cells == self
+                finalNodesToDiscard.append(node)
                 # TODO: in the future this should integrated into a more
                 # structured server side lifecycle management framework
-                n.updateLifecycleState()
+                node.updateLifecycleState()
+        if len(finalNodesToDiscard):
+            res.append(Messenger.cellsDiscarded(finalNodesToDiscard))
 
         # the client reverses the order of postscripts because it wants
         # to do parent nodes before child nodes. We want our postscripts

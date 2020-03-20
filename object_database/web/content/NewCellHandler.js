@@ -51,7 +51,7 @@ class NewCellHandler {
         this.sendMessageFor = this.sendMessageFor.bind(this);
         this.receive = this.receive.bind(this);
         this.cellUpdated = this.cellUpdated.bind(this);
-        this.cellDiscarded = this.cellDiscarded.bind(this);
+        this.cellsDiscarded = this.cellsDiscarded.bind(this);
         this.doesNotUnderstand = this.doesNotUnderstand.bind(this);
         this._getUpdatedComponent = this._getUpdatedComponent.bind(this);
         this._createAndUpdate = this._createAndUpdate.bind(this);
@@ -105,8 +105,8 @@ class NewCellHandler {
             return this.cellUpdated(message);
         case '#cellDataUpdated':
             return this.cellDataUpdated(message);
-        case '#cellDiscarded':
-            return this.cellDiscarded(message);
+        case '#cellsDiscarded':
+            return this.cellsDiscarded(message);
         case '#appendPostscript':
             return this.appendPostscript(message);
         default:
@@ -207,19 +207,20 @@ class NewCellHandler {
      * re-render without the discarded child, so we
      * don't need to do anything complex in this method.
      * @param {Object} message - A JSON decoded message
-     * object containing the id of the Cell/Component
-     * that was discarded.
+     * object containing the ids of the Cell/Components
+     * that were discarded.
      * @returns {Component} - The Component instance
      * that was discarded.
      */
-    cellDiscarded(message){
-        let found = this.activeComponents[message.id];
-        if(found){
-            found.componentWillUnload();
-            delete this.activeComponents[message.id];
-            this._deleted[found.props.id] = found;
-        }
-        return found;
+    cellsDiscarded(message){
+        message.ids.forEach(componentId => {
+            let found = this.activeComponents[componentId];
+            if(found){
+                found.componentWillUnload();
+                delete this.activeComponents[componentId];
+                this._deleted[found.props.id] = found;
+            }
+        });
     }
 
     /* Legacy Methods still required */

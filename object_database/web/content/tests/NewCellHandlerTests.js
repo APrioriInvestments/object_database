@@ -105,7 +105,8 @@ let makeCreateMessage = (compDescription) => {
 let makeDiscardedMessage = (compDescription) => {
     return Object.assign({}, compDescription, {
         channel: "#main",
-        type: "#cellDiscarded"
+        type: "#cellsDiscarded",
+        ids: [compDescription.id]
     });
 };
 
@@ -367,17 +368,17 @@ describe("Complex Structure Handling Component Tests", () => {
 
 
 /**
- * A Note on cellDiscarded Tests
+ * A Note on cellsDiscarded Tests
  * ------------------------------
- * Previously we expected #cellDiscarded messages to have to navigate
+ * Previously we expected #cellsDiscarded messages to have to navigate
  * their parent components and remove themselves from namedChildren collections.
  * In practice, an updated parent Cell/Component will send #cellUpdated with
  * the child already removed, so even the most complex kinds of
- * #cellDiscarded handling seem unnecessary for the moment.
+ * #cellsDiscarded handling seem unnecessary for the moment.
  * We will preserve these tests in case the need arises again
  * to implement more complicated discarding handling.
  */
-describe("#cellDiscarded basic", function(){
+describe("#cellsDiscarded basic", function(){
     var handler;
     before(() => {
         let rootEl = document.createElement('div');
@@ -421,7 +422,7 @@ describe("#cellDiscarded basic", function(){
     });
 });
 
-describe.skip("#cellDiscarded complex case", function(){
+describe.skip("#cellsDiscarded complex case", function(){
     var handler;
     before(() => {
         let rootEl = document.createElement('div');
@@ -440,7 +441,7 @@ describe.skip("#cellDiscarded complex case", function(){
         let foundRoot = handler.activeComponents[simpleRoot.id];
         assert.exists(foundRoot);
     });
-    it("Can call #cellDiscarded on firstText", () => {
+    it("Can call #cellsDiscarded on firstText", () => {
         let textToRemove = Object.assign({}, firstText);
         let discardMessage = makeDiscardedMessage(textToRemove);
         handler.receive(discardMessage);

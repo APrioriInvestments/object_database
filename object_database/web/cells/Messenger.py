@@ -68,6 +68,31 @@ def cellDiscarded(cell):
     }
 
 
+def cellsDiscarded(aListOfCells):
+    """A lifecycle message formatter
+    to be used when a collection of Cells
+    are all marked to be discarded and
+    removed from the session
+
+    Parameters
+    ----------
+    aListOfCells: list(Cell)
+        The collection of Cell
+        instances marked for
+        removal
+
+    Returns
+    -------
+    A JSON parsable dictionary that
+    can be sent over a websocket
+    """
+    return {
+        "channel": "#main",
+        "type": "#cellsDiscarded",
+        "ids": [cell.identity for cell in aListOfCells],
+    }
+
+
 def appendPostscript(jsString):
     """A lifecycle message formatter
     to be used when we are appending a

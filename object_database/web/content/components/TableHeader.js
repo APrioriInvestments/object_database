@@ -34,11 +34,12 @@ class TableHeader extends Component {
             class: 'table-header-item'
         }, [this.renderChildNamed('paginator')]);
         let headerItemElements = this.renderChildrenNamed('headerItems');
-        let wrapped = headerItemElements.map(velement => {
+        /*let wrapped = headerItemElements.map(velement => {
             return h('th', {
                 class: 'table-header-item'
             }, [velement]);
-        });
+            });*/
+        let wrapped = headerItemElements;
         return h('tr', {
             class: 'table-header-row'
         }, [paginator, ...wrapped]);

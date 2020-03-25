@@ -47,7 +47,8 @@ class TableColumn(Cell):
             clearOcticon=clear_octicon,
             initialValue="",
         )
-        self.children["display"] = display_line
+        sorter = TableColumnSorter(self.key, self.sort_slot)
+        self.children["display"] = Panel(display_line >> sorter)
 
 
 class TableColumnSorter(Cell):
@@ -103,8 +104,7 @@ class NewTableHeader(Cell):
     def makeHeaderCell(self, column_index, column_cell):
         header_name = self.label_maker(column_cell.key)
         column_cell.label = header_name
-        sorter = TableColumnSorter(column_cell.key, self.sort_slot)
-        return Panel(column_cell >> sorter)
+        return column_cell
 
     def recalculate(self):
         new_children_dict = {"headerItems": []}
@@ -473,7 +473,9 @@ class NewTable(Cell):
                 else:
                     filter_slot = self.column_filters[column_key]
                 column_label = self.header_mapper(column_key)
-                self.columns.append(TableColumn(column_key, column_label, filter_slot))
+                self.columns.append(
+                    TableColumn(column_key, column_label, filter_slot, self.sort_slot)
+                )
 
         except SubscribeAndRetry:
             raise

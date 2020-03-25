@@ -38,9 +38,10 @@
 /* DisplayLineTextBox
  * =====================================================*/
 .display-line-textbox {
-    width: 100%;
     position: relative;
-    flex !important;
+    display: flex !important;
+    flex: 1;
+    margin-right: 10px;
     align-items: center;
 }
 

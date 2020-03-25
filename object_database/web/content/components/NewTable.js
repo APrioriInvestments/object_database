@@ -23,7 +23,7 @@ class NewTable extends Component {
         return(
             h('table', {
                 id: this.getElementId(),
-                class: 'cell cell-table',
+                class: 'cell cell-table table-hscroll table-sm table-striped',
                 'data-cell-id': this.props.id,
                 'data-cell-type': "Table"
             }, [

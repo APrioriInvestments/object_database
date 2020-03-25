@@ -71,7 +71,7 @@ from object_database.web.cells.table import (
     TablePaginator,
     TableColumn,
     TableColumnSorter,
-    NewTableHeader,
+    TableHeader,
     TableRow,
     TablePage,
     NewTable,

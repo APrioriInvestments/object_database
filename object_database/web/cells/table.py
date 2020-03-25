@@ -91,7 +91,7 @@ class TableColumnSorter(Cell):
         return Octicon("arrow-down", color="gainsboro")
 
 
-class NewTableHeader(Cell):
+class TableHeader(Cell):
     """columns is a list of TableColumn cells"""
 
     def __init__(self, columns, labelFunc, paginator, sortSlot):
@@ -428,7 +428,7 @@ class NewTable(Cell):
         header_paginator = TablePaginator(
             self.page_info["current_page"], self.page_info["total_pages"]
         )
-        header = NewTableHeader(
+        header = TableHeader(
             self.columns, self.header_mapper, header_paginator, self.sort_slot
         )
         page = TablePage(

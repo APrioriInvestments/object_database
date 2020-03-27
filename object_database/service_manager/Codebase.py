@@ -75,8 +75,10 @@ class Codebase:
     files = ConstDict(str, service_schema.File)
 
     @staticmethod
-    def createFromRootlevelPath(rootPath):
-        return Codebase.createFromCodebase(TypedPythonCodebase.FromRootlevelPath(rootPath))
+    def createFromRootlevelPath(rootPath, **kwargs):
+        return Codebase.createFromCodebase(
+            TypedPythonCodebase.FromRootlevelPath(rootPath, **kwargs)
+        )
 
     @staticmethod
     def createFromCodebase(codebase: TypedPythonCodebase):

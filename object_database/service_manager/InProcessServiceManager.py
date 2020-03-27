@@ -76,20 +76,9 @@ class InProcessServiceManager(ServiceManager):
     def createOrUpdateService(
         serviceClass,
         serviceName,
-        target_count=None,
-        placement=None,
-        isSingleton=None,
-        coresUsed=None,
-        gbRamUsed=None,
         inferCodebase=False,  # don't infer codebase by default
+        **kwargs,
     ):
         ServiceManager.createOrUpdateService(
-            serviceClass,
-            serviceName,
-            target_count=target_count,
-            placement=placement,
-            isSingleton=isSingleton,
-            coresUsed=coresUsed,
-            gbRamUsed=gbRamUsed,
-            inferCodebase=inferCodebase,
+            serviceClass, serviceName, inferCodebase=inferCodebase, **kwargs
         )

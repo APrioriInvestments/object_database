@@ -83,6 +83,7 @@ class ServiceManager(object):
         coresUsed=None,
         gbRamUsed=None,
         inferCodebase=True,
+        extensions=(".py"),
     ):
         service = service_schema.Service.lookupAny(name=serviceName)
 
@@ -104,7 +105,9 @@ class ServiceManager(object):
 
             root_path = TypedPythonCodebase.rootlevelPathFromModule(module)
 
-            tpCodebase = service_schema.Codebase.createFromRootlevelPath(root_path)
+            tpCodebase = service_schema.Codebase.createFromRootlevelPath(
+                root_path, extensions=extensions
+            )
 
             service.setCodebase(tpCodebase)
 

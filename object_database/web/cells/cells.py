@@ -1252,7 +1252,7 @@ class Modal(Cell):
             # which should be the one associated
             # with the *first* button
             if len(self.buttons) > 1:
-                self.buttons[0].onClick()
+                self.buttons["____button_0__"].onClick()
             self.show.set(False)
 
 

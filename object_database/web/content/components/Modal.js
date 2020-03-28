@@ -166,7 +166,7 @@ class Modal extends Component {
     }
 
     onEnterKey(event){
-        if(event.key == 'Enter'){
+        if (event.key == 'Enter' && this.props.show) {
             console.log("Enter pushed in modal");
             this.sendMessage({event: 'accept'});
             event.preventDefault();
@@ -175,7 +175,7 @@ class Modal extends Component {
     }
 
     onEscapeKey(event){
-        if(event.key == 'Escape'){
+        if(event.key == 'Escape' && this.props.show) {
             console.log("Escape pushed in modal");
             this.sendMessage({event: 'close'});
             event.preventDefault();

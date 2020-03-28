@@ -129,6 +129,6 @@ def test_dynamic_click_and_delay(headless_browser):
     pop_content_location = (headless_browser.by.CSS_SELECTOR, '[role="tooltip"].popover')
     button.click()
     popover_link.click()
-    headless_browser.wait(4).until(
+    headless_browser.wait(6).until(
         headless_browser.expect.invisibility_of_element_located(pop_content_location)
     )

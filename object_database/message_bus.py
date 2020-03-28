@@ -40,10 +40,11 @@ MSG_BUF_SIZE = 128 * 1024
 
 
 class MessageBuffer:
-    def __init__(self):
+    def __init__(self, extraMessageSizeCheck):
         # the buffer we're reading
         self.buffer = bytearray()
         self.messagesEver = 0
+        self.extraMessageSizeCheck = extraMessageSizeCheck
 
         # the current message length, if any.
         self.curMessageLen = None
@@ -52,11 +53,13 @@ class MessageBuffer:
         return len(self.buffer)
 
     @staticmethod
-    def encode(bytes):
+    def encode(bytes, extraMessageSizeCheck):
         """Prepend a message-length prefix"""
         res = bytearray(struct.pack("i", len(bytes)))
         res.extend(bytes)
-        res.extend(struct.pack("i", len(bytes)))
+
+        if extraMessageSizeCheck:
+            res.extend(struct.pack("i", len(bytes)))
 
         return res
 
@@ -82,21 +85,32 @@ class MessageBuffer:
             if self.curMessageLen is None:
                 return messages
 
-            if len(self.buffer) >= self.curMessageLen + MESSAGE_LEN_BYTES:
-                messages.append(bytes(self.buffer[: self.curMessageLen]))
-                self.messagesEver += 1
-                checkSize = struct.unpack(
-                    "i",
-                    self.buffer[self.curMessageLen : self.curMessageLen + MESSAGE_LEN_BYTES],
-                )[0]
-                assert (
-                    checkSize == self.curMessageLen
-                ), f"Corrupt message stream: {checkSize} != {self.curMessageLen}"
+            if self.extraMessageSizeCheck:
+                if len(self.buffer) >= self.curMessageLen + MESSAGE_LEN_BYTES:
+                    messages.append(bytes(self.buffer[: self.curMessageLen]))
+                    self.messagesEver += 1
+                    checkSize = struct.unpack(
+                        "i",
+                        self.buffer[
+                            self.curMessageLen : self.curMessageLen + MESSAGE_LEN_BYTES
+                        ],
+                    )[0]
+                    assert (
+                        checkSize == self.curMessageLen
+                    ), f"Corrupt message stream: {checkSize} != {self.curMessageLen}"
 
-                self.buffer[: self.curMessageLen + MESSAGE_LEN_BYTES] = b""
-                self.curMessageLen = None
+                    self.buffer[: self.curMessageLen + MESSAGE_LEN_BYTES] = b""
+                    self.curMessageLen = None
+                else:
+                    return messages
             else:
-                return messages
+                if len(self.buffer) >= self.curMessageLen:
+                    messages.append(bytes(self.buffer[: self.curMessageLen]))
+                    self.messagesEver += 1
+                    self.buffer[: self.curMessageLen] = b""
+                    self.curMessageLen = None
+                else:
+                    return messages
 
 
 class Disconnected:
@@ -149,12 +163,15 @@ class MessageBus(object):
         self,
         busIdentity,
         endpoint,
-        messageType,
+        inMessageType,
+        outMessageType,
         onEvent,
         authToken=None,
         serializationContext=None,
         certPath=None,
         wantsSSL=True,
+        sslContext=None,
+        extraMessageSizeCheck=True,
     ):
         """Initialize a MessageBus
 
@@ -162,7 +179,10 @@ class MessageBus(object):
             busIdentity: any object that identifies this message bus
             endpoint: a (host, port) tuple that we're supposed to listen on,
                 or None if we accept no incoming.
-            messageType: the wire-type of all messages. Can be 'object', in
+            inMessageType: the wire-type of messages we receive. Can be 'object', in
+                which case we'll require a serializationContext to know how
+                to serialize the names of types.
+            outMessageType: the wire-type of messages we send. Can be 'object', in
                 which case we'll require a serializationContext to know how
                 to serialize the names of types.
             serializationContext: the serialization context to use for
@@ -176,6 +196,7 @@ class MessageBus(object):
                 objects (MessageBusEvents).
             certPath(str or None): if we use SSL, an optional path to a cert file.
             wantsSSL(bool): should we encrypt our channel with SSL
+            sslContext - an SSL context if we've already got one
 
         The MessageBus listens for connection on the endpoint and calls
         onEvent from the read thread whenever a new event occurs.
@@ -212,13 +233,15 @@ class MessageBus(object):
         self._certPath = certPath
         self.onEvent = onEvent
         self.serializationContext = serializationContext
-        self.messageType = messageType
-        self.eventType = MessageBusEvent(messageType)
+        self.inMessageType = inMessageType
+        self.outMessageType = outMessageType
+        self.eventType = MessageBusEvent(inMessageType)
         self._authToken = authToken
         self._listeningEndpoint = Endpoint(endpoint) if endpoint is not None else None
         self._lock = threading.RLock()
         self.started = False
         self._acceptSocket = None
+        self.extraMessageSizeCheck = extraMessageSizeCheck
 
         self._connIdToIncomingSocket = {}  # connectionId -> socket
         self._connIdToOutgoingSocket = {}  # connectionId -> socket
@@ -263,6 +286,18 @@ class MessageBus(object):
         self._inputThread.daemon = True
         self._outputThread.daemon = True
         self._wantsSSL = wantsSSL
+        self._sslContext = sslContext
+
+        if self._wantsSSL:
+            if self._sslContext is None:
+                self._sslContext = sslContextFromCertPathOrNone(self._certPath)
+        else:
+            assert (
+                self._certPath is None
+            ), "Makes no sense to give a cert path and not request ssl"
+            assert (
+                self._sslContext is None
+            ), "Makes no sense to give an ssl context and not request ssl"
 
         # a set of (timestamp, callback) pairs of callbacks we're supposed
         # to fire on the output thread.
@@ -404,10 +439,10 @@ class MessageBus(object):
             raise Exception(f"Bus {self.busIdentity} is not active")
 
         if self.serializationContext is None:
-            serializedMessage = serialize(self.messageType, message)
+            serializedMessage = serialize(self.outMessageType, message)
         else:
             serializedMessage = self.serializationContext.serialize(
-                message, serializeType=self.messageType
+                message, serializeType=self.outMessageType
             )
 
         with self._lock:
@@ -472,8 +507,6 @@ class MessageBus(object):
         if self._listeningEndpoint is None:
             return True
 
-        context = sslContextFromCertPathOrNone(self._certPath)
-
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
@@ -486,7 +519,7 @@ class MessageBus(object):
                 self._acceptSocket = sock
 
                 if self._wantsSSL:
-                    self._acceptSocket = context.wrap_socket(
+                    self._acceptSocket = self._sslContext.wrap_socket(
                         self._acceptSocket, server_side=True
                     )
 
@@ -557,7 +590,9 @@ class MessageBus(object):
                                     )
                                     if sock is not None:
                                         allSockets.add(sock)
-                                        incomingSocketBuffers[sock] = MessageBuffer()
+                                        incomingSocketBuffers[sock] = MessageBuffer(
+                                            self.extraMessageSizeCheck
+                                        )
 
                     elif socketWithData is self._acceptSocket:
                         newSocket, newSocketSource = socketWithData.accept()
@@ -574,7 +609,9 @@ class MessageBus(object):
                                 self._socketToIncomingConnId[newSocket] = connId
                                 self._connIdToIncomingEndpoint[connId] = newSocketSource
 
-                                incomingSocketBuffers[newSocket] = MessageBuffer()
+                                incomingSocketBuffers[newSocket] = MessageBuffer(
+                                    self.extraMessageSizeCheck
+                                )
 
                             self._fireEvent(
                                 self.eventType.NewIncomingConnection(
@@ -686,10 +723,10 @@ class MessageBus(object):
         else:
             try:
                 if self.serializationContext is None:
-                    message = deserialize(self.messageType, serializedMessage)
+                    message = deserialize(self.inMessageType, serializedMessage)
                 else:
                     message = self.serializationContext.deserialize(
-                        serializedMessage, self.messageType
+                        serializedMessage, self.inMessageType
                     )
             except Exception:
                 self._logger.exception("Failed to deserialize a message")
@@ -708,7 +745,7 @@ class MessageBus(object):
             self._logger.exception("Message callback threw unexpected exception")
             return
 
-    def _connectTo(self, ssl_context, connId: ConnectionId):
+    def _connectTo(self, connId: ConnectionId):
         """Actually form an outgoing connection.
 
         This should only get called from the internals.
@@ -719,7 +756,7 @@ class MessageBus(object):
             naked_socket = socket.create_connection((endpoint.host, endpoint.port))
 
             if self._wantsSSL:
-                ssl_socket = ssl_context.wrap_socket(naked_socket)
+                ssl_socket = self._sslContext.wrap_socket(naked_socket)
             else:
                 ssl_socket = naked_socket
 
@@ -767,7 +804,6 @@ class MessageBus(object):
                 logging.exception(f"User callback {callback} threw unexpected exception:")
 
     def _outThreadLoop(self):
-        context = sslContextFromCertPathOrNone(self._certPath)
         socketToBytes = {}  # socket -> bytes that need to be written
 
         def writeBytes(connId, bytes):
@@ -783,7 +819,7 @@ class MessageBus(object):
             else:
                 return
 
-            bytes = MessageBuffer.encode(bytes)
+            bytes = MessageBuffer.encode(bytes, self.extraMessageSizeCheck)
 
             self.totalBytesPendingInOutputLoop += len(bytes)
 
@@ -806,12 +842,26 @@ class MessageBus(object):
                 if canRead:
                     maxSleepTime = self.consumeCallbacksOnOutputThread()
 
-                readReady, writeReady = select.select(
-                    [self._outThreadWakePipe[0]] if canRead else [],
-                    socketToBytes,
-                    [],
-                    maxSleepTime,
-                )[:2]
+                try:
+                    readReady, writeReady = select.select(
+                        [self._outThreadWakePipe[0]] if canRead else [],
+                        socketToBytes,
+                        [],
+                        maxSleepTime,
+                    )[:2]
+                except ValueError:
+                    # one of the sockets must have failed
+                    failedSockets = [s for s in socketToBytes if s.fileno() < 0]
+
+                    if not failedSockets:
+                        # if not, then we don't have a good understanding of why this happened
+                        raise
+
+                    readReady = []
+                    writeReady = []
+
+                    for s in failedSockets:
+                        del socketToBytes[s]
 
                 if readReady:
                     try:
@@ -842,7 +892,7 @@ class MessageBus(object):
 
                         elif msg is TriggerConnect:
                             # we're supposed to connect to this worker
-                            connected = self._connectTo(context, connId)
+                            connected = self._connectTo(connId)
 
                             # and immediately write the auth token
                             if connected and self._authToken is not None:

@@ -280,7 +280,7 @@ class Server:
     def dropConnection(self, channel):
         with self._lock:
             if channel not in self._clientChannels:
-                self._logger.warning("Tried to drop a nonexistent channel %s", channel)
+                self._logger.debug("Tried to drop a nonexistent channel %s", channel)
                 return
 
             connectedChannel = self._clientChannels[channel]
@@ -794,8 +794,12 @@ class Server:
 
         # Abort if connection is not authenticated
         if connectedChannel.needsAuthentication:
+            if msg.matches.Heartbeat:
+                return
+
             self._logger.info(
-                "Received unexpected client message on unauthenticated channel %s",
+                "Received unexpected client message %s on unauthenticated channel %s",
+                repr(msg)[:100],
                 connectedChannel.connectionObject._identity,
             )
             return

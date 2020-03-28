@@ -71,7 +71,7 @@ jobs:
         - make build-js
       script:
         - coverage erase
-        - pytest
+        - pytest -v -s --log-level=info --log-cli-level=info
         - ls -la
         - coverage combine
         - make js-test

@@ -34,6 +34,7 @@ class TestMessageBus(unittest.TestCase):
             "bus1",
             ("localhost", 8000),
             str,
+            str,
             self.messageQueue1.put,
             None,
             None,
@@ -44,6 +45,7 @@ class TestMessageBus(unittest.TestCase):
         self.messageBus2 = MessageBus(
             "bus2",
             ("localhost", 8001),
+            str,
             str,
             self.messageQueue2.put,
             None,
@@ -63,6 +65,7 @@ class TestMessageBus(unittest.TestCase):
             messageBus3 = MessageBus(
                 "bus3",
                 ("localhost", 8003),
+                str,
                 str,
                 self.messageQueue1.put,
                 None,
@@ -270,6 +273,7 @@ class TestMessageBus(unittest.TestCase):
             "bus1",
             ("localhost", 8000),
             str,
+            str,
             self.messageQueue1.put,
             "auth_token",
             None,
@@ -289,6 +293,7 @@ class TestMessageBus(unittest.TestCase):
             "bus2",
             ("localhost", 8001),
             str,
+            str,
             self.messageQueue2.put,
             "auth_token_other",
             None,
@@ -307,6 +312,7 @@ class TestMessageBus(unittest.TestCase):
         self.messageBus2 = MessageBus(
             "bus2",
             ("localhost", 8001),
+            str,
             str,
             self.messageQueue2.put,
             "auth_token",
@@ -334,7 +340,7 @@ class TestMessageBus(unittest.TestCase):
                 self.messageQueue2.put(event.message)
 
         self.messageBus2 = MessageBus(
-            "bus2", ("localhost", 8001), str, onEvent, None, None, "testcert.cert"
+            "bus2", ("localhost", 8001), str, str, onEvent, None, None, "testcert.cert"
         )
         self.messageBus2.start()
 

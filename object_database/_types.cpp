@@ -5,6 +5,7 @@
 #include "PyVersionedIdSet.hpp"
 #include "PyDatabaseObjectType.hpp"
 #include "PyDatabaseConnectionState.hpp"
+#include "PyDatabaseConnectionPumpLoop.hpp"
 #include "PyView.hpp"
 
 PyObject* createDatabaseObjectType(PyObject *none, PyObject* args, PyObject* kwargs)
@@ -53,6 +54,9 @@ PyInit__types(void)
     if (PyType_Ready(&PyType_DatabaseConnectionState) < 0)
         return NULL;
 
+    if (PyType_Ready(&PyType_DatabaseConnectionPumpLoop) < 0)
+        return NULL;
+
     if (PyType_Ready(&PyType_View) < 0)
         return NULL;
 
@@ -63,6 +67,7 @@ PyInit__types(void)
 
     PyModule_AddObject(module, "VersionedIdSet", (PyObject *)&PyType_VersionedIdSet);
     PyModule_AddObject(module, "DatabaseConnectionState", (PyObject *)&PyType_DatabaseConnectionState);
+    PyModule_AddObject(module, "DatabaseConnectionPumpLoop", (PyObject *)&PyType_DatabaseConnectionPumpLoop);
     PyModule_AddObject(module, "View", (PyObject *)&PyType_View);
 
     return module;

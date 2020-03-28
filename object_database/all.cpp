@@ -7,6 +7,6 @@ with the object_database implementation.
 #include "View.cpp"
 #include "PyView.cpp"
 #include "PyDatabaseConnectionState.cpp"
+#include "PyDatabaseConnectionPumpLoop.cpp"
 #include "PyVersionedIdSet.cpp"
 #include "PyDatabaseObjectType.cpp"
-

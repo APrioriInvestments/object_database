@@ -379,6 +379,8 @@ PyObject* PyDatabaseConnectionState::setTriggerLazyLoad(PyDatabaseConnectionStat
         return NULL;
     }
 
+    PyObjectHolder callbackHolder(callback);
+
     return translateExceptionToPyObject([&]() {
         if (!self->state) {
             throw std::runtime_error("Invalid PyDatabaseConnectionState (nullptr)");
@@ -440,4 +442,3 @@ PyTypeObject PyType_DatabaseConnectionState = {
     .tp_version_tag = 0,
     .tp_finalize = 0,
 };
-

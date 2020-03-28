@@ -106,4 +106,12 @@ class ServiceManagerTestCommon(object):
             except subprocess.TimeoutExpired:
                 self.logger.error(f"Failed to kill service manager process.")
 
-        self.tempDirObj.cleanup()
+        try:
+            self.tempDirObj.cleanup()
+        except Exception:
+            # race conditions can cause problems here
+            try:
+                time.sleep(1.0)
+                self.tempDirObj.cleanup()
+            except Exception:
+                pass

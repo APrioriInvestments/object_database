@@ -177,9 +177,35 @@ class DatabaseConnection:
         self._channel._stopHeartbeating()
 
     def disconnect(self, block=False):
-        self.disconnected.set()
-        self._connection_state.setTriggerLazyLoad(None)
+        self._onDisconnected()
         self._channel.close(block=block)
+
+    def _onDisconnected(self):
+        with self._lock:
+            self.connectionObject = None
+            self._connection_state.setTriggerLazyLoad(None)
+            self.disconnected.set()
+
+            for e in self._lazy_object_read_blocks.values():
+                e.set()
+
+            for e in self._flushEvents.values():
+                e.set()
+
+            for e in self._pendingSubscriptions.values():
+                e.set()
+
+            for e in self._schema_response_events.values():
+                e.set()
+
+            for q in self._transaction_callbacks.values():
+                try:
+                    q(TransactionResult.Disconnected())
+                except Exception:
+                    self._logger.exception("Transaction commit callback threw an exception:")
+
+            self._transaction_callbacks = {}
+            self._flushEvents = {}
 
     def _noViewsOutstanding(self):
         with self._lock:
@@ -426,31 +452,7 @@ class DatabaseConnection:
 
         if msg.matches.Disconnected:
             with self._lock:
-                self.disconnected.set()
-                self.connectionObject = None
-
-                for e in self._lazy_object_read_blocks.values():
-                    e.set()
-
-                for e in self._flushEvents.values():
-                    e.set()
-
-                for e in self._pendingSubscriptions.values():
-                    e.set()
-
-                for e in self._schema_response_events.values():
-                    e.set()
-
-                for q in self._transaction_callbacks.values():
-                    try:
-                        q(TransactionResult.Disconnected())
-                    except Exception:
-                        self._logger.exception(
-                            "Transaction commit callback threw an exception:"
-                        )
-
-                self._transaction_callbacks = {}
-                self._flushEvents = {}
+                self._onDisconnected()
         elif msg.matches.FlushResponse:
             with self._lock:
                 e = self._flushEvents.get(msg.guid)

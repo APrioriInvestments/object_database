@@ -13,211 +13,203 @@
 #   limitations under the License.
 
 from object_database.database_connection import DatabaseConnection
+from object_database._types import DatabaseConnectionPumpLoop
 from object_database.server import Server
+from object_database.message_bus import MessageBus
 from object_database.messages import ClientToServer, ServerToClient, getHeartbeatInterval
-from object_database.algebraic_protocol import AlgebraicProtocol
 from object_database.persistence import InMemoryPersistence
 
-import asyncio
+from typed_python import serialize, deserialize
 import logging
 import ssl
 import time
 import threading
 import socket
+import atexit
 
 
-class ServerToClientProtocol(AlgebraicProtocol):
-    def __init__(self, dbserver, loop):
-        AlgebraicProtocol.__init__(self, ClientToServer, ServerToClient)
-        self.dbserver = dbserver
-        self.loop = loop
-        self.connectionIsDead = False
-        self._logger = logging.getLogger(__name__)
+class PumpLoopChannel:
+    def __init__(self, SendT, RecvT, nativePumpLoop, socket, ssl, ssl_ctx):
+        self._nativePumpLoop = nativePumpLoop
+        self.SendT = SendT
+        self.RecvT = RecvT
+        self._socket = socket
+        self._ssl = ssl
+        self._ssl_context = ssl_ctx
 
-    def setClientToServerHandler(self, handler):
-        def callHandler(*args):
-            try:
-                return handler(*args)
-            except Exception:
-                self._logger.exception("Unexpected exception in %s:", handler.__name__)
+        self._threads = [
+            threading.Thread(target=self.writeLoop, daemon=True),
+            threading.Thread(target=self.readLoop, daemon=True),
+        ]
 
-        self.handler = callHandler
+        self._nativePumpLoop.setHeartbeatMessage(
+            serialize(ClientToServer, ClientToServer.Heartbeat()), getHeartbeatInterval()
+        )
 
-    def messageReceived(self, msg):
-        self.handler(msg)
+        self._lock = threading.Lock()
+        self._messageHandler = None
+        self._pendingMessages = []
 
-    def onConnected(self):
-        self.dbserver.addConnection(self)
+        self._hasClosed = False
+        self._onClosed = None
 
-    def write(self, msg):
-        if not self.connectionIsDead:
-            self.loop.call_soon_threadsafe(self.sendMessage, msg)
+        atexit.register(self._atExit)
 
-    def connection_lost(self, e):
-        self.connectionIsDead = True
-        _eventLoop.loop.call_later(0.01, self.completeDropConnection)
+        for t in self._threads:
+            t.start()
 
-    def completeDropConnection(self):
-        self.dbserver.dropConnection(self)
-
-    def close(self):
-        self.connectionIsDead = True
-        self.transport.close()
-
-
-class ClientToServerProtocol(AlgebraicProtocol):
-    def __init__(self, host, port, eventLoop):
-        AlgebraicProtocol.__init__(self, ServerToClient, ClientToServer)
-        self.loop = eventLoop
-        self.lock = threading.Lock()
-        self.host = host
-        self.port = port
-        self.handler = None
-        self.msgs = []
-        self.disconnected = False
-        self._stopHeartbeatingSet = False
-        self._logger = logging.getLogger(__name__)
-
-    def _stopHeartbeating(self):
-        self._stopHeartbeatingSet = True
+    def sendMessage(self, msg):
+        self.write(msg)
 
     def setServerToClientHandler(self, handler):
-        with self.lock:
+        while True:
+            messagesToProcess = []
 
-            def callHandler(*args):
+            with self._lock:
+                if self._pendingMessages:
+                    messagesToProcess = self._pendingMessages
+                    self._pendingMessages = []
+                else:
+                    assert self._messageHandler is None
+                    self._messageHandler = handler
+                    return
+
+            for m in messagesToProcess:
                 try:
-                    return handler(*args)
+                    handler(m)
                 except Exception:
-                    self._logger.exception("Unexpected exception in %s:", handler.__name__)
+                    logging.exception("PumpLoopChannel callback threw unexpected exception")
 
-            self.handler = callHandler
-            for m in self.msgs:
-                self.loop.call_soon_threadsafe(self.handler, m)
-            self.msgs = None
+    def setOnClosed(self, onClosed):
+        with self._lock:
+            if not self._hasClosed:
+                self._onClosed = onClosed
+                return
 
-    def messageReceived(self, msg):
-        with self.lock:
-            if not self.handler:
-                self.msgs.append(msg)
-            else:
-                self.loop.call_soon_threadsafe(self.handler, msg)
+        # if we're here, we are already closed. Just trigger directly
+        onClosed()
 
-    def onConnected(self):
-        self.loop.call_later(getHeartbeatInterval(), self.heartbeat)
+    def _stopHeartbeating(self):
+        self._nativePumpLoop.setHeartbeatMessage(
+            serialize(ClientToServer, ClientToServer.Heartbeat()), 0.0
+        )
 
-    def heartbeat(self):
-        if not self.disconnected and not self._stopHeartbeatingSet:
-            self.sendMessage(ClientToServer.Heartbeat())
-            self.loop.call_later(getHeartbeatInterval(), self.heartbeat)
+    def readLoop(self):
+        try:
+            self._nativePumpLoop.readLoop(self.onMessage)
+        except Exception:
+            logging.exception("PumpLoopChannel.readLoop had unexpected exception")
 
-    def close(self, block=False):
-        self.loop.call_soon_threadsafe(self._close)
+        with self._lock:
+            self._hasClosed = True
+            callback = self._onClosed
 
-    def _close(self):
-        self.disconnected = True
-        self.transport.close()
+        pumpLoop = self._nativePumpLoop
+        if pumpLoop is not None:
+            pumpLoop.close()
 
-    def connection_lost(self, e):
-        self.disconnected = True
-        self.messageReceived(ServerToClient.Disconnected())
+        if callback is not None:
+            callback()
+
+    def writeLoop(self):
+        try:
+            self._nativePumpLoop.writeLoop()
+        except Exception:
+            logging.exception("PumpLoopChannel.writeLoop had unexpected exception")
+
+        with self._lock:
+            self._hasClosed = True
+            callback = self._onClosed
+
+        pumpLoop = self._nativePumpLoop
+        if pumpLoop is not None:
+            pumpLoop.close()
+
+        if callback is not None:
+            callback()
+
+    def onMessage(self, msgBytes):
+        try:
+            msg = deserialize(self.RecvT, msgBytes)
+
+            with self._lock:
+                if self._messageHandler is not None:
+                    handler = self._messageHandler
+                else:
+                    self._pendingMessages.append(msg)
+                    return
+
+            handler(msg)
+        except Exception:
+            logging.exception("PumpLoopChannel callback threw unexpected exception")
+
+    def _atExit(self):
+        self.close(True, needsRemove=False)
+
+    def close(self, block=False, needsRemove=True):
+        with self._lock:
+            pumpLoop = self._nativePumpLoop
+
+            self._nativePumpLoop = None
+
+            if isinstance(pumpLoop, int):
+                pumpLoop = None
+
+            if pumpLoop is None:
+                return
+
+        pumpLoop.close()
+
+        if block:
+            for t in self._threads:
+                t.join()
+
+        self._threads = None
+        self._ssl_context = None
+        self._ssl = None
+        self._socket = None
+
+        if needsRemove:
+            atexit.unregister(self._atExit)
 
     def write(self, msg):
-        self.loop.call_soon_threadsafe(self.sendMessage, msg)
+        self._nativePumpLoop.write(serialize(self.SendT, msg))
 
 
-class EventLoopInThread:
-    def __init__(self):
-        self.loop = asyncio.new_event_loop()
-        self.thread = threading.Thread(target=self.runEventLoop, daemon=True)
-        self.started = False
-
-    def runEventLoop(self):
-        asyncio.set_event_loop(self.loop)
-        self.loop.run_forever()
-
-    def start(self):
-        if not self.started:
-            self.started = True
-            self.thread.start()
-
-    def create_connection(self, protocol_factory, host, port, ssl):
-        self.start()
-
-        async def doit():
-            return await self.loop.create_connection(
-                protocol_factory, host=host, port=port, family=socket.AF_INET, ssl=ssl
-            )
-
-        res = asyncio.run_coroutine_threadsafe(doit(), self.loop)
-
-        return res.result(10)
-
-    def create_server(self, protocol_factory, host, port, ssl):
-        self.start()
-
-        async def doit():
-            return await self.loop.create_server(
-                protocol_factory, host=host, port=port, family=socket.AF_INET, ssl=ssl
-            )
-
-        res = asyncio.run_coroutine_threadsafe(doit(), self.loop)
-
-        return res.result(10)
-
-    def stop_server(self, server):
-        """ wait for the server to be stopped.
-
-        calling server.close() directly is not thread-safe and has occasionally
-        lead to an asyncio internal exception:
-
-        >       for waiter in waiters:
-        E       TypeError: 'NoneType' object is not iterable
-        /opt/python/3.6.7/lib/python3.6/asyncio/base_events.py:229: TypeError
-
-        alternatively we could have called `self.loop.call_soon_threadsafe(server.close)`
-        but then we couldn't have waited for the closing to be completed.
-        """
-
-        async def doit():
-            server.close()
-
-        future = asyncio.run_coroutine_threadsafe(doit(), self.loop)
-        future.result(10)
-
-
-_eventLoop = EventLoopInThread()
-
-
-def connect(host, port, auth_token, timeout=10.0, retry=False, eventLoop=_eventLoop):
+def connect(host, port, auth_token, timeout=10.0, retry=False):
     t0 = time.time()
     # With CLIENT_AUTH we are setting up the SSL to use encryption only, which is what we want.
     # If we also wanted authentication, we would use SERVER_AUTH.
     ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
 
-    proto = None
-    while proto is None:
+    nativePumpLoop = None
+    while nativePumpLoop is None:
         try:
-            _, proto = eventLoop.create_connection(
-                lambda: ClientToServerProtocol(host, port, eventLoop.loop),
-                host=host,
-                port=port,
-                ssl=ssl_ctx,
-            )
+            sock = socket.create_connection((host, port))
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
+
+            peername = sock.getpeername()
+            sockname = sock.getsockname()
+
+            ssock = ssl_ctx.wrap_socket(sock)
+            ssock.do_handshake()
+
+            nativePumpLoop = DatabaseConnectionPumpLoop(ssock._sslobj._sslobj)
         except Exception:
             if not retry or time.time() - t0 > timeout * 0.8:
                 raise
             time.sleep(min(timeout, max(timeout / 100.0, 0.01)))
 
-    if proto is None:
+    if nativePumpLoop is None:
         raise ConnectionRefusedError()
 
-    conn = DatabaseConnection(
-        proto,
-        {
-            propertyName: proto.transport.get_extra_info(propertyName)
-            for propertyName in ["socket", "peername", "sockname"]
-        },
+    channel = PumpLoopChannel(
+        ClientToServer, ServerToClient, nativePumpLoop, sock, ssock, ssl_ctx
     )
+
+    conn = DatabaseConnection(channel, dict(peername=peername, socket=sock, sockname=sockname))
+
+    channel.setOnClosed(conn._onDisconnected)
 
     conn.authenticate(auth_token)
 
@@ -228,34 +220,61 @@ def connect(host, port, auth_token, timeout=10.0, retry=False, eventLoop=_eventL
     return conn
 
 
-_eventLoop2 = []
+class ServerChannel:
+    def __init__(self, bus, connectionId, source):
+        self.bus = bus
+        self.connectionId = connectionId
+        self.source = source
+        self.handler = None
+
+    def write(self, msg):
+        self.bus.sendMessage(self.connectionId, msg)
+
+    def sendMessage(self, msg):
+        self.bus.sendMessage(self.connectionId, msg)
+
+    def setClientToServerHandler(self, handler):
+        self.handler = handler
+
+    def receive(self, message):
+        assert self.handler
+        self.handler(message)
+
+    def close(self):
+        self.bus.closeConnection(self.connectionId)
 
 
 class TcpServer(Server):
     def __init__(self, host, port, mem_store, ssl_context, auth_token):
         Server.__init__(self, mem_store or InMemoryPersistence(), auth_token)
-
-        self.mem_store = mem_store
         self.host = host
         self.port = port
+        self.mem_store = mem_store
         self.ssl_ctx = ssl_context
-        self.socket_server = None
+        self.bus = MessageBus(
+            "odb_server",
+            (host, port),
+            ClientToServer,
+            ServerToClient,
+            self.onEvent,
+            sslContext=ssl_context,
+            extraMessageSizeCheck=False,
+        )
+        self._messageBusChannels = {}
+
         self.stopped = False
 
     def start(self):
         Server.start(self)
-
-        self.socket_server = _eventLoop.create_server(
-            lambda: ServerToClientProtocol(self, _eventLoop.loop),
-            host=self.host,
-            port=self.port,
-            ssl=self.ssl_ctx,
-        )
-        _eventLoop.loop.call_soon_threadsafe(self.checkHeartbeatsCallback)
+        self.bus.start()
+        self.bus.scheduleCallback(self.checkHeartbeatsCallback, delay=getHeartbeatInterval())
 
     def checkHeartbeatsCallback(self):
         if not self.stopped:
-            _eventLoop.loop.call_later(getHeartbeatInterval(), self.checkHeartbeatsCallback)
+            self.bus.scheduleCallback(
+                self.checkHeartbeatsCallback, delay=getHeartbeatInterval()
+            )
+
             try:
                 self.checkForDeadConnections()
             except Exception:
@@ -263,20 +282,29 @@ class TcpServer(Server):
 
     def stop(self):
         Server.stop(self)
+        self.bus.stop()
 
-        self.stopped = True
-        if self.socket_server:
-            _eventLoop.stop_server(self.socket_server)
+    def onEvent(self, event):
+        if event.matches.NewIncomingConnection:
+            channel = ServerChannel(self.bus, event.connectionId, event.source)
 
-    def connect(self, auth_token, useSecondaryLoop=False):
-        if useSecondaryLoop:
-            if not _eventLoop2:
-                _eventLoop2.append(EventLoopInThread())
-            loop = _eventLoop2[0]
-        else:
-            loop = _eventLoop
+            self._messageBusChannels[event.connectionId] = channel
 
-        return connect(self.host, self.port, auth_token, eventLoop=loop)
+            self.addConnection(channel)
+
+        if event.matches.IncomingConnectionClosed:
+            id = event.connectionId
+            if id in self._messageBusChannels:
+                channel = self._messageBusChannels.pop(id)
+                self.dropConnection(channel)
+
+        if event.matches.IncomingMessage:
+            id = event.connectionId
+            if id in self._messageBusChannels:
+                self._messageBusChannels[id].receive(event.message)
+
+    def connect(self, auth_token):
+        return connect(self.host, self.port, auth_token)
 
     def __enter__(self):
         self.start()

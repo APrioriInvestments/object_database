@@ -64,6 +64,7 @@ ext_modules = [
         sources=["object_database/all.cpp"],
         define_macros=[("_FORTIFY_SOURCE", 2)],
         extra_compile_args=extra_compile_args,
+        libraries=["ssl"],
     )
 ]
 

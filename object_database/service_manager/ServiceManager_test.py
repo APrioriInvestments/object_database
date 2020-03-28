@@ -769,7 +769,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
 
         numpy.random.seed(42)
 
-        for count in numpy.random.choice(6, size=20):
+        for count in numpy.random.choice(6, size=40):
             logging.getLogger(__name__).info(
                 "Setting count for MockService to %s and waiting for it to be alive.", count
             )

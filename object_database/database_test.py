@@ -439,7 +439,7 @@ class ObjectDatabaseTests:
         for t in threads:
             t.join()
 
-    def test_disconnecting(self):
+    def test_disconnecting_many_times(self):
         db = self.createNewDb()
         db.subscribeToSchema(schema)
         db.disconnect()
@@ -452,9 +452,10 @@ class ObjectDatabaseTests:
 
         for i in range(100):
             db = self.createNewDb()
+
             db.subscribeToSchema(schema)
             db.flush()
-            db.disconnect()
+            db.disconnect(block=True)
 
         usage = currentMemUsageMb(residentOnly=False)
 
@@ -462,7 +463,10 @@ class ObjectDatabaseTests:
             db = self.createNewDb()
             db.subscribeToSchema(schema)
             db.flush()
-            db.disconnect()
+            db.disconnect(block=True)
+            if i % 10 == 0:
+                print(i, currentMemUsageMb(residentOnly=False))
+
             self.assertLess(currentMemUsageMb(residentOnly=False) - usage, 100)
 
     def test_disconnecting_is_immediate(self):
@@ -478,7 +482,7 @@ class ObjectDatabaseTests:
             assert db2.connectionObject.exists()
 
         db2Connection = db2.connectionObject
-        db2.disconnect()
+        db2.disconnect(block=True)
 
         self.assertTrue(
             db1.waitForCondition(
@@ -2248,13 +2252,75 @@ class ObjectDatabaseOverSocketTests(unittest.TestCase, ObjectDatabaseTests):
         self.server._gc_interval = 0.1
         self.server.start()
 
-    def createNewDb(self, useSecondaryLoop=False):
-        db = self.server.connect(self.auth_token, useSecondaryLoop=useSecondaryLoop)
+    def createNewDb(self):
+        db = self.server.connect(self.auth_token)
         db.initialized.wait()
         return db
 
     def tearDown(self):
-        self.server.stop()
+        if self.server is not None:
+            self.server.stop()
+
+    def test_server_disconnect(self):
+        for _ in range(10):
+            c = self.createNewDb()
+
+            c.flush()
+
+            self.server.stop()
+
+            with self.assertRaises(DisconnectedException):
+                c.flush()
+
+            self.setUp()
+            import gc
+
+            gc.collect()
+
+    def test_heartbeats(self):
+        old_interval = messages.getHeartbeatInterval()
+        messages.setHeartbeatInterval(0.1)
+
+        self.tearDown()
+        self.setUp()
+
+        try:
+            db1 = self.createNewDb()
+            db2 = self.createNewDb()
+
+            db1.subscribeToSchema(core_schema)
+            db2.subscribeToSchema(core_schema)
+
+            db1.flush()
+
+            # verify we're still alive after a second
+            time.sleep(1.0)
+
+            with db1.view():
+                self.assertTrue(len(core_schema.Connection.lookupAll()), 2)
+
+            with db2.view():
+                self.assertTrue(len(core_schema.Connection.lookupAll()), 2)
+
+            # now stop heartbeating
+            db1._stopHeartbeating()
+
+            db2.waitForCondition(
+                lambda: len(core_schema.Connection.lookupAll()) == 1,
+                5.0 * self.PERFORMANCE_FACTOR,
+            )
+
+            with db2.view():
+                self.assertEqual(len(core_schema.Connection.lookupAll()), 1)
+
+            # wait long enough to ensure we're disconnected
+            time.sleep(0.5 * self.PERFORMANCE_FACTOR)
+
+            with self.assertRaises(DisconnectedException):
+                with db1.view():
+                    pass
+        finally:
+            messages.setHeartbeatInterval(old_interval)
 
     def test_very_large_subscriptions(self):
         old_interval = messages.getHeartbeatInterval()
@@ -2289,7 +2355,7 @@ class ObjectDatabaseOverSocketTests(unittest.TestCase, ObjectDatabaseTests):
             latencyMeasureThread = threading.Thread(target=transactionLatencyTimer)
             latencyMeasureThread.start()
 
-            db2 = self.createNewDb(useSecondaryLoop=True)
+            db2 = self.createNewDb()
 
             t0 = time.time()
 

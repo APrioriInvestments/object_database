@@ -14,10 +14,10 @@
 import traceback
 from .cells import (
     Cell,
+    Flex,
     Octicon,
     SubscribeAndRetry,
     DisplayLineTextBox,
-    Panel,
     Traceback,
     Clickable,
     SingleLineTextBox,
@@ -48,7 +48,7 @@ class TableColumn(Cell):
             initialValue="",
         )
         sorter = TableColumnSorter(self.key, self.sort_slot)
-        self.children["display"] = Panel(display_line >> sorter)
+        self.children["display"] = Flex(display_line) >> sorter
 
 
 class TableColumnSorter(Cell):

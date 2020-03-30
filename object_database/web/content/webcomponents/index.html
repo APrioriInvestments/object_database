@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Dynamic Input Examples</title>
+        <script src="dynamic-input.js"></script>
+    </head>
+    <body>
+        <div id="main">
+            <section class="example-area">
+                <h2>Plain</h2>
+                <dynamic-input label="Hello world"></dynamic-input>
+            </section>
+            <section id="dynamic-example" class="example-area">
+                <h2>Styled</h2>
+                <div class="flex container">
+                    <dynamic-input class="styled" label="I Am Styled."></dynamic-input>
+                    <button>Show Input Content</button>
+                </div>
+            </section>
+            <section id="table-example" class="example-area">
+                <h2>Example In Table</h2>
+                <table class="ex-table ex-table-1">
+                    <thead>
+                        <tr>
+                            <th>
+                                <dynamic-input label="Short"></dynamic-input>
+                            </th>
+                            <th>
+                                <dynamic-input label="This is a longer label here"></dynamic-input>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>
+                                This should be some fairly long text I think it can be whatever skdjfhs sdkfjhsdkfj lwaesd;owje sdflksjkleifh sd,fknsdlkfjnsdklf lskdfjhksljdhfks efjhskejfhs elifjh seufh wepifj wsoeifns
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>
+                                This should be some fairly long text I think it can be whatever skdjfhs sdkfjhsdkfj lwaesd;owje sdflksjkleifh sd,fknsdlkfjnsdklf lskdfjhksljdhfks efjhskejfhs elifjh seufh wepifj wsoeifns
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>
+                                This should be some fairly long text I think it can be whatever skdjfhs sdkfjhsdkfj lwaesd;owje sdflksjkleifh sd,fknsdlkfjnsdklf lskdfjhksljdhfks efjhskejfhs elifjh seufh wepifj wsoeifns
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+        <style>
+         dynamic-input.styled {
+             padding: 10px;
+             font-size: 2rem;
+             font-family: monospace;
+             width: 300px;
+         }
+
+         .flex.container {
+             display: flex;
+         }
+
+         .flex.container *:nth-child(2) {
+             margin-left: 20px;
+         }
+        </style>
+        <script>
+         let btn = document.querySelector('#dynamic-example button');
+         let dynaInput = document.querySelector('#dynamic-example dynamic-input');
+         btn.addEventListener('click', () => {
+             dynaInput.toggleValueArea();
+         });
+        </script>
+    </body>
+</html>

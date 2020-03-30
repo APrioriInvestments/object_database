@@ -19,7 +19,7 @@ class TableHeader extends Component {
         this.makeHeaderRow = this.makeHeaderRow.bind(this);
     }
 
-    render(){
+    build(){
         return(
             h('thead', {
                 id: this.getElementId(),

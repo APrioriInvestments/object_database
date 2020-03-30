@@ -20,7 +20,7 @@ class TableRow extends Component {
         this.makeElements = this.makeElements.bind(this);
     }
 
-    render(){
+    build(){
         return(
             h('tr', {
                 id: this.getElementId(),

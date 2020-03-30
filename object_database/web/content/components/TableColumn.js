@@ -19,7 +19,7 @@ class TableColumn extends Component {
         this.makeDisplay = this.makeDisplay.bind(this);
     }
 
-    render(){
+    build(){
         return(
             h('th', {
                 id: this.getElementId(),

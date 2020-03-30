@@ -16,7 +16,7 @@ class TablePage extends Component {
         super(props, ...args);
     }
 
-    render(){
+    build(){
         return(
             h('tbody', {
                 id: this.getElementId(),

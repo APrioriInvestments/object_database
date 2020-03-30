@@ -19,7 +19,7 @@ class TablePaginator extends Component {
         super(props, ...args);
     }
 
-    render(){
+    build(){
         let text = h('span', {
             class: 'cell-table-pages'
         }, [`of ${this.props.totalPages}`]);

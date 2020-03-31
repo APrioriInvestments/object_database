@@ -23,136 +23,254 @@ import {h} from 'maquette';
  *    the input contains a current value.
  */
 class DisplayLineTextBox extends Component {
-    constructor(props){
-        super(props);
+    constructor(props, ...args){
+        super(props, ...args);
 
-        // We do not use the element's
-        // value property. Instead, we
-        // store a custom one here, since
-        // we always want to display the text
-        // when the element isn't active.
+        // We don't use the input element's
+        // value property directly. Instead,
+        // we store our own. The initial value
+        // is based on the incoming props
         this.storedValue = this.props.initialValue || "";
 
-        // Bind methods
-        this.onInput = this.onInput.bind(this);
-        this.onChange = this.onChange.bind(this);
-        this.onFocus = this.onFocus.bind(this);
-        this.forceFocus = this.forceFocus.bind(this);
-        this.forceBlur = this.forceBlur.bind(this);
-        this.onBlur = this.onBlur.bind(this);
-        this.onOcticonClick = this.onOcticonClick.bind(this);
-        this.handleKeyDown = this.handleKeyDown.bind(this);
-    }
+        // We use the following property to say
+        // whether or not the overall component
+        // is 'active'. Active means the input
+        // is showing (and the label is hidden).
+        // Inactive (or false) means the reverse.
+        this.isActive = false;
 
-    componentDidLoad(){
-        this.storedValue = this.props.initialValue;
+        // Bind component methods
+        this.makeLabelArea = this.makeLabelArea.bind(this);
+        this.makeInputArea = this.makeInputArea.bind(this);
+        this.makeButtonArea = this.makeButtonArea.bind(this);
+        this.handleBlur = this.handleBlur.bind(this);
+        this.handleFocus = this.handleFocus.bind(this);
+        this.handleChange = this.handleChange.bind(this);
+        this.handleInput = this.handleInput.bind(this);
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.handleLabelClick = this.handleLabelClick.bind(this);
+        this.handleOcticonClick = this.handleOcticonClick.bind(this);
+        this.activate = this.activate.bind(this);
+        this.deactivate = this.deactivate.bind(this);
     }
 
     build(){
-        let fullDisplayText = this.props.displayText;
-        if(this.storedValue != ""){
-            fullDisplayText = `${fullDisplayText}[${this.storedValue}]`;
-        }
-        let octiconToDisplay = "octicon";
-        if(this.storedValue != ""){
-            octiconToDisplay = "clearOcticon";
-        }
-        return (
+        console.log("Build!");
+        return(
             h('div', {
                 id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "DisplayLineTextBox",
+                "data-is-active": this.isActive.toString(),
                 class: "cell display-line-textbox"
             }, [
-                h('input', {
-                    id: `display-line-input-${this.props.id}`,
-                    class: "cell display-line-textbox-input",
-                    onchange: this.onChange,
-                    oninput: this.onInput,
-                    onfocus: this.onFocus,
-                    onblur: this.onBlur,
-                    value: fullDisplayText,
-                    onkeydown: this.handleKeyDown
-                }, []),
-                h('span', {
-                    id: `display-line-secondary-${this.props.id}`,
-                    class: 'display-line-textbox-secondary',
-                    onclick: this.onOcticonClick,
-                    "data-to-display": octiconToDisplay
-                }, [
-                    this.renderChildNamed(octiconToDisplay)
-                ])
+                this.makeInputArea(),
+                this.makeLabelArea(),
+                this.makeButtonArea()
             ])
         );
     }
 
-    onFocus(event){
-        event.target.value = this.storedValue;
-    }
+    /** Area Builders **/
 
-    onBlur(event){
-        event.target.value = this.props.displayText;
-    }
 
-    onInput(event){
-        this.storedValue = event.target.value;
-    }
-
-    onChange(event){
-        cellSocket.sendString(
-            JSON.stringify(
-                {
-                    "event": "input",
-                    "target_cell": this.props.id,
-                    "text": this.storedValue
-                }
-            )
+    /**
+     * Creates the initial input area
+     * velement and binds the appropriate
+     * event handlers to it.
+     * @returns {velement} - A maquette velement
+     */
+    makeInputArea(){
+        return(
+            h('input', {
+                id: `display-line-input-${this.props.id}`,
+                class: "display-line-input",
+                onchange: this.handleChange,
+                oninput: this.handleInput,
+                onfocus: this.handleFocus,
+                onblur: this.handleBlur,
+                onkeydown: this.handleKeyDown,
+                value: this.storedValue
+            }, [])
         );
     }
 
-    onOcticonClick(event){
-        let which = event.currentTarget.dataset.toDisplay;
-        if(which == "octicon"){
-            this.forceFocus();
-        } else if(which =="clearOcticon"){
-            this.storedValue = "";
-            this.onChange();
-        } else {
-            console.log(event.currentTarget.dataset);
+    /**
+     * Creates the label display area
+     * velement and binds the click event
+     * to it.
+     * @returns {velement} - A maquette velement
+     */
+    makeLabelArea(){
+        let displayText = this.props.displayText;
+        if(this.storedValue != ""){
+            displayText = `${displayText} [F]`;
+        }
+        return(
+            h('div', {
+                id: `display-line-label-${this.props.id}`,
+                class: "display-line-label",
+                onclick: this.handleLabelClick
+            }, [displayText])
+        );
+    }
+
+    /**
+     * Creates the octicon button
+     * display area velement and
+     * binds the click events for
+     * it.
+     * @returns {velement} - A maquette
+     * velement
+     */
+    makeButtonArea(){
+        let which = this.storedValue != "" ? "clearOcticon" : "octicon";
+        return(
+            h('span', {
+                id: `display-line-buttons-${this.props.id}`,
+                class: "display-line-buttons",
+                onclick: this.handleOcticonClick,
+                "data-to-display": which
+            }, [this.renderChildNamed(which)])
+        );
+    }
+
+    /** State Change Logic **/
+
+    /**
+     * Sets the component to 'active'.
+     * This hides the label and shows the
+     * input.
+     */
+    activate(){
+        if(this.isActive){
+            return;
+        }
+        this.isActive = true;
+
+        // Get the label area's width.
+        // We will use this to set the
+        // input area's width
+        let labelWidth = this.getDOMElement().querySelector('.display-line-label').scrollWidth;
+        let inputEl = this.getDOMElement().querySelector('input');
+        inputEl.style.width = `${labelWidth}px`;
+
+        // Now switch the data-attr on the
+        // root element, which will update
+        // the display styles
+        // (See CSS sheet for more info)
+        let thisEl = this.getDOMElement();
+        thisEl.setAttribute('data-is-active', 'true');
+
+        // Finally, we give the input
+        // element the focus and selection
+        inputEl.focus();
+        inputEl.select();
+    }
+
+    deactivate(){
+        if(!this.isActive){
+            return;
+        }
+
+        this.isActive = false;
+
+        // Reset the width of the input
+        // back to zero
+        let inputEl = this.getDOMElement().querySelector('input');
+        inputEl.style.width = null;
+
+        // Switch the data-attr on the
+        // root element, which will update
+        // the display styles.
+        // (See CSS sheet for more info)
+        let thisEl = this.getDOMElement();
+        thisEl.setAttribute('data-is-active', 'false');
+    }
+
+    /**
+     * Sets the internal stored value
+     * to an empty string. Also sets
+     * the input value to an empty
+     * string and sends message to
+     * the server.
+     */
+    clear(){
+        this.storedValue = "";
+        let inputEl = this.getDOMElement().querySelector('input');
+        inputEl.value = "";
+        this.isActive = false;
+        this.sendMessage({
+            event: "input",
+            text: this.storedValue
+        });
+    }
+
+
+    /** Event Handling **/
+    handleChange(event){
+        // Because this message will trigger a
+        // rebuild, we don't need to call the
+        // full deactivate() method, but instead
+        // simply set isActive.
+        this.isActive = false;
+        if(event.target.value != this.storedValue){
+            this.storedValue = event.target.value;
+            this.sendMessage({
+                event: "input",
+                text: this.storedValue
+            });
         }
     }
 
-    forceFocus(){
-        let input = document.getElementById(`display-line-input-${this.props.id}`);
-        input.focus();
+    handleInput(event){
+        // handle input events on the input
     }
 
-    forceBlur(){
-        let input = document.getElementById(`display-line-input-${this.props.id}`);
-        input.blur();
+    handleFocus(event){
+        // handle focus events on the input
+    }
+
+    handleBlur(event){
+        let inputVal = event.target.value;
+        if(inputVal == this.storedValue){
+            // Then no change event will fire,
+            // so we need to deactivate here
+            // manually
+            this.deactivate();
+        }
     }
 
     handleKeyDown(event){
-        if(event.code == 'Escape'){
-            event.target.blur();
+        // handle keydown events on the
+        // input
+        if(event.key == 'Escape' && document.activeElement == event.target){
+            event.target.value = this.storedValue;
+            this.deactivate();
             event.preventDefault();
-            event.stopPropagation();
         }
     }
-}
 
-DisplayLineTextBox.propTypes = {
-    initialValue: {
-        type: PropTypes.string,
-        description: "An initial value for the input to store (only shown when in focus)"
-    },
-    displayText: {
-        type: PropTypes.string,
-        description: "The 'label' to dislpay when the input is blurred"
+    handleLabelClick(event){
+        this.activate();
+    }
+
+    handleOcticonClick(event){
+        let targetKind = event.currentTarget.dataset.toDisplay;
+        console.log(targetKind);
+        if(targetKind && targetKind == "clearOcticon"){
+            this.clear();
+        } else if(targetKind == "octicon" && this.isActive){
+            this.deactivate();
+        } else if(targetKind == "octicon" && !this.isActive){
+            this.activate();
+        }
     }
 };
 
+/** TODO: Add PropTypes **/
+
 export {
-    DisplayLineTextBox,
-    DisplayLineTextBox as default
+    DisplayLineTextBox as default,
+    DisplayLineTextBox
 };

@@ -45,36 +45,47 @@
     align-items: center;
 }
 
-.display-line-textbox-input {
-    font-weight: bold;
-    outline: none;
-    flex: 1;
-    max-width: 90%;
+.display-line-input,
+.display-line-label {
     border: 1px solid transparent;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    font-family: inherit;
+    font-size: inherit;
 }
 
-.display-line-textbox-input:hover {
+
+.display-line-input {
+    font-weight: bold;
+    outline: none;
+}
+
+.display-line-input:focus,
+.display-line-input:focus:hover {
+    border: 1px solid rgba(0, 0, 255, 0.5);
+}
+
+.display-line-label {
+    flex: 1;
+}
+
+.display-line-textbox[data-is-active="false"] > .display-line-input {
+    display: none;
+}
+
+.display-line-textbox[data-is-active="true"] .display-line-label {
+    display: none;
+}
+
+.display-line-input:hover,
+.display-line-label:hover {
     cursor: pointer;
     border: 1px solid rgba(0, 0, 255, 0.1);
 }
 
-.display-line-textbox-input:focus {
-    border: 2px solid red;
-    font-weight: normal;
-    border: 1px solid rgba(100, 100, 200, 0.5);
-}
-.display-line-textbox-input:focus:hover {
+.display-line-input:focus:hover {
     cursor: text;
-}
-
-.display-line-textbox-secondary {
-    position: relative;
-    display: inline-block;
-    margin-left: auto;
-}
-
-.display-line-textbox-secondary:hover {
-    cursor: pointer;
 }
 
 /* SplitView

@@ -20,8 +20,11 @@ class BasicDisplayTextBox(CellsTestPage):
     def cell(self):
         slot = cells.Slot("")
         octicon = cells.Octicon("search", color="black")
+        clear_octicon = cells.Octicon("x", color="red")
         result = cells.Subscribed(lambda: cells.Text(slot.get()))
-        textinput = cells.DisplayLineTextBox(slot, displayText="HELLO!", octicon=octicon)
+        textinput = cells.DisplayLineTextBox(
+            slot, displayText="HELLO!", octicon=octicon, clearOcticon=clear_octicon
+        )
         return textinput + result
 
     def text(self):

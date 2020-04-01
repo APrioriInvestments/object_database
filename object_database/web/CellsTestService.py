@@ -17,7 +17,7 @@ import textwrap
 import urllib
 import sys
 
-from typed_python.inspect_override import getsourcelines
+from inspect import getsourcelines
 from object_database.service_manager.ServiceBase import ServiceBase
 from typed_python.Codebase import Codebase
 

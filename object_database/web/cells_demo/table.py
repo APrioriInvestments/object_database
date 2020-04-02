@@ -14,6 +14,7 @@
 
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
+import random
 
 
 class MultiPageTable(CellsTestPage):
@@ -192,4 +193,26 @@ class HugeNewTable(CellsTestPage):
             "You should see an enormous table of row indices etc "
             "that you should be able to sort and filter"
         )
->>>>>>> [WIP] Sorting now working. Added new example with large data
+
+
+class HugeNewTableSorting(CellsTestPage):
+    def cell(self):
+        rows = [i for i in range(10000)]
+
+        def renderer(rowLabel, columnLabel):
+            num = random.randrange(0, 1000000)
+            return cells.Cell.makeCell(str(num))
+
+        return cells.NewTable(
+            colFun=lambda: ["Col1", "Col2", "Col3"],
+            rowFun=lambda: rows,
+            headerFun=lambda label: label,
+            rendererFun=renderer,
+            maxRowsPerPage=20,
+        )
+
+    def text(self):
+        return (
+            "You should see a large table filled with three "
+            "columns of random numbers that can be sorted"
+        )

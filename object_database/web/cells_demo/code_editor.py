@@ -234,32 +234,6 @@ class CodeEditorFirstVisibleRowChange(CellsTestPage):
         return "You should see a code editor and a mirror of its contents."
 
 
-def test_set_first_row_change(headless_browser):
-    # Test that we can find the editor and
-    # add text to it.
-    demo_root = headless_browser.get_demo_root_for(CodeEditorFirstVisibleRowChange)
-    assert demo_root
-    code_editor = headless_browser.find_by_css(
-        '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
-    )
-    assert code_editor
-    text_display = headless_browser.find_by_css(
-        '{} [data-cell-type="Text"]'.format(headless_browser.demo_root_selector)
-    )
-    assert text_display
-    # check that we are display line '1' at the start
-    assert text_display.text.split(" ")[-1] == "1"
-    # scroll the editor
-    code_editor_id = code_editor.get_property("id")
-    # TODO: get the scrolling right
-    headless_browser.webdriver.execute_script(
-        "document.getElementById('%s').scrollTop += 100" % code_editor_id
-    )
-    text_display = headless_browser.find_by_css(
-        '{} [data-cell-type="Text"]'.format(headless_browser.demo_root_selector)
-    )
-
-
 class CodeEditorSetFirstVisibleRow(CellsTestPage):
     def cell(self):
         contents = cells.Slot("No Text Entered Yet!")

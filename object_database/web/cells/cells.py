@@ -2819,6 +2819,7 @@ class CodeEditor(Cell):
         onTextChange=None,
         textToDisplayFunction=lambda: "",
         firstVisibleRow=1,
+        onFirstRowChange=None,
     ):
         """Create a code editor
 
@@ -2835,6 +2836,9 @@ class CodeEditor(Cell):
 
         textToDisplayFunction - a function of no arguments that should return
             the current text we _ought_ to be displaying.
+
+        onFirstRowChange - a function that is called when the first visible row
+        changes. It takes one argument which is said row.
         """
         super().__init__()
         # contains (current_iteration_number: int, text: str)
@@ -2844,6 +2848,7 @@ class CodeEditor(Cell):
         self.fontSize = fontSize
         self.minLines = minLines
         self.firstVisibleRow = firstVisibleRow
+        self.onFirstRowChange = onFirstRowChange
         self.readOnly = readOnly
         self.autocomplete = autocomplete
         self.onTextChange = onTextChange
@@ -2874,6 +2879,8 @@ class CodeEditor(Cell):
                 self.selectionSlot.set(msgFrame["selection"])
         elif msgFrame["event"] == "scrolling":
             self.firstVisibleRow = msgFrame["firstVisibleRow"]
+            if self.onFirstRowChange is not None:
+                self.onFirstRowChange(self.firstVisibleRow)
 
     def setFirstVisibleRow(self, rowNum):
         """ Send a message to set the first visible row of the editor to

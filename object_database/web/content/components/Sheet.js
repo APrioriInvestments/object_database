@@ -83,6 +83,9 @@ class Sheet extends Component {
         this._idToCoord = this._idToCoord.bind(this);
         this._coordToId = this._coordToId.bind(this);
         this._padFrame = this._padFrame.bind(this);
+
+        // Debugging methods
+        this.dumpInfo = this.dumpInfo.bind(this);
     }
 
     componentDidLoad(){
@@ -395,212 +398,248 @@ class Sheet extends Component {
     /* I handle page Up/Down of the view */
     pageUpDown(body, event){
         event.preventDefault();
-        let translation = new Point([0, 0]);
-        let viewOverlay = this.compositeFrame.getOverlayFrame("viewFrame");
-        let viewFrame = viewOverlay["frame"];
-        let viewOrigin = viewOverlay["origin"];
-        if (event.altKey){
-            // offset by fixed rows/columns
-            if (event.key === "PageDown"){
-                // make sure we don't run out of data at the right of the page
+        try {
+            let translation = new Point([0, 0]);
+            let viewOverlay = this.compositeFrame.getOverlayFrame("viewFrame");
+            let viewFrame = viewOverlay["frame"];
+            let viewOrigin = viewOverlay["origin"];
+            if (event.altKey){
+                // offset by fixed rows/columns
+                if (event.key === "PageDown"){
+                    // make sure we don't run out of data at the right of the page
                 translation.x = Math.min(this.dataFrame.corner.x - viewFrame.corner.x, viewFrame.size.x);
-                if(event.shiftKey){
-                    this.selector.pageRight(translation.x);
+                    if(event.shiftKey){
+                        this.selector.pageRight(translation.x);
+                    }
+                } else if (event.key === "PageUp") {
+                    // make sure we don't run out of data at the left
+                    translation.x = -1 * Math.min(viewFrame.origin.x - viewOrigin.x, viewFrame.size.x);
+                    if(event.shiftKey){
+                        this.selector.pageLeft(-1 * translation.x);
+                    }
                 }
-            } else if (event.key === "PageUp") {
-                // make sure we don't run out of data at the left
-                translation.x = -1 * Math.min(viewFrame.origin.x - viewOrigin.x, viewFrame.size.x);
-                if(event.shiftKey){
-                    this.selector.pageLeft(-1 * translation.x);
+            } else {
+                // offset by fixed rows/columns
+                if (event.key === "PageDown"){
+                    // make sure we don't run out of data at the bottom of the page
+                    translation.y = Math.min(this.dataFrame.corner.y - viewFrame.corner.y, viewFrame.size.y);
+                    if(event.shiftKey){
+                        this.selector.pageDown(translation.y);
+                    }
+                } else if (event.key === "PageUp"){
+                    // make sure we don't run out of data at the top
+                    translation.y = -1 * Math.min(viewFrame.origin.y - viewOrigin.y, viewFrame.size.y);
+                    if(event.shiftKey){
+                        this.selector.pageUp(-1 * translation.y);
+                    }
                 }
             }
-        } else {
-            // offset by fixed rows/columns
-            if (event.key === "PageDown"){
-                // make sure we don't run out of data at the bottom of the page
-                translation.y = Math.min(this.dataFrame.corner.y - viewFrame.corner.y, viewFrame.size.y);
-                if(event.shiftKey){
-                    this.selector.pageDown(translation.y);
-                }
-            } else if (event.key === "PageUp"){
-                // make sure we don't run out of data at the top
-                translation.y = -1 * Math.min(viewFrame.origin.y - viewOrigin.y, viewFrame.size.y);
-                if(event.shiftKey){
-                    this.selector.pageUp(-1 * translation.y);
-                }
-            }
-        }
 
-        // If there is a current selection, translate it and
-        // shrink it to the cursor unless the navigation is
-        // combined with selector expansion.
-        if (!event.shiftKey){
-            // if the cursor is out of view we translate the view to the cursor
-            // and do nothing else!
-            if (this.fetchBlock.length === 0 && !this.selector.cursorInView() && !this.selector.cursorInLockedArea()){
-                this.selector.shiftViewToCursor();
-                return;
+            // If there is a current selection, translate it and
+            // shrink it to the cursor unless the navigation is
+            // combined with selector expansion.
+            if (!event.shiftKey){
+                // if the cursor is out of view we translate the view to the cursor
+                // and do nothing else!
+                if (this.fetchBlock.length === 0 && !this.selector.cursorInView() && !this.selector.cursorInLockedArea()){
+                    this.selector.shiftViewToCursor();
+                    return;
+                }
+                this.selector.selectionFrame.translate(translation);
+                this.selector.shrinkToCursor();
             }
-            this.selector.selectionFrame.translate(translation);
-            this.selector.shrinkToCursor();
-        }
-        this.selector.clearStyling();
-        this.compositeFrame.translate(translation, "viewFrame");
-        this.compositeFrame.translate([translation.x, 0], "lockedRows");
-        this.compositeFrame.translate([0, translation.y], "lockedColumns");
-        this.fetchData("update");
+            this.selector.clearStyling();
+            this.compositeFrame.translate(translation, "viewFrame");
+            this.compositeFrame.translate([translation.x, 0], "lockedRows");
+            this.compositeFrame.translate([0, translation.y], "lockedColumns");
+            this.fetchData("update");
 
-        console.log("selector frame");
-        console.log(`origin: (${this.selector.selectionFrame.origin.x}, ${this.selector.selectionFrame.origin.y})`);
-        console.log(`corner: (${this.selector.selectionFrame.corner.x}, ${this.selector.selectionFrame.corner.y})`);
-        console.log(`cursor: (${this.selector.selectionFrame.cursor.x}, ${this.selector.selectionFrame.cursor.y})`);
+            console.log("selector frame");
+            console.log(`origin: (${this.selector.selectionFrame.origin.x}, ${this.selector.selectionFrame.origin.y})`);
+            console.log(`corner: (${this.selector.selectionFrame.corner.x}, ${this.selector.selectionFrame.corner.y})`);
+            console.log(`cursor: (${this.selector.selectionFrame.cursor.x}, ${this.selector.selectionFrame.cursor.y})`);
+        } catch(e){
+            this.dumpInfo(
+                e,
+                {
+                    action: '#pageUpDown',
+                    event: event,
+                    translation: translation
+                }
+            );
+            throw e;
+        }
     }
 
     /* I handle arrow triggered navigation of the active_frame and related views */
     arrowUpDownLeftRight(body, event){
         event.preventDefault();
-        let translation = new Point([0, 0]);
-        let viewOverlay = this.compositeFrame.getOverlayFrame("viewFrame");
-        let viewFrame = viewOverlay["frame"];
-        let viewOrigin = viewOverlay["origin"];
-        if (event.ctrlKey){
-            // This is sheet level navigation
-            // Go to top of the sheet
-            if (event.key === "ArrowUp"){
-                translation.y = viewOrigin.y - viewFrame.origin.y;
-                this.compositeFrame.translate(translation, "lockedColumns");
-                if(event.shiftKey){
+        try {
+            let translation = new Point([0, 0]);
+            let viewOverlay = this.compositeFrame.getOverlayFrame("viewFrame");
+            let viewFrame = viewOverlay["frame"];
+            let viewOrigin = viewOverlay["origin"];
+            if (event.ctrlKey){
+                // This is sheet level navigation
+                // Go to top of the sheet
+                if (event.key === "ArrowUp"){
+                    translation.y = viewOrigin.y - viewFrame.origin.y;
+                    this.compositeFrame.translate(translation, "lockedColumns");
+                    if(event.shiftKey){
 
-                    this.selector.clearStyling();
+                        this.selector.clearStyling();
 
-                    this.selector.growToTop();
-                } else {
-                    // Ensure that cursor moves to the
-                    // top of the current view frame
-                    this.selector.cursorTo(new Point([
-                        this.selector.selectionFrame.cursor.x,
-                        0
-                        // viewOrigin.y
-                    ]));
+                        this.selector.growToTop();
+                    } else {
+                        // Ensure that cursor moves to the
+                        // top of the current view frame
+                        this.selector.cursorTo(new Point([
+                            this.selector.selectionFrame.cursor.x,
+                            0
+                            // viewOrigin.y
+                        ]));
+                    }
+                    // Go to bottom of the sheet
+                } else if (event.key === "ArrowDown"){
+                    translation.y = this.dataFrame.corner.y - viewFrame.corner.y;
+                    this.compositeFrame.translate(translation, "lockedColumns");
+                    if(event.shiftKey){
+
+                        this.selector.clearStyling();
+
+                        this.selector.growToBottom();
+                    } else {
+                        // Ensure that the cursor moves to the
+                        // bottom of the current view frame
+                        this.selector.cursorTo(new Point([
+                            this.selector.selectionFrame.cursor.x,
+                            this.dataFrame.corner.y,
+                        ]));
+                    }
+                    // Go to the right of the sheet
+                } else if (event.key === "ArrowRight"){
+                    translation.x = this.dataFrame.corner.x - viewFrame.corner.x;
+                    this.compositeFrame.translate(translation, "lockedRows");
+                    if(event.shiftKey){
+                        this.selector.clearStyling();
+                        this.selector.growToRight();
+                    } else {
+                        // Ensure that the cursor moves to the
+                        // right side of the current view frame
+                        this.selector.cursorTo(new Point([
+                            this.dataFrame.corner.x,
+                            this.selector.selectionFrame.cursor.y
+                        ]));
+                    }
+                    // Go to the left of the sheet
+                } else if (event.key === "ArrowLeft"){
+                    translation.x = viewOrigin.x - viewFrame.origin.x;
+                    this.compositeFrame.translate(translation, "lockedRows");
+                    if(event.shiftKey){
+                        this.selector.clearStyling();
+                        this.selector.growToLeft();
+                    } else {
+                        // Ensure that the cursor moves to the
+                        // left side of the current view frame
+                        this.selector.cursorTo(new Point([
+                            //viewOrigin.x,
+                            0,
+                            this.selector.selectionFrame.cursor.y
+                        ]));
+                    }
                 }
-            // Go to bottom of the sheet
-            } else if (event.key === "ArrowDown"){
-                translation.y = this.dataFrame.corner.y - viewFrame.corner.y;
-                this.compositeFrame.translate(translation, "lockedColumns");
-                if(event.shiftKey){
-
-                    this.selector.clearStyling();
-
-                    this.selector.growToBottom();
-                 } else {
-                    // Ensure that the cursor moves to the
-                    // bottom of the current view frame
-                    this.selector.cursorTo(new Point([
-                        this.selector.selectionFrame.cursor.x,
-                        this.dataFrame.corner.y,
-                    ]));
-                 }
-            // Go to the right of the sheet
-            } else if (event.key === "ArrowRight"){
-                translation.x = this.dataFrame.corner.x - viewFrame.corner.x;
-                this.compositeFrame.translate(translation, "lockedRows");
-                if(event.shiftKey){
-                    this.selector.clearStyling();
-                    this.selector.growToRight();
-                } else {
-                    // Ensure that the cursor moves to the
-                    // right side of the current view frame
-                    this.selector.cursorTo(new Point([
-                        this.dataFrame.corner.x,
-                        this.selector.selectionFrame.cursor.y
-                    ]));
+                this.compositeFrame.translate(translation, "viewFrame");
+                this.fetchData("update");
+            } else if (this.selector){
+                let shrinkToCursor = !event.altKey;
+                if (event.key === "ArrowUp"){
+                    event.preventDefault();
+                    if(event.shiftKey){
+                        this.selector.clearStyling();
+                        this.selector.growUp();
+                    } else {
+                        this.selector.cursorUp(shrinkToCursor);
+                    }
+                } else if (event.key === "ArrowDown"){
+                    event.preventDefault();
+                    if(event.shiftKey){
+                        this.selector.clearStyling();
+                        this.selector.growDown();
+                    } else {
+                        this.selector.cursorDown(shrinkToCursor);
+                    }
+                } else if (event.key === "ArrowLeft"){
+                    event.preventDefault();
+                    if(event.shiftKey){
+                        this.selector.clearStyling();
+                        this.selector.growLeft();
+                    } else {
+                        this.selector.cursorLeft(shrinkToCursor);
+                    }
+                } else if (event.key === "ArrowRight"){
+                    event.preventDefault();
+                    if(event.shiftKey){
+                        this.selector.clearStyling();
+                        this.selector.growRight();
+                    } else {
+                        this.selector.cursorRight(shrinkToCursor);
+                    }
                 }
-            // Go to the left of the sheet
-            } else if (event.key === "ArrowLeft"){
-                translation.x = viewOrigin.x - viewFrame.origin.x;
-                this.compositeFrame.translate(translation, "lockedRows");
-                if(event.shiftKey){
-                    this.selector.clearStyling();
-                    this.selector.growToLeft();
-                } else {
-                    // Ensure that the cursor moves to the
-                    // left side of the current view frame
-                    this.selector.cursorTo(new Point([
-                        //viewOrigin.x,
-                        0,
-                        this.selector.selectionFrame.cursor.y
-                    ]));
-                }
+                this.selector.addStyling();
             }
-            this.compositeFrame.translate(translation, "viewFrame");
-            this.fetchData("update");
-        } else if (this.selector){
-            let shrinkToCursor = !event.altKey;
-            if (event.key === "ArrowUp"){
-                event.preventDefault();
-                if(event.shiftKey){
-                    this.selector.clearStyling();
-                    this.selector.growUp();
-                } else {
-                    this.selector.cursorUp(shrinkToCursor);
+        } catch(e) {
+            this.dumpInfo(
+                e,
+                {
+                    action: '#arrowUpDownLeftRight',
+                    event: event,
+                    translation: translation
                 }
-            } else if (event.key === "ArrowDown"){
-                event.preventDefault();
-                if(event.shiftKey){
-                    this.selector.clearStyling();
-                    this.selector.growDown();
-                } else {
-                    this.selector.cursorDown(shrinkToCursor);
-                }
-            } else if (event.key === "ArrowLeft"){
-                event.preventDefault();
-                if(event.shiftKey){
-                    this.selector.clearStyling();
-                    this.selector.growLeft();
-                } else {
-                    this.selector.cursorLeft(shrinkToCursor);
-                }
-            } else if (event.key === "ArrowRight"){
-                event.preventDefault();
-                if(event.shiftKey){
-                    this.selector.clearStyling();
-                    this.selector.growRight();
-                } else {
-                    this.selector.cursorRight(shrinkToCursor);
-                }
-            }
-            this.selector.addStyling();
+            );
+            throw e;
         }
     }
 
     handleSelectorUpdate(direction, amount){
         console.log('onNeedsUpdate:');
         console.log(direction);
-        // we need translation to be an instance of Point
-        let translation = new Point([0, 0]);
-        let viewOverlay = this.compositeFrame.getOverlayFrame("viewFrame");
-        let viewFrame = viewOverlay["frame"];
-        let viewOrigin = viewOverlay["origin"];
-        if (direction === "up"){
-            translation.y = -1 * Math.min(viewFrame.origin.y - viewOrigin.y, amount);
-            this.compositeFrame.translate(translation, "lockedColumns");
-            this.compositeFrame.translate(translation, "viewFrame");
-            this.fetchData("update");
-        } else if (direction === "down"){
-            translation.y = Math.min(this.dataFrame.corner.y - viewFrame.corner.y, amount);
-            this.compositeFrame.translate(translation, "lockedColumns");
-            this.compositeFrame.translate(translation, "viewFrame");
-            this.fetchData("update");
-        } else if (direction === "left"){
-            translation.x = -1 * Math.min(viewFrame.origin.x - viewOrigin.x, amount);
-            this.compositeFrame.translate(translation, "lockedRows");
-            this.compositeFrame.translate(translation, "viewFrame");
-            this.fetchData("update");
-        } else if (direction === "right") {
-            translation.x = Math.min(this.dataFrame.corner.x - viewFrame.corner.x, amount);
-            this.compositeFrame.translate(translation, "lockedRows");
-            this.compositeFrame.translate(translation, "viewFrame");
-            this.fetchData("update");
+        try {
+            // we need translation to be an instance of Point
+            let translation = new Point([0, 0]);
+            let viewOverlay = this.compositeFrame.getOverlayFrame("viewFrame");
+            let viewFrame = viewOverlay["frame"];
+            let viewOrigin = viewOverlay["origin"];
+            if (direction === "up"){
+                translation.y = -1 * Math.min(viewFrame.origin.y - viewOrigin.y, amount);
+                this.compositeFrame.translate(translation, "lockedColumns");
+                this.compositeFrame.translate(translation, "viewFrame");
+                this.fetchData("update");
+            } else if (direction === "down"){
+                translation.y = Math.min(this.dataFrame.corner.y - viewFrame.corner.y, amount);
+                this.compositeFrame.translate(translation, "lockedColumns");
+                this.compositeFrame.translate(translation, "viewFrame");
+                this.fetchData("update");
+            } else if (direction === "left"){
+                translation.x = -1 * Math.min(viewFrame.origin.x - viewOrigin.x, amount);
+                this.compositeFrame.translate(translation, "lockedRows");
+                this.compositeFrame.translate(translation, "viewFrame");
+                this.fetchData("update");
+            } else if (direction === "right") {
+                translation.x = Math.min(this.dataFrame.corner.x - viewFrame.corner.x, amount);
+                this.compositeFrame.translate(translation, "lockedRows");
+                this.compositeFrame.translate(translation, "viewFrame");
+                this.fetchData("update");
+            }
+        } catch(e){
+            this.dumpInfo(
+                e,
+                {
+                    action: '#handleSelectorUpdate',
+                    direction: direction,
+                    amount: amount
+                }
+            );
+            throw e;
         }
     }
 
@@ -651,23 +690,35 @@ class Sheet extends Component {
 
     /* I handle updates to the display header */
     _updateHeader(body, head){
-        let cursor = this.selector.selectionFrame.cursor;
-        let th = head.querySelector(`#sheet-${this.props.id}-head-current`);
-        let content = this.dataFrame.get(cursor);
-        let coordinates = `(${cursor.x}x${cursor.y}): `;
-        let fontSize = '.8rem';
-        if (th.colSpan < 2){
-            if (content === undefined){
-                content = "undefined";
+        try {
+            let cursor = this.selector.selectionFrame.cursor;
+            let th = head.querySelector(`#sheet-${this.props.id}-head-current`);
+            let content = this.dataFrame.get(cursor);
+            let coordinates = `(${cursor.x}x${cursor.y}): `;
+            let fontSize = '.8rem';
+            if (th.colSpan < 2){
+                if (content === undefined){
+                    content = "undefined";
+                }
+                let computedFontSize = parseFloat(window.getComputedStyle(th).getPropertyValue("font-size"));
+                let contentLength = content.length + coordinates.length;
+                if (computedFontSize * contentLength > (this.props.colWidth - 5)){
+                    fontSize = `${2 * (this.props.colWidth)/(contentLength)}px`;
+                }
             }
-            let computedFontSize = parseFloat(window.getComputedStyle(th).getPropertyValue("font-size"));
-            let contentLength = content.length + coordinates.length;
-            if (computedFontSize * contentLength > (this.props.colWidth - 5)){
-                fontSize = `${2 * (this.props.colWidth)/(contentLength)}px`;
-            }
+            th.style.fontSize = fontSize;
+            th.textContent = `${coordinates}${content}`;
+        } catch(e){
+            this.dumpInfo(
+                e,
+                {
+                    action: '#_updateHeader',
+                    body: body,
+                    head: head
+                }
+            );
+            throw e;
         }
-        th.style.fontSize = fontSize;
-        th.textContent = `${coordinates}${content}`;
     }
 
     /* Simply resets the `isSelecting` to false, in the
@@ -860,7 +911,39 @@ class Sheet extends Component {
     _calcMaxNumColumns(maxWidth){
         return Math.min(this.totalColumns, Math.ceil(maxWidth/this.props.colWidth));
     }
+
+
+    /**
+     * Dumps and object representation of
+     * the key pieces of the Sheet structure
+     * (Frames, Selector, etc).
+     * We can pass an optional error object
+     * in any methods that utilize this one.
+     */
+    dumpInfo(err, context=null){
+        let result = {
+            compositeFrame: this.compositeFrame,
+            selector: this.selector,
+            dataFrame: this.dataFrame,
+            isSelecting: this.isSelecting
+        };
+        if(context){
+            result = Object.assign({}, context, result);
+        }
+        let serializedResult = JSON.stringify(result, null, 4);
+        console.group(`Dumping info for Sheet ${this.props.id}`);
+        if(err){
+            console.error(err);
+        }
+        console.log('As Object:');
+        console.dir(JSON.parse(serializedResult));
+        console.log('As JSON:');
+        console.log(serializedResult);
+        console.groupEnd();
+    }
 }
+
+
 
 Sheet.propTypes = {
     rowHeight: {

@@ -105,6 +105,15 @@ class Point {
     toPoint(){
         return this;
     }
+
+    toJSON(){
+        return {
+            x: this.x,
+            y: this.y,
+            isNaN: this.isNaN,
+            quadrant: this.quadrant
+        };
+    }
 }
 
 Array.prototype.toPoint = function(){
@@ -438,6 +447,15 @@ class Frame {
         }
         return new Frame();
     }
+
+    toJSON(){
+        return {
+            origin: this.origin,
+            corner: this.corner,
+            size: this.size,
+            empty: this.empty
+        };
+    }
 }
 
 
@@ -667,6 +685,13 @@ class CompositeFrame {
         return baseFrameTest && overlayFramesTest;
     }
 
+    toJSON(){
+        return {
+            baseFrame: this.baseFrame,
+            overlayFrames: this.overlayFrames
+        };
+    }
+
 }
 
 
@@ -857,6 +882,12 @@ class SelectionFrame extends Frame {
         point = new Point(point);
         return this.origin.x === point.x;
     }
+
+    toJSON(){
+        let result = super.toJSON();
+        result.cursor = this.cursor;
+        return result;
+    }
 }
 
 
@@ -932,6 +963,12 @@ class DataFrame extends Frame {
             coordinate = coordinate.toString();
         }
         return this.store[coordinate];
+    }
+
+    toJSON(){
+        let result = super.toJSON();
+        result.store = this.store;
+        return result;
     }
 }
 
@@ -1812,6 +1849,12 @@ class Selector {
         let x = this.selectionFrame.cursor.x;
         return x > parseInt(cornerElement.dataset["x"]);
   	}
+
+    toJSON(){
+        return {
+            selectionFrame: this.selectionFrame
+        };
+    }
 }
 
 

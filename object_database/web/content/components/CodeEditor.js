@@ -14,11 +14,15 @@ class CodeEditor extends Component {
         this.SERVER_UPDATE_DELAY_MS = 50;
 
         this.onChange = this.onChange.bind(this);
+        this.handleMouseover = this.handleMouseover.bind(this);
+        this._handleMouseover = this._handleMouseover.bind(this);
+        this.handleMouseleave = this.handleMouseleave.bind(this);
         this.setupEditor = this.setupEditor.bind(this);
         this.setupKeybindings = this.setupKeybindings.bind(this);
         this.installChangeHandlers = this.installChangeHandlers.bind(this);
         this.setTextFromServer = this.setTextFromServer.bind(this);
         this.lastSentText = null;
+        this.mouseoverTimeout = null;
 
         // A cached version of the created
         // DOM node will be put here for
@@ -40,6 +44,10 @@ class CodeEditor extends Component {
             console.log("editor component loaded but failed to setup editor");
         } else {
             console.log("setting up editor");
+            // Note: Ace doens't handle 'mouseleave' events so this listener is
+            // bound directly to the code-editor DOM element, see .build() and
+            // handleMouseleave() below
+            this.editor.on("mousemove", (e) => this.handleMouseover(e));
             this.editor.last_edit_millis = Date.now();
             this.editor.setTheme("ace/theme/textmate");
             this.editor.session.setMode("ace/mode/python");
@@ -135,10 +143,39 @@ class CodeEditor extends Component {
             },
                  [h('div', {
                      id: "editor" + this.props.id,
-                     class: "code-editor-inner"
+                     class: "code-editor-inner",
+                     onmouseleave: this.handleMouseleave
                  }, [])
         ]);
         }
+    }
+
+    handleMouseover(e){
+        clearTimeout(this.mouseoverTimeout);
+        this.mouseoverTimeout = setTimeout(this._handleMouseover, this.props.mouseoverTimeout, e);
+    }
+
+    _handleMouseover(e){
+        let pos = e.getDocumentPosition();
+        let line = e.editor.session.getLine(pos["row"]);
+        let token = e.editor.session.getTokenAt(pos["row"], pos["column"]);
+        let val = "";
+        if (token) {
+            val = token.value;
+        }
+        let responseData = {
+            event: 'mouseover',
+            'target_cell': this.props.id,
+            row: pos["row"],
+            column: pos["column"],
+            line: line,
+            token: val
+        };
+        cellSocket.sendString(JSON.stringify(responseData));
+    }
+
+    handleMouseleave(){
+        clearTimeout(this.mouseoverTimeout);
     }
 
     setupEditor(){
@@ -331,6 +368,11 @@ CodeEditor.propTypes = {
     fontSize: {
         description: "Set the font size for the Ace Editor",
         type: PropTypes.oneOf([PropTypes.number, PropTypes.string])
+    },
+
+    mouseoverTimeout: {
+        description: "Timeout for the mouseover event used to delay the callback",
+        type: PropTypes.oneOf(PropTypes.number)
     },
 
     firstVisibleRow: {

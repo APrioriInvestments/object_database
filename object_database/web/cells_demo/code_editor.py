@@ -234,6 +234,61 @@ class CodeEditorFirstVisibleRowChange(CellsTestPage):
         return "You should see a code editor and a mirror of its contents."
 
 
+class CodeEditorDelayedMouseover(CellsTestPage):
+    def cell(self):
+        text = """def cell(self):
+        contents = cells.Slot("No Text Entered Yet!")
+
+        textToDisplayFunction = lambda: "some text"
+
+        def onTextChange(content, selection):
+            contents.set(content)
+
+        return cells.CodeEditor(
+                textToDisplayFunction=textToDisplayFunction,
+                onTextChange=onTextChange, firstVisibleRow=5
+                )
+        """
+        text *= 5
+
+        contents = cells.Slot("")
+
+        row = cells.Slot("")
+        column = cells.Slot("")
+        line = cells.Slot("")
+        token = cells.Slot("")
+
+        def onTextChange(buffer, selection):
+            contents.set(buffer)
+
+        def onDelayedMouseover(eventData):
+            row.set(str(eventData["row"]))
+            column.set(str(eventData["column"]))
+            line.set(str(eventData["line"]))
+            token.set(str(eventData["token"]))
+
+        return cells.ResizablePanel(
+            cells.CodeEditor(
+                textToDisplayFunction=lambda: text,
+                onTextChange=onTextChange,
+                mouseoverTimeout=1000,
+                onMouseover=onDelayedMouseover,
+            ),
+            cells.Sequence(
+                [
+                    cells.Subscribed(lambda: cells.Text("Hovering over:")),
+                    cells.Subscribed(lambda: cells.Text("row: " + row.get())),
+                    cells.Subscribed(lambda: cells.Text("column: " + column.get())),
+                    cells.Subscribed(lambda: cells.Text("line: " + line.get())),
+                    cells.Subscribed(lambda: cells.Text("token: " + token.get())),
+                ]
+            ),
+        )
+
+    def text(self):
+        return "You should see a code editor and a mirror of its contents."
+
+
 class CodeEditorSetFirstVisibleRow(CellsTestPage):
     def cell(self):
         contents = cells.Slot("No Text Entered Yet!")

@@ -2836,6 +2836,8 @@ class CodeEditor(Cell):
         firstVisibleRow=None,
         onFirstRowChange=None,
         textToDisplayFunction=lambda: "",
+        mouseoverTimeout=1000,
+        onMouseover=None,
     ):
         """Create a code editor
 
@@ -2855,6 +2857,13 @@ class CodeEditor(Cell):
 
         onFirstRowChange - a function that is called when the first visible row
         changes. It takes one argument which is said row.
+
+        mouseoverTimeout - timeout for mouseover callback WS message in
+        milliseconds
+
+        onMouseover = a function which is called subsequent to the mouseover
+        event fires on the client side and corresponding WS message is
+        received.The entire message is passed to the function.
         """
         super().__init__()
         # contains (current_iteration_number: int, text: str)
@@ -2867,6 +2876,8 @@ class CodeEditor(Cell):
         self.autocomplete = autocomplete
         self.onTextChange = onTextChange
         self.textToDisplayFunction = textToDisplayFunction
+        self.mouseoverTimeout = mouseoverTimeout
+        self.onMouseover = onMouseover
 
         # All CodeEditors will be
         # flexed inside of Sequences,
@@ -2902,6 +2913,9 @@ class CodeEditor(Cell):
             self.firstVisibleRowSlot.set(msgFrame["firstVisibleRow"])
             if self.onFirstRowChange is not None:
                 self.onFirstRowChange(msgFrame["firstVisibleRow"])
+        elif msgFrame["event"] == "mouseover":
+            if self.onMouseover is not None:
+                self.onMouseover(msgFrame)
 
     def setFirstVisibleRow(self, rowNum):
         """ Send a message to set the first visible row of the editor to
@@ -3016,6 +3030,7 @@ class CodeEditor(Cell):
         self.exportData[
             "firstVisibleRow"
         ] = self.firstVisibleRowSlot.getWithoutRegisteringDependency()
+        self.exportData["mouseoverTimeout"] = self.mouseoverTimeout
 
         self.exportData["keybindings"] = [k for k in self.keybindings.keys()]
 

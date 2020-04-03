@@ -63,6 +63,7 @@ from object_database.web.cells.cells import (
     CircleLoader,
     Timestamp,
     HorizontalSequence,
+    WSMessageTester,
 )
 
 from object_database.web.cells.views.split_view import SplitView

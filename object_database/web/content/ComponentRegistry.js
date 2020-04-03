@@ -53,6 +53,7 @@ import {Timestamp} from './components/Timestamp';
 import {SplitView} from './components/SplitView';
 import {PageView} from './components/PageView';
 import {HorizontalSequence} from './components/HorizontalSequence';
+import {WSMessageTester} from './components/WSMessageTester';
 
 const ComponentRegistry = {
     AsyncDropdown,
@@ -103,7 +104,8 @@ const ComponentRegistry = {
     Plot,
     _PlotUpdater,
     Timestamp,
-    SplitView
+    SplitView,
+    WSMessageTester
 };
 
 export {ComponentRegistry, ComponentRegistry as default};

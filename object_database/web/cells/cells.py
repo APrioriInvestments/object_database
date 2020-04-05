@@ -3351,7 +3351,18 @@ class Highlighted(Cell):
 
 
 class WSMessageTester(Cell):
+    """A helper cell to test cell methods interactively in the browser."""
+
     def __init__(self, methodToRun, **kwargs):
+        """
+        Parameters:
+        ----------
+            methodToRun: cell method
+                The method of an initialized cell to run when the
+                WSMessageTester button is clicked.
+            kwargs: cell method kwargs
+
+        """
         super().__init__()
         self.content = "Go!"
         self.content = Cell.makeCell(self.content)

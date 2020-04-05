@@ -16,7 +16,9 @@ from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
 
 
-class WSMessageTesterExample(CellsTestPage):
+class WSMessageTesterExampleCodeEditor(CellsTestPage):
+    """An example of updating CodeEditor text from the server."""
+
     def cell(self):
         contents = cells.Slot("")
         text = """def cell(self):
@@ -32,7 +34,8 @@ class WSMessageTesterExample(CellsTestPage):
                 onTextChange=onTextChange, firstVisibleRow=5
                 )
         """
-        text *= 5
+
+        newText = "You just updated me from the server."
 
         def onTextChange(buffer, selection):
             contents.set(buffer)
@@ -42,8 +45,9 @@ class WSMessageTesterExample(CellsTestPage):
         )
 
         return cells.ResizablePanel(
-            cells.WSMessageTester(codeEditor.setFirstVisibleRow, rowNum=10), codeEditor
+            cells.WSMessageTester(codeEditor.setCurrentTextFromServer, text=newText),
+            codeEditor,
         )
 
     def text(self):
-        return "You should see some buttons in various styles."
+        return ""

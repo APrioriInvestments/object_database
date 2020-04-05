@@ -304,3 +304,36 @@ class CodeEditorInSplitViewWithHeader(CellsTestPage):
 
     def text(self):
         return "You should see a code editor and a mirror of its contents."
+
+
+class ServerSideSetFirstVisibleRow(CellsTestPage):
+    def cell(self):
+        contents = cells.Slot("")
+        text = """def cell(self):
+        contents = cells.Slot("No Text Entered Yet!")
+
+        textToDisplayFunction = lambda: "some text"
+
+        def onTextChange(content, selection):
+            contents.set(content)
+
+        return cells.CodeEditor(
+                textToDisplayFunction=textToDisplayFunction,
+                onTextChange=onTextChange, firstVisibleRow=5
+                )
+        """
+        text *= 5
+
+        def onTextChange(buffer, selection):
+            contents.set(buffer)
+
+        codeEditor = cells.CodeEditor(
+            onTextChange=onTextChange, textToDisplayFunction=lambda: text
+        )
+
+        return cells.ResizablePanel(
+            cells.WSMessageTester(codeEditor.setFirstVisibleRow, rowNum=10), codeEditor
+        )
+
+    def text(self):
+        return "Clicking 'Go!' you should see the code editor scroll down."

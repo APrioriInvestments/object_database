@@ -318,9 +318,10 @@ class ServerSideSetFirstVisibleRow(CellsTestPage):
             contents.set(content)
 
         return cells.CodeEditor(
-                textToDisplayFunction=textToDisplayFunction,
-                onTextChange=onTextChange, firstVisibleRow=5
-                )
+            textToDisplayFunction=textToDisplayFunction,
+            onTextChange=onTextChange,
+            firstVisibleRow=5
+        )
         """
         text *= 5
 
@@ -349,7 +350,13 @@ def test_set_first_row_serverside(headless_browser):
     assert first_line.text == "1"
     toggle_btn = headless_browser.find_by_css('[data-cell-type="WSTesterButton"]')
     toggle_btn.click()
-    headless_browser.wait(5)
-    first_line = headless_browser.find_by_css(".ace_gutter-active-line")
-    assert first_line
-    assert first_line.text == "10"
+
+    def textIsTen(*args):
+        first_line = headless_browser.find_by_css(".ace_gutter-active-line")
+        if not first_line:
+            return False
+
+        return first_line.text == "10"
+
+    headless_browser.wait(10).until(textIsTen)
+    assert textIsTen()

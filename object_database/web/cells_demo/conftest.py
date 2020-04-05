@@ -54,10 +54,10 @@ TEST_SERVICE = """
 def bootup_server():
     token = genToken()
     port = 8020
-    loglevel_name = "INFO"
+    loglevel_name = "WARNING"
     with tempfile.TemporaryDirectory() as tmpDirName:
         server = startServiceManagerProcess(
-            tmpDirName, port, token, loglevelName=loglevel_name, logDir=False, verbose=False
+            tmpDirName, port, token, loglevelName=loglevel_name, logDir=False, verbose=True
         )
         database = connect("localhost", port, token, retry=True)
         database.subscribeToSchema(core_schema, service_schema, active_webservice_schema)
@@ -157,7 +157,10 @@ def bootup_webdriver():
     # driver = webdriver.Chrome(executable_path=chrome_path, chrome_options=options)
 
     # start upu the driver
-    driver = webdriver.Chrome(options=options)
+    driver = webdriver.Chrome(
+        options=options, desired_capabilities={"goog:loggingPrefs": {"browser": "ALL"}}
+    )
+
     return driver
 
 
@@ -185,6 +188,10 @@ class HeadlessTester:
     @property
     def by(self):
         return By
+
+    def dumpLogs(self):
+        for msg in self.webdriver.get_log("browser"):
+            print("SELENIUM LOG > ", msg)
 
     @property
     def demo_root_selector(self):
@@ -233,6 +240,7 @@ def headless_browser():
     # service and the web service
     tester = HeadlessTester()
     yield tester
+
     tester.webdriver.close()
     tester.server.terminate()
     tester.server.wait()

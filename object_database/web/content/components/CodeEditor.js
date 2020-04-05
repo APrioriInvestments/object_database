@@ -55,10 +55,6 @@ class CodeEditor extends Component {
                 this.editor.current_iteration = this.props.currentIteration;
             }
 
-            if (this.props.initialSelection !== null) {
-                this.editor.selection.setSelectionRange(this.props.initialSelection);
-            }
-
             if (this.props.autocomplete) {
                 this.editor.setOptions({enableBasicAutocompletion: true});
                 this.editor.setOptions({enableLiveAutocompletion: true});
@@ -86,6 +82,13 @@ class CodeEditor extends Component {
                 this.editor.resize(true);
                 this.editor.scrollToRow(this.props.firstVisibleRow - 1)
                 this.editor.gotoLine(this.props.firstVisibleRow, 0, true);
+            }
+
+            if (this.props.initialSelection !== null) {
+                this.editor.selection.setSelectionRange(this.props.initialSelection);
+                if (this.props.firstVisibleRow !== undefined){
+                    this.editor.scrollToRow(this.props.firstVisibleRow - 1)
+                }
             }
 
             this.setupKeybindings();
@@ -160,6 +163,7 @@ class CodeEditor extends Component {
     _updateData(dataInfos, projector) {
         dataInfos.map((dataInfo) => {
             if (dataInfo.firstVisibleRow){
+                console.log("CodeEditor updating first visible row to " + dataInfo.firstVisibleRow)
                 let row = parseInt(dataInfo.firstVisibleRow);
                 this.editor.resize(true);
                 this.editor.scrollToRow(row - 1)

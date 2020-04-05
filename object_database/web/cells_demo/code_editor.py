@@ -336,4 +336,20 @@ class ServerSideSetFirstVisibleRow(CellsTestPage):
         )
 
     def text(self):
-        return "Clicking 'Go!' you should see the code editor scroll down."
+        return "By clicking 'Go!' you should see the code editor scroll down."
+
+
+def test_set_first_row_serverside(headless_browser):
+    # Test that we can find the editor and set the first visible row
+    # programmatically from the server side
+    demo_root = headless_browser.get_demo_root_for(ServerSideSetFirstVisibleRow)
+    assert demo_root
+    first_line = headless_browser.find_by_css(".ace_gutter-active-line")
+    assert first_line
+    assert first_line.text == "1"
+    toggle_btn = headless_browser.find_by_css('[data-cell-type="WSTesterButton"]')
+    toggle_btn.click()
+    headless_browser.wait(5)
+    first_line = headless_browser.find_by_css(".ace_gutter-active-line")
+    assert first_line
+    assert first_line.text == "10"

@@ -272,7 +272,7 @@ class SubprocessServiceManager(ServiceManager):
 
                     if not serviceInstance.exists():
                         if workerProcess:
-                            self._logger.warning(
+                            self._logger.info(
                                 f"Worker Process '{identity}' shutting down because the "
                                 f"server removed its serviceInstance entirely. "
                                 f"Sending KILL signal."

@@ -2833,9 +2833,9 @@ class CodeEditor(Cell):
         readOnly=False,
         autocomplete=True,
         onTextChange=None,
-        textToDisplayFunction=lambda: "",
-        firstVisibleRow=1,
+        firstVisibleRow=None,
         onFirstRowChange=None,
+        textToDisplayFunction=lambda: "",
     ):
         """Create a code editor
 
@@ -2863,8 +2863,6 @@ class CodeEditor(Cell):
         self.noScroll = noScroll
         self.fontSize = fontSize
         self.minLines = minLines
-        self.firstVisibleRow = firstVisibleRow
-        self.onFirstRowChange = onFirstRowChange
         self.readOnly = readOnly
         self.autocomplete = autocomplete
         self.onTextChange = onTextChange
@@ -2876,6 +2874,12 @@ class CodeEditor(Cell):
         # to become flex parent
         self.isFlex = True
         self.exportData["flexChild"] = True
+        self.onFirstRowChange = onFirstRowChange
+
+        if firstVisibleRow is not None:
+            self.firstVisibleRowOverride = firstVisibleRow
+        else:
+            self.firstVisibleRowOverride = None
 
     def onMessage(self, msgFrame):
         if msgFrame["event"] == "keybinding":
@@ -2893,10 +2897,11 @@ class CodeEditor(Cell):
                     self.currentIteration = msgFrame["iteration"]
 
                 self.selectionSlot.set(msgFrame["selection"])
+
         elif msgFrame["event"] == "scrolling":
-            self.firstVisibleRow = msgFrame["firstVisibleRow"]
+            self.firstVisibleRowSlot.set(msgFrame["firstVisibleRow"])
             if self.onFirstRowChange is not None:
-                self.onFirstRowChange(self.firstVisibleRow)
+                self.onFirstRowChange(msgFrame["firstVisibleRow"])
 
     def setFirstVisibleRow(self, rowNum):
         """ Send a message to set the first visible row of the editor to
@@ -2906,6 +2911,8 @@ class CodeEditor(Cell):
         ----------
         rowNum : int
         """
+        self.firstVisibleRowSlot.set(rowNum)
+
         dataInfo = {"firstVisibleRow": rowNum}
         # stage this piece of data to be sent when we recalculate
         if self.exportData.get("dataInfo") is None:
@@ -2984,7 +2991,15 @@ class CodeEditor(Cell):
     def selectionSlot(self):
         return sessionState()._slotFor(self.identityPath + ("CodeEditorState",))
 
+    @property
+    def firstVisibleRowSlot(self):
+        return sessionState()._slotFor(self.identityPath + ("CodeEditorStateFirstVisibleRow",))
+
     def recalculate(self):
+        if self.firstVisibleRowOverride is not None:
+            self.firstVisibleRowSlot.set(self.firstVisibleRowOverride)
+            self.firstVisibleRowOverride = None
+
         self.exportData["initialText"] = self.calculateCurrentText()
         self.exportData["currentIteration"] = self.currentIteration
         self.exportData[
@@ -2998,7 +3013,9 @@ class CodeEditor(Cell):
             self.exportData["fontSize"] = self.fontSize
         if self.minLines is not None:
             self.exportData["minLines"] = self.minLines
-        self.exportData["firstVisibleRow"] = self.firstVisibleRow
+        self.exportData[
+            "firstVisibleRow"
+        ] = self.firstVisibleRowSlot.getWithoutRegisteringDependency()
 
         self.exportData["keybindings"] = [k for k in self.keybindings.keys()]
 

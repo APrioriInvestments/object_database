@@ -15,6 +15,8 @@ class WSMessageTester extends Component {
     constructor(props, ...args){
         super(props, ...args);
 
+        this.initialText = "Click the button to run the method."
+
         // Bind context to methods
         this.makeContent = this.makeContent.bind(this);
         this.handleClick = this.handleClick.bind(this);
@@ -22,14 +24,23 @@ class WSMessageTester extends Component {
 
     build(){
         return(
-            h('button', {
+            h("div", {
                 id: this.getElementId(),
                 "data-cell-id": this.props.id,
-                "data-cell-type": "Button",
-                class: "btn btn-primary",
-                onclick: this.handleClick
-            }, [this.makeContent()]
-             )
+                "data-cell-type": "WSTestter",
+            }, [
+                h('button', {
+                    "data-cell-id": this.props.id + "-button",
+                    "data-cell-type": "WSTesterButton",
+                    class: "btn btn-primary",
+                    onclick: this.handleClick
+                }, [this.makeContent()]
+                ),
+                h("div", {
+                    "data-cell-id": this.props.id + "-display",
+                    "data-cell-type": "WSTesterDisplay",
+                }, [this.initialText])
+            ])
         );
     }
 
@@ -44,6 +55,20 @@ class WSMessageTester extends Component {
         };
 
         cellSocket.sendString(JSON.stringify(responseData));
+    }
+
+    /* I handle incoming WS message data updating.
+     */
+    _updateData(dataInfos, projector) {
+        dataInfos.map((dataInfo) => {
+            if (dataInfo.event === "WSTest"){
+                let method = dataInfo["method"];
+                let args = dataInfo["args"];
+                let newText = "I just ran " + method + " with " + JSON.stringify(args);
+                let display = this.getDOMElement().querySelector("[data-cell-type='WSTesterDisplay']")
+                display.textContent = newText;
+            }
+        })
     }
 }
 

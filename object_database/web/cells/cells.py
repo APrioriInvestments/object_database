@@ -3355,7 +3355,17 @@ class WSMessageTester(Cell):
 
     def onMessage(self, msgFrame):
         if msgFrame["event"] == "click":
+            # Run the method...
             self.methodToRun(**self.kwargs)
+            # ... and let the client know what you ran
+            dataInfo = {
+                "event": "WSTest",
+                "method": str(self.methodToRun),
+                "args": self.kwargs,
+            }
+            self.exportData["dataInfo"] = [dataInfo]
+            self.wasDataUpdated = True
+            self.markDirty()
 
     def recalculate(self):
         self.children["content"] = self.content

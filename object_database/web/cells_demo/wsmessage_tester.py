@@ -19,13 +19,30 @@ from object_database.web.CellsTestPage import CellsTestPage
 class WSMessageTesterExample(CellsTestPage):
     def cell(self):
         contents = cells.Slot("")
+        text = """def cell(self):
+        contents = cells.Slot("No Text Entered Yet!")
+
+        textToDisplayFunction = lambda: "some text"
+
+        def onTextChange(content, selection):
+            contents.set(content)
+
+        return cells.CodeEditor(
+                textToDisplayFunction=textToDisplayFunction,
+                onTextChange=onTextChange, firstVisibleRow=5
+                )
+        """
+        text *= 5
 
         def onTextChange(buffer, selection):
             contents.set(buffer)
 
+        codeEditor = cells.CodeEditor(
+            onTextChange=onTextChange, textToDisplayFunction=lambda: text
+        )
+
         return cells.ResizablePanel(
-            cells.WSMessageTester(onClick=lambda: None),
-            cells.CodeEditor(onTextChange=onTextChange),
+            cells.WSMessageTester(codeEditor.setFirstVisibleRow, rowNum=10), codeEditor
         )
 
     def text(self):

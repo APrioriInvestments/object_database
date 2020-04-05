@@ -3350,25 +3350,17 @@ class Highlighted(Cell):
         self.children["content"] = Cell.makeCell(self.content)
 
 
-class WSMessageTester(Clickable):
-    def __init__(self, *args, small=False, active=True, style="primary", **kwargs):
-        self.content = "send message"
-        Clickable.__init__(self, content=self.content, *args, **kwargs)
-        self.small = small
-        self.active = active
-        self.style = style
+class WSMessageTester(Cell):
+    def __init__(self, methodToRun, **kwargs):
+        super().__init__()
+        self.content = "Go!"
+        self.content = Cell.makeCell(self.content)
+        self.methodToRun = methodToRun
+        self.kwargs = kwargs
+
+    def onMessage(self, msgFrame):
+        if msgFrame["event"] == "click":
+            self.methodToRun(**self.kwargs)
 
     def recalculate(self):
         self.children["content"] = self.content
-
-        isActive = False
-        if self.active:
-            isActive = True
-
-        # temporary js WS refactoring data
-        self.exportData["small"] = self.small
-        self.exportData["active"] = isActive
-        self.exportData["style"] = self.style
-
-        # TODO: this event handling situation must be refactored
-        self.exportData["events"] = {"onclick": self.calculatedOnClick()}

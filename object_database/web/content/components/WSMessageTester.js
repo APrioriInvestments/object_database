@@ -17,8 +17,7 @@ class WSMessageTester extends Component {
 
         // Bind context to methods
         this.makeContent = this.makeContent.bind(this);
-        this._getEvents = this._getEvent.bind(this);
-        this._getHTMLClasses = this._getHTMLClasses.bind(this);
+        this.handleClick = this.handleClick.bind(this);
     }
 
     build(){
@@ -27,8 +26,8 @@ class WSMessageTester extends Component {
                 id: this.getElementId(),
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Button",
-                class: this._getHTMLClasses(),
-                onclick: this._getEvent('onclick')
+                class: "btn btn-primary",
+                onclick: this.handleClick
             }, [this.makeContent()]
              )
         );
@@ -38,53 +37,17 @@ class WSMessageTester extends Component {
         return this.renderChildNamed('content');
     }
 
-    _getEvent(eventName) {
-        return this.props.events[eventName];
-    }
+    handleClick(){
+        let responseData = {
+            event: 'click',
+            'target_cell': this.props.id,
+        };
 
-    _getHTMLClasses(){
-        let classes = ['btn'];
-        if(!this.props.active){
-            classes.push(`btn-outline-${this.props.style}`);
-        }
-        if(this.props.style){
-            classes.push(`btn-${this.props.style}`);
-        }
-        if(this.props.small){
-            classes.push('btn-xs');
-        }
-        return classes.join(" ").trim();
+        cellSocket.sendString(JSON.stringify(responseData));
     }
 }
 
 WSMessageTester.propTypes = {
-    active: {
-        description: "Indicates whether or not the Button is active/deactivated",
-        type: PropTypes.boolean
-    },
-    small: {
-        description: "Sets the Button to display as a small button. Defaults to false.",
-        type: PropTypes.boolean
-    },
-    style: {
-        description: "A Bootstrap name for the button style.",
-        type: PropTypes.oneOf([
-            'primary',
-            'secondary',
-            'success',
-            'danger',
-            'warning',
-            'info',
-            'light',
-            'dark',
-            'link'
-        ])
-    },
-
-    events: {
-        description: "A dictionary of event names to arbitrary JS code that should fire on that event",
-        type: PropTypes.object
-    }
 };
 
 export {WSMessageTester, WSMessageTester as default};

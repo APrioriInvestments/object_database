@@ -26,18 +26,36 @@ class BasicTablePaginator(CellsTestPage):
         return "You should see a TablePaginator with 10 pages"
 
 
+class TablePaginatorOnePage(CellsTestPage):
+    def cell(self):
+        current_page = cells.Slot(1)
+        total_pages = cells.Slot(1)
+        return cells.Panel(cells.TablePaginator(current_page, total_pages))
+
+    def text(self):
+        return (
+            "You should see a TablePaginator with just one page"
+            " and it should have no input and buttons should be "
+            "disabled"
+        )
+
+
 class BasicTableColumn(CellsTestPage):
     def cell(self):
         filter_slot = cells.Slot("")
-        sort_slot = cells.Slot(0)
+        sort_slot = cells.Slot([None, None])
         table_column = cells.TableColumn("one", "First", filter_slot, sort_slot)
-        display_area = cells.Panel(
-            cells.Sequence(
-                [
-                    cells.Subscribed(lambda: filter_slot.get()),
-                    cells.Subscribed(lambda: sort_slot.get()),
-                ]
-            )
+        sort_key_display = cells.Text("Sort Key: ") >> cells.Subscribed(
+            lambda: cells.Text(sort_slot.get()[0])
+        )
+        sort_direction_display = cells.Text("Sort ascending: ") >> cells.Subscribed(
+            lambda: cells.Text(sort_slot.get()[1])
+        )
+        filter_value_display = cells.Text("Filter value: ") >> cells.Subscribed(
+            lambda: cells.Text(filter_slot.get())
+        )
+        display_area = cells.Sequence(
+            [sort_key_display, sort_direction_display, filter_value_display]
         )
         return cells.Panel(table_column) + display_area
 
@@ -68,44 +86,6 @@ class BasicTableColumnSorter(CellsTestPage):
 
 class BasicTableHeader(CellsTestPage):
     def cell(self):
-        current_page = cells.Slot(1)
-        total_pages = cells.Slot(10)
-        paginator = cells.TablePaginator(current_page, total_pages)
-
-        first_slot = cells.Slot("")
-        second_slot = cells.Slot("")
-        third_slot = cells.Slot("")
-        fourth_slot = cells.Slot("")
-        column_dict = {
-            "One": first_slot,
-            "Two": second_slot,
-            "Three": third_slot,
-            "Four": fourth_slot,
-        }
-
-        def label_maker(header_name):
-            return header_name
-
-        header = cells.TableHeader(column_dict, label_maker, paginator)
-        slot_display_area = cells.Panel(
-            cells.Sequence(
-                [
-                    cells.Subscribed(lambda: current_page.get()),
-                    cells.Subscribed(lambda: second_slot.get()),
-                    cells.Subscribed(lambda: third_slot.get()),
-                    cells.Subscribed(lambda: fourth_slot.get()),
-                ]
-            )
-        )
-
-        return cells.Panel(header) + slot_display_area
-
-    def text(self):
-        return "You should see a TableHeader with a 10 page paginator"
-
-
-class BasicNewTableHeader(CellsTestPage):
-    def cell(self):
         # Paginator slots and Cell
         current_page = cells.Slot(1)
         total_pages = cells.Slot(10)
@@ -133,7 +113,7 @@ class BasicNewTableHeader(CellsTestPage):
         }
         columns = []
         for key, slot in column_slots.items():
-            columns.append(cells.TableColumn(key, key, slot))
+            columns.append(cells.TableColumn(key, key, slot, sort_slot))
 
         # Filter Value Displays
         filter_displays = []
@@ -141,94 +121,86 @@ class BasicNewTableHeader(CellsTestPage):
             filter_displays.append(make_display_for(column))
 
         # NewTableHeader
-        header = cells.NewTableHeader(columns, lambda key: key, paginator, sort_slot)
+        header = cells.TableHeader(columns, lambda key: key, paginator, sort_slot)
 
         # Final display
         return header + (sort_display >> cells.HorizontalSequence(filter_displays))
 
     def text(self):
         return (
-            "You should see a NewTableHeader made up of TableColumn and "
+            "You should see a TableHeader made up of TableColumn and "
             "TableColumnSorter cells that have appropriately reactive "
             "slot interactions, along with displays of slot values"
         )
 
 
-class BasicTableRow(CellsTestPage):
+class BasicTableRows(CellsTestPage):
     def cell(self):
-        index = 5
-        num_elements = 6
-        elements = []
-        for i in range(num_elements):
-            elements.append(cells.Text("{}-{}".format(index, i)))
+        column_keys = ["One", "Two", "Three"]
+        rows = {
+            "first": {"One": "cat", "Two": "dog", "Three": "giraffe"},
+            "second": {"One": "elephant", "Two": "cat", "Three": "giraffe"},
+        }
 
-        return cells.TableRow(index, elements)
+        def renderer(row_key, column_key):
+            row = rows[row_key]
+            return cells.Text("[ {} ]".format(row[column_key]))
 
-    def text(self):
-        return "You should see a row of basic text elements"
+        first_filter = ["cat", "", ""]
+        second_filter = ["", "", "giraffe"]
 
-
-class BasicTablePage(CellsTestPage):
-    def cell(self):
-        page_size = 5
-        total_num_rows = 14
-        row_element_size = 3
-
-        def makeRowElements(row_index):
-            elements = []
-            for element_index in range(row_element_size):
-                elements.append(cells.Text("({}, {})\t".format(row_index, element_index)))
-            return elements
-
-        rows = []
-        for row_index in range(total_num_rows):
-            elements = makeRowElements(row_index)
-            rows.append(cells.TableRow(row_index, elements))
-
-        # Now create three TablePages.
-        # The final one should only have 4 rows
-        total_pages_slot = cells.Slot(3)
-        first_page_current_slot = cells.Slot(1)
-        first_page = cells.TablePage(
-            rows, first_page_current_slot, total_pages_slot, page_size
-        )
-        second_page_current_slot = cells.Slot(2)
-        second_page = cells.TablePage(
-            rows, second_page_current_slot, total_pages_slot, page_size
-        )
-        third_page_current_slot = cells.Slot(3)
-        third_page = cells.TablePage(
-            rows, third_page_current_slot, total_pages_slot, page_size
-        )
-
-        first_display = cells.Panel(
-            (
-                cells.Text("Page Num:")
-                >> cells.Subscribed(lambda: first_page_current_slot.get())
+        # First Example
+        # 'cat' in column 1
+        # Should only filter out the first row
+        ex1_first_row = cells.TableRow(0, "first", column_keys, renderer)
+        ex1_second_row = cells.TableRow(1, "second", column_keys, renderer)
+        first_example = cells.Panel(
+            cells.Text("Filter One (cat in column one)")
+            + cells.Subscribed(
+                lambda: ex1_first_row
+                if ex1_first_row.filter(first_filter)
+                else "[filtered out]"
             )
-            + first_page
-        )
-        second_display = cells.Panel(
-            (
-                cells.Text("Page Num:")
-                >> cells.Subscribed(lambda: second_page_current_slot.get())
+            + cells.Subscribed(
+                lambda: ex1_second_row
+                if ex1_second_row.filter(first_filter)
+                else "[filtered out]"
             )
-            + second_page
-        )
-        third_display = cells.Panel(
-            (
-                cells.Text("Page Num:")
-                >> cells.Subscribed(lambda: third_page_current_slot.get())
-            )
-            + third_page
         )
 
-        # Display as vertical sequence
-        return first_display + second_display + third_display
+        # Second Example
+        # giraffe in column three
+        # Should show boths rows
+        ex2_first_row = cells.TableRow(0, "first", column_keys, renderer)
+        ex2_second_row = cells.TableRow(1, "second", column_keys, renderer)
+        second_example = cells.Panel(
+            cells.Text("Filter Two (giraffe in last column)")
+            + cells.Subscribed(
+                lambda: ex2_first_row
+                if ex2_first_row.filter(second_filter)
+                else "[filtered out]"
+            )
+            + cells.Subscribed(
+                lambda: ex2_second_row
+                if ex2_second_row.filter(second_filter)
+                else "[filtered out]"
+            )
+        )
+
+        return first_example + second_example
 
     def text(self):
         return (
-            "You should see three TablePages each with at most "
-            "5 items, mapped over a total row list of 14 items. \
-                Note that the last TablePage should only have 4 items"
+            "You should see a first example where only the first of "
+            "two rows is filtered (shown)"
         )
+
+
+def test_table_rows_render(headless_browser):
+    root = headless_browser.get_demo_root_for(BasicTableRows)
+    assert root
+    rows_selector = '{} [data-cell-type="TableRow"]'.format(
+        headless_browser.demo_root_selector
+    )
+    row_elements = headless_browser.find_by_css(rows_selector)
+    assert row_elements

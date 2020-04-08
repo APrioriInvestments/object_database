@@ -289,6 +289,39 @@ class CodeEditorDelayedMouseover(CellsTestPage):
         return "You should see a code editor and a mirror of its contents."
 
 
+class CodeEditorInSplitView(CellsTestPage):
+    def cell(self):
+        contents = cells.Slot("")
+
+        def onTextChange(buffer, selection):
+            contents.set(buffer)
+
+        return cells.ResizablePanel(
+            cells.CodeEditor(onTextChange=onTextChange),
+            cells.Subscribed(lambda: cells.Code(contents.get())),
+        )
+
+    def text(self):
+        return "You should see a code editor and a mirror of its contents."
+
+
+class CodeEditorInSplitViewWithHeader(CellsTestPage):
+    def cell(self):
+        contents = cells.Slot("")
+
+        def onTextChange(buffer, selection):
+            contents.set(buffer)
+
+        return cells.ResizablePanel(
+            cells.Text("This is an editor:") + cells.CodeEditor(onTextChange=onTextChange),
+            cells.Text("This should show what's in the editor")
+            + cells.Subscribed(lambda: cells.Code(contents.get())),
+        )
+
+    def text(self):
+        return "You should see a code editor and a mirror of its contents."
+
+
 class CodeEditorSetFirstVisibleRow(CellsTestPage):
     def cell(self):
         contents = cells.Slot("No Text Entered Yet!")
@@ -326,39 +359,6 @@ def test_set_first_row(headless_browser):
     first_line = headless_browser.find_by_css(".ace_gutter-active-line")
     assert first_line
     assert first_line.text == "5"
-
-
-class CodeEditorInSplitView(CellsTestPage):
-    def cell(self):
-        contents = cells.Slot("")
-
-        def onTextChange(buffer, selection):
-            contents.set(buffer)
-
-        return cells.ResizablePanel(
-            cells.CodeEditor(onTextChange=onTextChange),
-            cells.Subscribed(lambda: cells.Code(contents.get())),
-        )
-
-    def text(self):
-        return "You should see a code editor and a mirror of its contents."
-
-
-class CodeEditorInSplitViewWithHeader(CellsTestPage):
-    def cell(self):
-        contents = cells.Slot("")
-
-        def onTextChange(buffer, selection):
-            contents.set(buffer)
-
-        return cells.ResizablePanel(
-            cells.Text("This is an editor:") + cells.CodeEditor(onTextChange=onTextChange),
-            cells.Text("This should show what's in the editor")
-            + cells.Subscribed(lambda: cells.Code(contents.get())),
-        )
-
-    def text(self):
-        return "You should see a code editor and a mirror of its contents."
 
 
 class ServerSideSetFirstVisibleRow(CellsTestPage):
@@ -420,6 +420,25 @@ def test_set_first_row_serverside(headless_browser):
 
     headless_browser.wait(10).until(textIsTen)
     assert textIsTen()
+
+    def text(self):
+        return (
+            "Should see a CodeEditor and its content. Try typing to see the"
+            " custom completer function in action."
+        )
+
+
+class CodeEditorCustomCompleterBasic(CellsTestPage):
+    def cell(self):
+        contents = cells.Slot("No Text Entered Yet!")
+        customCompleterFunction = lambda s: ["complete ME1!", "complete ME2!"]
+
+        def onTextChange(content, selection):
+            contents.set(content)
+
+        return cells.CodeEditor(
+            onTextChange=onTextChange, customCompleterFunction=customCompleterFunction
+        )
 
     def text(self):
         return (

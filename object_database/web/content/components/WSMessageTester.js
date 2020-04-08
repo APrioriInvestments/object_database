@@ -61,7 +61,7 @@ class WSMessageTester extends Component {
      */
     _updateData(dataInfos, projector) {
         dataInfos.map((dataInfo) => {
-            if (dataInfo.message === "WSTest"){
+            if (dataInfo.action === "WSTest"){
                 let method = dataInfo["method"];
                 let args = dataInfo["args"];
                 let newText = "I just ran " + method + " with " + JSON.stringify(args);

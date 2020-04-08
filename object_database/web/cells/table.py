@@ -30,6 +30,32 @@ from math import ceil
 
 
 class TableColumn(Cell):
+    """
+    TableColumn class
+
+    Represents a TableHeader column element, which includes
+    the name of the column, the key for the column, and
+    slots for dealing with filtering and sorting itself
+
+    Properties
+    ----------
+    key: str
+        The key for identifying the column in its table
+        structure
+    label: str
+        The label to give the column as it appears in
+        the user interface
+    filter_slot: Slot
+        A slot representing the column's filter value.
+        This is set in the recalculate method of
+        Table (See for more information)
+    sort_slot: Slot
+        A slot representing the parent Table's current
+        sort information. A sortSlot is a tuple of the
+        key of the column that is currently being sorted
+        on and the direction (ascending/descending).
+    """
+
     def __init__(self, key, label, filterSlot, sortSlot=None):
         super().__init__()
         self.key = key
@@ -52,17 +78,30 @@ class TableColumn(Cell):
 
 
 class TableColumnSorter(Cell):
+    """
+    TableColumSorter class
+
+    Represents a Cell structure that contains dynamic
+    sort buttons designed for display inside of a
+    TableColumn. These buttons are presented as
+    toggle direction arrows in the UI of the
+    parent column
+
+    Parameters
+    ----------
+    key: str
+        The key of the column for which this
+        Cell is a child
+    sort_slot: Slot
+        A slot containing the current sorting
+        information for the parent Table.
+        This slot is a tuple of the key for
+        the current column being sorted and
+        the direction of the sort. See Table
+        for more information
+    """
+
     def __init__(self, columnKey, currentSortSlot):
-        """currentSortSlot represents a tuple with
-        the first element as the key of the column
-        that is currently sorted on and the second
-        being a direction (ascending/descending)
-        If the slot is None there is no sorting
-        anywhere.
-        Note that the second element in the tuple
-        is a boolean. If true, we are sorted by
-        ascending. If false, descending.
-        """
         super().__init__()
         self.key = columnKey
         self.sort_slot = currentSortSlot
@@ -92,7 +131,30 @@ class TableColumnSorter(Cell):
 
 
 class TableHeader(Cell):
-    """columns is a list of TableColumn cells"""
+    """
+    TableHeader class
+
+    Represents the top control row of the parent Table.
+    Is a collection of TableColumns that provide interactive
+    pagination, sorting, and filtering on the Table.
+
+    Properties
+    ----------
+    columns: list
+        A list of TableColumns that will be displayed
+        in the UI of the table header
+    label_maker: Function
+        A function for making the labels for each column.
+        The function takes the a column key as its param
+    paginator: TablePaginator
+        A TablePaginator cell for dealing with the pagination
+        slot interaction
+    sort_slot: Slot
+        The parent Table's current sorting information.
+        Note that this slot is a tuple of the key of
+        the current column being sorted and the direction
+        of the sort
+    """
 
     def __init__(self, columns, labelFunc, paginator, sortSlot):
         super().__init__()
@@ -124,6 +186,27 @@ class TableHeader(Cell):
 
 
 class TablePaginator(Cell):
+    """
+    TablePaginator class
+
+    Represents an interactive cell that displays and allows
+    the user to cycle through the current pages on the table.
+    Creates the appropriate buttons and reactive inputs that
+    will update the provided slots.
+
+    Is designed to be used primarily in TableHeader, but
+    can be inserted in other places via Slot composition.
+
+    Properties
+    ----------
+    currentPageSlot: Slot
+        A slot holding the current page being viewed
+        in the table.
+    totalPagesSlot: Slot
+        A slot holding the current number of
+        total pages
+    """
+
     def __init__(self, currentPageSlot, totalPagesSlot):
         super().__init__()
         self.currentPageSlot = currentPageSlot
@@ -159,6 +242,44 @@ class TablePaginator(Cell):
 
 
 class TableRow(Cell):
+    """
+    TableRow class
+
+    Represents a row of data values (Cells) in a Table.
+
+    A TableRow handles the rendering and filtering of
+    its values, and holds information about the column
+    in which each data element appears.
+
+    NOTE: Important aspects of filtering occur in this
+    object.
+
+    Properties
+    ----------
+    index: int
+        The index of the row in its parent table
+    key: str or int
+        The key for the given row of data
+    column_keys: list
+        An ordered list of keys for the corresponding
+        Table's columns. These are used to match up the
+        data elements
+    filterer: Function
+        A function that handles filtering of a given data
+        element. Implementors can pass in an optional
+        value for this property in the constructor. The
+        function expects a list of filter terms equal
+        in size to the num of columns, with a term or
+        None for each column. See `defaultFilter` for
+        the default implementation.
+    renderer: Function
+        A function that takes a row key and column key
+        as the params and returns a rendered Cell object
+        for the data element in this row.
+    elements_cache: list
+        A cached collection of rendered data elements
+    """
+
     def __init__(self, index, key, columnKeys, renderer, filterer=None):
         super().__init__()
         self.index = index
@@ -180,6 +301,13 @@ class TableRow(Cell):
         Attempst to use the set self.filterer,
         if present.
         Otherwise defaults to self.defaultFilter
+
+        Parameters
+        ----------
+        filter_terms: list
+            A list equal in size to the parent Table's
+            number of columns, each element being a
+            string to filter on or None
         """
         if self.filterer:
             return self.filterer(filter_terms, self.elements)
@@ -190,7 +318,15 @@ class TableRow(Cell):
         terms and determines if any of the column/filter
         combinations does not match the corresponding
         filter term. If *any* do not match, we return False.
-        Otherwise (at least one matched) we return True"""
+        Otherwise (at least one matched) we return True
+
+        Parameters
+        ----------
+        filter_terms: list
+            A list equal in size to the parent Table's
+            number of columns, each element being a
+            string to filter on or None
+        """
         assert len(filter_terms) == len(self.elements_cache)
         results = []
         for column_index, filter_term in enumerate(filter_terms):
@@ -215,7 +351,20 @@ class TableRow(Cell):
         Cell at the column index from the
         cache. If the value in the cache is
         None, create the element using the
-        renderer function"""
+        renderer function
+
+        Parameters
+        ----------
+        index: int
+            The index of the element to attempt
+            to retrieve in the row of data cells.
+
+        Returns
+        -------
+        Cell: A rendered Cell corresponding to
+            the data element at the index
+            position
+        """
         found = self.elements_cache[index]
         if found is None:
             column_key = self.column_keys[index]
@@ -229,7 +378,18 @@ class TableRow(Cell):
         """Attempt to return this TableRow's
         element that is present at the given
         column key. If we cannot find the column
-        or the element, returns None"""
+        or the element, returns None
+
+        Parameters
+        ----------
+        key: str or int
+            The given column key at which we want to
+            find a rendered data Cell from this row.
+
+        Returns
+        -------
+        Cell or None
+        """
         column_index = self.column_keys.index(key)
         if column_index:
             return self.getElementAtIndex(column_index)
@@ -237,7 +397,14 @@ class TableRow(Cell):
 
     def allElements(self):
         """Return a list of all rendered
-        elements"""
+        elements
+
+        Returns
+        -------
+        list: A collection of rendered data Cell
+            elements that is in the order of columns
+            for the parent Table
+        """
         result = []
         for index, _ in enumerate(self.column_keys):
             result.append(self.getElementAtIndex(index))
@@ -245,7 +412,56 @@ class TableRow(Cell):
 
 
 class TablePage(Cell):
-    """Update this comment"""
+    """
+    TablePage cell
+
+    Represents a single page of TableRows that is currently being
+    displayed for the parent Table.
+
+    TablePage handles updating the currently displayed rows
+    whenever the pagination slots change. It will also update
+    those slots based on any change to the underlying row data,
+    meaning that if the size of the data changes due to filtering,
+    the pagination values will also change.
+
+    TablePage handles sorting. It sorts the underlying TableRows and
+    also maps which rows to then re-display for the given pagination
+    information.
+
+    This class contains most of the more complex interaction
+    of the Table Cell structure.
+
+    Properties
+    ----------
+    row_getter: Function
+        A functiont that returns a collection of keys
+        for each row
+    element_renderer: Function
+        A function that composes a data Cell object
+        based upon the row key and column key for each
+        element. Note that this is passed directly to
+        the TableRow constructor when composing rows,
+        and is not used directly.
+    rows: list
+        A list of composed TableRow instances
+    display_rows: list
+        A list of the composed TableRow instances
+        that are currently being displayed in the
+        active page
+    columns: list
+        A collection of TableColumn objects
+    current_page: Slot
+        A slot holding the current page value (int)
+    total_pages: Slot
+        A slot holding the total pages value (int)
+    sort_slot: Slot
+        A slot holding sort information for the
+        parent Table. Note that this slot is a tuple
+        of the key for the current sort column and
+        the direction of the sort
+    max_rows: int
+        The maximum number of rows to display for each page
+    """
 
     def __init__(self, row_getter, columns, page_info, renderer, sort_slot, max_rows):
         super().__init__()
@@ -381,24 +597,46 @@ class NewTable(Cell):
 
     Properties
     ----------
-    colFun: Function
+    column_getter: Function
             A function that returns a list of keys for each column
-    headerFun: Function
+    header_mapper: Function
             A function that will return a Cell that corrsponds to each
             column header. Takes each result of the colFun as the main
             argument
-    rowFun: Function
+    row_getter: Function
             A function that returns a list of row indices (integers)
-    rendererFun: Function
+    element_renderer: Function
             A function that returns a Cell for each combination of
             row key and column key. Takes the row key and column key
             as the two arguments. Note that these are created by the
             rowFun and colFun respectively
-    maxRowsPerPage: int
+    max_page_size: int
             The maximum number of rows to show for each page
-    currentPage: Slot
-            A Slot holding an int that says which page is currently
-            the active page being viewed
+    row_keys: list
+            A collection of keys for the row data
+    rows: list
+            A collection of initialized TableRow cells
+    columns: list
+            A collection of initialized TableColumn cells
+    filtered_rows: list
+            A collection of TableRow cells that meet
+            the current filtering criteria
+    sorted_rows: list
+            A collection of TableRow cells that is
+            both filtered (filtered_rows) and sorted
+            according to the current sorting criteria
+    column_filters: list
+            A list of Slots for filtering each column
+    sort_slot: Slot
+            A slot containing the current sorting information.
+            Note that this slow is a tuple of the key for the
+            current column being sorted and the direction of
+            the sort. Initializes to (None, None) meaning
+            there is no sorting
+    page_info: dict of Slots
+            A dictionary containing two slots, one for
+            the current (current_page) and another for
+            the total number of pages (total_pages)
     """
 
     def __init__(self, colFun, rowFun, headerFun, rendererFun, maxRowsPerPage=20):

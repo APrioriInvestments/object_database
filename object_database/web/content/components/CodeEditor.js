@@ -33,6 +33,9 @@ class CodeEditor extends Component {
         // The autocomplete method used when completions are coming from the
         // server side
         this.suggestCompletion = this.suggestCompletion.bind(this);
+        // in case of initial server lag we initialze the suggestion list
+        // with something informative
+        this.autocompleteSuggestions = ["fetching suggestions..."];
 
         // Used to register and deregister
         // any global KeyListener instance
@@ -373,7 +376,6 @@ class CodeEditor extends Component {
         dataInfos.map((dataInfo) => {
             if (dataInfo.action === "autocomplete"){
                 this.autocompleteSuggestions = dataInfo.suggestions;
-                console.log(this.autocompleteSuggestions);
             } else if (dataInfo.action === "setFirstVisibleRow"){
                 let row = parseInt(dataInfo.firstVisibleRow);
                 this.editor.resize(true);

@@ -614,16 +614,8 @@ class NewTable(Cell):
             The maximum number of rows to show for each page
     row_keys: list
             A collection of keys for the row data
-    rows: list
-            A collection of initialized TableRow cells
     columns: list
             A collection of initialized TableColumn cells
-    filtered_rows: list
-            A collection of TableRow cells that meet
-            the current filtering criteria
-    sorted_rows: list
-            A collection of TableRow cells that is
-            both filtered (filtered_rows) and sorted
             according to the current sorting criteria
     column_filters: list
             A list of Slots for filtering each column
@@ -647,11 +639,7 @@ class NewTable(Cell):
         self.element_renderer = rendererFun
         self.max_page_size = maxRowsPerPage
 
-        self.row_keys = []
-        self.rows = []
         self.columns = []
-        self.filtered_rows = []
-        self.sorted_rows = []
         self.column_filters = {}
 
         # Various slots we will use for composition
@@ -679,23 +667,6 @@ class NewTable(Cell):
         )
         self.children["header"] = header
         self.children["page"] = page
-
-    def makeRowCells(self):
-        try:
-            row_cells = []
-            column_keys = [column.key for column in self.columns]
-            self.row_keys = list(self.row_getter())
-            for row_index, row_key in enumerate(self.row_keys):
-                row_cells.append(
-                    TableRow(row_index, row_key, column_keys, self.element_renderer)
-                )
-            self.rows = row_cells
-
-        except SubscribeAndRetry:
-            raise
-        except Exception:
-            self._logger.exception("Row create function calculation threw exception:")
-            self.rows = []
 
     def makeColumnCells(self):
         try:
@@ -725,21 +696,3 @@ class NewTable(Cell):
         # We initialize with a current page
         # and total num pages of 1
         return {"current_page": Slot(1), "total_pages": Slot(1)}
-
-    def sort_rows(self, rows_to_sort):
-        # Doing nothing for now
-        return [row for row in rows_to_sort]
-
-    def filter_rows(self, rows_to_filter):
-        # Rows is a list of TableRow Cells
-        filtered_rows = []
-        for row in rows_to_filter:
-            filter_slots = []
-            for column in self.columns:
-                filter_slot = self.column_filters[column.key]
-                filter_slots.append(filter_slot)
-            row_does_match = row.filter(filter_slots)
-            if row_does_match:
-                filtered_rows.append(row)
-
-        return filtered_rows

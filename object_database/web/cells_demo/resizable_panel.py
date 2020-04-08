@@ -122,3 +122,43 @@ class ResizePanelWithButtons(CellsTestPage):
                 else cells.Subscribed(toggledSecondAndThird)
             )
         )
+
+
+class ResizePanelWithCodeObject(CellsTestPage):
+    def text(self):
+        return (
+            "Should see a resizable panel with a horizontal split. "
+            " The contents should be scrollable code panes."
+        )
+
+    def cell(self):
+        return cells.ResizablePanel(
+            cells.Code("\n".join([f"top panel line {line}" for line in range(100)])),
+            cells.Code(
+                "\n".join([" " * 30 + f"bottom panel line {line}" for line in range(100)])
+            ),
+            ratio=0.50,
+            split="horizontal",
+        )
+
+
+class ResizePanelWithCodeObjectInPanels(CellsTestPage):
+    def text(self):
+        return (
+            "Should see a resizable panel with a horizontal split. "
+            " The contents should be scrollable code panes."
+        )
+
+    def cell(self):
+        return cells.ResizablePanel(
+            cells.Panel(
+                cells.Code("\n".join([f"top panel line {line}" for line in range(100)]))
+            ),
+            cells.Panel(
+                cells.Code(
+                    "\n".join([" " * 30 + f"bottom panel line {line}" for line in range(100)])
+                )
+            ),
+            ratio=0.50,
+            split="horizontal",
+        )

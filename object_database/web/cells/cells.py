@@ -1854,14 +1854,10 @@ class Traceback(Cell):
 
 
 class Code(Cell):
-    # TODO: It looks like codeContents might not
-    # need to be an actual Cell, but instead just
-    # some data passed to this Cell.
     def __init__(self, codeContents):
         super().__init__()
         self.codeContents = codeContents
-        codeContentsCell = Cell.makeCell(codeContents)
-        self.children["code"] = codeContentsCell
+        self.exportData["contents"] = str(codeContents)
 
     def sortsAs(self):
         return self.codeContents

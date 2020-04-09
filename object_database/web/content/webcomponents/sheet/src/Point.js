@@ -32,6 +32,8 @@ class Point {
             this.y = arrayOrPoint.y;
         }
 
+        this.isPoint = true;
+
         // Bind intance methods
         this.equals = this.equals.bind(this);
         this.toString = this.toString.bind(this);

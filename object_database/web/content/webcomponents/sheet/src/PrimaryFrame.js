@@ -96,13 +96,13 @@ class PrimaryFrame extends TableElementsFrame {
                 this.origin.x + (num - 1),
                 this.corner.y
             ]);
-            this.numLockColumns = num;
+            this.numLockedColumns = num;
         }
         this.adjustLayout();
     }
 
     /**
-     * Adjust the layout of the contituent
+     * Adjust the layout of the constituent
      * lockedRow, lockedColumn, and view frames
      * based upon their current values and positions.
      * Note: Locked rows come first, then columns, then
@@ -201,4 +201,9 @@ class PrimaryFrame extends TableElementsFrame {
         ];
         return new Frame(relativeOrigin, relativeCorner);
     }
-}
+};
+
+export {
+    PrimaryFrame,
+    PrimaryFrame as default
+};

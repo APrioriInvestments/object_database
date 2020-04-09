@@ -11,7 +11,7 @@
  */
 import Point from './Point.js';
 
-const validateGeometry = (corner, origin) => {
+const validateGeometry = (origin, corner) => {
     if(origin.x > corner.x || origin.y > corner.y){
         throw "Origin must be top-left and corner must be bottom-right";
     }

@@ -242,6 +242,7 @@ def headless_browser():
     yield tester
 
     tester.webdriver.close()
+    tester.webdriver.quit()
     tester.server.terminate()
     tester.server.wait()
 

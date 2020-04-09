@@ -2418,7 +2418,7 @@ class DisplayLineTextBox(Cell):
         self.slot.set(msgFrame["text"])
 
 
-class Table(Cell):
+class OldTable(Cell):
     """An active table with paging, filtering, sortable columns."""
 
     def __init__(self, colFun, rowFun, headerFun, rendererFun, maxRowsPerPage=20):

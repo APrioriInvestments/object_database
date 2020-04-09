@@ -48,7 +48,7 @@ from object_database.web.cells.cells import (
     Grid,
     SortWrapper,
     SingleLineTextBox,
-    Table,
+    OldTable,
     Clickable,
     Button,
     ButtonGroup,
@@ -64,7 +64,7 @@ from object_database.web.cells.cells import (
     Timestamp,
     HorizontalSequence,
     WSMessageTester,
-    DisplayLineTextBox
+    DisplayLineTextBox,
 )
 
 from object_database.web.cells.table import (
@@ -74,7 +74,7 @@ from object_database.web.cells.table import (
     TableHeader,
     TableRow,
     TablePage,
-    NewTable,
+    Table,
 )
 
 from object_database.web.cells.views.split_view import SplitView

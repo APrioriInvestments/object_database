@@ -589,7 +589,7 @@ class TablePage(Cell):
         super().prepareForReuse()
 
 
-class NewTable(Cell):
+class Table(Cell):
     """Table Cell
 
     This acts as a reactive table of rows, complete with

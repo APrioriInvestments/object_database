@@ -39,7 +39,7 @@ def test_can_find_first_cell(headless_browser):
     value, which is '1'"""
     root = headless_browser.get_demo_root_for(MultiPageTable)
     assert root
-    expected_value = "1"
+    expected_value = "0"
     first_cell_query = "{} > tbody > tr > td".format(headless_browser.demo_root_selector)
     first_cell_location = (headless_browser.by.CSS_SELECTOR, first_cell_query)
     headless_browser.wait(5).until(
@@ -52,8 +52,10 @@ def test_can_find_first_cell(headless_browser):
 def test_can_paginate_forward(headless_browser):
     """Ensure that we can paginate, then find
     new value in first cell"""
-    expected_value = "51"
-    query = "{} > thead > tr > th > *:nth-child(3)".format(headless_browser.demo_root_selector)
+    expected_value = "50"
+    query = "{}  [data-cell-type='TablePaginator'] > *:nth-child(4)".format(
+        headless_browser.demo_root_selector
+    )
     right_btn = headless_browser.find_by_css(query)
     assert right_btn
     right_btn.click()
@@ -69,8 +71,10 @@ def test_can_paginate_forward(headless_browser):
 def test_can_paginate_back(headless_browser):
     """Now ensure that we can paginate backward
     """
-    expected_value = "1"
-    query = "{} > thead > tr > th > :first-child".format(headless_browser.demo_root_selector)
+    expected_value = "0"
+    query = "{}  [data-cell-type='TablePaginator'] > :first-child".format(
+        headless_browser.demo_root_selector
+    )
     left_btn = headless_browser.find_by_css(query)
     assert left_btn
     left_btn.click()
@@ -122,65 +126,20 @@ class TableWithEditStructure(CellsTestPage):
 
     def text(self):
         return (
-            "You should see a table with several rows, a button to add new rows, "
+            "You should see a Table with several rows, a button to add new rows, "
             "a delete button on each row, and an edit box on each cell's text. "
             "If you change the text and hit enter, you should see the page re-sort."
         )
 
 
-class NewTableWithEditStructure(CellsTestPage):
-    def cell(self):
-        rows = cells.Slot((1, 2, 3))
-        rowData = {1: cells.Slot("hi"), 2: cells.Slot("bye"), 3: cells.Slot("yoyo")}
-
-        def renderFun(rowLabel, fieldname):
-            data = rowData.setdefault(rowLabel, cells.Slot("empty"))
-
-            if fieldname == "Delete":
-                return cells.Button(
-                    cells.Octicon("trashcan"),
-                    lambda: rows.set(tuple(x for x in rows.get() if x != rowLabel)),
-                )
-            if fieldname == "Edit":
-                return cells.SingleLineTextBox(data)
-            if fieldname == "Contents":
-                return cells.Subscribed(lambda: data.get())
-
-        return cells.Button(
-            "new", lambda: rows.set(rows.get() + (max(rows.get()) + 1,))
-        ) + cells.ResizablePanel(
-            cells.NewTable(
-                colFun=lambda: ["Delete", "Edit", "Contents"],
-                rowFun=lambda: rows.get(),
-                headerFun=lambda x: x,
-                rendererFun=renderFun,
-                maxRowsPerPage=50,
-            ),
-            cells.NewTable(
-                colFun=lambda: ["Delete", "Edit", "Contents"],
-                rowFun=lambda: rows.get(),
-                headerFun=lambda x: x,
-                rendererFun=renderFun,
-                maxRowsPerPage=50,
-            ),
-        )
-
-    def text(self):
-        return (
-            "You should see a NewTable with several rows, a button to add new rows, "
-            "a delete button on each row, and an edit box on each cell's text. "
-            "If you change the text and hit enter, you should see the page re-sort."
-        )
-
-
-class HugeNewTable(CellsTestPage):
+class HugeTable(CellsTestPage):
     def cell(self):
         rows = [i for i in range(1000)]
 
         def renderer(rowLabel, columnLabel):
             return cells.Cell.makeCell("{}-{}".format(columnLabel, rowLabel))
 
-        return cells.NewTable(
+        return cells.Table(
             colFun=lambda: ["Col1", "Col2", "Col3", "Col4", "Col5"],
             rowFun=lambda: rows,
             headerFun=lambda columnLabel: columnLabel,
@@ -195,7 +154,7 @@ class HugeNewTable(CellsTestPage):
         )
 
 
-class HugeNewTableSorting(CellsTestPage):
+class HugeTableSorting(CellsTestPage):
     def cell(self):
         rows = [i for i in range(10000)]
 
@@ -203,7 +162,7 @@ class HugeNewTableSorting(CellsTestPage):
             num = random.randrange(0, 1000000)
             return cells.Cell.makeCell(str(num))
 
-        return cells.NewTable(
+        return cells.Table(
             colFun=lambda: ["Col1", "Col2", "Col3"],
             rowFun=lambda: rows,
             headerFun=lambda label: label,

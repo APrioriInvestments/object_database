@@ -26,7 +26,6 @@ from object_database.web.cells import (
     Octicon,
     Tabs,
     Table,
-    NewTable,
     Clickable,
     Dropdown,
     Popover,
@@ -145,7 +144,7 @@ def servicesTable():
     )
     serviceCounts = [val for val in serviceCountsChain]
 
-    table = NewTable(
+    table = Table(
         colFun=lambda: [
             "Service",
             "Codebase Status",

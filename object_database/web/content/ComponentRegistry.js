@@ -40,8 +40,8 @@ import {SingleLineTextBox} from './components/SingleLineTextBox';
 import {Span} from './components/Span';
 import {Subscribed} from './components/Subscribed';
 import {SubscribedSequence} from './components/SubscribedSequence';
+import {OldTable} from './components/OldTable';
 import {Table} from './components/Table';
-import {NewTable} from './components/NewTable';
 import {TableColumn} from './components/TableColumn';
 import {TableColumnSorter} from './components/TableColumnSorter';
 import {TableHeader} from './components/TableHeader';
@@ -103,12 +103,11 @@ const ComponentRegistry = {
     Span,
     Subscribed,
     SubscribedSequence,
+    OldTable,
     Table,
-    NewTable,
     TableColumn,
     TableColumnSorter,
     TableHeader,
-    NewTableHeader: TableHeader,
     TableRow,
     TablePage,
     TablePaginator,

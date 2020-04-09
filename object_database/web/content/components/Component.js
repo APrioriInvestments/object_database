@@ -22,6 +22,9 @@ class Component {
         // use it
         this.handler = handler;
 
+        // If a KeyListener is defined it will be bound here
+        this.keyListener = null;
+
         // Whether or not the the component
         // is a Subscribed. We do this
         // because Subscribed is a proxy
@@ -144,6 +147,13 @@ class Component {
      * dict of components and also from the DOM.
      */
     componentWillUnload(){
+        // pause/remove the keyListener if present
+        if (this.keyListener){
+            this.keyListener.pause();
+        }
+        if (this.constructor.keyListener){
+            this.constructor.keyListener.pause();
+        }
         return null;
     }
 

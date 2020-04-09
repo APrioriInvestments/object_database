@@ -23,6 +23,8 @@ class TableElementsFrame extends Frame {
     }
 
     initialBuild(){
+        this.rowElements = [];
+        this.tdElements =  [];
         this.forEachPointRow((row, rowIndex) => {
             let rowEl = document.createElement('tr');
             rowEl.setAttribute('data-y', rowIndex);

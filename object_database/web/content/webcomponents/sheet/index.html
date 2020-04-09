@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Sheet Webcomponent Tests</title>
+        <meta charset="utf-8">
+        <script src="./dist/sheet.bundle.js"></script>
+    </head>
+    <body>
+        <div id="main">
+            <test-sheet rows="10" columns="20" locked-rows="2" locked-columns="1"></test-sheet>
+        </div>
+    </body>
+    <style>
+     .in-locked-row {
+         background-color: rgba(150, 150, 150, 0.4);
+     }
+     .in-locked-column {
+         background-color: rgba(150, 150, 150, 0.4);
+     }
+    </style>
+</html>

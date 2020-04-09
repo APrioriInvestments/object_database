@@ -4,6 +4,7 @@ const h = maquette.h;
 import {NewCellHandler as CellHandler} from './NewCellHandler';
 import {CellSocket} from './CellSocket';
 import {ComponentRegistry} from './ComponentRegistry';
+import {KeydownEventRegistry} from './KeydownEventRegistry';
 import {KeyListener} from './components/util/KeyListener';
 import {Component, render} from './components/Component';
 
@@ -17,6 +18,7 @@ import './webcomponents';
 window.langTools = ace.require("ace/ext/language_tools");
 window.aceEditorComponents = {};
 window.handsOnTables = {};
+window.keydownEventRegistry = KeydownEventRegistry;
 
 /**
  * Initial Render

@@ -144,6 +144,13 @@ class PrimaryFrame extends TableElementsFrame {
         });
     }
 
+    updateCellContents(){
+        this.relativeViewFrame.forEachPoint(point => {
+            let value = this.dataFrame.getAt(point);
+            this.elementAt(point).innerText = value;
+        });
+    }
+
     /**
      * This is the lockedRowsFrame relative
      * to the dataOffset point. Returns a totally

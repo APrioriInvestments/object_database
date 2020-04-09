@@ -50,7 +50,7 @@ class DataFrame extends Frame {
         } else {
             throw "Invalid Point or Coordinate";
         }
-        this.store[key] = object;
+        this.store[key] = value;
     }
 
     /**
@@ -151,4 +151,9 @@ class DataFrame extends Frame {
         return(this.area == Object.keys(this.store).length);
     }
 
-}
+};
+
+export {
+    DataFrame,
+    DataFrame as default
+};

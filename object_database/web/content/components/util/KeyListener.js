@@ -47,20 +47,18 @@ class KeyListener {
      * @param {DOMElement} target - The target element
      * to which we will bind all key event listeners.
      * defaults to `window.document.body`
-     * @param {CellSocket} cellSocket - An instance
-     * of `CellSocket` so that we can create socket
-     * event listeners. By default, we send the event data
-     * over the `cellSocket` when a key event happens.
+     * @param {Array} bindings - Array of instances of
+     * KeyBinding
      */
-    constructor(target, cellSocket){
+    constructor(target, bindings){
         this._target = target | window.document.body;
-        this.socket = cellSocket;
         this.listenersByPriority = {
             '1': [],
             '2': [],
             '3': [],
             '4': []
         };
+        this.bindings = bindings;
         this.listenersByCellId = {};
 
         // Bind methods
@@ -78,37 +76,27 @@ class KeyListener {
      * This method will bind the instance's single main listener,
      * `mainListener` to the specified target object, either the
      * passed in value or the stored internal one from construction.
+     * I also add the listener to the global KeydownEventListener
      * The idea here is that we can easily stop and start all of the
      * constituent listeners simply by adding / removing this single
      * listener.
-     * @param {DOMElement} target - A target DOMElement to which
-     * we will bind the global keydown listener. If not passed, will
-     * use the target specified at instantiation.
-     * @param {CellSocket} socket - A `CellSocket` instance that
-     * will handle all constituent listener responses. Will use
-     * the internal value from instantiation if nothing is passed.
      */
-    start(target, socket){
-        console.log('Starting global KeyListener');
-        if(target){
-            this._target = target;
-        }
-        if(socket){
-            this.socket = socket;
-        }
+    start(){
         this._target.addEventListener('keydown', this.mainListener, {'capture': true});
+        window.KeydownEventListener.add(this);
     }
 
     /**
      * Stops global listening for keydown events.
      * In practice, this method simply removes the single
-     * listener from the target DOMElement.
+     * listener from the target DOMElement and from the global
+     * KeydownEventListntner.
      * To resume, one can simply call `start()` again without
      * arguments.
      */
     pause(){
-        console.log('keyListener paused');
         this._target.removeEventListener('keydown', this.mainListener);
+        window.KeydownEventListener.remove(this);
     }
 
     /**
@@ -126,14 +114,7 @@ class KeyListener {
             let bindings = this.listenersByPriority[level];
             for(var j = 0; j < bindings.length; j++){
                 let currentBinding = bindings[j];
-                let shouldStop = currentBinding.handle(event);
-                if(shouldStop){
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-                    event.preventDefault();
-                    event.cancelBubble=true;
-                    return;
-                }
+                currentBinding.handle(event);
             }
         }
     }
@@ -259,15 +240,20 @@ class KeyBinding {
       * Will be passed the normal keydown event object.
       * @param {Number} priority - The priority level of the binding. Can
       * be in range 1 through 4.
-      * @param {Boolean} stopsPropagation - Whether or not this keybinding, once
-      * its listener has fired, should stop other keybindings with the same
-      * command from firing.
+      * @param {Boolean} stopPropagation -
+      * @param {Boolean} stopImmediatePropagation -
+      * @param {Boolean} preventDefault -
+      * @param {Boolean} cancelBubble -
       */
-    constructor(command, listener, priority=4, stopsPropagation=false){
+    constructor(command, listener, priority=4, stopPropagation=false,
+        stopImmediatePropagation=false, preventDefault=false, cancelBubble=false){
         this.command = command;
         this.listener = listener;
         this.priority = priority;
-        this.stopsPropagation = stopsPropagation;
+        this.stopPropagation = stopPropagation;
+        this.stopImmediatePropagation = stopImmediatePropagation;
+        this.preventDefault = preventDefault;
+        this.cancelBubble = cancelBubble;
         this.commandKeys = this.command.split("+");
 
         // Bind instance methods
@@ -288,6 +274,18 @@ class KeyBinding {
      * stops. false in all other cases.
      */
     handle(event){
+        if(this.stopPropagation){
+            event.stopPropagation();
+        }
+        if(this.stopImmediatePropagation){
+            event.stopImmediatePropagation();
+        }
+        if(this.preventDefault){
+            event.preventDefault();
+        }
+        if(this.cancelBubble){
+            event.cancelBubble=true;
+        }
         if(this.commandKeys.length == 0){
             return false;
         } else if(this.commandKeys.length == 1){

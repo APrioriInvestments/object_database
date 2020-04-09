@@ -72,7 +72,7 @@ class KeydownEventRegistry {
         };
         cellSocket.sendString(JSON.stringify(responseData));
     }
-
 }
+
 
 export {KeydownEventRegistry, KeydownEventRegistry as default};

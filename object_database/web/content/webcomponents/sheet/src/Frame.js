@@ -32,6 +32,7 @@ class Frame {
         this.translate = this.translate.bind(this);
         this.intersection = this.intersection.bind(this);
         this.union = this.union.bind(this);
+        this.copy = this.copy.bind(this);
         this.forEachPoint = this.forEachPoint.bind(this);
         this.forEachCoordinate = this.forEachCoordinate.bind(this);
         this.mapEachPoint = this.mapEachPoint.bind(this);
@@ -214,36 +215,17 @@ class Frame {
         let originX;
         let originY;
 
-        // Set the new origin to be the min
-        // of the possible x and y values for
-        // both
-        if(this.origin.x <= otherFrame.origin.x){
-            originX = this.origin.x;
-        } else {
-            originX = otherFrame.origin.x;
-        }
-        if(this.origin.y <= otherFrame.origin.y){
-            originY = this.origin.y;
-        } else {
-            originY = otherFrame.origin.y;
-        }
+        let newOrigin = new Point([
+            Math.min(this.origin.x, otherFrame.origin.x),
+            Math.min(this.origin.y, otherFrame.origin.y)
+        ]);
 
-        // Set the new corner to be the max of
-        // the possible x, y values for both
-        if(this.corner.x >= otherFrame.corner.x){
-            cornerX = this.corner.x;
-        } else {
-            cornerX = otherFrame.corner.x;
-        }
-        if(this.corner.y >= otherFrame.corner.y){
-            cornerY = this.corner.y;
-        } else {
-            cornerY = otherFrame.corner.y;
-        }
-        return new Frame(
-            [originX, originY],
-            [cornerX, cornerY]
-        );
+        let newCorner = new Point([
+            Math.max(this.corner.x, otherFrame.corner.x),
+            Math.max(this.corner.y, otherFrame.corner.y)
+        ]);
+
+        return new Frame(newOrigin, newCorner);
     }
 
     /**
@@ -463,6 +445,20 @@ class Frame {
     }
 
     /**
+     * Return a new instance with the
+     * same origin, corner, and empty
+     * values as myself.
+     */
+    copy(){
+        let copyFrame = new Frame(
+            this.origin,
+            this.corner
+        );
+        copyFrame.isEmpty = this.isEmpty;
+        return copyFrame;
+    }
+
+    /**
      * Class method for constructing a new
      * empty Frame.
      */
@@ -526,6 +522,16 @@ class Frame {
         // is the origin and the second is the
         // corner
         return new Frame(firstPoint, secondPoint);
+    }
+
+    static newOfSize(width, height){
+        // We return -1 for each
+        // dimension because Frame
+        // is zero-indexed
+        return new this(
+            [0,0],
+            [width-1, height-1]
+        );
     }
 }
 

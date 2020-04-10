@@ -181,4 +181,22 @@ describe("Keydown Event Tests.", () => {
             assert.isTrue(mockEvent.isPreventDefault);
         });
     });
+    describe("KeyListener Class Tests.", () => {
+        before(() => {
+            command = "S";
+            handler = function testHadler() {return true};
+            keyBindingSingle = new KeyBinding(command, handler);
+            command = "shiftKey+S";
+            handler = function testHadler() {return true};
+            keyBindingCombo = new KeyBinding(command, handler);
+            component = new MockComponent({id: '1000'});
+        });
+        after(() => {});
+        it.skip("KeyListener instantiation", () => {
+            let renderedComponent = render(component);
+            console.log(renderedComponent);
+            let kl = new KeyListener(renderedComponent, [keyBindingSingle, keyBindingCombo]);
+            assert.equal(kl.bindings.length, 2);
+        });
+    });
 });

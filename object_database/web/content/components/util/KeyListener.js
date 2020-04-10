@@ -34,12 +34,11 @@ const modKeyMap = {
 
 
 /**
- * A class whose instances manage keypress
- * event listeners on the global window object.
- * Note that particular keycombo/listener combinations
+ * A class whose instances manage keydown event listeners.
+ * Note that particular keycombo/handler combinations
  * are stored internally as instances of `KeyBinding`.
- * This class should be initialized only once on a given
- * page.
+ * Note also that only the `keydown` even if listned to
+ * as opposed to `keypress` or `keyup`.
  */
 class KeyListener {
     /**
@@ -51,24 +50,22 @@ class KeyListener {
      * KeyBinding
      */
     constructor(target, bindings){
-        this._target = target | window.document.body;
-        this.listenersByPriority = {
-            '1': [],
-            '2': [],
-            '3': [],
-            '4': []
-        };
+        this.target = target;
         this.bindings = bindings;
-        this.listenersByCellId = {};
+        this.id = this.createId(this.target);
 
         // Bind methods
         this.start = this.start.bind(this);
         this.pause = this.pause.bind(this);
         this.mainListener = this.mainListener.bind(this);
-        this.privRegister = this.privRegister.bind(this);
-        this.register = this.register.bind(this);
-        this.deregister = this.deregister.bind(this);
-        this.makeListenerFor = this.makeListenerFor.bind(this);
+    }
+
+    /* I generate a unique id for the listener.
+     * @param {DOMElement} target - The target element
+     * to which this event listener is bound.
+     */
+    createId(target){
+        return `${target.data.cellType}-${target.id}`
     }
 
     /**
@@ -82,7 +79,7 @@ class KeyListener {
      * listener.
      */
     start(){
-        this._target.addEventListener('keydown', this.mainListener, {'capture': true});
+        this.target.addEventListener('keydown', this.mainListener, {'capture': true});
         window.KeydownEventListener.add(this);
     }
 
@@ -95,132 +92,23 @@ class KeyListener {
      * arguments.
      */
     pause(){
-        this._target.removeEventListener('keydown', this.mainListener);
+        this.target.removeEventListener('keydown', this.mainListener);
         window.KeydownEventListener.remove(this);
     }
 
     /**
-     * The main keydown event listener that is attached
+     * I am the main keydown event listener that is attached
      * to the target DOMElement when `start()` is called.
-     * Cycles through the different listeners by priority level,
-     * in order from 1 to 4. If at any point a keybinging
-     * wants to stop propagation, this listener will return
-     * from itself and stop calling the rest of the listeners.
+     * I pass along the event to each of the bindings (instances
+     * of KeyBinding) and let these handle, or ingore, the event
+     * as needed.
      * @param {KeyEvent} event - A keydown event object.
      */
     mainListener(event){
-        for(let i = 1; i < 5; i++){
-            let level = i.toString();
-            let bindings = this.listenersByPriority[level];
-            for(var j = 0; j < bindings.length; j++){
-                let currentBinding = bindings[j];
-                currentBinding.handle(event);
-            }
-        }
+        this.bindings.forEach((binding) => {
+            binding.handle(event);
+        });
     }
-
-    /**
-     * Private method that will create a new `KeyBinding` and add
-     * it to the appropriate priority level along with a function/listener
-     * and other information.
-     * @param {String} command - A key combination command like `Alt+i` or just `I`.
-     * @param {Function} listener - A function that will be called as the listener
-     * for this command.
-     * @param {String|Number} cellId - The ID of the Cell object that is handling
-     * this particular key combination.
-     * @param {Number} priority - the priority level for the handler. Can be in range
-     * 1 to 4.
-     * @param {Boolean} stopsPropagation - Whether or not the listener, once triggered,
-     * should stop further listeners of this key combination from firing.
-     */
-    privRegister(command, listener, cellId, priority=4, stopsPropagation=false){
-        let binding = new KeyBinding(
-            command,
-            listener,
-            priority,
-            stopsPropagation
-        );
-        if(this.listenersByCellId[cellId]){
-            this.listenersByCellId[cellId].push(binding);
-        } else {
-            this.listenersByCellId[cellId] = [binding];
-        }
-        this.listenersByPriority[priority].push(binding);
-    }
-
-    /**
-     * Public method for registering a new kebinding and listener.
-     * Uses `makeListener` internally to make a function that will
-     * make an appropriate socket call with the `desiredInfo` attached.
-     * Uses `privRegister` internally to set up priority levels etc.
-     * @param {String} command - A key combination command like `Alt+i` or
-     * `Meta+D` etc
-     * @param {[String]} desiredInfo - An array of keys on the keydown event
-     * object whose values should be sent back over the socket with the response
-     * event data.
-     * @param {String|Number} cellId - The ID of the Cell that owns this particular
-     * key listener.
-     * @param {Number} priority - The priority level of the listener. Can be in range
-     * 1 to 4.
-     * @param {Boolean} stopsPropagation - Whether or not the listener, once triggered,
-     * should stop all other listeners on this command from also firing.
-     */
-    register(command, desiredInfo, cellId, priority=4, stopsPropagation=false){
-        let listener = this.makeListenerFor(cellId, desiredInfo);
-        this.privRegister(command, listener, cellId, priority, stopsPropagation);
-    }
-
-    /**
-     * Removes all listeners from the registry
-     * that match the provided Cell ID.
-     * @param {String|Number} cellId - The ID of the cell whose
-     * listener should be removed from the registry.
-     */
-    deregister(cellId){
-        let found = this.listenersByCellId[cellId];
-        if(found){
-            Object.keys(this.listenersByPriority).forEach(priorityLevel => {
-                let current = this.listenersByPriority[priorityLevel];
-                let updated = current.filter(item => {
-                    return !found.includes(item);
-                });
-                this.listenersByPriority[priorityLevel] = updated;
-            });
-            delete this.listenersByCellId[cellId];
-        }
-    }
-
-    /**
-     * Creates a listener function that will send a correctly
-     * formatted response over the `CellSocket`.
-     * @param {String|Number} cellId - The ID of the Cell that owns
-     * the listener function and keybinding
-     * @param {[String]} desiredData - An array of string/keys on
-     * the keydown event object whose values should be included
-     * in the data sent back over the socket.
-     */
-    makeListenerFor(cellId, desiredData){
-        if(this.socket){
-            let currentSocket = this.socket;
-            return function(event){
-                let responseData = {};
-                desiredData.forEach(key => {
-                    responseData[key] = event[key];
-                });
-
-                currentSocket.sendString(JSON.stringify({
-                    event: 'keypress',
-                    target_cell: cellId,
-                    data: responseData
-                }));
-            };
-        } else {
-            return function(event){
-                console.warn(`Default keyhandler for Cell ${cellId}`);
-            };
-        }
-    }
-
 }
 
 /**
@@ -235,26 +123,27 @@ class KeyBinding {
     /**
       * @param {String} command - A key combo command string like `Alt+i`,
       * `X`, `Meta+D`, etc.
-      * @param {Function} listener - A function that serves as the event
-      * listener, which will be triggered when the command is pressed.
+      * @param {Function} handler - A function that serves as the event
+      * handler, which will be triggered when the command is pressed.
       * Will be passed the normal keydown event object.
-      * @param {Number} priority - The priority level of the binding. Can
-      * be in range 1 through 4.
-      * @param {Boolean} stopPropagation -
-      * @param {Boolean} stopImmediatePropagation -
-      * @param {Boolean} preventDefault -
-      * @param {Boolean} cancelBubble -
+      * @param {Boolean} stopPropagation - prevents further propagation of
+      * the current event in the capturing and bubbling phases.
+      * @param {Boolean} stopImmediatePropagation - prevents other
+      * listeners of the same event from being called.
+      * @param {Boolean} preventDefault - tells the user agent that if the
+      * event does not get explicitly handled, its default action should
+      * not be taken as it normally would be.
       */
-    constructor(command, listener, priority=4, stopPropagation=false,
-        stopImmediatePropagation=false, preventDefault=false, cancelBubble=false){
+    constructor(command, handler, stopPropagation=false,
+        stopImmediatePropagation=false, preventDefault=false){
         this.command = command;
-        this.listener = listener;
-        this.priority = priority;
+        this.handler = handler;
         this.stopPropagation = stopPropagation;
         this.stopImmediatePropagation = stopImmediatePropagation;
         this.preventDefault = preventDefault;
-        this.cancelBubble = cancelBubble;
         this.commandKeys = this.command.split("+");
+        this.key = this.commandKeys[this.commandKeys.length - 1];
+        this.modKeys = this.commandKeys.slice(0, this.commandKeys.length - 1);
 
         // Bind instance methods
         this.handle = this.handle.bind(this);
@@ -264,13 +153,13 @@ class KeyBinding {
 
     /**
      * For a given keydown event, attempt to "handle" it
-     * by calling this object's listener.
+     * by calling this object's handler.
      * Note that if there is only one command key (ie the command
      * is a single character without a modifier key like `X`)
      * we call `handleSingleKey`. Otherwise calls `handleComboKey`.
      * @param {KeyEvent} event - A keydown event object
      * @returns {Boolean} - Will return true if the keybinding
-     * both has its listener called and requires that propagation
+     * both has its handler called and requires that propagation
      * stops. false in all other cases.
      */
     handle(event){
@@ -283,13 +172,10 @@ class KeyBinding {
         if(this.preventDefault){
             event.preventDefault();
         }
-        if(this.cancelBubble){
-            event.cancelBubble=true;
-        }
-        if(this.commandKeys.length == 0){
+        if(!this.key){
             return false;
-        } else if(this.commandKeys.length == 1){
-            return this.handleSingleKey(event, this.commandKeys[0]);
+        } else if(this.modKeys.length == 0){
+            return this.handleSingleKey(event, this.key);
         } else {
             return this.handleComboKey(event);
         }
@@ -299,7 +185,7 @@ class KeyBinding {
      * Determines if this KeyBinding's
      * single trigger key matches that of the
      * passed in event. If so, that means we have
-     * a match and the listener should fire.
+     * a match and the handler should fire.
      * @param {KeyEvent} event - A keydown event
      * object that we will check for a match with.
      * @param {String} keyName - The name of this
@@ -309,22 +195,21 @@ class KeyBinding {
      * stop propagation. Returns false in all
      * other cases.
      */
-    handleSingleKey(event, keyName){
-        if(event.key == keyName || keyName == "all"){
-            this.listener(event);
-            return this.stopsPropagation;
+    handleSingleKey(event, key){
+        if(event.key == key){
+            return this.handler(event);
         } else {
             return false;
         }
     }
 
     /**
-     * Attempts to "handle" (ie call listener for)
+     * Attempts to "handle" (ie call handler for)
      * cases where this instance uses a modifier key
      * and has a combo command like `Alt+i` or `Meta+D`.
      * Will attempts to match the internal `commandKey`
      * parts to the passed-in event object and, if there
-     * is a match, will call the listener.
+     * is a match, will call the handler.
      * @param {KeyEvent} event - A keydown event object
      * @returns {Boolean} - Will return true only if
      * this binding is a match to the event and it is
@@ -332,14 +217,20 @@ class KeyBinding {
      * other cases.
      */
     handleComboKey(event){
-        let mappedModifier = modKeyMap[this.commandKeys[0]];
-        let modKeyDown = event[mappedModifier];
-        if(modKeyDown){
-            return this.handleSingleKey(event, this.commandKeys[1]);
+        // check that all the modifier keys are down;
+        let modKeysDown = this.modKeys.map((key) => {
+            return event[key];
+        }).every((item) => {
+            return item;
+        });
+        // and if all mod keys are down handle the event
+        // else return false
+        if(modKeysDown){
+            return this.handleSingleKey(event, this.key);
         } else {
             return false;
         }
     }
 }
 
-export {KeyListener, KeyListener as default};
+export {KeyListener, KeyBinding};

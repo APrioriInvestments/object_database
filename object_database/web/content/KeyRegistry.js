@@ -1,10 +1,10 @@
 /**
- * KeydownEvent event registry
+ * Key event registry
  * ----------------------
  * This class stores all application`keydown`events
  */
 
-class KeydownEventRegistry {
+class KeyRegistry {
     constructor(){
         this.keyListeners = {};
 
@@ -68,11 +68,11 @@ class KeydownEventRegistry {
     sendListenerData(){
         let responseData = {
             event: "KeyDownEventListenerInfoRequest",
-            KeydownEventListeners: this.keyListeners
+            KeyListeners: this.keyListeners
         };
         cellSocket.sendString(JSON.stringify(responseData));
     }
 }
 
 
-export {KeydownEventRegistry, KeydownEventRegistry as default};
+export {KeyRegistry, KeyRegistry as default};

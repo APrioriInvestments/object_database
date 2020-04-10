@@ -812,7 +812,6 @@ describe("Sheet util tests.", () => {
             let origin1 = new Point([1, 1]);
             let point = new Point([105, 110]);
             let resultPoint = composition.intersectAndProject(frame1, origin1, point);
-            console.log(resultPoint);
             let testPoint = new Point([5, 9]);
             assert.isTrue(resultPoint.equals(testPoint));
         });

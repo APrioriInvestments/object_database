@@ -12,7 +12,7 @@ class KeyRegistry {
         this.addListener = this.addListener.bind(this);
         this.removeListener = this.removeListener.bind(this);
         this.numberOfListeners = this.numberOfListeners.bind(this);
-        this.getListenerById = this.getListenerByid.bind(this);
+        this.getListenerById = this.getListenerById.bind(this);
         this.getListenersByKeyCombination = this.getListenersByKeyCombination.bind(this);
         this.getListenerByCellId = this.getListenerByCellId.bind(this);
         this.sendListenerData = this.sendListenerData.bind(this);
@@ -36,7 +36,7 @@ class KeyRegistry {
 
     /* I return the number of listners.
      */
-    numberOfListers(){
+    numberOfListeners(){
         return Object.keys(this.keyListeners).length;
     }
 
@@ -59,7 +59,7 @@ class KeyRegistry {
     /* I return the listener by cell id.
      * @param {string} id - id of the listener
      */
-    getListenerById(id){
+    getListenerByCellId(id){
         return; // TODO
     }
 

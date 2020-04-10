@@ -69,6 +69,7 @@ class PrimaryFrame extends TableElementsFrame {
             this.numLockedRows = 0;
             this.lockedRowsFrame = Frame.newEmpty();
         } else {
+            this.lockedRowsFrame.isEmpty = false;
             this.lockedRowsFrame.origin = new Point(this.origin);
             this.lockedRowsFrame.corner = new Point([
                 this.corner.x,
@@ -91,6 +92,7 @@ class PrimaryFrame extends TableElementsFrame {
             this.numLockedColumns = 0;
             this.lockedColumnsFrame = Frame.newEmpty();
         } else {
+            this.lockedColumnsFrame.isEmpty = false;
             this.lockedColumnsFrame.origin = new Point(this.origin);
             this.lockedColumnsFrame.corner = new Point([
                 this.origin.x + (num - 1),

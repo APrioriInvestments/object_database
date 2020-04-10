@@ -8,8 +8,8 @@ import Point from './Point';
 class Sheet extends HTMLElement {
     constructor(){
         super();
-        this.primaryFrame = PrimaryFrame.newEmpty();
-        this.dataFrame = DataFrame.newEmpty();
+        this.dataFrame = new DataFrame([0,0], [0,0]);
+        this.primaryFrame = new PrimaryFrame(this.dataFrame, [0,0]);
         this.tableBody = document.createElement('tbody');
         this.table = document.createElement('table');
 
@@ -78,6 +78,7 @@ class Sheet extends HTMLElement {
         });
         newPrimaryFrame.lockRows(numLockedRows);
         newPrimaryFrame.lockColumns(numLockedColumns);
+        newPrimaryFrame.labelElements();
         this.primaryFrame = newPrimaryFrame;
         this.tableBody.append(...this.primaryFrame.rowElements);
         this.paintExes();

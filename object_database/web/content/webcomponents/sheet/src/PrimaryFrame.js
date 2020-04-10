@@ -123,7 +123,6 @@ class PrimaryFrame extends TableElementsFrame {
         this.lockedColumnsFrame.origin.y = this.numLockedRows;
         this.viewFrame.origin.y = this.numLockedRows;
         this.viewFrame.origin.x = this.numLockedColumns;
-        this.labelElements();
     }
 
     labelElements(){
@@ -148,6 +147,16 @@ class PrimaryFrame extends TableElementsFrame {
 
     updateCellContents(){
         this.relativeViewFrame.forEachPoint(point => {
+            let value = this.dataFrame.getAt(point);
+            this.elementAt(point).innerText = value;
+        });
+
+        this.lockedColumnsFrame.forEachPoint(point => {
+            let value = this.dataFrame.getAt(point);
+            this.elementAt(point).innerText = value;
+        });
+
+        this.lockedRowsFrame.forEachPoint(point => {
             let value = this.dataFrame.getAt(point);
             this.elementAt(point).innerText = value;
         });

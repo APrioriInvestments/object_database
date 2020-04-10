@@ -52,7 +52,7 @@ class KeyListener {
     constructor(target, bindings){
         this.target = target;
         this.bindings = bindings;
-        this.id = this.createId(this.target);
+        this.id = this.createId(target);
 
         // Bind methods
         this.start = this.start.bind(this);
@@ -65,7 +65,8 @@ class KeyListener {
      * to which this event listener is bound.
      */
     createId(target){
-        return `${target.data.cellType}-${target.id}`
+        // TODO change this to a getAttribute() for easier testing?
+        return `${target.dataset.cellType}-${target.id}`
     }
 
     /**

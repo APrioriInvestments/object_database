@@ -65,7 +65,6 @@ class KeyListener {
      * to which this event listener is bound.
      */
     createId(target){
-        // TODO change this to a getAttribute() for easier testing?
         return `${target.dataset.cellType}-${target.id}`
     }
 
@@ -81,7 +80,7 @@ class KeyListener {
      */
     start(){
         this.target.addEventListener('keydown', this.mainListener, {'capture': true});
-        window.KeydownEventListener.add(this);
+        window.keyRegistry.addListener(this);
     }
 
     /**
@@ -94,7 +93,7 @@ class KeyListener {
      */
     pause(){
         this.target.removeEventListener('keydown', this.mainListener);
-        window.KeydownEventListener.remove(this);
+        window.keyRegistry.removeListener(this);
     }
 
     /**

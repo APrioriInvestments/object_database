@@ -8,6 +8,7 @@ const NewCellHandler = require('../../NewCellHandler.js').default;
 const chai = require('chai');
 const assert = chai.assert;
 const registry = require('../../KeyRegistry').KeyRegistry;
+const KeyRegistry = require('../../KeyRegistry.js').KeyRegistry;
 const KeyListener = require('../util/KeyListener.js').KeyListener;
 const KeyBinding = require('../util/KeyListener.js').KeyBinding;
 var Component = require('../Component.js').Component;
@@ -53,8 +54,9 @@ class MockComponent extends Component {
             h('div', {
                 id: this.getElementId(),
                 'data-cell-id': `${this.props.id}`,
+                'data-cell-type': "test",
                 class: "test-component subcomponent"
-            }, [`Child: ${this.props.id}`])
+            }, ['I am a test component'])
         );
     }
 };
@@ -183,6 +185,8 @@ describe("Keydown Event Tests.", () => {
     });
     describe("KeyListener Class Tests.", () => {
         before(() => {
+            // NOTE: this is a global object so will persist throughout the tests
+            window.keyRegistry = new KeyRegistry();
             command = "S";
             handler = function testHadler() {return true};
             keyBindingSingle = new KeyBinding(command, handler);
@@ -190,13 +194,127 @@ describe("Keydown Event Tests.", () => {
             handler = function testHadler() {return true};
             keyBindingCombo = new KeyBinding(command, handler);
             component = new MockComponent({id: '1000'});
+            renderedComponent = render(component);
+            // add dataset attributes to mock the DOM element data
+            renderedComponent["dataset"] = {
+                "cellId": renderedComponent["properties"]["data-cell-id"],
+                "cellType": renderedComponent["properties"]["data-cell-type"],
+            };
+            renderedComponent.id = "1000";
+            // mock the add & remove event listeners
+            renderedComponent.addEventListener = function(eventName, callback, kwargs){
+                return;
+            };
+            renderedComponent.removeEventListener = function(eventName, callback, kwargs){
+                return;
+            };
         });
-        after(() => {});
-        it.skip("KeyListener instantiation", () => {
-            let renderedComponent = render(component);
-            console.log(renderedComponent);
+        after(() => {
+            // reset the registry
+            window.keyRegistry = new KeyRegistry();
+        });
+        it("KeyListener instantiation", () => {
             let kl = new KeyListener(renderedComponent, [keyBindingSingle, keyBindingCombo]);
             assert.equal(kl.bindings.length, 2);
+            assert.equal(kl.id, 'test-1000');
+        });
+        it("KeyListener adding and removing listener", () => {
+            let kl = new KeyListener(renderedComponent, [keyBindingSingle, keyBindingCombo]);
+            assert.equal(kl.bindings.length, 2);
+            assert.exists(window.keyRegistry.keyListeners);
+            assert.equal(Object.keys(window.keyRegistry.keyListeners).length, 0);
+            kl.start();
+            assert.equal(Object.keys(window.keyRegistry.keyListeners).length, 1);
+            kl.pause();
+            assert.equal(Object.keys(window.keyRegistry.keyListeners).length, 0);
+        });
+        it.skip("KeyListener removing listener", () => {
+            let kl = new KeyListener(renderedComponent, [keyBindingSingle, keyBindingCombo]);
+            assert.equal(kl.bindings.length, 2);
+            assert.exists(window.keyRegistry.keyListeners);
+            kl.start();
+            console.log(window.keyRegistry);
+            assert.equal(Object.keys(window.keyRegistry.keyListeners).length, 1);
+            kl.pause();
+            assert.equal(Object.keys(window.keyRegistry.keyListeners).length, 0);
+        });
+    });
+    describe("KeyRegistry Class Tests.", () => {
+        before(() => {
+            // NOTE: this is a global object so will persist throughout the tests
+            window.keyRegistry = new KeyRegistry();
+            command = "S";
+            handler = function testHadler() {return true};
+            keyBindingSingle = new KeyBinding(command, handler);
+            command = "shiftKey+S";
+            handler = function testHadler() {return true};
+            keyBindingCombo = new KeyBinding(command, handler);
+            component1 = new MockComponent({id: '1000'});
+            component2 = new MockComponent({id: '2000'});
+            renderedComponent1 = render(component1);
+            renderedComponent2 = render(component2);
+            // add dataset attributes to mock the DOM element data
+            renderedComponent1["dataset"] = {
+                "cellId": renderedComponent1["properties"]["data-cell-id"],
+                "cellType": renderedComponent1["properties"]["data-cell-type"],
+            };
+            renderedComponent1.id = "cell-1000";
+            // mock the add & remove event listeners
+            renderedComponent1.addEventListener = function(eventName, callback, kwargs){
+                return;
+            };
+            renderedComponent1.removeEventListener = function(eventName, callback, kwargs){
+                return;
+            };
+            renderedComponent2["dataset"] = {
+                "cellId": renderedComponent2["properties"]["data-cell-id"],
+                "cellType": renderedComponent2["properties"]["data-cell-type"],
+            };
+            renderedComponent2.id = "cell-2000";
+            // mock the add & remove event listeners
+            renderedComponent2.addEventListener = function(eventName, callback, kwargs){
+                return;
+            };
+            renderedComponent2.removeEventListener = function(eventName, callback, kwargs){
+                return;
+            };
+            // add some listeners
+            kl1 = new KeyListener(renderedComponent1, [keyBindingSingle, keyBindingCombo]);
+            kl1.start();
+            kl2 = new KeyListener(renderedComponent2, [keyBindingCombo]);
+            kl2.start();
+        });
+        after(() => {
+            // reset the registry
+            window.keyRegistry = new KeyRegistry();
+        });
+        it("Basic setup, number of Listeners", () => {
+            assert.exists(window.keyRegistry.keyListeners);
+            assert.equal(window.keyRegistry.numberOfListeners(), 2);
+        });
+        it("Adding an existing listener error", () => {
+            kl = new KeyListener(renderedComponent1, [keyBindingSingle, keyBindingCombo]);
+            try {
+                kl.start();
+            } catch(e){
+                assert.ok(e);
+            }
+        });
+        it("Get listener by id", () => {
+            let listener = window.keyRegistry.getListenerById('test-cell-1000');
+            assert.exists(listener);
+            assert.equal(listener.target.id, 'cell-1000');
+            listener = window.keyRegistry.getListenerById('BAD_ID');
+            assert.notExists(listener);
+        });
+        it("Get listener by key combination", () => {
+            let listeners = window.keyRegistry.getListenersByKeyCombination('S');
+            assert.exists(listeners);
+            assert.equal(listeners.length, 1);
+            assert.equal(listeners[0].target.id, 'cell-1000');
+            listeners = window.keyRegistry.getListenersByKeyCombination('shiftKey+S');
+            assert.exists(listeners);
+            assert.equal(listeners.length, 2);
         });
     });
 });

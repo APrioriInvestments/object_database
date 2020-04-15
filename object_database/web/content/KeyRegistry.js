@@ -22,6 +22,11 @@ class KeyRegistry {
      * @param {Object} listener - an istance of the KeyListener class
      */
     addListener(listener){
+        if (this.keyListeners[listener.id]){
+            throw `Listener with id ${listener.id} is already in the registry. ` +
+            `You are probably trying to add multiple listeners to the same component, ` +
+                `which is not allowed.`
+        };
         this.keyListeners[listener.id] = listener;
         return true;
     }
@@ -47,20 +52,37 @@ class KeyRegistry {
         return this.keyListeners[id];
     }
 
-    /* I find and return all listeners that match the keyComboString
-     * pattern.
+    /* I find and return all listeners which have a binding
+     * for the specified key combination.
      * @param {Object} keyComboString - string
      * for example 'ctrl-D'
      */
     getListenersByKeyCombination(keyComboString){
-        return; // TODO:
+        let listeners = [];
+        Object.keys(this.keyListeners).forEach((key) => {
+            this.keyListeners[key].bindings.forEach((b) => {
+                if (b.command === keyComboString){
+                    listeners.push(this.keyListeners[key]);
+                }
+            })
+        });
+        return listeners;
     }
 
     /* I return the listener by cell id.
      * @param {string} id - id of the listener
      */
     getListenerByCellId(id){
-        return; // TODO
+        let listeners = [];
+        Object.keys(this.keyListeners).forEach((key) => {
+            if (this.keyListeners[key].target.dataset.cellId === id){
+                listeners.push(this.keyListeners[key]);
+            }
+        });
+        if (listeners.length > 1){
+            throw `Found more than one listener for cell id ${id}. Something is wrong!`;
+        }
+        return listeners[0];
     }
 
     /* I send this.keyListeners data over the WebSocket.

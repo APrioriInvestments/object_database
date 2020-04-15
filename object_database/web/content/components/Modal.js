@@ -4,6 +4,8 @@
 
 import {Component} from './Component';
 import {PropTypes} from './util/PropertyValidator';
+import {KeyListener} from './util/KeyListener';
+import {KeyBinding} from './util/KeyListener';
 import {h} from 'maquette';
 
 /**
@@ -17,7 +19,6 @@ import {h} from 'maquette';
 class Modal extends Component {
     constructor(props, ...args){
         super(props, ...args);
-
         // Track the component show/hide
         // state outside of the props
         // for callback purposes
@@ -35,6 +36,12 @@ class Modal extends Component {
         this.onHide = this.onHide.bind(this);
         this.onEnterKey = this.onEnterKey.bind(this);
         this.onEscapeKey = this.onEscapeKey.bind(this);
+
+        // listener for keydown events
+        let enterBinding = new KeyBinding("Enter", this.onEnterKey, true, false, true);
+        let escapeBinging = new KeyBinding("Escape", this.onEscapeKey, true, false, true);
+        this.keyListener = new KeyListener(document, [enterBinding, escapeBinging]);
+
     }
 
     componentDidLoad(){
@@ -156,30 +163,24 @@ class Modal extends Component {
     onShow(){
         // Bind global event listeners for
         // Enter and Escape keys
-        document.addEventListener('keydown', this.onEnterKey);
-        document.addEventListener('keydown', this.onEscapeKey);
+        this.keyListener.start();
     }
 
     onHide(){
-        document.removeEventListener('keydown', this.onEnterKey);
-        document.removeEventListener('keydown', this.onEscapeKey);
+        this.keyListener.pause();
     }
 
     onEnterKey(event){
-        if (event.key == 'Enter' && this.props.show) {
+        if (this.props.show) {
             console.log("Enter pushed in modal");
             this.sendMessage({event: 'accept'});
-            event.preventDefault();
-            event.stopPropagation();
         }
     }
 
     onEscapeKey(event){
-        if(event.key == 'Escape' && this.props.show) {
+        if(this.props.show) {
             console.log("Escape pushed in modal");
             this.sendMessage({event: 'close'});
-            event.preventDefault();
-            event.stopPropagation();
         }
     }
 }

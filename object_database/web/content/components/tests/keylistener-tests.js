@@ -292,7 +292,7 @@ describe("Keydown Event Tests.", () => {
             assert.exists(window.keyRegistry.keyListeners);
             assert.equal(window.keyRegistry.numberOfListeners(), 2);
         });
-        it("Adding an existing listener error", () => {
+        it.skip("Adding an existing listener error", () => {
             kl = new KeyListener(renderedComponent1, [keyBindingSingle, keyBindingCombo]);
             try {
                 kl.start();

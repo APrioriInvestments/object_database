@@ -18,7 +18,7 @@ import './webcomponents';
 window.langTools = ace.require("ace/ext/language_tools");
 window.aceEditorComponents = {};
 window.handsOnTables = {};
-window.keydownEventRegistry = new KeyRegistry();
+window.keyRegistry = new KeyRegistry();
 
 /**
  * Initial Render
@@ -61,10 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return h('div', {id: 'modal-area'}, []);
     });
     cellSocket.connect();
-    // Component.keyListener = new KeyListener();
-    // window._keyListener = Component.keyListener;
-    // Component.keyListener.start(document, cellSocket);
-    // window._keyListener = Component.keyListener;
 });
 
 // TESTING; REMOVE

@@ -26,12 +26,10 @@ assert.pointsEqual = function(firstPoint, secondPoint, msg){
 
 // We initialize a demo DataFrame 113x133 total.
 // In this frame, we ensure that the stored value
-// for each point is simply the string representation
-// of the Point.
+// for each point is simply the Point itself
 let exampleDataFrame = new DataFrame([0,0], [113, 113]);
 exampleDataFrame.forEachPoint(aPoint => {
-    let stringRep = aPoint.toString();
-    exampleDataFrame.putAt(aPoint, stringRep);
+    exampleDataFrame.putAt(aPoint, aPoint);
 });
 
 describe('Movement Setup', () => {
@@ -40,7 +38,7 @@ describe('Movement Setup', () => {
     });
 });
 
-describe('PrimaryFrame with no locked cols or rows', () => {
+describe('PrimaryFrame Shifting with no locked cols or rows', () => {
     it('Can move right by 1 from origin position', () => {
         /* Expected move:
          * DAPPPPPBDDDDDDDDDDDD...
@@ -412,6 +410,721 @@ describe('PrimaryFrame with no locked cols or rows', () => {
         assert.pointsEqual(viewFrame.topRight, expectedB);
         assert.pointsEqual(viewFrame.bottomLeft, expectedC);
         assert.pointsEqual(viewFrame.bottomRight, expectedE);
+    });
+});
+
+
+describe('PrimaryFrame Shifting with 2 locked rows', () => {
+    let primaryFrame = new PrimaryFrame(exampleDataFrame, [6,3]);
+    primaryFrame.lockRows(2);
+    it('Initial view and locked row frames have correct positions', () => {
+        /*
+         * Setup:
+         *
+         * RRRRRRRDDDDDDDDDDDDD...
+         * RRRRRRRDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * .......................
+         * V=Relative ViewFrame
+         * D=DataFrame
+         * R=Relative Locked rows frame
+         * A=viewFrame topLeft
+         * B=viewFrame topRight
+         * C=viewFrame bottomLeft
+         * D=viewFrame bottomRight
+         */
+        let relLockedRows = primaryFrame.relativeLockedRowsFrame;
+        let relView = primaryFrame.relativeViewFrame;
+        let expectedRowsOrigin = new Point([0,0]);
+        let expectedViewOrigin = new Point([0,2]);
+        let expectedRowsCorner = new Point([6,1]);
+        let expectedViewCorner = new Point([6,3]);
+
+        assert.pointsEqual(relLockedRows.origin, expectedRowsOrigin);
+        assert.pointsEqual(relLockedRows.corner, expectedRowsCorner);
+        assert.pointsEqual(relView.origin, expectedViewOrigin);
+        assert.pointsEqual(relView.corner, expectedViewCorner);
+    });
+    describe('Can shift right by 1', () => {
+        /* From:
+         *
+         * RRRRRRRDDDDDDDDDDDDD...
+         * RRRRRRRDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * .......................
+         *
+         * To:
+         *
+         * DRRRRRRRDDDDDDDDDDDD...
+         * DRRRRRRRDDDDDDDDDDDD...
+         * DVVVVVVVDDDDDDDDDDDD...
+         * DVVVVVVVDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * .......................
+         *
+         * V=Relative ViewFrame
+         * D=DataFrame
+         * R=Locked rows frame
+         * A=viewFrame topLeft
+         * B=viewFrame topRight
+         * C=viewFrame bottomLeft
+         * D=viewFrame bottomRight
+         */
+        before(() => {
+            primaryFrame.shiftRightBy(1);
+        });
+        it('Has correct origin and corner for relative view', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOrigin = new Point([1,2]);
+            let expectedCorner = new Point([7,3]);
+
+            assert.pointsEqual(relativeView.origin, expectedOrigin);
+            assert.pointsEqual(relativeView.corner, expectedCorner);
+        });
+
+        it('Has correct origin and corner for relative rows frame', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOrigin = new Point([1,0]);
+            let expectedCorner = new Point([7,1]);
+
+            assert.pointsEqual(relativeRows.origin, expectedOrigin);
+            assert.pointsEqual(relativeRows.corner, expectedCorner);
+        });
+
+        it('Has correct data from dataFrame at relative view corners', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOriginData = new Point([1,2]);
+            let expectedCornerData = new Point([7,3]);
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeView.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeView.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
+
+        it('Has correct data from dataFrame at relative row corners', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOriginData = new Point([1,0]);
+            let expectedCornerData = new Point([7,1]);
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeRows.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeRows.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
+    });
+
+    describe('Shifting right beyond DataFrame boundary gives correct rightmost view', () => {
+        /* From:
+         *
+         * DRRRRRRRDDDDDDDDDDDD...
+         * DRRRRRRRDDDDDDDDDDDD...
+         * DVVVVVVVDDDDDDDDDDDD...
+         * DVVVVVVVDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * .......................
+         *
+         * To:
+         *
+         * ...DDDDDDDDDDDDDRRRRRRR
+         * ...DDDDDDDDDDDDDRRRRRRR
+         * ...DDDDDDDDDDDDDVVVVVVV
+         * ...DDDDDDDDDDDDDVVVVVVV
+         * ...DDDDDDDDDDDDDDDDDDDD
+         * ...DDDDDDDDDDDDDDDDDDDD
+         * ...DDDDDDDDDDDDDDDDDDDD
+         * .......................
+         *
+         * D=DataFrame
+         * V=Relative ViewFrame
+         * R=Relative Locked Rows Frame
+         */
+        before(() => {
+            primaryFrame.shiftRightBy(primaryFrame.dataFrame.right * 5);
+        });
+
+        it('Has the correct origin and corner for the relative view frame', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOrigin = new Point([
+                (primaryFrame.dataFrame.right - relativeView.size.x),
+                2
+            ]);
+            let expectedCorner = new Point([
+                primaryFrame.dataFrame.right,
+                3
+            ]);
+
+            assert.pointsEqual(relativeView.origin, expectedOrigin);
+            assert.pointsEqual(relativeView.corner, expectedCorner);
+        });
+
+        it('Has the correct origin and corner for the relative locked rows frame', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOrigin = new Point([
+                (primaryFrame.dataFrame.right - relativeRows.size.x),
+                0
+            ]);
+            let expectedCorner = new Point([
+                (primaryFrame.dataFrame.right),
+                1
+            ]);
+
+            assert.pointsEqual(relativeRows.origin, expectedOrigin);
+            assert.pointsEqual(relativeRows.corner, expectedCorner);
+        });
+
+        it('Has the correct data from dataFrame at relative view corners', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOriginData = new Point([
+                (primaryFrame.dataFrame.right - relativeView.size.x),
+                2
+            ]);
+            let expectedCornerData = new Point([
+                primaryFrame.dataFrame.right,
+                3
+            ]);
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeView.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeView.corner);
+        });
+
+        it('Has the correct data from dataFrame at relative locked rows corners', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOriginData = new Point([
+                (primaryFrame.dataFrame.right - relativeRows.size.x),
+                0
+            ]);
+            let expectedCornerData = new Point([
+                (primaryFrame.dataFrame.right),
+                1
+            ]);
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeRows.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeRows.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
+    });
+
+    describe('Can shift left by 1', () => {
+        /* From:
+         *
+         * ...DDDDDDDDDDDDDRRRRRRR
+         * ...DDDDDDDDDDDDDRRRRRRR
+         * ...DDDDDDDDDDDDDVVVVVVV
+         * ...DDDDDDDDDDDDDVVVVVVV
+         * ...DDDDDDDDDDDDDDDDDDDD
+         * ...DDDDDDDDDDDDDDDDDDDD
+         * ...DDDDDDDDDDDDDDDDDDDD
+         * .......................*
+         *
+         * To:
+         *
+         * ...DDDDDDDDDDDDRRRRRRRD
+         * ...DDDDDDDDDDDDRRRRRRRD
+         * ...DDDDDDDDDDDDVVVVVVVD
+         * ...DDDDDDDDDDDDVVVVVVVD
+         * ...DDDDDDDDDDDDDDDDDDDD
+         * ...DDDDDDDDDDDDDDDDDDDD
+         * ...DDDDDDDDDDDDDDDDDDDD
+         * .......................
+         *
+         * D=DataFrame
+         * V=Relative ViewFrame
+         * R=Relative LockedRows Frame
+         */
+        before(() => {
+            primaryFrame.shiftLeftBy(1);
+        });
+
+        it('Has correct origin and corner for relative view frame', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOrigin = new Point([
+                (primaryFrame.dataFrame.right - relativeView.size.x) - 1,
+                2
+            ]);
+            let expectedCorner = new Point([
+                primaryFrame.dataFrame.right - 1,
+                3
+            ]);
+
+            assert.pointsEqual(relativeView.origin, expectedOrigin);
+            assert.pointsEqual(relativeView.corner, expectedCorner);
+        });
+
+        it('Has correct origin and corner for relative locked rows frame', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOrigin = new Point([
+                (primaryFrame.dataFrame.right - relativeRows.size.x) - 1,
+                0
+            ]);
+            let expectedCorner = new Point([
+                primaryFrame.dataFrame.right - 1,
+                1
+            ]);
+
+            assert.pointsEqual(relativeRows.origin, expectedOrigin);
+            assert.pointsEqual(relativeRows.corner, expectedCorner);
+        });
+
+        it('Has correct data from dataFrame at relative view corners', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOriginData = new Point([
+                (primaryFrame.dataFrame.right - relativeView.size.x) - 1,
+                2
+            ]);
+            let expectedCornerData = new Point([
+                primaryFrame.dataFrame.right - 1,
+                3
+            ]);
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeView.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeView.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
+
+        it('Has correct data from dataFrame at relative rows frame corners', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOriginData = new Point([
+                (primaryFrame.dataFrame.right - relativeRows.size.x) - 1,
+                0
+            ]);
+            let expectedCornerData = new Point([
+                primaryFrame.dataFrame.right - 1,
+                1
+            ]);
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeRows.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeRows.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
+    });
+
+    describe('Shifting left beyond DataFrame boundary gives correct leftmost view', () => {
+        /* From:
+         *
+         * ...DDDDDDDDDDDDRRRRRRRD
+         * ...DDDDDDDDDDDDRRRRRRRD
+         * ...DDDDDDDDDDDDVVVVVVVD
+         * ...DDDDDDDDDDDDVVVVVVVD
+         * ...DDDDDDDDDDDDDDDDDDDD
+         * ...DDDDDDDDDDDDDDDDDDDD
+         * ...DDDDDDDDDDDDDDDDDDDD
+         * .......................
+         *
+         * To:
+         *
+         * RRRRRRRDDDDDDDDDDDDD...
+         * RRRRRRRDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * .......................
+         *
+         * D=DataFrame
+         * V=Relative ViewFrame
+         * R=Relative Locked Rows Frame
+         */
+        before(() => {
+            // Attempt to shift left by an
+            // impossible amount
+            primaryFrame.shiftLeftBy(5000);
+        });
+
+        it('Has the correct origin and corner for relative view frame', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOrigin = new Point([0,2]);
+            let expectedCorner = primaryFrame.corner;
+
+            assert.pointsEqual(relativeView.origin, expectedOrigin);
+            assert.pointsEqual(relativeView.corner, expectedCorner);
+        });
+
+        it('Has the correct origin and corner for the relative locked rows frame', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOrigin = primaryFrame.origin;
+            let expectedCorner = new Point([
+                primaryFrame.corner.x,
+                1
+            ]);
+
+            assert.pointsEqual(relativeRows.origin, expectedOrigin);
+            assert.pointsEqual(relativeRows.corner, expectedCorner);
+        });
+
+        it('Has the correct data from dataFrame at relative view corners', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOriginData = new Point([0,2]);
+            let expectedCornerData = primaryFrame.corner;
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeView.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeView.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
+
+        it('Has the correct data from dataFrame at relative rows frame corners', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOriginData = primaryFrame.origin;
+            let expectedCornerData = new Point([
+                primaryFrame.corner.x,
+                1
+            ]);
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeRows.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeRows.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
+    });
+
+    describe('Can shift down by 1', () => {
+        /* From:
+         *
+         * RRRRRRRDDDDDDDDDDDDD...
+         * RRRRRRRDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * .......................
+         *
+         * To:
+         *
+         * RRRRRRRDDDDDDDDDDDDD...
+         * RRRRRRRDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * .......................
+         *
+         * D=DataFrame
+         * V=Relative ViewFrame
+         * R=Relative Locked Rows Frame
+         */
+        before(() => {
+            primaryFrame.shiftDownBy(1);
+        });
+
+        it('Has the correct origin and corner for relative view', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOrigin = new Point([0,3]);
+            let expectedCorner = new Point([6,4]);
+
+            assert.pointsEqual(relativeView.origin, expectedOrigin);
+            assert.pointsEqual(relativeView.corner, expectedCorner);
+        });
+
+        it('Has the correct origin and corner for the relative locked rows frame', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOrigin = new Point([0,0]);
+            let expectedCorner = new Point([6,1]);
+
+            assert.pointsEqual(relativeRows.origin, expectedOrigin);
+            assert.pointsEqual(relativeRows.corner, expectedCorner);
+        });
+
+        it('Has the correct data from dataFrame at relative view corners', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOriginData = new Point([0,3]);
+            let expectedCornerData = new Point([6,4]);
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeView.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeView.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
+
+        it('Has the correct data from dataFrame at relative locked rows corners', () =>{
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOriginData = new Point([0,0]);
+            let expectedCornerData = new Point([6,1]);
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeRows.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeRows.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
+    });
+
+    describe('Shifting down beyond DataFrame boundary gives correct bottom-most view', () => {
+        /* From:
+         *
+         * RRRRRRRDDDDDDDDDDDDD...
+         * RRRRRRRDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * .......................
+         *
+         * To:
+         *
+         * RRRRRRRDDDDDDDDDDDDD...
+         * RRRRRRRDDDDDDDDDDDDD...
+         * .......................
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         *
+         * D=DataFrame
+         * R=Relative Locked Rows Frame
+         * V=Relative ViewFrame
+         */
+        before(() => {
+            // Attempt to shift an impossible
+            // amount downward
+            primaryFrame.shiftDownBy(5000);
+        });
+
+        it('Has the correct origin and corner for the relative view', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOrigin = new Point([
+                0,
+                primaryFrame.dataFrame.bottom - primaryFrame.viewFrame.size.y
+            ]);
+            let expectedCorner = new Point([
+                primaryFrame.viewFrame.size.x,
+                primaryFrame.dataFrame.bottom
+            ]);
+
+            assert.pointsEqual(relativeView.origin, expectedOrigin);
+            assert.pointsEqual(relativeView.corner, expectedCorner);
+        });
+
+        it('Has the correct origin and corner for the relative locked rows', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOrigin = new Point([0,0]);
+            let expectedCorner = new Point([
+                primaryFrame.size.x,
+                1
+            ]);
+
+            assert.pointsEqual(relativeRows.origin, expectedOrigin);
+            assert.pointsEqual(relativeRows.corner, expectedCorner);
+        });
+
+        it('Has the correct data from dataFrame at relative view corners', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOriginData = new Point([
+                0,
+                primaryFrame.dataFrame.bottom - primaryFrame.viewFrame.size.y
+            ]);
+            let expectedCornerData = new Point([
+                primaryFrame.viewFrame.size.x,
+                primaryFrame.dataFrame.bottom
+            ]);
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeView.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeView.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
+
+        it('Has the correct data from dataFrame at relative locked rows corners', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOriginData = new Point([0,0]);
+            let expectedCornerData = new Point([
+                primaryFrame.size.x,
+                1
+            ]);
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeRows.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeRows.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
+    });
+
+    describe('Can shift up by 1', () => {
+        /* From:
+         *
+         * RRRRRRRDDDDDDDDDDDDD...
+         * RRRRRRRDDDDDDDDDDDDD...
+         * .......................
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         *
+         * To:
+         *
+         * RRRRRRRDDDDDDDDDDDDD...
+         * RRRRRRRDDDDDDDDDDDDD...
+         * .......................
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         *
+         * D=DataFrame
+         * R=Relative Locked Rows Frame
+         * V=Relative ViewFrame
+         */
+        before(() => {
+            primaryFrame.shiftUpBy(1);
+        });
+
+        it('Has the correct origin and corner for the relative view', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOrigin = new Point([
+                0,
+                primaryFrame.dataFrame.bottom - 2
+            ]);
+            let expectedCorner = new Point([
+                primaryFrame.size.x,
+                primaryFrame.dataFrame.bottom - 1
+            ]);
+
+            assert.pointsEqual(relativeView.origin, expectedOrigin);
+            assert.pointsEqual(relativeView.corner, expectedCorner);
+        });
+
+        it('Has the correct origin and corner for the relative locked rows', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOrigin = new Point([0,0]);
+            let expectedCorner = new Point([
+                primaryFrame.size.x,
+                1
+            ]);
+
+            assert.pointsEqual(relativeRows.origin, expectedOrigin);
+            assert.pointsEqual(relativeRows.corner, expectedCorner);
+        });
+
+        it('Has the correct data from dataFrame at relative view corners', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOriginData = new Point([
+                0,
+                primaryFrame.dataFrame.bottom - 2
+            ]);
+            let expectedCornerData = new Point([
+                primaryFrame.size.x,
+                primaryFrame.dataFrame.bottom - 1
+            ]);
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeView.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeView.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
+
+        it('Has the correct data from dataFrame at relative locked rows corners', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOriginData = new Point([0,0]);
+            let expectedCornerData = new Point([
+                primaryFrame.size.x,
+                1
+            ]);
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeRows.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeRows.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
+    });
+
+    describe('Shifting up beyond DataFrame boundary gives correct top-most view', () => {
+        /* From:
+         *
+         * RRRRRRRDDDDDDDDDDDDD...
+         * RRRRRRRDDDDDDDDDDDDD...
+         * .......................
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         *
+         * To:
+         *
+         * RRRRRRRDDDDDDDDDDDDD...
+         * RRRRRRRDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * VVVVVVVDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * .......................
+         *
+         * D=DataFrame
+         * R=Relative Locked Rows Frame
+         * V=Relative ViewFrame
+         */
+        before(() => {
+            // Attempt to shift up an
+            // impossible amount
+            primaryFrame.shiftUpBy(5000);
+        });
+
+        it('Has the correct origin and corner for the relative view', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOrigin = new Point([0,2]);
+            let expectedCorner = primaryFrame.corner; // (6,3)
+
+            assert.pointsEqual(relativeView.origin, expectedOrigin);
+            assert.pointsEqual(relativeView.corner, expectedCorner);
+        });
+
+        it('Has the correct origin and corner for the relative locked rows', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOrigin = new Point([0,0]);
+            let expectedCorner = new Point([
+                primaryFrame.size.x,
+                1
+            ]);
+
+            assert.pointsEqual(relativeRows.origin, expectedOrigin);
+            assert.pointsEqual(relativeRows.corner, expectedCorner);
+        });
+
+        it('Has the correct data from dataFrame for relative view corners', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOriginData = new Point([0,2]);
+            let expectedCornerData = primaryFrame.corner; // (6,3)
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeView.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeView.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
+
+        it('Has the correct data from dataFrame for the relative locked rows corners', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOriginData = new Point([0,0]);
+            let expectedCornerData = new Point([
+                primaryFrame.size.x,
+                1
+            ]);
+            let actualOriginData = primaryFrame.dataFrame.getAt(relativeRows.origin);
+            let actualCornerData = primaryFrame.dataFrame.getAt(relativeRows.corner);
+
+            assert.pointsEqual(actualOriginData, expectedOriginData);
+            assert.pointsEqual(actualCornerData, expectedCornerData);
+        });
     });
 });
 

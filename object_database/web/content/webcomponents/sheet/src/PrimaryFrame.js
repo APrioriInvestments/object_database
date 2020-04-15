@@ -111,11 +111,12 @@ class PrimaryFrame extends TableElementsFrame {
      * Adjust the layout of the constituent
      * lockedRow, lockedColumn, and view frames
      * based upon their current values and positions.
-     * Note: Locked rows come first, then columns, then
-     * the view frame.
+     * Note: We overlap rows and columns frames,
+     * here the intersection is represented
+     * as U
      * Example: 2 locked rows, 2 locked columns
-     *     RRRRRRRRRRRR
-     *     RRRRRRRRRRRR
+     *     UURRRRRRRRRR
+     *     UURRRRRRRRRR
      *     CCVVVVVVVVVV
      *     CCVVVVVVVVVV
      *     CCVVVVVVVVVV
@@ -124,7 +125,6 @@ class PrimaryFrame extends TableElementsFrame {
      *     CCVVVVVVVVVV
      */
     adjustLayout(){
-        this.lockedColumnsFrame.origin.y = this.numLockedRows;
         this.viewFrame.origin.y = this.numLockedRows;
         this.viewFrame.origin.x = this.numLockedColumns;
     }
@@ -208,11 +208,11 @@ class PrimaryFrame extends TableElementsFrame {
     get relativeLockedRowsFrame(){
         if(this.numLockedRows){
             let relativeOrigin = [
-                (this.lockedRowsFrame.origin.x + this.dataOffset.origin.x),
+                (this.lockedRowsFrame.origin.x + this.dataOffset.x),
                 this.lockedRowsFrame.origin.y
             ];
             let relativeCorner = [
-                (this.lockedRowsFrame.corner.x + this.dataOffset.corner.x),
+                (this.lockedRowsFrame.corner.x + this.dataOffset.x),
                 this.lockedRowsFrame.corner.y
             ];
             return new Frame(relativeOrigin, relativeCorner);
@@ -228,12 +228,12 @@ class PrimaryFrame extends TableElementsFrame {
     get relativeLockedColumnsFrame(){
         if(this.numLockedColumns){
             let relativeOrigin = [
-                this.lockedRowsFrame.origin.x,
-                (this.lockedRowsFrame.origin.y + this.dataOffset.y)
+                this.lockedColumnsFrame.origin.x,
+                (this.dataOffset.y)
             ];
             let relativeCorner = [
-                this.lockedRowsFrame.corner.x,
-                (this.lockedRowsFrame.corner.y + this.dataOffset.y)
+                this.lockedColumnsFrame.corner.x,
+                (this.dataOffset.y + this.viewFrame.size.y)
             ];
             return new Frame(relativeOrigin, relativeCorner);
         }
@@ -243,17 +243,33 @@ class PrimaryFrame extends TableElementsFrame {
     /**
      * This is the View frame adjusted for the
      * dataOffset (ie, the origin and corner correspond to
-     * some actual position over the dataFrame)
+     * some actual position over the dataFrame) and
+     * the positions of any relative locked rows or
+     * columns frames.
      * Returns a new Frame instance.
      */
     get relativeViewFrame(){
+        let originX = Math.max(this.numLockedColumns, this.dataOffset.x);
+        let originY = Math.max(this.numLockedRows, this.dataOffset.y);
+
+        // In the case where the dataOffset x or y
+        // is *less* than the current number of locked
+        // rows or columns in the relevant dimension,
+        // we have to set the appripriate value
+        // to the offset plus the number of rows/columns
+        if(this.dataOffset.y < this.numLockedRows){
+            originY = this.numLockedRows + this.dataOffset.y;
+        }
+        if(this.dataOffset.x < this.numLockedColumns){
+            originX = this.numLockedColumns + this.dataOffset.x;
+        }
         let relativeOrigin = [
-            (this.viewFrame.origin.x + this.dataOffset.x),
-            (this.viewFrame.origin.y + this.dataOffset.y)
+            originX,
+            originY
         ];
         let relativeCorner = [
-            (this.viewFrame.corner.x + this.dataOffset.x),
-            (this.viewFrame.corner.y + this.dataOffset.y)
+            (originX + this.viewFrame.size.x),
+            (originY + this.viewFrame.size.y)
         ];
         return new Frame(relativeOrigin, relativeCorner);
     }

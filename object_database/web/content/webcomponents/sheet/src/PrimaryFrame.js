@@ -55,6 +55,10 @@ class PrimaryFrame extends TableElementsFrame {
         this.lockColumns = this.lockColumns.bind(this);
         this.adjustLayout = this.adjustLayout.bind(this);
         this.labelElements = this.labelElements.bind(this);
+        this.shiftRightBy = this.shiftRightBy.bind(this);
+        this.shiftLeftBy = this.shiftLeftBy.bind(this);
+        this.shiftDownBy = this.shiftDownBy.bind(this);
+        this.shiftUpBy = this.shiftUpBy.bind(this);
     }
 
     /**
@@ -160,6 +164,40 @@ class PrimaryFrame extends TableElementsFrame {
             let value = this.dataFrame.getAt(point);
             this.elementAt(point).innerText = value;
         });
+    }
+
+    /* Movement */
+
+    shiftRightBy(amount){
+        let nextX = this.dataOffset.x + amount;
+        if((nextX + this.viewFrame.size.x) > this.dataFrame.right){
+            nextX = this.dataFrame.right - this.viewFrame.size.x;
+        }
+        this.dataOffset.x = nextX;
+    }
+
+    shiftLeftBy(amount){
+        let nextX = this.dataOffset.x - amount;
+        if((nextX < this.viewFrame.left)){
+            nextX = this.viewFrame.left;
+        }
+        this.dataOffset.x = nextX;
+    }
+
+    shiftDownBy(amount){
+        let nextY = this.dataOffset.y + amount;
+        if((nextY + this.viewFrame.size.y) > this.dataFrame.bottom){
+            nextY = this.dataFrame.bottom - this.viewFrame.size.y;
+        }
+        this.dataOffset.y = nextY;
+    }
+
+    shiftUpBy(amount){;
+        let nextY = this.dataOffset.y - amount;
+        if((nextY < this.viewFrame.top)){
+            nextY = this.viewFrame.top;
+        }
+        this.dataOffset.y = nextY;
     }
 
     /**

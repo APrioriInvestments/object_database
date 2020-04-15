@@ -168,15 +168,6 @@ class KeyBinding {
      * stops. false in all other cases.
      */
     handle(event){
-        if(this.stopPropagation){
-            event.stopPropagation();
-        }
-        if(this.stopImmediatePropagation){
-            event.stopImmediatePropagation();
-        }
-        if(this.preventDefault){
-            event.preventDefault();
-        }
         if(!this.key){
             return false;
         } else if(this.modKeys.length == 0){
@@ -202,7 +193,17 @@ class KeyBinding {
      */
     handleSingleKey(event, key){
         if(event.key == key){
-            return this.handler(event);
+            let handlerReturn = this.handler(event);
+            if(this.stopPropagation){
+                event.stopPropagation();
+            }
+            if(this.stopImmediatePropagation){
+                event.stopImmediatePropagation();
+            }
+            if(this.preventDefault){
+                event.preventDefault();
+            }
+            return handlerReturn;
         } else {
             return false;
         }

@@ -22,11 +22,11 @@ class KeyRegistry {
      * @param {Object} listener - an istance of the KeyListener class
      */
     addListener(listener){
-        if (this.keyListeners[listener.id]){
-            throw `Listener with id ${listener.id} is already in the registry. ` +
-            `You are probably trying to add multiple listeners to the same component, ` +
-                `which is not allowed.`
-        };
+        // if (this.keyListeners[listener.id]){
+        //    throw `Listener with id ${listener.id} is already in the registry. ` +
+        //    `You are probably trying to add multiple listeners to the same component, ` +
+        //        `which is not allowed.`
+        //};
         this.keyListeners[listener.id] = listener;
         return true;
     }

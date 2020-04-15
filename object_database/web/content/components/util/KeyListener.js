@@ -65,6 +65,11 @@ class KeyListener {
      * to which this event listener is bound.
      */
     createId(target){
+        // if we have no data attributes or id (for example this is the
+        // 'document' element, we use it's node name
+        if (!target.dataset || !target.id){
+            return target.nodeName;
+        }
         return `${target.dataset.cellType}-${target.id}`
     }
 

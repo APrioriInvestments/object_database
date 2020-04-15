@@ -208,6 +208,54 @@ def test_reactor_with_exception(db):
     assert executed[0] > raised[0]
 
 
+def test_unstarted_reactor(db):
+    # check that an unstarted or stopped reactor doesn't track
+    # all transactions forever
+    s = Schema("schema")
+
+    @s.define
+    class Thing:
+        x = int
+        y = int
+
+    db.subscribeToSchema(s)
+
+    def incrementor():
+        with db.transaction():
+            for t in Thing.lookupAll():
+                if t.y != t.x:
+                    t.y = t.x
+
+    r1 = Reactor(db, incrementor)
+
+    with db.transaction():
+        someThings = [Thing(x=i, y=i) for i in range(10)]
+
+    db.flush()
+    assert r1._transactionQueue.qsize() == 0
+
+    with db.transaction():
+        for t in someThings:
+            t.x = t.x + 1
+
+    db.flush()
+    assert r1._transactionQueue.qsize() == 0
+
+    r1.start()
+
+    assert db.waitForCondition(lambda: all(t.x == t.y for t in Thing.lookupAll()), timeout=2.0)
+
+    r1.stop()
+
+    with db.transaction():
+        for t in someThings:
+            t.x = t.x + 1
+
+    db.flush()
+
+    assert r1._transactionQueue.qsize() == 0
+
+
 def test_reactor_with_timestamp_lookup(db):
     # check the semantics of 'curTimestampIsAfter'
     t0 = time.time()

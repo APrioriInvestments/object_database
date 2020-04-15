@@ -110,6 +110,7 @@ class Reactor:
         self.maxSleepTime = maxSleepTime
 
         self._transactionQueue = queue.Queue()
+        self._wantRecordTransactions = False
         self._thread = None
         self._isStarted = False
         self._lastReadKeys = None
@@ -246,6 +247,8 @@ class Reactor:
                 return Timeout
 
         self._drainTransactionQueue()
+        self._wantRecordTransactions = True
+
         result, self._lastReadKeys, self._nextWakeup = self._calculate(
             catchRevisionConflicts=False
         )
@@ -260,6 +263,8 @@ class Reactor:
 
             while self._isStarted:
                 self._drainTransactionQueue()
+                self._wantRecordTransactions = True
+
                 try:
                     _, readKeys, nextWakeup = self._calculate(catchRevisionConflicts=True)
                     exceptionsInARow = 0
@@ -280,7 +285,21 @@ class Reactor:
                     time.sleep(0.001 * exceptionsInARow)
 
                 if readKeys is not None:
+                    # make sure we have not been disabled. It's possible
+                    # someone wrote a wakeup message into the queue,
+                    # which we drained after checking _isStarted.
+                    # because they always set _isStarted _before_ writing
+                    # into the transaction queue, even if we accidentally
+                    # dropped that message, we should still exit now.
+                    if not self._isStarted:
+                        self._wantRecordTransactions = False
+                        self._drainTransactionQueue()
+                        return
+
                     self._blockUntilRecalculate(readKeys, nextWakeup, self.maxSleepTime)
+
+                self._wantRecordTransactions = False
+                self._drainTransactionQueue()
 
         except DeadlockException:
             raise
@@ -391,4 +410,5 @@ class Reactor:
             return None, seenKeys, currentStartTimestamp
 
     def _onTransaction(self, key_value, set_adds, set_removes, transactionId):
-        self._transactionQueue.put(list(key_value) + list(set_adds) + list(set_removes))
+        if self._wantRecordTransactions:
+            self._transactionQueue.put(list(key_value) + list(set_adds) + list(set_removes))

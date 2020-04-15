@@ -368,8 +368,8 @@ class Frame {
         if(this.isEmpty){
             return new Point([0,0]);
         }
-        let x = this.corner.x - this.origin.x;
-        let y = this.corner.y - this.origin.y;
+        let x = (this.corner.x) - this.origin.x;
+        let y = (this.corner.y) - this.origin.y;
         return new Point([x,y]);
     }
 
@@ -401,8 +401,8 @@ class Frame {
         if(this.isEmpty){
             return 0;
         }
-        let maxX = (this.corner.x - this.origin.x) - 1;
-        let maxY = (this.corner.y - this.origin.y) - 1;
+        let maxX = (this.corner.x - this.origin.x) + 1;
+        let maxY = (this.corner.y - this.origin.y) + 1;
         return maxX * maxY;
     }
 

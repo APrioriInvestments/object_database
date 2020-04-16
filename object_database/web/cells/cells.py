@@ -192,6 +192,9 @@ class Cells:
         self._nodesToDataUpdate = set()
 
         # set(Cell)
+        self._nodesToDataRequest = set()
+
+        # set(Cell)
         self._nodesToDiscard = set()
 
         self._transactionQueue = queue.Queue()
@@ -390,6 +393,11 @@ class Cells:
 
         self._nodesToDataUpdate.add(node)
 
+    def markToDataRequest(self, node):
+        assert node.cells is self
+
+        self._nodesToDataRequest.add(node)
+
     def findStableParent(self, cell):
         while True:
             if not cell.parent:
@@ -432,6 +440,11 @@ class Cells:
             res.append(Messenger.cellDataUpdated(node))
             node.updateLifecycleState()
 
+        # make messages for data updated nodes
+        for node in self._nodesToDataRequest:
+            res.append(Messenger.cellDataRequested(node))
+            node.updateLifecycleState()
+
         # Make the compound message
         # listing all the nodes that
         # will be discarded
@@ -467,6 +480,7 @@ class Cells:
 
         self._nodesToBroadcast = set()
         self._nodesToDataUpdate = set()
+        self._nodesToDataRequest = set()
         self._nodesToDiscard = set()
 
         return res
@@ -477,6 +491,8 @@ class Cells:
         for node in self._cells:
             if node.wasDataUpdated:
                 self.markToDataUpdate(node)
+            if node.wasDataRequested:
+                self.markToDataRequest(node)
 
     def _recalculateComputedSlots(self):
         t0 = time.time()
@@ -519,6 +535,10 @@ class Cells:
     def _recalculateSingleCell(self, node):
         if node.wasDataUpdated:
             self.markToDataUpdate(node)
+            # TODO this should be cleaned up
+            return
+        if node.wasDataRequested:
+            self.markToDataRequest(node)
             # TODO this should be cleaned up
             return
 
@@ -810,6 +830,7 @@ class Cell:
         self.wasCreated = True
         self.wasUpdated = False
         self.wasDataUpdated = False  # Whether or not this cell has updated data
+        self.wasDataRequested = False  # Whether this cell requested data
         self.wasRemoved = False
 
         self._logger = logging.getLogger(__name__)
@@ -960,6 +981,11 @@ class Cell:
             # clear the data info. We're using this to send messages, not as 'state'.
             self.exportData["dataInfo"] = None
 
+        if self.wasDataRequested:
+            self.wasDataRequested = False
+
+            # clear the data info. We're using this to send messages, not as 'state'.
+            self.exportData["dataInfo"] = None
         # NOTE: self.wasRemoved is set to False for self.prepareForReuse
         if self.wasRemoved:
             self.wasRemoved = False
@@ -3385,7 +3411,14 @@ class Highlighted(Cell):
 class WSMessageTester(Cell):
     """A helper cell to test cell methods interactively in the browser."""
 
-    def __init__(self, methodToRun=None, WSMessageToSend=None, onCallbackFunc=None, **kwargs):
+    def __init__(
+        self,
+        methodToRun=None,
+        WSMessageToSend=None,
+        messageType="cellDataUpdated",
+        onCallbackFunc=None,
+        **kwargs,
+    ):
         """
         Parameters:
         ----------
@@ -3395,6 +3428,9 @@ class WSMessageTester(Cell):
             WSMessageToSend : dict
                 If provided will send this message across the WS instead of
                 envoking methodToRun
+            messageType : str
+                The WS message type to send; either 'cellDataUpdated'
+                or 'cellDataRequested'
             onCallbackFunc : func
                 If provided will be called on the msgFrame returned from the
                 client.
@@ -3404,10 +3440,12 @@ class WSMessageTester(Cell):
         super().__init__()
         if onCallbackFunc is not None and WSMessageToSend is None:
             raise "you must provided a WSMessageToSend for onCallbackFunc"
+        assert messageType in ["cellDataUpdated", "cellDataRequested"]
         self.content = "Go!"
         self.content = Cell.makeCell(self.content)
         self.methodToRun = methodToRun
         self.WSMessageToSend = WSMessageToSend
+        self.messageType = messageType
         self.onCallbackFunc = onCallbackFunc
         self.kwargs = kwargs
 
@@ -3422,14 +3460,16 @@ class WSMessageTester(Cell):
                     "method": str(self.methodToRun),
                     "args": self.kwargs,
                 }
+                self.wasDataUpdated = True
             elif self.WSMessageToSend is not None:
+                if self.messageType == "cellDataUpdated":
+                    self.wasDataUpdated = True
+                elif self.messageType == "cellDataRequested":
+                    self.wasDataRequested = True
                 dataInfo = self.WSMessageToSend
-            else:
-                return
             self.exportData["dataInfo"] = [dataInfo]
-            self.wasDataUpdated = True
             self.markDirty()
-        if msgFrame["event"] == "WSTestCallback":
+        else:
             if self.onCallbackFunc is not None:
                 self.onCallbackFunc(msgFrame)
 

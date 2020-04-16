@@ -15,7 +15,7 @@ class WSMessageTester extends Component {
     constructor(props, ...args){
         super(props, ...args);
 
-        this.initialText = "Click the button to run the method."
+        this.initialText = "Click me to run."
 
         // Bind context to methods
         this.makeContent = this.makeContent.bind(this);

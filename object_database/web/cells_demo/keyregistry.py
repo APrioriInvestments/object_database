@@ -20,15 +20,30 @@ class KeyRegistryInfoRequest(CellsTestPage):
     """An example of sending a WS message to get the KeyRegistry info."""
 
     def cell(self):
-        message = {"event": "WSTest", "type": "WS message test"}
+        import datetime
+
+        message = {"request": "KeyRegistry"}
 
         messageSlot = cells.Slot("Waiting for a message")
 
+        lastKeystroke = cells.Slot()
+
         def callBack(info):
-            messageSlot.set(info)
+            messageSlot.set("KeyListeners: " + info["KeyListeners"])
 
         return cells.ResizablePanel(
-            cells.WSMessageTester(WSMessageToSend=message, onCallbackFunc=callBack),
+            cells.Sequence(
+                [
+                    cells.WSMessageTester(
+                        WSMessageToSend=message,
+                        messageType="cellDataRequested",
+                        onCallbackFunc=callBack,
+                    ),
+                    cells.KeyAction(
+                        "ctrlKey+t", lambda x: lastKeystroke.set(str(datetime.datetime.now()))
+                    ),
+                ]
+            ),
             cells.Subscribed(lambda: cells.Text(messageSlot.get())),
         )
 

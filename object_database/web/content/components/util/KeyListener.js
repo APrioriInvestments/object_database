@@ -48,10 +48,12 @@ class KeyListener {
      * defaults to `window.document.body`
      * @param {Array} bindings - Array of instances of
      * KeyBinding
+     * @param {String} id - option id for the listener
      */
-    constructor(target, bindings){
+    constructor(target, bindings, id){
         this.target = target;
         this.bindings = bindings;
+        this._id = id;
         this.id = this.createId(target);
 
         // Bind methods
@@ -65,6 +67,9 @@ class KeyListener {
      * to which this event listener is bound.
      */
     createId(target){
+        if (this._id){
+            return this._id;
+        }
         // if we have no data attributes or id (for example this is the
         // 'document' element, we use it's node name
         if (!target.dataset || !target.id){

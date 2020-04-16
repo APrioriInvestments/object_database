@@ -74,12 +74,12 @@ class KeyAction(Cell):
 
     def recalculate(self):
         self.exportData = {
-            "keyCombo": self.keyCmd,
+            "keyCmd": self.keyCmd,
             "stopPropagation": self.stopPropagation,
             "stopImmediatePropagation": self.stopImmediatePropagation,
             "preventDefault": self.preventDefault,
         }
 
     def onMessage(self, messageFrame):
-        messageFrame["data"]["keyCmd"] = self.keyCmd
-        self.callback(messageFrame["data"])
+        if messageFrame["event"] == "keydown":
+            self.callback(messageFrame["data"])

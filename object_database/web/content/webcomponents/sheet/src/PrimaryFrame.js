@@ -55,10 +55,15 @@ class PrimaryFrame extends TableElementsFrame {
         this.lockColumns = this.lockColumns.bind(this);
         this.adjustLayout = this.adjustLayout.bind(this);
         this.labelElements = this.labelElements.bind(this);
+        this.updateLockedRowElements = this.updateLockedRowElements.bind(this);
         this.shiftRightBy = this.shiftRightBy.bind(this);
         this.shiftLeftBy = this.shiftLeftBy.bind(this);
         this.shiftDownBy = this.shiftDownBy.bind(this);
         this.shiftUpBy = this.shiftUpBy.bind(this);
+        this.pageUp = this.pageUp.bind(this);
+        this.pageDown = this.pageDown.bind(this);
+        this.pageLeft = this.pageLeft.bind(this);
+        this.pageRight = this.pageRight.bind(this);
     }
 
     /**
@@ -150,19 +155,64 @@ class PrimaryFrame extends TableElementsFrame {
     }
 
     updateCellContents(){
-        this.relativeViewFrame.forEachPoint(point => {
-            let value = this.dataFrame.getAt(point);
-            this.elementAt(point).innerText = value;
-        });
+        this.updateLockedRowElements();
+        this.updateLockedColumnElements();
+        this.updateViewElements();
 
-        this.lockedColumnsFrame.forEachPoint(point => {
-            let value = this.dataFrame.getAt(point);
-            this.elementAt(point).innerText = value;
-        });
+        // Update the locked frames intersection,
+        // if there is one
+        if(!this.lockedFramesIntersect.isEmpty){
+            this.lockedFramesIntersect.forEachPoint(aPoint => {
+                let value = this.dataFrame.getAt(aPoint);
+                //this.elementAt(aPoint).innerText = value.toString();
+                this.elementAt(aPoint).innerText = 'x';
+            });
+        }
+    }
 
-        this.lockedRowsFrame.forEachPoint(point => {
-            let value = this.dataFrame.getAt(point);
-            this.elementAt(point).innerText = value;
+    updateLockedRowElements(){
+        if(this.numLockedRows){
+            this.relativeLockedRowsFrame.forEachPoint(aPoint => {
+                let dataValue = this.dataFrame.getAt(aPoint);
+                let translation = new Point([
+                    (aPoint.x - this.dataOffset.x),
+                    aPoint.y
+                ]);
+                this.elementAt(translation).innerText = dataValue.toString();
+            });
+        }
+    }
+
+    updateLockedColumnElements(){
+        if(this.numLockedColumns){
+            let relativeColumns = this.relativeLockedColumnsFrame;
+            let offset = new Point([
+                0,
+                relativeColumns.origin.y - (this.lockedColumnsFrame.origin.y + this.numLockedRows)
+            ]);
+            relativeColumns.forEachPoint(aPoint => {
+                let dataValue = this.dataFrame.getAt(aPoint);
+                let translation = new Point([
+                    aPoint.x,
+                    aPoint.y - offset.y
+                ]);
+                this.elementAt(translation).innerText = dataValue.toString();
+            });
+        }
+    }
+
+    updateViewElements(){
+        let offset = new Point([
+            this.relativeViewFrame.origin.x - this.viewFrame.origin.x,
+            this.relativeViewFrame.origin.y - this.viewFrame.origin.y
+        ]);
+        this.relativeViewFrame.forEachPoint(aPoint => {
+            let value = this.dataFrame.getAt(aPoint);
+            let translation = new Point([
+                aPoint.x - offset.x,
+                aPoint.y - offset.y
+            ]);
+            this.elementAt(translation).innerText = value.toString();
         });
     }
 
@@ -192,7 +242,7 @@ class PrimaryFrame extends TableElementsFrame {
         this.dataOffset.y = nextY;
     }
 
-    shiftUpBy(amount){;
+    shiftUpBy(amount){
         let nextY = this.dataOffset.y - amount;
         if((nextY < this.viewFrame.top)){
             nextY = this.viewFrame.top;
@@ -200,6 +250,25 @@ class PrimaryFrame extends TableElementsFrame {
         this.dataOffset.y = nextY;
     }
 
+    pageRight(){
+        let amount = this.relativeViewFrame.size.x;
+        this.shiftRightBy(amount);
+    }
+
+    pageLeft(){
+        let amount = this.relativeViewFrame.size.x;
+        this.shiftLeftBy(amount);
+    }
+
+    pageUp(){
+        let amount = this.relativeViewFrame.size.y;
+        this.shiftUpBy(amount);
+    }
+
+    pageDown(){
+        let amount = this.relativeViewFrame.size.y;
+        this.shiftDownBy(amount);
+    }
     /**
      * This is the lockedRowsFrame relative
      * to the dataOffset point. Returns a totally
@@ -272,6 +341,21 @@ class PrimaryFrame extends TableElementsFrame {
             (originY + this.viewFrame.size.y)
         ];
         return new Frame(relativeOrigin, relativeCorner);
+    }
+
+    /**
+     * This is the frame representing the intersection
+     * between the lockedRowsFrame and the
+     * lockedColumnsFrame. We use this to permanently
+     * fix data at this frame's points into the top
+     * left corner, but only when there are *both*
+     * locked columns and locked frames
+     */
+    get lockedFramesIntersect(){
+        if(this.numLockedRows && this.numLockedColumns){
+            return this.lockedColumnsFrame.intersection(this.lockedRowsFrame);
+        }
+        return Frame.newEmpty();
     }
 };
 

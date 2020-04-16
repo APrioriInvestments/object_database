@@ -17,14 +17,18 @@ class KeyAction extends Component {
     constructor(props, ...args){
         super(props, ...args);
 
+        // bind method
+        this.onKeyDown = this.onKeyDown.bind(this);
+
+        // Key Listener
         let binding = new KeyBinding(
-            this.props.extraData['keyCombo'],
+            this.props.extraData['keyCmd'],
             this.onKeyDown,
             this.props.extraData['stopPropagation'],
             this.props.extraData['stopImmediatePropagation'],
             this.props.extraData['preventDefault']
         )
-        this.keyListener = new KeyListener(document, [binding]);
+        this.keyListener = new KeyListener(document, [binding], `#document-${this.props.id}`);
     }
 
     componentDidLoad(){
@@ -38,20 +42,15 @@ class KeyAction extends Component {
         return null;
     }
 
-    registerKeyAction(){
-        if(this.constructor.keyListener){
-            this.constructor.keyListener.register(
-                this.props.extraData['keyCombo'],
-                this.props.extraData['wantedEventKeys'],
-                this.props.id,
-                this.props.extraData['priority'],
-                this.props.extraData['stopsPropagation']
-            );
-        } else {
-            throw new Error(`KeyAction(${this.props.id}) attempted to register with the KeyListener but there was no contstructor instance found!`);
-        }
-    }
+    onKeyDown(event){
+        let responseData = {
+            event: 'keydown',
+            'target_cell': this.props.id,
+            data: {keyCmd: this.props.extraData['keyCmd']}
+        };
 
+        cellSocket.sendString(JSON.stringify(responseData));
+    }
     componentWillUnload() {
         this.keyListener.pause();
     }

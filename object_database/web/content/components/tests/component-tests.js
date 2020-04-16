@@ -434,7 +434,7 @@ describe('VElement Build Tests for All Components', () => {
     });
 
     it('KeyAction can build (and returns null)', () => {
-        let comp = new AllComponents.KeyAction({id: 'foo'});
+        let comp = new AllComponents.KeyAction({id: 'foo', extraData: {keyCmd: "Key"}});
         expect(comp[funcName].bind(comp)).to.not.throw();
         let result = comp[funcName]();
         assert.notExists(result);

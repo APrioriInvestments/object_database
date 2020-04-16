@@ -45,6 +45,18 @@ def cellDataUpdated(cell):
     return data
 
 
+def cellDataRequested(cell):
+    """Message of this type requests data from the client.
+    """
+    data = {
+        "channel": "#main",
+        "type": "#cellDataRequested",
+        "id": cell.identity,
+        "dataInfo": cell.exportData["dataInfo"],
+    }
+    return data
+
+
 def cellDiscarded(cell):
     """A lifecycle message formatter
     to be used when a Cell is discarded

@@ -67,13 +67,32 @@ class WSMessageTester extends Component {
         dataInfos.map((dataInfo) => {
             if (dataInfo.event === "WSTest"){
                 let method = dataInfo["method"];
-                let methodDict = this._parseMethodString(method);
-                let args = dataInfo["args"];
-                let newText = `I just ran ${methodDict.cell}.${methodDict.method} (cellId=${methodDict.id}) with args ${JSON.stringify(args)}`;
+                let newText = null;
+                let additionalText = null;
+                // if dataInfo has a "method" key we display information about
+                // the method run.
+                if (method){
+                    let methodDict = this._parseMethodString(method);
+                    let args = dataInfo["args"];
+                    newText = `I just ran ${methodDict.cell}.${methodDict.method} (cellId=${methodDict.id}) with args ${JSON.stringify(args)}`;
+                    additionalText = `Method raw string: ${method}`;
+                } else {
+                    // otherwise we display the raw message that was sent along
+                    newText = `I just sent the following message: ${JSON.stringify(dataInfo)}`;
+                }
                 let display = this.getDOMElement().querySelector("[data-cell-type='WSTesterDisplay']")
                 let displayAdditional = this.getDOMElement().querySelector("[data-cell-type='WSTesterDisplayAdditional']")
                 display.textContent = newText;
-                displayAdditional.textContent = `Method raw string: ${method}`;
+                displayAdditional.textContent = additionalText;
+
+                // send back confirmation of what I receieved
+                let responseData = {
+                    event: 'WSTestCallback',
+                    'target_cell': this.props.id,
+                    messageReceived: dataInfo
+                };
+
+                cellSocket.sendString(JSON.stringify(responseData));
             }
         })
     }

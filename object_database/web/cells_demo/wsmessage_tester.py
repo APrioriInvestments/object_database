@@ -51,3 +51,23 @@ class WSMessageTesterExampleCodeEditor(CellsTestPage):
 
     def text(self):
         return ""
+
+
+class WSMessageTesterSendingMessage(CellsTestPage):
+    """An example of sending a WS message to the server."""
+
+    def cell(self):
+        message = {"event": "WSTest", "type": "WS message test"}
+
+        messageSlot = cells.Slot("Waiting for a message")
+
+        def callBack(info):
+            messageSlot.set(info)
+
+        return cells.ResizablePanel(
+            cells.WSMessageTester(WSMessageToSend=message, onCallbackFunc=callBack),
+            cells.Subscribed(lambda: cells.Text(messageSlot.get())),
+        )
+
+    def text(self):
+        return ""

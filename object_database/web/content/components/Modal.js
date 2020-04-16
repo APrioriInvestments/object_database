@@ -38,6 +38,7 @@ class Modal extends Component {
         this.onEscapeKey = this.onEscapeKey.bind(this);
 
         // listener for keydown events
+        // Note these are defined **after** `this` is bound to the component methods
         let enterBinding = new KeyBinding("Enter", this.onEnterKey, true, false, true);
         let escapeBinging = new KeyBinding("Escape", this.onEscapeKey, true, false, true);
         this.keyListener = new KeyListener(document, [enterBinding, escapeBinging]);

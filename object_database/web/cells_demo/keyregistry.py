@@ -49,3 +49,29 @@ class KeyRegistryInfoRequest(CellsTestPage):
 
     def text(self):
         return ""
+
+
+def test_request_key_registry(headless_browser):
+    # Test that we can find the editor and set the first visible row
+    # programmatically from the server side
+    demo_root = headless_browser.get_demo_root_for(KeyRegistryInfoRequest)
+    assert demo_root
+    # NOTE careful about changing the structure of the demo layout here!
+    responseLine = headless_browser.find_by_css(
+        '{} [data-cell-type="Text"]'.format(headless_browser.demo_root_selector), many=True
+    )[1]
+    assert responseLine
+    assert responseLine.text == "Waiting for a message"
+    toggle_btn = headless_browser.find_by_css('[data-cell-type="WSTesterButton"]')
+    toggle_btn.click()
+
+    # TODO: none of the regular selenium testing patters seemed to work
+    # using sleep here
+    from time import sleep
+
+    sleep(1)
+    # NOTE careful about changing the structure of the demo layout here!
+    line = headless_browser.find_by_css(
+        '{} [data-cell-type="Text"]'.format(headless_browser.demo_root_selector), many=True
+    )[1]
+    assert line.text.startswith("KeyListeners:")

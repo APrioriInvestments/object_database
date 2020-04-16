@@ -1844,6 +1844,10 @@ describe('PrimaryFrame Shifting with 2 locked columns and no locked rows dataOff
     });
 });
 
+describe('PrimaryFrame Shifting Tests 2 locked rows 1 locked column dataOffset(4,4)', () => {
+    it.skip('Should be implemented!');
+});
+
 
 
 

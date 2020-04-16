@@ -40,12 +40,12 @@ class KeyAction(Cell):
                 or event single keys like `X`. "all" means send all key events.
     callback func: A function that will be called with the
                 event response dictionary data as the sole arg.
-    wantedInfo list of str: A list of keys on the UI keydown event object
-                whose values should be sent back to the Cell in the response
-                message. Optional; defaults to None
-    priority int: The priority level of the event response.
-    stopsPropagation bool: Whether or not this KeyAction should fire and then
+    stopPropagation bool: Whether or not this KeyAction should fire and then
                 stop other KeyActions with the same keyCmd from firing
+    stopImmediatePropagation bool: Whether or not this KeyAction should fire and then
+                stop other KeyActions listeners from firing
+    preventDefault bool: Whether or not this KeyAction should fire and then
+                stop other KeyActions from default behavior
 
     Notes
     -----
@@ -56,23 +56,28 @@ class KeyAction(Cell):
     https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent
     """
 
-    def __init__(self, keyCmd, callback, wantedInfo=None, priority=4, stopsPropagation=False):
+    def __init__(
+        self,
+        keyCmd,
+        callback,
+        stopPropagation=False,
+        stopImmediatePropagation=False,
+        preventDefault=False,
+    ):
         super().__init__()
         self.shouldDisplay = False
         self.keyCmd = keyCmd
         self.callback = callback
-        self.wantedInfo = wantedInfo or ()
-        self.priority = priority
-        self.stopsPropagation = stopsPropagation
-
-        assert 1 <= self.priority <= 4
+        self.stopPropagation = stopPropagation
+        self.stopImmediatePropagation = stopImmediatePropagation
+        self.preventDefault = preventDefault
 
     def recalculate(self):
         self.exportData = {
             "keyCombo": self.keyCmd,
-            "wantedEventKeys": self.wantedInfo,
-            "priority": self.priority,
-            "stopsPropagation": self.stopsPropagation,
+            "stopPropagation": self.stopPropagation,
+            "stopImmediatePropagation": self.stopImmediatePropagation,
+            "preventDefault": self.preventDefault,
         }
 
     def onMessage(self, messageFrame):

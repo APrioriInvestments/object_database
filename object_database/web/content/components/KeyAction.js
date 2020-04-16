@@ -10,17 +10,25 @@
  * level.
  */
 import {Component} from './Component';
+import {KeyListener} from './util/KeyListener';
+import {KeyBinding} from './util/KeyListener';
 
 class KeyAction extends Component {
     constructor(props, ...args){
         super(props, ...args);
 
-        // Bind component methods
-        this.registerKeyAction = this.registerKeyAction.bind(this);
+        let binding = new KeyBinding(
+            this.props.extraData['keyCombo'],
+            this.onKeyDown,
+            this.props.extraData['stopPropagation'],
+            this.props.extraData['stopImmediatePropagation'],
+            this.props.extraData['preventDefault']
+        )
+        this.keyListener = new KeyListener(document, [binding]);
     }
 
     componentDidLoad(){
-        this.registerKeyAction();
+        this.keyListener.start();
     }
 
     build(){
@@ -45,7 +53,7 @@ class KeyAction extends Component {
     }
 
     componentWillUnload() {
-        this.constructor.keyListener.deregister(this.props.id)
+        this.keyListener.pause();
     }
 }
 

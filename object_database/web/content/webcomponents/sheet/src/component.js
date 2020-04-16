@@ -8,14 +8,17 @@ import Point from './Point';
 class Sheet extends HTMLElement {
     constructor(){
         super();
-        this.dataFrame = new DataFrame([0,0], [0,0]);
+        this.dataFrame = new DataFrame([0,0], [1000,1000]);
+        this.dataFrame.forEachPoint(aPoint => {
+            let label = aPoint.toString().replace("Point", "");
+            this.dataFrame.putAt(aPoint, label);
+        });
         this.primaryFrame = new PrimaryFrame(this.dataFrame, [0,0]);
         this.tableBody = document.createElement('tbody');
         this.table = document.createElement('table');
 
         // Bind component methods
         this.resize = this.resize.bind(this);
-        this.paintExes = this.paintExes.bind(this);
         this.handleElementClick = this.handleElementClick.bind(this);
     }
 
@@ -69,7 +72,6 @@ class Sheet extends HTMLElement {
         let numLockedRows = parseInt(this.getAttribute('locked-rows'));
         let numLockedColumns = parseInt(this.getAttribute('locked-columns'));
         let newCorner = new Point([numCols-1, numRows-1]);
-        this.dataFrame.corner = newCorner;
         let newPrimaryFrame = new PrimaryFrame(this.dataFrame, newCorner);
         newPrimaryFrame.corner = new Point([numCols-1, numRows-1]);
         newPrimaryFrame.initialBuild();
@@ -81,16 +83,7 @@ class Sheet extends HTMLElement {
         newPrimaryFrame.labelElements();
         this.primaryFrame = newPrimaryFrame;
         this.tableBody.append(...this.primaryFrame.rowElements);
-        this.paintExes();
         this.primaryFrame.updateCellContents();
-    }
-
-    paintExes(){
-        // Does what it says: puts X in
-        // each TD element
-        this.querySelectorAll('td').forEach(el => {
-            el.innerText = 'X';
-        });
     }
 
     static get observedAttributes(){

@@ -39,7 +39,11 @@ class WSMessageTester extends Component {
                 h("div", {
                     "data-cell-id": this.props.id + "-display",
                     "data-cell-type": "WSTesterDisplay",
-                }, [this.initialText])
+                }, [this.initialText]),
+                h("div", {
+                    "data-cell-id": this.props.id + "-display",
+                    "data-cell-type": "WSTesterDisplayAdditional",
+                }, [""])
             ])
         );
     }
@@ -63,12 +67,29 @@ class WSMessageTester extends Component {
         dataInfos.map((dataInfo) => {
             if (dataInfo.event === "WSTest"){
                 let method = dataInfo["method"];
+                let methodDict = this._parseMethodString(method);
                 let args = dataInfo["args"];
-                let newText = "I just ran " + method + " with " + JSON.stringify(args);
+                let newText = `I just ran ${methodDict.cell}.${methodDict.method} (cellId=${methodDict.id}) with args ${JSON.stringify(args)}`;
                 let display = this.getDOMElement().querySelector("[data-cell-type='WSTesterDisplay']")
+                let displayAdditional = this.getDOMElement().querySelector("[data-cell-type='WSTesterDisplayAdditional']")
                 display.textContent = newText;
+                displayAdditional.textContent = `Method raw string: ${method}`;
             }
         })
+    }
+
+    /* I parse out some useful information from the method string.*/
+    _parseMethodString(method){
+        let id = method.match(/id=(\d+)/)[1];
+        let cellBoundMethod = method.match(/method ([A-Za-z\.]+) /)[1];
+        let cellName = null;
+        let methodName = null;
+        if (cellBoundMethod){
+            cellBoundMethod = cellBoundMethod.split('.');
+            cellName = cellBoundMethod[0];
+            methodName = cellBoundMethod[1];
+        }
+        return {id: id, cell: cellName, method: methodName}
     }
 }
 

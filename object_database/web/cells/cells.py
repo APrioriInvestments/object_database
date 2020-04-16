@@ -3385,35 +3385,53 @@ class Highlighted(Cell):
 class WSMessageTester(Cell):
     """A helper cell to test cell methods interactively in the browser."""
 
-    def __init__(self, methodToRun, **kwargs):
+    def __init__(self, methodToRun=None, WSMessageToSend=None, onCallbackFunc=None, **kwargs):
         """
         Parameters:
         ----------
             methodToRun: cell method
                 The method of an initialized cell to run when the
                 WSMessageTester button is clicked.
+            WSMessageToSend : dict
+                If provided will send this message across the WS instead of
+                envoking methodToRun
+            onCallbackFunc : func
+                If provided will be called on the msgFrame returned from the
+                client.
             kwargs: cell method kwargs
 
         """
         super().__init__()
+        if onCallbackFunc is not None and WSMessageToSend is None:
+            raise "you must provided a WSMessageToSend for onCallbackFunc"
         self.content = "Go!"
         self.content = Cell.makeCell(self.content)
         self.methodToRun = methodToRun
+        self.WSMessageToSend = WSMessageToSend
+        self.onCallbackFunc = onCallbackFunc
         self.kwargs = kwargs
 
     def onMessage(self, msgFrame):
         if msgFrame["event"] == "click":
-            # Run the method...
-            self.methodToRun(**self.kwargs)
-            # ... and let the client know what you ran
-            dataInfo = {
-                "event": "WSTest",
-                "method": str(self.methodToRun),
-                "args": self.kwargs,
-            }
+            if self.methodToRun is not None:
+                # Run the method...
+                self.methodToRun(**self.kwargs)
+                # ... and let the client know what you ran
+                dataInfo = {
+                    "event": "WSTest",
+                    "method": str(self.methodToRun),
+                    "args": self.kwargs,
+                }
+            elif self.WSMessageToSend is not None:
+                dataInfo = self.WSMessageToSend
+            else:
+                return
             self.exportData["dataInfo"] = [dataInfo]
             self.wasDataUpdated = True
             self.markDirty()
+        if msgFrame["event"] == "WSTestCallback":
+            if self.onCallbackFunc is not None:
+                self.onCallbackFunc(msgFrame)
 
     def recalculate(self):
         self.children["content"] = self.content

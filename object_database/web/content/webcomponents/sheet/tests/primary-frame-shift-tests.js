@@ -1848,6 +1848,136 @@ describe('PrimaryFrame Shifting Tests 2 locked rows 1 locked column dataOffset(4
     it.skip('Should be implemented!');
 });
 
+describe('Miscallaneous from Origin Position, 1 locked col 2 locked rows, no dataOffset', () => {
+    /* Starting with:
+       *
+       * URRRRRRDDDDDDDDDDDDD...
+       * URRRRRRDDDDDDDDDDDDD...
+       * CVVVVVVDDDDDDDDDDDDD...
+       * CVVVVVVDDDDDDDDDDDDD...
+       * DDDDDDDDDDDDDDDDDDDD...
+       * DDDDDDDDDDDDDDDDDDDD...
+       * DDDDDDDDDDDDDDDDDDDD...
+       * DDDDDDDDDDDDDDDDDDDD...
+       * .......................
+       *
+       * D=DataFrame
+       * V=Relative View Frame'
+       * C=Relative Locked Columns Frame
+       * R=Relative Locked Rows Frame
+       * U=Intersect of Locked rows and columns
+       */
+    let primaryFrame = new PrimaryFrame(exampleDataFrame, [6,3]);
+    primaryFrame.lockRows(2);
+    primaryFrame.lockColumns(1);
+
+    it('Should have the correct origin and corner for relative view', () => {
+        let relativeView = primaryFrame.relativeViewFrame;
+        let expectedOrigin = new Point([1,2]);
+        let expectedCorner = new Point([6,3]);
+
+        assert.pointsEqual(relativeView.origin, expectedOrigin);
+        assert.pointsEqual(relativeView.corner, expectedCorner);
+    });
+
+    it('Should have correct origin and corner for relative rows frame', () => {
+        let relativeRows = primaryFrame.relativeLockedRowsFrame;
+        let expectedOrigin = new Point([1,0]);
+        let expectedCorner = new Point([6,1]);
+
+        assert.pointsEqual(relativeRows.origin, expectedOrigin);
+        assert.pointsEqual(relativeRows.corner, expectedCorner);
+    });
+
+    it('Should have correct origin and corner for locked columns frame', () => {
+        let relativeColumns = primaryFrame.relativeLockedColumnsFrame;
+        let expectedOrigin = new Point([0,2]);
+        let expectedCorner = new Point([0,3]);
+
+        assert.pointsEqual(relativeColumns.origin, expectedOrigin);
+        assert.pointsEqual(relativeColumns.corner, expectedCorner);
+    });
+
+    it('Should have correct origin and corner for locked intersect frame', () => {
+        let intersectFrame = primaryFrame.lockedFramesIntersect;
+        assert.isFalse(intersectFrame.isEmpty);
+        let expectedOrigin = new Point([0,0]);
+        let expectedCorner = new Point([0,1]);
+
+        assert.pointsEqual(intersectFrame.origin, expectedOrigin);
+        assert.pointsEqual(intersectFrame.corner, expectedCorner);
+    });
+
+    describe('Shift right by 1', () => {
+        /* From:
+         *
+         * URRRRRRDDDDDDDDDDDDD...
+         * URRRRRRDDDDDDDDDDDDD...
+         * CVVVVVVDDDDDDDDDDDDD...
+         * CVVVVVVDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * .......................
+         *
+         * To:
+         *
+         * UDRRRRRRDDDDDDDDDDDD...
+         * UDRRRRRRDDDDDDDDDDDD...
+         * CDVVVVVVDDDDDDDDDDDD...
+         * CDVVVVVVDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * DDDDDDDDDDDDDDDDDDDD...
+         * .......................
+         *
+         * D=DataFrame
+         * V=Relative View Frame'
+         * C=Relative Locked Columns Frame
+         * R=Relative Locked Rows Frame
+         * U=Intersect of Locked rows and columns
+         */
+        before(() => {
+            primaryFrame.shiftRightBy(1);
+        });
+
+        it('Should have correct origin and corner for relative view', () => {
+            let relativeView = primaryFrame.relativeViewFrame;
+            let expectedOrigin = new Point([2,2]);
+            let expectedCorner = new Point([7,3]);
+
+            assert.pointsEqual(relativeView.origin, expectedOrigin);
+            assert.pointsEqual(relativeView.corner, expectedCorner);
+        });
+
+        it('Should have correct origin and corner for relative locked rows frame', () => {
+            let relativeRows = primaryFrame.relativeLockedRowsFrame;
+            let expectedOrigin = new Point([2,0]);
+            let expectedCorner = new Point([7,1]);
+
+            assert.pointsEqual(relativeRows.origin, expectedOrigin);
+            assert.pointsEqual(relativeRows.corner, expectedCorner);
+        });
+
+        it('Should have correct origin and corner for relative locked columns frame', () => {
+            let relativeColumns = primaryFrame.relativeLockedColumnsFrame;
+            let expectedOrigin = new Point([0,2]);
+            let expectedCorner = new Point([0,3]);
+        });
+
+        it('Should have correct origin and corner for locked frames intersect frame', () => {
+            let intersectFrame = primaryFrame.lockedFramesIntersect;
+            let expectedOrigin = new Point([0,0]);
+            let expectedCorner = new Point([0,1]);
+
+            assert.pointsEqual(intersectFrame.origin, expectedOrigin);
+            assert.pointsEqual(intersectFrame.corner, expectedCorner);
+        });
+    });
+});
+
 
 
 

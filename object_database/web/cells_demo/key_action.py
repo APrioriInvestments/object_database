@@ -16,20 +16,24 @@ from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
 
 
-class PressAltT(CellsTestPage):
+class PressCtrlT(CellsTestPage):
     def cell(self):
+        import datetime
+
         lastKeystroke = cells.Slot()
         subCell = cells.Subscribed(lambda: lastKeystroke.get())
-        card = cells.Card(subCell, cells.Text("Press Alt+t to update timestamp from browser"))
+        card = cells.Card(
+            subCell, cells.Text("Press ctrlKey+t to update timestamp from browser")
+        )
 
         return cells.Sequence(
             [
                 card,
                 cells.KeyAction(
-                    "Alt+t", lambda x: lastKeystroke.set(x["timeStamp"]), ["timeStamp"]
+                    "ctrlKey+t", lambda x: lastKeystroke.set(str(datetime.datetime.now()))
                 ),
             ]
         )
 
     def text(self):
-        return "Should print the current timestamp in the card when pushing Alt+t"
+        return "Should print the current timestamp when pushing ctrl+t"

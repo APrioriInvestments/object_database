@@ -16,6 +16,7 @@ class KeyRegistry {
         this.getListenersByKeyCombination = this.getListenersByKeyCombination.bind(this);
         this.getListenerByCellId = this.getListenerByCellId.bind(this);
         this.sendListenerData = this.sendListenerData.bind(this);
+        this._prepListenerData = this._prepListenerData.bind(this);
     }
 
     /* I add KeyListener to this.keyListeners
@@ -87,12 +88,28 @@ class KeyRegistry {
 
     /* I send this.keyListeners data over the WebSocket.
      */
-    sendListenerData(){
+    sendListenerData(message){
         let responseData = {
             event: "KeyDownEventListenerInfoRequest",
-            KeyListeners: this.keyListeners
+            KeyListeners: JSON.stringify(this._prepListenerData())
         };
+        if (message.id){
+            responseData["target_cell"] = message.id;
+        }
         cellSocket.sendString(JSON.stringify(responseData));
+    }
+
+    /* I prep the listener data to send over the websocket */
+    _prepListenerData(){
+        let data = Object.keys(this.keyListeners).map((key) => {
+            let listener = this.keyListeners[key];
+            let target = listener.target;
+            let bindings = listener.bindings.map((b) => {
+                return {command: b.command};
+            });
+            return {nodeName: target.nodeName, id: target.id, bindings: bindings};
+        });
+        return data;
     }
 }
 

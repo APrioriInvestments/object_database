@@ -51,6 +51,8 @@ class NewCellHandler {
         this.sendMessageFor = this.sendMessageFor.bind(this);
         this.receive = this.receive.bind(this);
         this.cellUpdated = this.cellUpdated.bind(this);
+        this.cellDataUpdated = this.cellDataUpdated.bind(this);
+        this.cellDataRequested = this.cellDataRequested.bind(this);
         this.cellsDiscarded = this.cellsDiscarded.bind(this);
         this.doesNotUnderstand = this.doesNotUnderstand.bind(this);
         this._getUpdatedComponent = this._getUpdatedComponent.bind(this);
@@ -101,16 +103,18 @@ class NewCellHandler {
      */
     receive(message){
         switch(message.type){
-        case '#cellUpdated':
-            return this.cellUpdated(message);
-        case '#cellDataUpdated':
-            return this.cellDataUpdated(message);
-        case '#cellsDiscarded':
-            return this.cellsDiscarded(message);
-        case '#appendPostscript':
-            return this.appendPostscript(message);
-        default:
-            return this.doesNotUnderstand(message);
+            case '#cellUpdated':
+                return this.cellUpdated(message);
+            case '#cellDataUpdated':
+                return this.cellDataUpdated(message);
+            case '#cellDataRequested':
+                return this.cellDataRequested(message);
+            case '#cellsDiscarded':
+                return this.cellsDiscarded(message);
+            case '#appendPostscript':
+                return this.appendPostscript(message);
+            default:
+                return this.doesNotUnderstand(message);
         }
     }
 
@@ -177,6 +181,20 @@ class NewCellHandler {
         }
 
         return component;
+    }
+
+    /**
+     * Primary handler for messages in which a cell
+     * has requested data from the client. Usually this
+     * pertains to global information (for example, the
+     * window.keyRegistry
+     */
+    cellDataRequested(message){
+        message.dataInfo.forEach((data) => {
+            if(data["request"] == "KeyRegistry"){
+                window.keyRegistry.sendListenerData(message);
+            }
+        })
     }
 
     /**

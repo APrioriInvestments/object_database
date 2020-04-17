@@ -221,7 +221,7 @@ class PrimaryFrame extends TableElementsFrame {
     shiftRightBy(amount){
         let nextX = this.dataOffset.x + amount;
         if((nextX + this.viewFrame.size.x) > this.dataFrame.right){
-            nextX = this.dataFrame.right - this.viewFrame.size.x;
+            nextX = this.dataFrame.right - (this.numLockedColumns + this.viewFrame.size.x);
         }
         this.dataOffset.x = nextX;
     }
@@ -229,15 +229,25 @@ class PrimaryFrame extends TableElementsFrame {
     shiftLeftBy(amount){
         let nextX = this.dataOffset.x - amount;
         if((nextX < this.viewFrame.left)){
-            nextX = this.viewFrame.left;
+            nextX = 0;
         }
         this.dataOffset.x = nextX;
     }
 
-    shiftDownBy(amount){
+    shiftDownBy(amount, debug=false){
         let nextY = this.dataOffset.y + amount;
+        if(debug){
+            console.log(nextY);
+        }
         if((nextY + this.viewFrame.size.y) > this.dataFrame.bottom){
-            nextY = this.dataFrame.bottom - this.viewFrame.size.y;
+            if(debug){
+                console.log(this.viewFrame.size.y);
+                console.log(this.dataFrame.bottom);
+            }
+            nextY = this.dataFrame.bottom - (this.numLockedRows + this.viewFrame.size.y);
+        }
+        if(debug){
+            console.log(nextY);
         }
         this.dataOffset.y = nextY;
     }
@@ -245,7 +255,7 @@ class PrimaryFrame extends TableElementsFrame {
     shiftUpBy(amount){
         let nextY = this.dataOffset.y - amount;
         if((nextY < this.viewFrame.top)){
-            nextY = this.viewFrame.top;
+            nextY = 0;
         }
         this.dataOffset.y = nextY;
     }
@@ -277,7 +287,7 @@ class PrimaryFrame extends TableElementsFrame {
     get relativeLockedRowsFrame(){
         if(this.numLockedRows){
             let relativeOrigin = [
-                (this.lockedRowsFrame.origin.x + this.dataOffset.x),
+                (this.lockedRowsFrame.origin.x + this.dataOffset.x + this.numLockedColumns),
                 this.lockedRowsFrame.origin.y
             ];
             let relativeCorner = [
@@ -298,11 +308,11 @@ class PrimaryFrame extends TableElementsFrame {
         if(this.numLockedColumns){
             let relativeOrigin = [
                 this.lockedColumnsFrame.origin.x,
-                (this.dataOffset.y)
+                (this.dataOffset.y + this.numLockedRows)
             ];
             let relativeCorner = [
                 this.lockedColumnsFrame.corner.x,
-                (this.dataOffset.y + this.viewFrame.size.y)
+                (this.dataOffset.y + this.corner.y)
             ];
             return new Frame(relativeOrigin, relativeCorner);
         }
@@ -318,29 +328,15 @@ class PrimaryFrame extends TableElementsFrame {
      * Returns a new Frame instance.
      */
     get relativeViewFrame(){
-        let originX = Math.max(this.numLockedColumns, this.dataOffset.x);
-        let originY = Math.max(this.numLockedRows, this.dataOffset.y);
-
-        // In the case where the dataOffset x or y
-        // is *less* than the current number of locked
-        // rows or columns in the relevant dimension,
-        // we have to set the appripriate value
-        // to the offset plus the number of rows/columns
-        if(this.dataOffset.y < this.numLockedRows){
-            originY = this.numLockedRows + this.dataOffset.y;
-        }
-        if(this.dataOffset.x < this.numLockedColumns){
-            originX = this.numLockedColumns + this.dataOffset.x;
-        }
-        let relativeOrigin = [
-            originX,
-            originY
-        ];
-        let relativeCorner = [
-            (originX + this.viewFrame.size.x),
-            (originY + this.viewFrame.size.y)
-        ];
-        return new Frame(relativeOrigin, relativeCorner);
+        let origin = new Point([
+            (this.dataOffset.x + this.numLockedColumns),
+            (this.dataOffset.y + this.numLockedRows)
+        ]);
+        let corner = new Point([
+            (this.corner.x + this.dataOffset.x),
+            (this.corner.y + this.dataOffset.y)
+        ]);
+        return new Frame(origin, corner);
     }
 
     /**

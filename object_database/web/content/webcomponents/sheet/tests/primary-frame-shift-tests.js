@@ -443,11 +443,13 @@ describe('PrimaryFrame Shifting with 2 locked rows', () => {
         let expectedViewOrigin = new Point([0,2]);
         let expectedRowsCorner = new Point([6,1]);
         let expectedViewCorner = new Point([6,3]);
+        let expectedViewFrameSize = new Point([6,1]);
 
         assert.pointsEqual(relLockedRows.origin, expectedRowsOrigin);
         assert.pointsEqual(relLockedRows.corner, expectedRowsCorner);
         assert.pointsEqual(relView.origin, expectedViewOrigin);
         assert.pointsEqual(relView.corner, expectedViewCorner);
+        assert.pointsEqual(primaryFrame.viewFrame.size, expectedViewFrameSize);
     });
     describe('Can shift right by 1', () => {
         /* From:
@@ -483,6 +485,12 @@ describe('PrimaryFrame Shifting with 2 locked rows', () => {
         before(() => {
             primaryFrame.shiftRightBy(1);
         });
+
+        it('Has correct dataOffset of (1,0)', () => {
+            let expectedOffset = new Point([1,0]);
+            assert.pointsEqual(primaryFrame.dataOffset, expectedOffset);
+        });
+
         it('Has correct origin and corner for relative view', () => {
             let relativeView = primaryFrame.relativeViewFrame;
             let expectedOrigin = new Point([1,2]);
@@ -824,6 +832,7 @@ describe('PrimaryFrame Shifting with 2 locked rows', () => {
             primaryFrame.shiftDownBy(1);
         });
 
+
         it('Has the correct origin and corner for relative view', () => {
             let relativeView = primaryFrame.relativeViewFrame;
             let expectedOrigin = new Point([0,3]);
@@ -895,7 +904,14 @@ describe('PrimaryFrame Shifting with 2 locked rows', () => {
         before(() => {
             // Attempt to shift an impossible
             // amount downward
-            primaryFrame.shiftDownBy(5000);
+            primaryFrame.shiftDownBy(5000, true);
+        });
+
+        it('Has the correct dataOffset', () => {
+            let totalRows = (primaryFrame.numLockedRows + primaryFrame.viewFrame.size.y);
+            let yOffset = primaryFrame.dataFrame.bottom - totalRows;
+            let expectedOffset = new Point([0, yOffset]);
+            assert.pointsEqual(primaryFrame.dataOffset, expectedOffset);
         });
 
         it('Has the correct origin and corner for the relative view', () => {
@@ -1080,6 +1096,11 @@ describe('PrimaryFrame Shifting with 2 locked rows', () => {
             primaryFrame.shiftUpBy(5000);
         });
 
+        it('Has the correct dataOffset of (0,0)', () => {
+            let expectedOffset = new Point([0,0]);
+            assert.pointsEqual(primaryFrame.dataOffset, expectedOffset);
+        });
+
         it('Has the correct origin and corner for the relative view', () => {
             let relativeView = primaryFrame.relativeViewFrame;
             let expectedOrigin = new Point([0,2]);
@@ -1128,10 +1149,10 @@ describe('PrimaryFrame Shifting with 2 locked rows', () => {
     });
 });
 
-describe('PrimaryFrame Shifting with 2 locked columns and no locked rows dataOffset(3,2)', () => {
+describe('PrimaryFrame Shifting with 2 locked columns and no locked rows dataOffset(1,2)', () => {
     let primaryFrame = new PrimaryFrame(exampleDataFrame, [6,3]);
     primaryFrame.lockColumns(2);
-    primaryFrame.dataOffset.x = 3;
+    primaryFrame.dataOffset.x = 1;
     primaryFrame.dataOffset.y = 2;
 
     describe('Can shift right by 1', () => {
@@ -1166,6 +1187,12 @@ describe('PrimaryFrame Shifting with 2 locked columns and no locked rows dataOff
         before(() => {
             primaryFrame.shiftRightBy(1);
         });
+
+        it('Has the correct dataOffset', () => {
+            let expectedOffset = new Point([2,2]);
+            assert.pointsEqual(primaryFrame.dataOffset, expectedOffset);
+        });
+
         it('Has the correct origin and corner for the relative view frame', () => {
             let relativeView = primaryFrame.relativeViewFrame;
             let expectedOrigin = new Point([4,2]);
@@ -1804,6 +1831,7 @@ describe('PrimaryFrame Shifting with 2 locked columns and no locked rows dataOff
 
         it('Has the correct origin and corner for the relative view', () => {
             let relativeView = primaryFrame.relativeViewFrame;
+            console.log(primaryFrame.dataOffset);
             let expectedOrigin = new Point([2,0]);
             let expectedCorner = new Point([6,3]);
 
@@ -1870,6 +1898,11 @@ describe('Miscallaneous from Origin Position, 1 locked col 2 locked rows, no dat
     let primaryFrame = new PrimaryFrame(exampleDataFrame, [6,3]);
     primaryFrame.lockRows(2);
     primaryFrame.lockColumns(1);
+
+    it('Should have the correct dataOffset of (0,0)', () => {
+        let expectedOffset = new Point([0,0]);
+        assert.pointsEqual(primaryFrame.dataOffset, expectedOffset);
+    });
 
     it('Should have the correct origin and corner for relative view', () => {
         let relativeView = primaryFrame.relativeViewFrame;
@@ -1941,6 +1974,11 @@ describe('Miscallaneous from Origin Position, 1 locked col 2 locked rows, no dat
          */
         before(() => {
             primaryFrame.shiftRightBy(1);
+        });
+
+        it('Should have correct dataOffset of (1,0)', () => {
+            let expectedOffset = new Point([1,0]);
+            assert.pointsEqual(primaryFrame.dataOffset, expectedOffset);
         });
 
         it('Should have correct origin and corner for relative view', () => {

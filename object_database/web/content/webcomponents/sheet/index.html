@@ -7,17 +7,30 @@
     </head>
     <body>
         <div id="main">
-            <test-sheet rows="10" columns="20" locked-rows="2" locked-columns="1"></test-sheet>
-            <div id="button-area">
-                <button class="sheet-move-button" id="shift-up">&uarr;</button>
-                <button class="sheet-move-button" id="shift-down">&darr;</button>
-                <button class="sheet-move-button" id="shift-left">&larr;</button>
-                <button class="sheet-move-button" id="shift-right">&rarr;</button>
-                <button class="sheet-move-button" id="page-up">PageUp</button>
-                <button class="sheet-move-button" id="page-down">PageDown</button>
-                <button class="sheet-move-button" id="page-left">PageLeft</button>
-                <button class="sheet-move-button" id="page-right">PageRight</button>
-            </div>
+          <test-sheet rows="10" columns="20" locked-rows="2" locked-columns="1"></test-sheet>
+          <section>
+              <div id="button-area">
+                  <button class="sheet-move-button" id="shift-up">&uarr;</button>
+                  <button class="sheet-move-button" id="shift-down">&darr;</button>
+                  <button class="sheet-move-button" id="shift-left">&larr;</button>
+                  <button class="sheet-move-button" id="shift-right">&rarr;</button>
+                  <button class="sheet-move-button" id="page-up">PageUp</button>
+                  <button class="sheet-move-button" id="page-down">PageDown</button>
+                  <button class="sheet-move-button" id="page-left">PageLeft</button>
+                  <button class="sheet-move-button" id="page-right">PageRight</button>
+              </div>
+              <div id="info-area">
+                  <h3>
+                      Cursor Pos: <span id="cursor-pos"></span>
+                  </h3>
+                  <h3>
+                      Cursor DataPos: <span id="cursor-data-pos"></span>
+                  </h3>
+                  <h3>
+                      Cursor Data: <span id="cursor-data"></span>
+                  </h3>
+              </div>
+          </section>
         </div>
         <script>
          let sheet = document.querySelector('test-sheet');
@@ -73,6 +86,10 @@
      .sheet-move-button {
          display: block;
          font-size: 3rem;
+     }
+
+     .selector-cursor {
+         border: 1px solid red;
      }
     </style>
 </html>

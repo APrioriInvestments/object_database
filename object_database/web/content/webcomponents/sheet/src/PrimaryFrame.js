@@ -386,7 +386,7 @@ class PrimaryFrame extends TableElementsFrame {
      * to the left side of the corresponding dataFrame,
      * adjusted for locked columns
      */
-    get isCompletelyLeft(){
+    get isAtLeft(){
         return this.dataOffset.x == 0;
     }
 
@@ -395,8 +395,25 @@ class PrimaryFrame extends TableElementsFrame {
      * right side is equal to the dataFrame's
      * right side (ie we are all the way right)
      */
-    get isCompletelyRight(){
+    get isAtRight(){
         return this.relativeViewFrame.right == this.dataFrame.right;
+    }
+
+    /**
+     * Returns true if the relativeViewFrame
+     * is at the total possible top, taking
+     * into consideration any locked rows.
+     */
+    get isAtTop(){
+        return this.dataOffset.y == 0;
+    }
+
+    /**
+     * Returns true if the relativeViewFrame
+     * is at the total possible bottom
+     */
+    get isAtBottom(){
+        return this.relativeViewFrame.bottom == this.dataFrame.bottom;
     }
 
 

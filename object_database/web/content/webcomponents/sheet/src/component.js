@@ -4,6 +4,7 @@
 import PrimaryFrame from './PrimaryFrame';
 import DataFrame from './DataFrame';
 import Point from './Point';
+import Selector from './Selector';
 
 class Sheet extends HTMLElement {
     constructor(){
@@ -14,12 +15,15 @@ class Sheet extends HTMLElement {
             this.dataFrame.putAt(aPoint, label);
         });
         this.primaryFrame = new PrimaryFrame(this.dataFrame, [0,0]);
+        this.selector = new Selector(this.primaryFrame);
         this.tableBody = document.createElement('tbody');
         this.table = document.createElement('table');
 
         // Bind component methods
         this.resize = this.resize.bind(this);
-        this.handleElementClick = this.handleElementClick.bind(this);
+
+        // Add event listeners
+        this.handleKeyDown = this.handleKeyDown.bind(this);
     }
 
     connectedCallback(){
@@ -29,6 +33,12 @@ class Sheet extends HTMLElement {
         let initialRows = parseInt(this.getAttribute('rows'));
         let initialCols = parseInt(this.getAttribute('columns'));
         this.resize(initialRows, initialCols);
+
+        // Set tabindex to any value
+        this.setAttribute('tabindex', 0);
+
+        // Add keydown event listener
+        this.addEventListener('keydown', this.handleKeyDown);
     }
 
     attributeChangedCallback(name, oldVal, newVal){
@@ -48,19 +58,32 @@ class Sheet extends HTMLElement {
         }
     }
 
-    handleElementClick(event){
-        // Increment the number in the cell
-        // and store in the DataFrame
-        let relX = event.target.dataset.relativeX;
-        let relY = event.target.dataset.relativeY;
-        let dataPoint = new Point([relX, relY]);
-        let currentVal = this.dataFrame.getAt(dataPoint);
-        if(currentVal){
-            this.dataFrame.putAt(dataPoint, currentVal + 1);
-        } else {
-            this.dataFrame.putAt(dataPoint, 1);
+    handleKeyDown(event){
+        if(event.key == 'ArrowRight'){
+            this.selector.moveRightBy(1);
+            this.selector.drawCursor();
+            event.preventDefault();
+
+            // Update relevant view areas
+            let posArea = document.getElementById('cursor-pos');
+            let posDataArea = document.getElementById('cursor-data-pos');
+            let dataArea = document.getElementById('cursor-data');
+            posArea.innerText = this.selector.cursor.toString();
+            posDataArea.innerText = this.selector.relativeCursor.toString();
+            dataArea.innerText = this.selector.dataAtCursor.toString();
+        } else if(event.key == 'ArrowLeft'){
+            this.selector.moveLeftBy(1);
+            this.selector.drawCursor();
+            event.preventDefault();
+
+            // Update relevant view areas
+            let posArea = document.getElementById('cursor-pos');
+            let posDataArea = document.getElementById('cursor-data-pos');
+            let dataArea = document.getElementById('cursor-data');
+            posArea.innerText = this.selector.cursor.toString();
+            posDataArea.innerText = this.selector.relativeCursor.toString();
+            dataArea.innerText = this.selector.dataAtCursor.toString();
         }
-        this.primaryFrame.updateCellContents();
     }
 
     resize(numRows, numCols){
@@ -75,15 +98,14 @@ class Sheet extends HTMLElement {
         let newPrimaryFrame = new PrimaryFrame(this.dataFrame, newCorner);
         newPrimaryFrame.corner = new Point([numCols-1, numRows-1]);
         newPrimaryFrame.initialBuild();
-        newPrimaryFrame.tdElements.forEach(tdEl => {
-            tdEl.addEventListener('click', this.handleElementClick);
-        });
         newPrimaryFrame.lockRows(numLockedRows);
         newPrimaryFrame.lockColumns(numLockedColumns);
         newPrimaryFrame.labelElements();
         this.primaryFrame = newPrimaryFrame;
+        this.selector = new Selector(this.primaryFrame);
         this.tableBody.append(...this.primaryFrame.rowElements);
         this.primaryFrame.updateCellContents();
+        this.selector.drawCursor();
     }
 
     static get observedAttributes(){

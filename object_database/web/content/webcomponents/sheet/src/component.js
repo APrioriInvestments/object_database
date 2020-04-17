@@ -60,8 +60,10 @@ class Sheet extends HTMLElement {
 
     handleKeyDown(event){
         if(event.key == 'ArrowRight'){
+            if(event.shiftKey){
+                this.selector.isSelecting = true;
+            }
             this.selector.moveRightBy(1);
-            this.selector.drawCursor();
             event.preventDefault();
 
             // Update relevant view areas
@@ -72,8 +74,38 @@ class Sheet extends HTMLElement {
             posDataArea.innerText = this.selector.relativeCursor.toString();
             dataArea.innerText = this.selector.dataAtCursor.toString();
         } else if(event.key == 'ArrowLeft'){
+            if(event.shiftKey){
+                this.selector.isSelecting = true;
+            }
             this.selector.moveLeftBy(1);
-            this.selector.drawCursor();
+            event.preventDefault();
+
+            // Update relevant view areas
+            let posArea = document.getElementById('cursor-pos');
+            let posDataArea = document.getElementById('cursor-data-pos');
+            let dataArea = document.getElementById('cursor-data');
+            posArea.innerText = this.selector.cursor.toString();
+            posDataArea.innerText = this.selector.relativeCursor.toString();
+            dataArea.innerText = this.selector.dataAtCursor.toString();
+        } else if(event.key == 'ArrowUp'){
+            if(event.shiftKey){
+                this.selector.isSelecting = true;
+            }
+            this.selector.moveUpBy(1);
+            event.preventDefault();
+
+            // Update relevant view areas
+            let posArea = document.getElementById('cursor-pos');
+            let posDataArea = document.getElementById('cursor-data-pos');
+            let dataArea = document.getElementById('cursor-data');
+            posArea.innerText = this.selector.cursor.toString();
+            posDataArea.innerText = this.selector.relativeCursor.toString();
+            dataArea.innerText = this.selector.dataAtCursor.toString();
+        } else if(event.key == 'ArrowDown'){
+            if(event.shiftKey){
+                this.selector.isSelecting = true;
+            }
+            this.selector.moveDownBy(1);
             event.preventDefault();
 
             // Update relevant view areas
@@ -84,6 +116,7 @@ class Sheet extends HTMLElement {
             posDataArea.innerText = this.selector.relativeCursor.toString();
             dataArea.innerText = this.selector.dataAtCursor.toString();
         }
+        this.selector.isSelecting = false;
     }
 
     resize(numRows, numCols){

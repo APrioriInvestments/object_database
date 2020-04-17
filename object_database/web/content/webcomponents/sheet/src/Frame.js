@@ -478,50 +478,17 @@ class Frame {
         if(firstPoint.equals(secondPoint)){
             return new Frame(firstPoint, secondPoint);
         }
-        let newOrigin;
-        let newCorner;
-        if(firstPoint.x < secondPoint.x){
-            // In this case, the firstPoint
-            // is the bottomLeft and the
-            // secondPoint is the topRight
-            if(firstPoint.y > secondPoint.y){
-                newOrigin = new Point([
-                    firstPoint.x,
-                    secondPoint.y
-                ]);
-                newCorner = new Point([
-                    secondPoint.x,
-                    firstPoint.y
-                ]);
-                return new Frame(newOrigin, newCorner);
-            }
-        }
-        if(firstPoint.x > secondPoint.x){
-            // In this case, the firstPoint
-            // is the topRight and the
-            // secondPoint is bottomLeft
-            if(firstPoint.y < secondPoint.y){
-                newOrigin = new Point([
-                    secondPoint.x,
-                    firstPoint.y
-                ]);
-                newCorner = new Point([
-                    firstPoint.x,
-                    secondPoint.y
-                ]);
-                return new Frame(newOrigin, newCorner);
-                // Otherwise the secondPoint is the same as
-                // the origin and the first is the same
-                // as the corner
-            } else {
-                return new Frame(secondPoint, firstPoint);
-            }
-        }
+        let origin = new Point([
+            Math.min(firstPoint.x, secondPoint.x),
+            Math.min(firstPoint.y, secondPoint.y)
+        ]);
 
-        // If we get here, then the firstPoint
-        // is the origin and the second is the
-        // corner
-        return new Frame(firstPoint, secondPoint);
+        let corner = new Point([
+            Math.max(firstPoint.x, secondPoint.x),
+            Math.max(firstPoint.y, secondPoint.y)
+        ]);
+
+        return new this(origin, corner);
     }
 
     static newOfSize(width, height){

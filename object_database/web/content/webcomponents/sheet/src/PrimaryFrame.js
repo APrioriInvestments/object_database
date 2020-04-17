@@ -22,6 +22,7 @@ import {
 class PrimaryFrame extends TableElementsFrame {
     constructor(dataFrame, corner, options){
         super([0,0], corner, options);
+        this.isPrimaryFrame = true;
 
         // The underlyng dataframe will
         // hold values that we can pull out
@@ -56,6 +57,7 @@ class PrimaryFrame extends TableElementsFrame {
         this.adjustLayout = this.adjustLayout.bind(this);
         this.labelElements = this.labelElements.bind(this);
         this.updateLockedRowElements = this.updateLockedRowElements.bind(this);
+        this.relativePointAt = this.relativePointAt.bind(this);
         this.shiftRightBy = this.shiftRightBy.bind(this);
         this.shiftLeftBy = this.shiftLeftBy.bind(this);
         this.shiftDownBy = this.shiftDownBy.bind(this);
@@ -178,7 +180,10 @@ class PrimaryFrame extends TableElementsFrame {
                     (aPoint.x - this.dataOffset.x),
                     aPoint.y
                 ]);
-                this.elementAt(translation).innerText = dataValue.toString();
+                let element = this.elementAt(translation);
+                element.innerText = dataValue.toString();
+                element.setAttribute('data-relative-x', aPoint.x);
+                element.setAttribute('data-relative-y', aPoint.y);
             });
         }
     }
@@ -196,7 +201,10 @@ class PrimaryFrame extends TableElementsFrame {
                     aPoint.x,
                     aPoint.y - offset.y
                 ]);
-                this.elementAt(translation).innerText = dataValue.toString();
+                let element = this.elementAt(translation);
+                element.innerText = dataValue.toString();
+                element.setAttribute('data-relative-x', aPoint.x);
+                element.setAttribute('data-relative-y', aPoint.y);
             });
         }
     }
@@ -212,8 +220,33 @@ class PrimaryFrame extends TableElementsFrame {
                 aPoint.x - offset.x,
                 aPoint.y - offset.y
             ]);
-            this.elementAt(translation).innerText = value.toString();
+            let element =  this.elementAt(translation);
+            element.innerText = value.toString();
+            element.setAttribute('data-relative-x', aPoint.x);
+            element.setAttribute('data-relative-y', aPoint.y);
         });
+    }
+
+    /**
+     * Given a Point on this PrimaryFrame, respond with
+     * a Point that represents the data-relative translation,
+     * ie where one can find what is currently being shown
+     * at that point in the DataFrame.
+     * Because all PrimaryFrame points also have corresponding
+     * DOMElements, we can perform easily manipulations
+     */
+    relativePointAt(aPoint){
+        if(!this.contains(aPoint)){
+            throw `PrimaryFrame does not contain ${aPoint}`;
+        }
+        // Because we store all relative values
+        // in the elements themselves, we simply
+        // pull from there
+        let el = this.elementAt(aPoint);
+        return new Point([
+            parseInt(el.dataset.relativeX),
+            parseInt(el.dataset.relativeY)
+        ]);
     }
 
     /* Movement */
@@ -224,6 +257,7 @@ class PrimaryFrame extends TableElementsFrame {
             nextX = this.dataFrame.right - (this.numLockedColumns + this.viewFrame.size.x);
         }
         this.dataOffset.x = nextX;
+        this.updateCellContents();
     }
 
     shiftLeftBy(amount){
@@ -232,24 +266,16 @@ class PrimaryFrame extends TableElementsFrame {
             nextX = 0;
         }
         this.dataOffset.x = nextX;
+        this.updateCellContents();
     }
 
     shiftDownBy(amount, debug=false){
         let nextY = this.dataOffset.y + amount;
-        if(debug){
-            console.log(nextY);
-        }
         if((nextY + this.viewFrame.size.y) > this.dataFrame.bottom){
-            if(debug){
-                console.log(this.viewFrame.size.y);
-                console.log(this.dataFrame.bottom);
-            }
             nextY = this.dataFrame.bottom - (this.numLockedRows + this.viewFrame.size.y);
         }
-        if(debug){
-            console.log(nextY);
-        }
         this.dataOffset.y = nextY;
+        this.updateCellContents();
     }
 
     shiftUpBy(amount){
@@ -258,6 +284,7 @@ class PrimaryFrame extends TableElementsFrame {
             nextY = 0;
         }
         this.dataOffset.y = nextY;
+        this.updateCellContents();
     }
 
     pageRight(){
@@ -353,6 +380,26 @@ class PrimaryFrame extends TableElementsFrame {
         }
         return Frame.newEmpty();
     }
+
+    /**
+     * Returns true if the viewFrame is completely
+     * to the left side of the corresponding dataFrame,
+     * adjusted for locked columns
+     */
+    get isCompletelyLeft(){
+        return this.dataOffset.x == 0;
+    }
+
+    /**
+     * Returns true if the relativeViewFrame's
+     * right side is equal to the dataFrame's
+     * right side (ie we are all the way right)
+     */
+    get isCompletelyRight(){
+        return this.relativeViewFrame.right == this.dataFrame.right;
+    }
+
+
 };
 
 export {

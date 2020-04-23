@@ -286,8 +286,8 @@ class Sheet extends Component {
         let rows = ["Just a sec..."];
         let header = [
             h("tr", {style: `height: ${this.props.rowHeight}px`}, [
-                h("th", {id: `sheet-${this.props.id}-head-current`}, []),
-                h("th", {id: `sheet-${this.props.id}-head-info`, class: "header-info"}, [])
+                h("th", {id: `sheet-${this.props.id}-head-info`, class: "header-info"}, []),
+                h("th", {id: `sheet-${this.props.id}-head-current`, class: "header-content"}, [])
             ])
         ];
         return (
@@ -694,6 +694,9 @@ class Sheet extends Component {
             let cursor = this.selector.selectionFrame.cursor;
             let th = head.querySelector(`#sheet-${this.props.id}-head-current`);
             let content = this.dataFrame.get(cursor);
+            // cleanup content for the header display
+            content = content.replace(/(\r\n|\n|\r)/gm, "");
+            content = content.replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/gm," ");
             let coordinates = `(${cursor.x}x${cursor.y}): `;
             let fontSize = '.8rem';
             if (th.colSpan < 2){
@@ -707,6 +710,7 @@ class Sheet extends Component {
                 }
             }
             th.style.fontSize = fontSize;
+            th.setAttribute("style", `max-width: ${(this.maxNumColumns - 1) * this.props.colWidth}px`)
             th.textContent = `${coordinates}${content}`;
         } catch(e){
             this.dumpInfo(

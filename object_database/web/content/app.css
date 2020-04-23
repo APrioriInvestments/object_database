@@ -205,8 +205,15 @@ td.locked {
 }
 
 th.header-info{
-    text-align: right;
-    padding-right: 5px;
+    text-align: center;
+    border-right: 2px double #568eca;
+}
+
+th.header-content{
+    text-align: left;
+    text-overflow: ellipsis;
+    padding-right: 10px;
+    overflow: hidden;
 }
 
 th.header-item {

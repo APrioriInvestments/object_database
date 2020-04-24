@@ -9,7 +9,7 @@
  * These two points are enough to make
  * calculations about other features of the Frame.
  */
-import Point from './Point.js';
+import {Point, isCoordinate} from './Point.js';
 
 const validateGeometry = (origin, corner) => {
     if(origin.x > corner.x || origin.y > corner.y){
@@ -60,6 +60,10 @@ class Frame {
             return (validX && validY);
         } else if(aPointOrFrame.isFrame){
             return (this.contains(aPointOrFrame.origin) && this.contains(aPointOrFrame.corner));
+        } else if(isCoordinate(aPointOrFrame)){
+            let validX = aPointOrFrame[0] >= this.origin.x && aPointOrFrame[0] <= this.corner.x;
+            let validY = aPointOrFrame[1] >= this.origin.y && aPointOrFrame[1] <= this.corner.y;
+            return validX && validY;
         }
         return false;
     }

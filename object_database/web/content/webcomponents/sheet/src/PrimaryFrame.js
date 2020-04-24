@@ -51,6 +51,12 @@ class PrimaryFrame extends TableElementsFrame {
         // DataFrame
         this.dataOffset = new Point([0,0]);
 
+        // Optional callbacks
+
+        // Callback fired after the frames
+        // have actually shifted
+        this.afterShift = null;
+
         // Bind instance methods
         this.lockRows = this.lockRows.bind(this);
         this.lockColumns = this.lockColumns.bind(this);
@@ -66,6 +72,7 @@ class PrimaryFrame extends TableElementsFrame {
         this.pageDown = this.pageDown.bind(this);
         this.pageLeft = this.pageLeft.bind(this);
         this.pageRight = this.pageRight.bind(this);
+        this.triggerAfterShift = this.triggerAfterShift.bind(this);
     }
 
     /**
@@ -166,7 +173,6 @@ class PrimaryFrame extends TableElementsFrame {
         if(!this.lockedFramesIntersect.isEmpty){
             this.lockedFramesIntersect.forEachPoint(aPoint => {
                 let value = this.dataFrame.getAt(aPoint);
-                //this.elementAt(aPoint).innerText = value.toString();
                 this.elementAt(aPoint).innerText = 'x';
             });
         }
@@ -181,7 +187,11 @@ class PrimaryFrame extends TableElementsFrame {
                     aPoint.y
                 ]);
                 let element = this.elementAt(translation);
-                element.innerText = dataValue.toString();
+                if(dataValue != undefined){
+                    element.innerText = dataValue.toString();
+                } else {
+                    element.innerText = 'undefined';
+                }
                 element.setAttribute('data-relative-x', aPoint.x);
                 element.setAttribute('data-relative-y', aPoint.y);
             });
@@ -202,7 +212,11 @@ class PrimaryFrame extends TableElementsFrame {
                     aPoint.y - offset.y
                 ]);
                 let element = this.elementAt(translation);
-                element.innerText = dataValue.toString();
+                if(dataValue != undefined){
+                    element.innerText = dataValue.toString();
+                } else {
+                    element.innerText = 'undefined';
+                }
                 element.setAttribute('data-relative-x', aPoint.x);
                 element.setAttribute('data-relative-y', aPoint.y);
             });
@@ -221,7 +235,11 @@ class PrimaryFrame extends TableElementsFrame {
                 aPoint.y - offset.y
             ]);
             let element =  this.elementAt(translation);
-            element.innerText = value.toString();
+            if(value != undefined){
+                    element.innerText = value.toString();
+                } else {
+                    element.innerText = 'undefined';
+                }
             element.setAttribute('data-relative-x', aPoint.x);
             element.setAttribute('data-relative-y', aPoint.y);
         });
@@ -258,6 +276,7 @@ class PrimaryFrame extends TableElementsFrame {
         }
         this.dataOffset.x = nextX;
         this.updateCellContents();
+        this.triggerAfterShift();
     }
 
     shiftLeftBy(amount){
@@ -267,6 +286,7 @@ class PrimaryFrame extends TableElementsFrame {
         }
         this.dataOffset.x = nextX;
         this.updateCellContents();
+        this.triggerAfterShift();
     }
 
     shiftDownBy(amount, debug=false){
@@ -276,6 +296,7 @@ class PrimaryFrame extends TableElementsFrame {
         }
         this.dataOffset.y = nextY;
         this.updateCellContents();
+        this.triggerAfterShift();
     }
 
     shiftUpBy(amount){
@@ -285,6 +306,7 @@ class PrimaryFrame extends TableElementsFrame {
         }
         this.dataOffset.y = nextY;
         this.updateCellContents();
+        this.triggerAfterShift();
     }
 
     pageRight(){
@@ -306,6 +328,13 @@ class PrimaryFrame extends TableElementsFrame {
         let amount = this.relativeViewFrame.size.y;
         this.shiftDownBy(amount);
     }
+
+    triggerAfterShift(){
+        if(this.afterShift){
+            this.afterShift(this);
+        }
+    }
+
     /**
      * This is the lockedRowsFrame relative
      * to the dataOffset point. Returns a totally

@@ -31,15 +31,15 @@ describe('Projecting total source frame to dest frame', () => {
         sourceFrame.putAt(aPoint, aPoint);
     });
     let destFrame = new DataFrame([0,0], [2000,2000]);
-    let desiredSubframe = new Frame([50,50], [100,100]);
+    let desiredSubframe = new Frame([50,30], [100,100]);
 
     it('Can output array data of correct size', () => {
         let arrayData = sourceFrame.getDataArrayForFrame(
             desiredSubframe
         );
 
-        assert.equal(arrayData.length, desiredSubframe.size.x + 1);
-        assert.equal(arrayData[0].length, desiredSubframe.size.y + 1);
+        assert.equal(arrayData.length, desiredSubframe.size.y + 1);
+        assert.equal(arrayData[0].length, desiredSubframe.size.x + 1);
     });
 
     it('Can load the arrayed data correctly into the dest data frame', () => {

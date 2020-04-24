@@ -340,7 +340,13 @@ class Selector {
      * do so.
      */
     get dataAtCursor(){
-        return this.primaryFrame.dataFrame.getAt(this.relativeCursor);
+        let dataValue = this.primaryFrame.dataFrame.getAt(
+            this.relativeCursor
+        );
+        if(dataValue == undefined){
+            return 'undefined';
+        }
+        return dataValue;
     }
 
     /**

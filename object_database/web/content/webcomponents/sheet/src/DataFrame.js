@@ -102,9 +102,14 @@ class DataFrame extends Frame {
         if(!this.contains(origin)){
             throw `${origin} not contained in this DataFrame`;
         }
-        let rowMax = data.length;
-        let colMax = data[0].length; // Assume all are equal
-        let comparisonFrame = new Frame(origin, [colMax, rowMax]);
+        origin = new Point(origin);
+        let rowMax = data.length - 1;
+        let colMax = data[0].length - 1; // Assume all are equal
+        let corner = new Point([
+            colMax + origin.x,
+            rowMax + origin.y
+        ]);
+        let comparisonFrame = new Frame(origin, corner);
         if(!this.contains(comparisonFrame)){
             throw `Incoming data runs outside bounds of current DataFrame (using origin ${origin})`;
         }

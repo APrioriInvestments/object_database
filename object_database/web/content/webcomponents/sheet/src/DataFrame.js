@@ -110,7 +110,14 @@ class DataFrame extends Frame {
         }
         data.forEach((row, y) => {
             row.forEach((value, x) => {
-                this.putAt([x, y], value);
+                let adjustedCoord = [
+                    x + comparisonFrame.origin.x,
+                    y + comparisonFrame.origin.y
+                ];
+                this.putAt(
+                    adjustedCoord,
+                    value
+                );
             });
         });
     }
@@ -151,6 +158,32 @@ class DataFrame extends Frame {
         return(this.area == Object.keys(this.store).length);
     }
 
+    /**
+     * Responds true if the given Frame,
+     * relative to this DataFrame instance,
+     * has a data value set for each of the
+     * Points therein. Returns false otherwise.
+     * This is a method for determining if,
+     * for example, some given intersect on the
+     * DataFrame is complete or incomplete.
+     * Note we will also throw an Error in the
+     * event that the given Frame is not contained
+     * within this one.
+     */
+    hasCompleteDataForFrame(aFrame){
+        if(!this.contains(aFrame)){
+            throw 'Passed Frame is not contained within DataFrame!';
+        }
+        let points = aFrame.points;
+        for(let i = 0; i < points.length; i++){
+            let thisPoint = points[i];
+            if(this.getAt(thisPoint) == undefined){
+                return false;
+            }
+        }
+
+        return true;
+    }
 };
 
 export {

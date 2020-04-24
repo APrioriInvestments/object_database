@@ -74,6 +74,7 @@ class Selector {
         ]);
         let rightDiff = (nextCursor.x + amount) - this.primaryFrame.viewFrame.right;
         if(rightDiff > 0){
+            nextCursor.x = this.primaryFrame.right;
             this.primaryFrame.shiftRightBy(rightDiff);
         } else {
             nextCursor.x += amount;
@@ -177,6 +178,7 @@ class Selector {
         ]);
         let downDiff = (nextCursor.y + amount) - this.primaryFrame.viewFrame.bottom;
         if(downDiff > 0){
+            nextCursor.y = this.primaryFrame.bottom;
             this.primaryFrame.shiftDownBy(downDiff);
         } else {
             nextCursor.y += amount;

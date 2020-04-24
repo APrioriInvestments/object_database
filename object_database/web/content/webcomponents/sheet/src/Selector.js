@@ -48,23 +48,26 @@ class Selector {
         // purposes
         this.prevCursorEl = null;
 
-        // Tell us whether or not we are
-        // currently "selecting". Used
-        // in concert with movement methods
-        this.isSelecting = false;
-
         // Bind methods
         this.moveRightBy = this.moveRightBy.bind(this);
         this.moveLeftBy = this.moveLeftBy.bind(this);
         this.moveUpBy = this.moveUpBy.bind(this);
         this.moveDownBy = this.moveDownBy.bind(this);
+        this.pageUp = this.pageUp.bind(this);
+        this.pageDown = this.pageDown.bind(this);
+        this.pageRight = this.pageRight.bind(this);
+        this.pageLeft = this.pageLeft.bind(this);
+        this.moveToRightEnd = this.moveToRightEnd.bind(this);
+        this.moveToLeftEnd = this.moveToLeftEnd.bind(this);
+        this.moveToTopEnd = this.moveToTopEnd.bind(this);
+        this.moveToBottomEnd = this.moveToBottomEnd.bind(this);
         this.selectFromAnchorTo = this.selectFromAnchorTo.bind(this);
         this.updateElements = this.updateElements.bind(this);
         this.drawAnchor = this.drawAnchor.bind(this);
         this.drawCursor = this.drawCursor.bind(this);
     }
 
-    moveRightBy(amount){
+    moveRightBy(amount, selecting=false){
         let nextCursor = new Point([
             this.cursor.x,
             this.cursor.y
@@ -76,7 +79,7 @@ class Selector {
             nextCursor.x += amount;
         }
 
-        if(this.isSelecting){
+        if(selecting){
             this.cursor = nextCursor;
             this.selectFromAnchorTo(this.relativeCursor);
         } else {
@@ -88,7 +91,7 @@ class Selector {
         this.updateElements();
     }
 
-    moveLeftBy(amount){
+    moveLeftBy(amount, selecting=false){
         let nextCursor = new Point([
             this.cursor.x,
             this.cursor.y
@@ -116,7 +119,7 @@ class Selector {
             nextCursor.x = nextPos;
         }
 
-        if(this.isSelecting){
+        if(selecting){
             this.cursor = nextCursor;
             this.selectFromAnchorTo(this.relativeCursor);
         } else {
@@ -128,7 +131,7 @@ class Selector {
         this.updateElements();
     }
 
-    moveUpBy(amount){
+    moveUpBy(amount, selecting=false){
         let nextCursor = new Point([
             this.cursor.x,
             this.cursor.y
@@ -155,7 +158,7 @@ class Selector {
             nextCursor.y = nextPos;
         }
 
-        if(this.isSelecting){
+        if(selecting){
             this.cursor = nextCursor;
             this.selectFromAnchorTo(this.relativeCursor);
         } else {
@@ -167,7 +170,7 @@ class Selector {
         this.updateElements();
     }
 
-    moveDownBy(amount){
+    moveDownBy(amount, selecting=false){
         let nextCursor = new Point([
             this.cursor.x,
             this.cursor.y
@@ -179,7 +182,7 @@ class Selector {
             nextCursor.y += amount;
         }
 
-        if(this.isSelecting){
+        if(selecting){
             this.cursor = nextCursor;
             this.selectFromAnchorTo(this.relativeCursor);
         } else {
@@ -189,6 +192,69 @@ class Selector {
         }
 
         this.updateElements();
+    }
+
+    pageUp(selecting=false){
+        this.moveUpBy(
+            this.pageSize.y,
+            selecting
+        );
+    }
+
+    pageDown(selecting=false){
+        this.moveDownBy(
+            this.pageSize.y,
+            selecting
+        );
+    }
+
+    pageRight(selecting=false){
+        this.moveRightBy(
+            this.pageSize.x,
+            selecting
+        );
+    }
+
+    pageLeft(selecting=false){
+        this.moveLeftBy(
+            this.pageSize.x,
+            selecting
+        );
+    }
+
+    moveToRightEnd(selecting=false){
+        // Move by any amount greather than the dataFrame
+        // size
+        this.moveRightBy(
+            this.primaryFrame.dataFrame.right * 2,
+            selecting
+        );
+    }
+
+    moveToLeftEnd(selecting=false){
+        // Move by any amout greather than dataFrame size
+        this.moveLeftBy(
+            this.primaryFrame.dataFrame.size.x * 2,
+            selecting
+        );
+    }
+
+    moveToTopEnd(selecting=false){
+        // Move up by any amount greather than
+        // the dataFrame's total height
+        this.moveUpBy(
+            this.primaryFrame.dataFrame.size.y * 2,
+            selecting
+        );
+    }
+
+    moveToBottomEnd(selecting=false){
+        // Move down by any amount greather than
+        // the dataFrame's total height
+        this.moveDownBy(
+            this.primaryFrame.dataFrame.size.y * 2,
+            selecting
+        );
     }
 
     drawCursor(){
@@ -273,6 +339,17 @@ class Selector {
      */
     get dataAtCursor(){
         return this.primaryFrame.dataFrame.getAt(this.relativeCursor);
+    }
+
+    /**
+     * Returns a point whose x and y values
+     * are the corresponding size of the current
+     * page. In most cases this will be identical
+     * to the primaryFrame's viewFrame.
+     * We include here for readability
+     */
+    get pageSize(){
+        return this.primaryFrame.viewFrame.size;
     }
 };
 

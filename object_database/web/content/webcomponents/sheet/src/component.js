@@ -59,55 +59,55 @@ class Sheet extends HTMLElement {
     }
 
     handleKeyDown(event){
+        let shouldUpdateInfoAreas = false;
+        let isSelecting = event.shiftKey;
         if(event.key == 'ArrowRight'){
-            if(event.shiftKey){
-                this.selector.isSelecting = true;
+            shouldUpdateInfoAreas = true;
+            if(event.ctrlKey){
+                this.selector.moveToRightEnd(isSelecting);
+            } else {
+                this.selector.moveRightBy(
+                    1,
+                    isSelecting
+                );
             }
-            this.selector.moveRightBy(1);
             event.preventDefault();
-
-            // Update relevant view areas
-            let posArea = document.getElementById('cursor-pos');
-            let posDataArea = document.getElementById('cursor-data-pos');
-            let dataArea = document.getElementById('cursor-data');
-            posArea.innerText = this.selector.cursor.toString();
-            posDataArea.innerText = this.selector.relativeCursor.toString();
-            dataArea.innerText = this.selector.dataAtCursor.toString();
         } else if(event.key == 'ArrowLeft'){
-            if(event.shiftKey){
-                this.selector.isSelecting = true;
+            shouldUpdateInfoAreas = true;
+            if(event.ctrlKey){
+                this.selector.moveToLeftEnd(isSelecting);
+            } else {
+                this.selector.moveLeftBy(
+                    1,
+                    isSelecting
+                );
             }
-            this.selector.moveLeftBy(1);
             event.preventDefault();
-
-            // Update relevant view areas
-            let posArea = document.getElementById('cursor-pos');
-            let posDataArea = document.getElementById('cursor-data-pos');
-            let dataArea = document.getElementById('cursor-data');
-            posArea.innerText = this.selector.cursor.toString();
-            posDataArea.innerText = this.selector.relativeCursor.toString();
-            dataArea.innerText = this.selector.dataAtCursor.toString();
         } else if(event.key == 'ArrowUp'){
-            if(event.shiftKey){
-                this.selector.isSelecting = true;
+            shouldUpdateInfoAreas = true;
+            if(event.ctrlKey){
+                this.selector.moveToTopEnd(isSelecting);
+            } else {
+                this.selector.moveUpBy(
+                    1,
+                    isSelecting
+                );
             }
-            this.selector.moveUpBy(1);
             event.preventDefault();
-
-            // Update relevant view areas
-            let posArea = document.getElementById('cursor-pos');
-            let posDataArea = document.getElementById('cursor-data-pos');
-            let dataArea = document.getElementById('cursor-data');
-            posArea.innerText = this.selector.cursor.toString();
-            posDataArea.innerText = this.selector.relativeCursor.toString();
-            dataArea.innerText = this.selector.dataAtCursor.toString();
         } else if(event.key == 'ArrowDown'){
-            if(event.shiftKey){
-                this.selector.isSelecting = true;
+            shouldUpdateInfoAreas = true;
+            if(event.ctrlKey){
+                this.selector.moveToBottomEnd(isSelecting);
+            } else {
+                this.selector.moveDownBy(
+                    1,
+                    isSelecting
+                );
             }
-            this.selector.moveDownBy(1);
             event.preventDefault();
+        }
 
+        if(shouldUpdateInfoAreas){
             // Update relevant view areas
             let posArea = document.getElementById('cursor-pos');
             let posDataArea = document.getElementById('cursor-data-pos');
@@ -116,7 +116,6 @@ class Sheet extends HTMLElement {
             posDataArea.innerText = this.selector.relativeCursor.toString();
             dataArea.innerText = this.selector.dataAtCursor.toString();
         }
-        this.selector.isSelecting = false;
     }
 
     resize(numRows, numCols){

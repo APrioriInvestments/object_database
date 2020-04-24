@@ -80,6 +80,7 @@ class Selector {
             this.cursor = nextCursor;
             this.selectFromAnchorTo(this.relativeCursor);
         } else {
+            this.selectionFrame.isEmpty = true;
             this.cursor = nextCursor;
             this.anchor = this.relativeCursor;
         }
@@ -119,6 +120,7 @@ class Selector {
             this.cursor = nextCursor;
             this.selectFromAnchorTo(this.relativeCursor);
         } else {
+            this.selectionFrame.isEmpty = true;
             this.cursor = nextCursor;
             this.anchor = this.relativeCursor;
         }
@@ -157,6 +159,7 @@ class Selector {
             this.cursor = nextCursor;
             this.selectFromAnchorTo(this.relativeCursor);
         } else {
+            this.selectionFrame.isEmpty = true;
             this.cursor = nextCursor;
             this.anchor = this.relativeCursor;
         }
@@ -180,6 +183,7 @@ class Selector {
             this.cursor = nextCursor;
             this.selectFromAnchorTo(this.relativeCursor);
         } else {
+            this.selectionFrame.isEmpty = true;
             this.cursor = nextCursor;
             this.anchor = this.relativeCursor;
         }
@@ -211,9 +215,6 @@ class Selector {
     }
 
     updateElements(){
-        // Give the cursor the correct cursor
-        // class
-        this.drawCursor();
 
         // Loop through each Point in the PrimaryFrame
         // and update appropriate elements as needed.
@@ -229,7 +230,14 @@ class Selector {
             } else {
                 element.classList.remove('in-selection');
             }
+
+            // Remove all former cursor or anchor styles
+            element.classList.remove('selector-anchor', 'selector-cursor');
         });
+
+        // Give the cursor the correct cursor
+        // class
+        this.drawCursor();
 
         // Draw the anchor element
         this.drawAnchor();
@@ -240,6 +248,7 @@ class Selector {
             this.anchor,
             aRelativePoint
         );
+        this.selectionFrame.isEmpty = false;
     }
 
 

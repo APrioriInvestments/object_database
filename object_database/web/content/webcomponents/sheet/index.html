@@ -9,16 +9,6 @@
         <div id="main">
           <test-sheet rows="10" columns="20" locked-rows="2" locked-columns="1"></test-sheet>
           <section>
-              <div id="button-area">
-                  <button class="sheet-move-button" id="shift-up">&uarr;</button>
-                  <button class="sheet-move-button" id="shift-down">&darr;</button>
-                  <button class="sheet-move-button" id="shift-left">&larr;</button>
-                  <button class="sheet-move-button" id="shift-right">&rarr;</button>
-                  <button class="sheet-move-button" id="page-up">PageUp</button>
-                  <button class="sheet-move-button" id="page-down">PageDown</button>
-                  <button class="sheet-move-button" id="page-left">PageLeft</button>
-                  <button class="sheet-move-button" id="page-right">PageRight</button>
-              </div>
               <div id="info-area">
                   <h3>
                       Cursor Pos: <span id="cursor-pos"></span>
@@ -38,41 +28,6 @@
               </div>
           </section>
         </div>
-        <script>
-         let sheet = document.querySelector('test-sheet');
-         document.querySelectorAll('.sheet-move-button').forEach(button => {
-             button.addEventListener('click', (event) => {
-                 switch(button.id){
-                     case "shift-up":
-                         sheet.primaryFrame.shiftUpBy(1);
-                         return sheet.primaryFrame.updateCellContents();
-                     case "shift-down":
-                         sheet.primaryFrame.shiftDownBy(1);
-                         return sheet.primaryFrame.updateCellContents();
-                     case "shift-left":
-                         sheet.primaryFrame.shiftLeftBy(1);
-                         return sheet.primaryFrame.updateCellContents();
-                     case "shift-right":
-                         sheet.primaryFrame.shiftRightBy(1);
-                         return sheet.primaryFrame.updateCellContents();
-                     case "page-up":
-                         sheet.primaryFrame.pageUp();
-                         return sheet.primaryFrame.updateCellContents();
-                     case "page-down":
-                         sheet.primaryFrame.pageDown();
-                         return sheet.primaryFrame.updateCellContents();
-                     case "page-left":
-                         sheet.primaryFrame.pageLeft();
-                         return sheet.primaryFrame.updateCellContents();
-                     case "page-right":
-                         sheet.primaryFrame.pageRight();
-                         return sheet.primaryFrame.updateCellContents();
-                     default:
-                         return console.log('No matching action');
-                 }
-             });
-         });
-        </script>
     </body>
     <style>
      .in-locked-row {

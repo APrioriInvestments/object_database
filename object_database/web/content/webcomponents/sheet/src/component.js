@@ -6,14 +6,32 @@ import DataFrame from './DataFrame';
 import Point from './Point';
 import Selector from './Selector';
 
+const remoteDataFrame = new DataFrame([0,0], [1000,1000]);
+remoteDataFrame.forEachPoint(aPoint => {
+    let label = aPoint.toString().replace("Point", "");
+    remoteDataFrame.putAt(aPoint, label);
+});
+
+const fetchRemoteFrames = (frames) => {
+    console.log('Fetching frames from remote:');
+    console.log(frames);
+    return new Promise((resolve, reject) => {
+        let fetchedData = frames.map(aFrame => {
+            return [
+                aFrame.origin,
+                remoteDataFrame.getDataArrayForFrame(aFrame)
+            ];
+        });
+        setTimeout(function(){
+            resolve(fetchedData);
+        }, 300);
+    });
+};
+
 class Sheet extends HTMLElement {
     constructor(){
         super();
         this.dataFrame = new DataFrame([0,0], [1000,1000]);
-        this.dataFrame.forEachPoint(aPoint => {
-            let label = aPoint.toString().replace("Point", "");
-            this.dataFrame.putAt(aPoint, label);
-        });
         this.primaryFrame = new PrimaryFrame(this.dataFrame, [0,0]);
         this.selector = new Selector(this.primaryFrame);
         this.tableBody = document.createElement('tbody');
@@ -157,11 +175,48 @@ class Sheet extends HTMLElement {
         newPrimaryFrame.lockRows(numLockedRows);
         newPrimaryFrame.lockColumns(numLockedColumns);
         newPrimaryFrame.labelElements();
+        newPrimaryFrame.afterShift = this.afterShift;
         this.primaryFrame = newPrimaryFrame;
         this.selector = new Selector(this.primaryFrame);
         this.tableBody.append(...this.primaryFrame.rowElements);
         this.primaryFrame.updateCellContents();
         this.selector.drawCursor();
+
+        // Call afterShift the first time to ensure that data
+        // for the initial views is fetched from the remote
+        // source
+        this.primaryFrame.afterShift(this.primaryFrame);
+    }
+
+    afterShift(primaryFrame){
+        console.log('afterShift called');
+        let frames = [
+            primaryFrame.relativeViewFrame,
+            primaryFrame.relativeLockedColumnsFrame,
+            primaryFrame.relativeLockedRowsFrame
+        ].filter(aFrame => {
+            return !primaryFrame.dataFrame.hasCompleteDataForFrame(aFrame);
+        });
+        if(frames.length){
+            console.log(`Attempting to fetch ${frames.length} frames...`);
+            fetchRemoteFrames(frames)
+                .then(frameTuples => {
+                    frameTuples.forEach(frameTuple => {
+                        let relativeOrigin = frameTuple[0];
+                        let dataArray = frameTuple[1];
+                        this.dataFrame.loadFromArray(
+                            dataArray,
+                            relativeOrigin
+                        );
+                    });
+                })
+                .then(() => {
+                    primaryFrame.updateCellContents();
+                })
+                .catch(err => {
+                    console.error(err);
+                });
+        }
     }
 
     static get observedAttributes(){

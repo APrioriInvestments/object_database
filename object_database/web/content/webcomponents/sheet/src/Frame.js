@@ -459,6 +459,17 @@ class Frame {
     }
 
     /**
+     * Provide some comprehensible string
+     * representation of the frame
+     */
+    toString(){
+        if(this.isEmpty){
+            return `Frame(empty)`;
+        }
+        return `Frame(${this.origin}, ${this.corner})`;
+    }
+
+    /**
      * Class method for constructing a new
      * empty Frame.
      */

@@ -105,6 +105,22 @@ class Sheet extends HTMLElement {
                 );
             }
             event.preventDefault();
+        } else if(event.key == 'PageUp'){
+            shouldUpdateInfoAreas = true;
+            if(event.altKey){
+                this.selector.pageLeft(isSelecting);
+            } else {
+                this.selector.pageUp(isSelecting);
+            }
+            event.preventDefault();
+        } else if(event.key == 'PageDown'){
+            shouldUpdateInfoAreas = true;
+            if(event.altKey){
+                this.selector.pageRight(isSelecting);
+            } else {
+                this.selector.pageDown(isSelecting);
+            }
+            event.preventDefault();
         }
 
         if(shouldUpdateInfoAreas){
@@ -112,9 +128,17 @@ class Sheet extends HTMLElement {
             let posArea = document.getElementById('cursor-pos');
             let posDataArea = document.getElementById('cursor-data-pos');
             let dataArea = document.getElementById('cursor-data');
+            let selectionFrameArea = document.getElementById('selection-frame-info');
+            let selectionPointsArea = document.getElementById('selection-points-info');
             posArea.innerText = this.selector.cursor.toString();
             posDataArea.innerText = this.selector.relativeCursor.toString();
             dataArea.innerText = this.selector.dataAtCursor.toString();
+            selectionFrameArea.innerText = this.selector.selectionFrame.toString();
+            if(this.selector.selectionFrame.isEmpty){
+                selectionPointsArea.innerText = '[Empty Frame]';
+            } else {
+                selectionPointsArea.innerText = this.selector.selectionFrame.points.length.toString();
+            }
         }
     }
 

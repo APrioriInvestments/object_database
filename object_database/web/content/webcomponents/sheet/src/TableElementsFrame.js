@@ -22,6 +22,12 @@ class TableElementsFrame extends Frame {
         this.elementAt = this.elementAt.bind(this);
     }
 
+    /**
+     * I create and store the initial tr/td elements
+     * as calculated by my own dimensions.
+     * I set data-attributes for both the absolute
+     * and relative coorindates on each td element.
+     */
     initialBuild(){
         this.rowElements = [];
         this.tdElements =  [];

@@ -11,6 +11,11 @@
  * Returns true only if the incoming
  * Object is an Array that has two
  * values.
+ * @param {object} object - An object
+ * to check to see if it is a "coordinate pair"
+ * meaning a size 2 array of ints
+ * @returns {boolean} - True only if
+ * the object is an array of size 2
  */
 const isCoordinate = (object) => {
     if(!Array.isArray(object)){
@@ -64,6 +69,11 @@ class Point {
         this.y += translationPoint.y;
     }
 
+    /**
+     * I make the my string representation
+     * @returns {String} - The string representation
+     * of myself
+     */
     toString(){
         return `Point(${this.x}, ${this.y})`;
     }

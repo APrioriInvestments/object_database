@@ -177,10 +177,11 @@ class Sheet extends HTMLElement {
         newPrimaryFrame.labelElements();
         newPrimaryFrame.afterShift = this.afterShift;
         this.primaryFrame = newPrimaryFrame;
-        this.selector = new Selector(this.primaryFrame);
+        this.selector.primaryFrame = this.primaryFrame;
         this.tableBody.append(...this.primaryFrame.rowElements);
         this.primaryFrame.updateCellContents();
         this.selector.drawCursor();
+        this.selector.updateElements();
 
         // Call afterShift the first time to ensure that data
         // for the initial views is fetched from the remote

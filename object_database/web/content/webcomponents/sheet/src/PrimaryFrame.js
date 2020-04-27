@@ -143,6 +143,13 @@ class PrimaryFrame extends TableElementsFrame {
         this.viewFrame.origin.x = this.numLockedColumns;
     }
 
+    /**
+     * I add the appropriate CSS classes to any of
+     * my td elements that are in a locked columns
+     * or row frame, or the view frame.
+     * I also clear any classes that no longer
+     * apply to each element
+     */
     labelElements(){
         let classesToClear = ['in-locked-row', 'in-locked-column', 'view-cell'];
         // Begin with columns
@@ -163,6 +170,18 @@ class PrimaryFrame extends TableElementsFrame {
         });
     }
 
+    /**
+     * I update the data-relative values
+     * for each of my td elements.
+     * This includes the data values for any
+     * elements whose relative points appear
+     * in locked column/row frames.
+     * I also update the data-attributes
+     * for each element such that they store
+     * both the "absolute" (ie PrimaryFrame relative)
+     * and "relative" (ie DataFrame relative) coordinate
+     * values
+     */
     updateCellContents(){
         this.updateLockedRowElements();
         this.updateLockedColumnElements();
@@ -178,6 +197,12 @@ class PrimaryFrame extends TableElementsFrame {
         }
     }
 
+    /**
+     * I update the data-relative values and
+     * element data attributes for each of my td
+     * elements that appears within the locked
+     * rows frame.
+     */
     updateLockedRowElements(){
         if(this.numLockedRows){
             this.relativeLockedRowsFrame.forEachPoint(aPoint => {
@@ -198,6 +223,12 @@ class PrimaryFrame extends TableElementsFrame {
         }
     }
 
+    /**
+     * I update the data-relative values and
+     * element data attributes for each of my td
+     * elements that appears within the locked
+     * columns frame.
+     */
     updateLockedColumnElements(){
         if(this.numLockedColumns){
             let relativeColumns = this.relativeLockedColumnsFrame;
@@ -223,6 +254,11 @@ class PrimaryFrame extends TableElementsFrame {
         }
     }
 
+    /**
+     * I update the data-relative values and
+     * element data attributes for each of my td
+     * elements that appears within my viewFrame.
+     */
     updateViewElements(){
         let offset = new Point([
             this.relativeViewFrame.origin.x - this.viewFrame.origin.x,
@@ -252,6 +288,11 @@ class PrimaryFrame extends TableElementsFrame {
      * at that point in the DataFrame.
      * Because all PrimaryFrame points also have corresponding
      * DOMElements, we can perform easily manipulations
+     * @param {Point} aPoint - A PrimaryFrame absolute
+     * Point for which we want to find the data-relative
+     * translation
+     * @param {Point} - A new Point that is the data-relative
+     * translation of the provided Point
      */
     relativePointAt(aPoint){
         if(!this.contains(aPoint)){
@@ -269,6 +310,19 @@ class PrimaryFrame extends TableElementsFrame {
 
     /* Movement */
 
+    /**
+     * I attempt to move my constituent frames
+     * to the right over my underlying dataFrame
+     * by the specified number of Points.
+     * If the given amount would set my frames beyond
+     * the bounds of the dataFrame, I simply stop
+     * at the maximum possible position in that direction.
+     * Note that I will also attempt to trigger an
+     * `afterShift` callback when done, should one be
+     * set.
+     * @param {number} amount - The number of Points to
+     * shift right by over the underlying dataFrame
+     */
     shiftRightBy(amount){
         let nextX = this.dataOffset.x + amount;
         if((nextX + this.viewFrame.size.x) > this.dataFrame.right){
@@ -279,6 +333,19 @@ class PrimaryFrame extends TableElementsFrame {
         this.triggerAfterShift();
     }
 
+    /**
+     * I attempt to move my constituent frames
+     * to the left over my underlying dataFrame
+     * by the specified number of Points.
+     * If the given amount would set my frames beyond
+     * the bounds of the dataFrame, I simply stop
+     * at the maximum possible position in that direction.
+     * Note that I will also attempt to trigger an
+     * `afterShift` callback when done, should one be
+     * set.
+     * @param {number} amount - The number of Points to
+     * shift left by over the underlying dataFrame
+     */
     shiftLeftBy(amount){
         let nextX = this.dataOffset.x - amount;
         if((nextX < this.viewFrame.left)){
@@ -289,6 +356,19 @@ class PrimaryFrame extends TableElementsFrame {
         this.triggerAfterShift();
     }
 
+    /**
+     * I attempt to move my constituent frames
+     * down over my underlying dataFrame
+     * by the specified number of Points.
+     * If the given amount would set my frames beyond
+     * the bounds of the dataFrame, I simply stop
+     * at the maximum possible position in that direction.
+     * Note that I will also attempt to trigger an
+     * `afterShift` callback when done, should one be
+     * set.
+     * @param {number} amount - The number of Points to
+     * shift down by over the underlying dataFrame
+     */
     shiftDownBy(amount, debug=false){
         let nextY = this.dataOffset.y + amount;
         if((nextY + this.viewFrame.size.y) > this.dataFrame.bottom){
@@ -299,6 +379,19 @@ class PrimaryFrame extends TableElementsFrame {
         this.triggerAfterShift();
     }
 
+    /**
+     * I attempt to move my constituent frames
+     * up over my underlying dataFrame
+     * by the specified number of Points.
+     * If the given amount would set my frames beyond
+     * the bounds of the dataFrame, I simply stop
+     * at the maximum possible position in that direction.
+     * Note that I will also attempt to trigger an
+     * `afterShift` callback when done, should one be
+     * set.
+     * @param {number} amount - The number of Points to
+     * shift up by over the underlying dataFrame
+     */
     shiftUpBy(amount){
         let nextY = this.dataOffset.y - amount;
         if((nextY < this.viewFrame.top)){
@@ -309,26 +402,48 @@ class PrimaryFrame extends TableElementsFrame {
         this.triggerAfterShift();
     }
 
+    /**
+     * I trigger a `shiftRightBy` call with
+     * an amount equivalent to my own total width
+     */
     pageRight(){
         let amount = this.relativeViewFrame.size.x;
         this.shiftRightBy(amount);
     }
 
+    /**
+     * I trigger a `shiftLeftBy` call with
+     * an amount equivalent to my own total width
+     */
     pageLeft(){
         let amount = this.relativeViewFrame.size.x;
         this.shiftLeftBy(amount);
     }
 
+    /**
+     * I trigger a `shiftUpBy` call with
+     * an amount equivalent to my own total height
+     */
     pageUp(){
         let amount = this.relativeViewFrame.size.y;
         this.shiftUpBy(amount);
     }
 
+    /**
+     * I trigger a `shiftDownBy` call with
+     * an amount equivalent to my own total height
+     */
     pageDown(){
         let amount = this.relativeViewFrame.size.y;
         this.shiftDownBy(amount);
     }
 
+    /**
+     * If there is a callback set on my
+     * `afterShift` attribute, I will call it.
+     * I am usually triggered after any type of
+     * shift has taken place
+     */
     triggerAfterShift(){
         if(this.afterShift){
             this.afterShift(this);
@@ -339,6 +454,9 @@ class PrimaryFrame extends TableElementsFrame {
      * This is the lockedRowsFrame relative
      * to the dataOffset point. Returns a totally
      * new Frame.
+     * @returns {Frame} - A new Frame whose Points
+     * correspond to data-relative Points for the
+     * current locked rows.
      */
     get relativeLockedRowsFrame(){
         if(this.numLockedRows){
@@ -359,6 +477,9 @@ class PrimaryFrame extends TableElementsFrame {
      * This is the lockedColumnsFrame relative
      * to the dataOffset point. Returns a totally
      * new Frame instance.
+     * @returns {Frame} - A new Frame whose Points
+     * correspond to data-relative Points for the
+     * current locked columns.
      */
     get relativeLockedColumnsFrame(){
         if(this.numLockedColumns){
@@ -382,6 +503,9 @@ class PrimaryFrame extends TableElementsFrame {
      * the positions of any relative locked rows or
      * columns frames.
      * Returns a new Frame instance.
+     * @returns {Frame} - A new Frame whose Points
+     * correspond to data-relative Points for the
+     * current relative view.
      */
     get relativeViewFrame(){
         let origin = new Point([
@@ -402,6 +526,9 @@ class PrimaryFrame extends TableElementsFrame {
      * fix data at this frame's points into the top
      * left corner, but only when there are *both*
      * locked columns and locked frames
+     * @returns {Frame} - A new Frame instance representing
+     * the intersection of locked rows/locked columns frame,
+     * should both be present and non-empty
      */
     get lockedFramesIntersect(){
         if(this.numLockedRows && this.numLockedColumns){
@@ -414,6 +541,8 @@ class PrimaryFrame extends TableElementsFrame {
      * Returns true if the viewFrame is completely
      * to the left side of the corresponding dataFrame,
      * adjusted for locked columns
+     * @returns {boolean} - Whether or not the viewFrame
+     * is leftmost relative to the underlying dataFrame
      */
     get isAtLeft(){
         return this.dataOffset.x == 0;
@@ -423,6 +552,8 @@ class PrimaryFrame extends TableElementsFrame {
      * Returns true if the relativeViewFrame's
      * right side is equal to the dataFrame's
      * right side (ie we are all the way right)
+     * @returns {boolean} - Whether or not the viewFrame
+     * is rightmost relative to the underlying dataFrame
      */
     get isAtRight(){
         return this.relativeViewFrame.right == this.dataFrame.right;
@@ -432,6 +563,8 @@ class PrimaryFrame extends TableElementsFrame {
      * Returns true if the relativeViewFrame
      * is at the total possible top, taking
      * into consideration any locked rows.
+     * @returns {boolean} - Whether or not the viewFrame
+     * is top-most relative to the underlying dataFrame
      */
     get isAtTop(){
         return this.dataOffset.y == 0;
@@ -440,12 +573,12 @@ class PrimaryFrame extends TableElementsFrame {
     /**
      * Returns true if the relativeViewFrame
      * is at the total possible bottom
+     * @returns {boolean} - Whether or not the viewFrame
+     * is bottom-most relative to the underlying dataFrame
      */
     get isAtBottom(){
         return this.relativeViewFrame.bottom == this.dataFrame.bottom;
     }
-
-
 };
 
 export {

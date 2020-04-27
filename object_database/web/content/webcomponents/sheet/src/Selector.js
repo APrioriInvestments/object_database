@@ -67,6 +67,22 @@ class Selector {
         this.drawCursor = this.drawCursor.bind(this);
     }
 
+    /**
+     * I move the cursor right by the given
+     * amount.
+     * If `selecting` is set to true, I also
+     * update the selectionFrame accordingly.
+     * In the event that I am to the right of
+     * the current viewFrame already, but there
+     * is more underlying data at the Point where
+     * the cursor should next be, I will trigger
+     * a `shiftRightBy` call on the underlying primaryFrame.
+     * @param {number} amount - The number of Points
+     * to move the cursor right by
+     * @param {boolean} selecting - Whether or not to
+     * "select" during the move, meaning update the
+     * internal selectionFrame.
+     */
     moveRightBy(amount, selecting=false){
         let nextCursor = new Point([
             this.cursor.x,
@@ -92,6 +108,23 @@ class Selector {
         this.updateElements();
     }
 
+    /**
+     * I move the cursor left by the given
+     * amount.
+     * If `selecting` is set to true, I will
+     * update my underlying selectionFrame
+     * accordingly.
+     * In the event that I am to the left of
+     * the current viewFrame, but there is more
+     * data to the left, I will trigger a
+     * `shiftLeftBy` on the underlying
+     * primaryFrame.
+     * @param {number} amount - The number of
+     * Points to shift left by
+     * @param {boolean} selecting - Whether or
+     * not to "select" during the move and
+     * update my current selectionFrame
+     */
     moveLeftBy(amount, selecting=false){
         let nextCursor = new Point([
             this.cursor.x,
@@ -132,6 +165,22 @@ class Selector {
         this.updateElements();
     }
 
+    /**
+     * I move the cursor up by the given amount.
+     * If `selecting` is set to true, I also
+     * update my internal selectionFrame
+     * accordingly.
+     * If the cursor is already at the top of
+     * the current viewFrame and there is more
+     * data further up, I will trigger a
+     * `shiftUpBy` call on my underling primaryFrame
+     * by the correct amount.
+     * @param {number} amount - The number of Points
+     * to move the cursor up by
+     * @param {selecting} - Whether or not to
+     * "select" during the move and update the
+     * selectionFrame.
+     */
     moveUpBy(amount, selecting=false){
         let nextCursor = new Point([
             this.cursor.x,
@@ -171,6 +220,20 @@ class Selector {
         this.updateElements();
     }
 
+    /**
+     * I move the cursor down by the given amount.
+     * If `selecting` is set to true, I also update
+     * my underlying selectionFrame accordingly.
+     * If I am at the bottom of the current viewFrame
+     * and there is further data below, I will trigger
+     * a call to `shiftDownBy` on my underling
+     * primaryFrame with the correct adjusted amount.
+     * @param {number} amount - The number of Points to
+     * move the cursor down by
+     * @param {boolean} selecting - Whether or not to
+     * "select" during the move, updating the
+     * selectionFrame
+     */
     moveDownBy(amount, selecting=false){
         let nextCursor = new Point([
             this.cursor.x,
@@ -196,6 +259,16 @@ class Selector {
         this.updateElements();
     }
 
+    /**
+     * I trigger a `moveUp` call whose
+     * amount is equal to the current page
+     * height.
+     * If `selecting` is true, I will also
+     * update the selectionFrame accordingly.
+     * @param {boolean} selecting - Whether or
+     * not to "select" during the move and
+     * update the underlying selectionFrame
+     */
     pageUp(selecting=false){
         this.moveUpBy(
             this.pageSize.y,
@@ -203,6 +276,14 @@ class Selector {
         );
     }
 
+    /**
+     * I trigger a `moveDownBy` call whose
+     * amount is equal to the current page
+     * height.
+     * @param {boolean} selecting - Whether
+     * or not to "select" during the move and
+     * update the underlying selectionFrame
+     */
     pageDown(selecting=false){
         this.moveDownBy(
             this.pageSize.y,
@@ -210,6 +291,14 @@ class Selector {
         );
     }
 
+    /**
+     * I trigger a `moveRightBy` call whose
+     * amount is equal to the current page
+     * width.
+     * @param {boolean} selecting - Whether
+     * or not to "select" during the move and
+     * update the underlying selectionFrame
+     */
     pageRight(selecting=false){
         this.moveRightBy(
             this.pageSize.x,
@@ -217,6 +306,14 @@ class Selector {
         );
     }
 
+    /**
+     * I trigger a `moveLeftBy` call whose
+     * amount i equal to the current page
+     * width.
+     * @param {boolean} selecting - Whether
+     * or not to "select" during the move and
+     * update the underlying selectionFrame
+     */
     pageLeft(selecting=false){
         this.moveLeftBy(
             this.pageSize.x,
@@ -224,6 +321,14 @@ class Selector {
         );
     }
 
+    /**
+     * I move the cursor to the rightmost
+     * end of the data, triggering any needed
+     * shift on the underlying primaryFrame.
+     * @param {boolean} selecting - Whether or not
+     * to "select" during the move and update the
+     * selectionFrame accordingly
+     */
     moveToRightEnd(selecting=false){
         // Move by any amount greather than the dataFrame
         // size
@@ -233,6 +338,14 @@ class Selector {
         );
     }
 
+    /**
+     * I move the cursor to the leftmost
+     * end of the data, triggering any needed
+     * shift on the underlying primaryFrame
+     * @param {boolean} selecting - Whether or not
+     * to "select" during the move and update the
+     * selectionFrame accordingly
+     */
     moveToLeftEnd(selecting=false){
         // Move by any amout greather than dataFrame size
         this.moveLeftBy(
@@ -241,6 +354,14 @@ class Selector {
         );
     }
 
+    /**
+     * I move the cursor to the topmost
+     * end of the data, triggering any needed
+     * shift on the underlying primaryFrame.
+     * @param {boolean} selecting - Whether or not
+     * to "select" during the move and update the
+     * selectionFrame accordingly
+     */
     moveToTopEnd(selecting=false){
         // Move up by any amount greather than
         // the dataFrame's total height
@@ -250,6 +371,14 @@ class Selector {
         );
     }
 
+    /**
+     * I move the cursor to the bottom-most
+     * end of the data, triggering any needed
+     * shift on the underlying primaryFrame
+     * @param {boolean} selecting - Whether or not
+     * to "select" during the move and update the
+     * selectionFrame accordingly
+     */
     moveToBottomEnd(selecting=false){
         // Move down by any amount greather than
         // the dataFrame's total height
@@ -259,6 +388,13 @@ class Selector {
         );
     }
 
+    /**
+     * I find the td element at the current
+     * cursor location on the primaryFrame
+     * and add the appropriate CSS class to it.
+     * If there is a cached previousCursor, I
+     * remove the CSS class from it.
+     */
     drawCursor(){
         let element = this.primaryFrame.elementAt(this.cursor);
         element.classList.add('selector-cursor');
@@ -268,6 +404,13 @@ class Selector {
         this.prevCursorEl = element;
     }
 
+    /**
+     * I find the td element at the current
+     * anchor location on the primaryFrame
+     * and add the appropriate CSS class to it.
+     * Note that if my anchor and cursor points
+     * are equivalent, I only call `drawCursor`
+     */
     drawAnchor(){
         if(this.anchor.equals(this.relativeCursor)){
             return this.drawCursor();
@@ -282,10 +425,19 @@ class Selector {
         }
     }
 
+    /**
+     * I loop through each of the Points in my
+     * underlying primaryFrame and add/remove
+     * CSS classes to each corresponding td element
+     * as needed.
+     * The styling added here includes:
+     * - Removing borders from old selections,
+     *   cursors, and anchors
+     * - Adding CSS classes for any element whose
+     *   corresponding data-relative Point is
+     *   within the current selectionFrame
+     */
     updateElements(){
-
-        // Loop through each Point in the PrimaryFrame
-        // and update appropriate elements as needed.
         this.primaryFrame.forEachPoint(aPoint => {
             let relativePoint = this.primaryFrame.relativePointAt(aPoint);
             let element = this.primaryFrame.elementAt(aPoint);
@@ -334,6 +486,16 @@ class Selector {
         this.drawAnchor();
     }
 
+    /**
+     * I set my selectionFrame to a new
+     * Frame that extends from my current
+     * anchor (which is relative to the dataFrame)
+     * some other point that is relative to
+     * the dataFrame.
+     * @param {Point} aRelativePoint - Some Point
+     * instance that corresponds to a Point on the
+     * underlying dataFrame. This Point is data-relative.
+     */
     selectFromAnchorTo(aRelativePoint){
         this.selectionFrame = Frame.fromPointToPoint(
             this.anchor,
@@ -346,7 +508,12 @@ class Selector {
     /**
      * Responds with a new Point that
      * represents the data-relative
-     * Point under the cursor
+     * Point under the cursor.
+     * @returns {Point} - A data-relative
+     * Point based on the primaryFrame absolute
+     * Point given by my current cursor location
+     * @returns {Point} - A data-relative Point
+     * corresponding to the cursor location
      */
     get relativeCursor(){
         let el = this.primaryFrame.elementAt(this.cursor);
@@ -361,6 +528,8 @@ class Selector {
      * cursor.
      * Note that we use relativeCursor to
      * do so.
+     * @returns {object} - The stored data value
+     * at the current relative cursor point
      */
     get dataAtCursor(){
         let dataValue = this.primaryFrame.dataFrame.getAt(
@@ -378,6 +547,8 @@ class Selector {
      * page. In most cases this will be identical
      * to the primaryFrame's viewFrame.
      * We include here for readability
+     * @returns {Point} - A Point whose x and
+     * y values are the size of the current page
      */
     get pageSize(){
         return this.primaryFrame.viewFrame.size;

@@ -155,7 +155,7 @@ class Sheet extends HTMLElement {
             if(this.selector.selectionFrame.isEmpty){
                 selectionPointsArea.innerText = '[Empty Frame]';
             } else {
-                selectionPointsArea.innerText = this.selector.selectionFrame.points.length.toString();
+                selectionPointsArea.innerText = this.selector.selectionFrame.area.toString();
             }
         }
     }

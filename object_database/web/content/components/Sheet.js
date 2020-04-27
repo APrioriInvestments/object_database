@@ -695,6 +695,10 @@ class Sheet extends Component {
             let th = head.querySelector(`#sheet-${this.props.id}-head-current`);
             let content = this.dataFrame.get(cursor);
             // cleanup content for the header display
+            if (content === undefined) {
+                content = ""
+            }
+
             content = content.replace(/(\r\n|\n|\r)/gm, "");
             content = content.replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/gm," ");
             let coordinates = `(${cursor.x}x${cursor.y}): `;

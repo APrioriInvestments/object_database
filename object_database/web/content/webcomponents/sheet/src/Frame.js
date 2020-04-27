@@ -126,6 +126,12 @@ class Frame {
      * the Frame passed in as an argument.
      * If there is no valid intersection, it
      * returns a new empty Frame.
+     * @param {Frame} otherFrame - A Frame to
+     * compare for intersectionality
+     * @returns {Frame} - A new Frame instance
+     * that represents the intersection of myself
+     * and the passed-in Frame. Will be an empty
+     * Frame if there is no intersection
      */
     intersection(otherFrame){
         if(this.isEmpty || otherFrame.isEmpty){
@@ -210,8 +216,12 @@ class Frame {
      * Returns a new Frame instance that
      * encloses the total areas of both
      * this frame and the incoming frame
-     * TODO: See about refactoring
-     * using min()/max()
+     * @param {Frame} otherFrame - A Frame
+     * instance that will be used to compute
+     * the union between it and myself
+     * @returns {Frame} - A new Frame instance
+     * representing the enclosure of myself and
+     * the passed in Frame.
      */
     union(otherFrame){
         let cornerX;
@@ -303,6 +313,15 @@ class Frame {
         return result;
     }
 
+    /**
+     * I loop through each "row" of Coordinates inside
+     * myself and call the passed-in callback
+     * with the array of Coordinates and the row
+     * index as the two aarguments.
+     * @param {function} callback - A function whose
+     * arguments will be an array of Coordinates and
+     * the row index
+     */
     forEachCoordinateRow(callback){
         if(this.isEmpty){
             return;
@@ -316,6 +335,15 @@ class Frame {
         }
     }
 
+    /**
+     * I loop through each "row" of Points inside
+     * myself and call the passed-in callback
+     * with the array of Points and the row
+     * index as the two aarguments.
+     * @param {function} callback - A function whose
+     * arguments will be an array of Points and
+     * the row index
+     */
     forEachPointRow(callback){
         this.forEachCoordinateRow((row, rowIndex) => {
             let pointRow = row.map(col => {
@@ -330,6 +358,7 @@ class Frame {
      * mapped to all Points contained within
      * the Frame.
      * The order is from the x dimension first.
+     * @returns {[Point]} - An array of Points
      */
     get points(){
         let points = [];
@@ -348,6 +377,8 @@ class Frame {
      * that are mapped to all points contained
      * within this Frame.
      * The order is from the x dimension first.
+     * @returns {[Array]} - An array of coordinate
+     * pairs
      */
     get coordinates(){
         let coordinates = [];
@@ -367,6 +398,8 @@ class Frame {
      * being width and y being height.
      * Will return Point(0,0) for empty
      * Frames.
+     * @returns {Point} - A Point representing
+     * my size
      */
     get size(){
         if(this.isEmpty){
@@ -385,6 +418,8 @@ class Frame {
      * 'empty' (0-dimensional), as it can
      * contain a single point (cell) which
      * is actually 1 dimensional.
+     * @returns {number} - A number representing
+     * my total number of dimensions
      */
     get dimensions(){
         if(this.isEmpty){
@@ -400,6 +435,8 @@ class Frame {
      * Returns the total number of contained
      * Points/coordinates given the current
      * origin and corner values.
+     * @returns {number} - A number representing
+     * my total number of contained Points
      */
     get area(){
         if(this.isEmpty){
@@ -410,6 +447,7 @@ class Frame {
         return maxX * maxY;
     }
 
+    /* Convenience Getters */
     get left(){
         return this.origin.x;
     }
@@ -452,6 +490,9 @@ class Frame {
      * Return a new instance with the
      * same origin, corner, and empty
      * values as myself.
+     * @returns {Frame} - A new Frame instance
+     * that has my same origin, corner, and
+     * isEmpty values
      */
     copy(){
         let copyFrame = new Frame(
@@ -465,6 +506,8 @@ class Frame {
     /**
      * Provide some comprehensible string
      * representation of the frame
+     * @returns {String} - The string
+     * representation of myself
      */
     toString(){
         if(this.isEmpty){
@@ -476,6 +519,9 @@ class Frame {
     /**
      * Class method for constructing a new
      * empty Frame.
+     * @returns {Frame} - A new Frame instance
+     * that has a 0,0 origin and corner and
+     * that is set to empty.
      */
     static newEmpty(){
         let newFrame = new this([0,0], [0,0]);
@@ -488,6 +534,14 @@ class Frame {
      * Points. Unlike the regular constructor, these
      * points to not have to be the origin and corner,
      * but could be any of the four corners.
+     * @param {Point|Coordinate} firstPoint - a Point
+     * or coordinate representing one possible corner
+     * of the desired Frame
+     * @param {Point|Coordinate} secondPoint - a Point
+     * or coordinate representing another possible
+     * corner of the desired Frame
+     * @returns {Frame} - A new Frame instance that has
+     * the correctly computed origin and corner
      */
     static fromPointToPoint(firstPoint, secondPoint){
         if(firstPoint.equals(secondPoint)){
@@ -506,6 +560,17 @@ class Frame {
         return new this(origin, corner);
     }
 
+    /**
+     * I create a naw Frame with 0,0 origin
+     * and the correct size according to the
+     * passed-in dimensions.
+     * @param {number} width - The desired width
+     * of the new Frame
+     * @param {number} height - The desired height
+     * of thw new Frame
+     * @returns {Frame} - A new Frame instance with
+     * the correct origin and corner
+     */
     static newOfSize(width, height){
         // We return -1 for each
         // dimension because Frame

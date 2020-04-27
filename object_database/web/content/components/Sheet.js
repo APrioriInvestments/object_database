@@ -710,8 +710,24 @@ class Sheet extends Component {
                 }
             }
             th.style.fontSize = fontSize;
-            th.setAttribute("style", `max-width: ${(this.maxNumColumns - 1) * this.props.colWidth}px`)
-            th.textContent = `${coordinates}${content}`;
+            th.setAttribute(
+                "style",
+                `width: ${(this.maxNumColumns - 1) * this.props.colWidth}px;` +
+                `position: relative; overflow: visible`
+            )
+            th.innerHTML=(
+                '<div style="'
+                + `max-width: ${(this.maxNumColumns - 1) * this.props.colWidth}px;`
+                + `width: ${(this.maxNumColumns - 1) * this.props.colWidth}px;`
+                + `min-height: ${this.props.rowHeight}px;`
+                + `max-height: ${this.props.height - 40}px;`
+                + 'background-color:#dcdcdc;border-style: solid; border-size: 1px; white-space: normal;'
+                + 'overflow-wrap: break-word;border-width: thin;'
+                + 'border-color: rgb(86, 142, 202);'
+                + 'top: -1px;left:-1px;position:absolute"'
+                + "></div>"
+            )
+            th.firstChild.textContent = `${coordinates}${content}`;
         } catch(e){
             this.dumpInfo(
                 e,

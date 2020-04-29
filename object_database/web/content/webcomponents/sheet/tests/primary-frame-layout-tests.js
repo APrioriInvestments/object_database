@@ -107,7 +107,7 @@ describe('PrimaryFrame Layout with no locked rows or columns and dataOffset (2,2
     });
 });
 
-describe('PrimaryFrame Layout with 2 locked rows, no columns and dataOffset(2,3)', () => {
+describe('PrimaryFrame Layout with 2 locked rows, no columns and dataOffset(2,1)', () => {
     /*
      * PrimaryFrame Layout:
      *
@@ -199,7 +199,7 @@ describe('PrimaryFrame Layout with 2 locked rows, no columns and dataOffset(2,3)
 });
 
 
-describe('PrimaryFrame Layout with 2 locked rows, 2 locked columns, and dataOffset(3,4)', () => {
+describe('PrimaryFrame Layout with 2 locked rows, 2 locked columns, and dataOffset(1,2)', () => {
     /*
      * PrimaryFrame Layout:
      *
@@ -340,7 +340,7 @@ describe('PrimaryFrame Layout with 2 locked rows, 2 locked columns, and dataOffs
     });
 });
 
-describe('Larger PrimaryFrame with 3 locked rows test dataOffset(0,4)', () => {
+describe('Larger PrimaryFrame with 3 locked rows test dataOffset(0,1)', () => {
     /* DataFrame Relative:
      *
      * RRRRRRRRDDDDDDDDDDDD...

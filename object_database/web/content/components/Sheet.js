@@ -698,6 +698,9 @@ class Sheet extends Component {
             if (content === undefined) {
                 content = ""
             }
+            if (typeof(content) != "string") {
+                content = JSON.stringify(content);
+            }
 
             content = content.replace(/(\r\n|\n|\r)/gm, "");
             content = content.replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/gm," ");

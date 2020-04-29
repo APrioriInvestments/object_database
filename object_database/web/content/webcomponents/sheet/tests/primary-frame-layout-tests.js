@@ -136,7 +136,7 @@ describe('PrimaryFrame Layout with 2 locked rows, no columns and dataOffset(2,3)
     let primaryFrame = new PrimaryFrame(exampleDataFrame, [6,3]);
     primaryFrame.lockRows(2);
     primaryFrame.dataOffset.x = 2;
-    primaryFrame.dataOffset.y = 3;
+    primaryFrame.dataOffset.y = 1;
     it('Has correct origin and corner for internal viewFrame', () => {
         let expectedOrigin = new Point([0,2]); // Pushed down by 2 lockrows
         let expectedCorner = primaryFrame.corner;
@@ -160,6 +160,7 @@ describe('PrimaryFrame Layout with 2 locked rows, no columns and dataOffset(2,3)
         let relativeView = primaryFrame.relativeViewFrame;
         let expectedOrigin = new Point([2,3]);
         let expectedCorner = new Point([8,4]);
+        console.log(relativeView);
 
         assert.pointsEqual(relativeView.origin, expectedOrigin);
         assert.pointsEqual(relativeView.corner, expectedCorner);
@@ -231,8 +232,8 @@ describe('PrimaryFrame Layout with 2 locked rows, 2 locked columns, and dataOffs
     let primaryFrame = new PrimaryFrame(exampleDataFrame, [6,3]);
     primaryFrame.lockRows(2);
     primaryFrame.lockColumns(2);
-    primaryFrame.dataOffset.x = 3;
-    primaryFrame.dataOffset.y = 4;
+    primaryFrame.dataOffset.x = 1;
+    primaryFrame.dataOffset.y = 2;
 
     it('Has correct origin and corner for internal viewFrame', () => {
         let expectedOrigin = new Point([2,2]);
@@ -361,7 +362,7 @@ describe('Larger PrimaryFrame with 3 locked rows test dataOffset(0,4)', () => {
      */
     let primaryFrame = new PrimaryFrame(exampleDataFrame, [7,7]);
     primaryFrame.lockRows(3);
-    primaryFrame.dataOffset.y = 4;
+    primaryFrame.dataOffset.y = 1;
     it('Has correct origin and corner for relative view frame', () => {
         let relativeView = primaryFrame.relativeViewFrame;
         let expectedOrigin = new Point([0,4]);

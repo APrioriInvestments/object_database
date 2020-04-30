@@ -8,10 +8,6 @@ import {KeyRegistry} from './KeyRegistry';
 import {KeyListener} from './components/util/KeyListener';
 import {Component, render} from './components/Component';
 
-// import all webcomponents
-import './webcomponents';
-//
-
 /**
  * Globals
  **/

@@ -189,8 +189,8 @@ describe('Selector navigation tests.', () => {
      */
 
 
-    let primaryFrame = new PrimaryFrame(exampleDataFrame, [10,15]);
-    it('Move right within view (selecting=false)', () => {
+    it('Move right within PrimaryFrame (selecting=false)', () => {
+        let primaryFrame = new PrimaryFrame(exampleDataFrame, [10,20]);
         let selector = new Selector(primaryFrame);
         selector.moveRightBy(2);
         let expectedCursor = new Point([2,0]);
@@ -202,7 +202,8 @@ describe('Selector navigation tests.', () => {
         assert.pointsEqual(selector.anchor, expectedAnchor);
         assert.isTrue(selector.selectionFrame.isEmpty);
     });
-    it('Move right within view (selecting=true)', () => {
+    it('Move right within PrimaryFrame (selecting=true)', () => {
+        let primaryFrame = new PrimaryFrame(exampleDataFrame, [10,20]);
         let selector = new Selector(primaryFrame);
         selector.moveRightBy(2, true);
         let expectedCursor = new Point([2,0]);
@@ -215,5 +216,37 @@ describe('Selector navigation tests.', () => {
         assert.pointsEqual(selector.anchor, expectedAnchor);
         assert.isFalse(selector.selectionFrame.isEmpty);
         assert.isTrue(selector.selectionFrame.equals(expectedSelectionFrame));
+    });
+    it('Move right out of the PrimaryFrame (selecting=false)', () => {
+        let primaryFrame = new PrimaryFrame(exampleDataFrame, [10,20]);
+        let selector = new Selector(primaryFrame);
+        selector.moveRightBy(15);
+        let expectedCursor = new Point([10,0]);
+        let expectedRelCursor = new Point([15,0]);
+        let expectedAnchor = new Point([15,0]);
+        let expectedPrimaryFrameOffset = new Point([5,0]);
+
+        assert.pointsEqual(selector.cursor, expectedCursor);
+        assert.pointsEqual(selector.relativeCursor, expectedRelCursor);
+        assert.pointsEqual(selector.anchor, expectedAnchor);
+        assert.isTrue(selector.selectionFrame.isEmpty);
+        assert.isTrue(primaryFrame.dataOffset.equals(expectedPrimaryFrameOffset));
+    });
+    it('Move right out of the PrimaryFrame (selecting=true)', () => {
+        let primaryFrame = new PrimaryFrame(exampleDataFrame, [10,20]);
+        let selector = new Selector(primaryFrame);
+        selector.moveRightBy(15, true);
+        let expectedCursor = new Point([10,0]);
+        let expectedRelCursor = new Point([15,0]);
+        let expectedAnchor = new Point([0,0]);
+        let expectedSelectionFrame = new Frame([0, 0], [15,0]);
+        let expectedPrimaryFrameOffset = new Point([5,0]);
+
+        assert.pointsEqual(selector.cursor, expectedCursor);
+        assert.pointsEqual(selector.relativeCursor, expectedRelCursor);
+        assert.pointsEqual(selector.anchor, expectedAnchor);
+        assert.isFalse(selector.selectionFrame.isEmpty);
+        assert.isTrue(selector.selectionFrame.equals(expectedSelectionFrame));
+        assert.isTrue(primaryFrame.dataOffset.equals(expectedPrimaryFrameOffset));
     });
 });

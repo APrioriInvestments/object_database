@@ -57,6 +57,7 @@ from object_database.web.cells.cells import (
     Expands,
     CodeEditor,
     Sheet,
+    NewSheet,
     Plot,
     _PlotUpdater,
     AsyncDropdown,

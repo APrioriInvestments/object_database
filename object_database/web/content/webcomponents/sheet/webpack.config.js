@@ -3,9 +3,12 @@ const path = require('path');
 module.exports = {
     devtool: 'inline-source-map',
     mode: 'development',
-    entry: './src/component.js',
+    entry: {
+        sheet: './src/component.js',
+        'ap-sheet': './src/ap-sheet-component.js'
+    },
     output: {
         path: path.resolve(__dirname, 'dist'),
-        filename: 'sheet.bundle.js'
+        filename: '[name].bundle.js'
     }
 };

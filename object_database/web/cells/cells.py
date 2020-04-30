@@ -3060,6 +3060,15 @@ class CodeEditor(Cell):
 
         self.exportData["keybindings"] = [k for k in self.keybindings.keys()]
 
+class NewSheet(Cell):
+    def __init__(self):
+        super().__init__()
+
+    def recalculate(self):
+        self.exportData['numLockRows'] = 1
+        self.exportData['numLockColumns'] = 1
+        self.exportData['totalColumns'] = 500
+        self.exportData['totalRows'] = 900
 
 class Sheet(Cell):
     """A spreadsheet viewer. The dataset must be static."""

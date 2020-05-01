@@ -3061,14 +3061,73 @@ class CodeEditor(Cell):
         self.exportData["keybindings"] = [k for k in self.keybindings.keys()]
 
 class NewSheet(Cell):
-    def __init__(self):
+    def __init__(
+            self,
+            rowFun,
+            totalColumns,
+            totalRows,
+            colWidth=50,
+            rowHeight=30,
+            numLockRows=0,
+            numLockColumns=0,
+            onCellDblClick=None
+    ):
         super().__init__()
 
+        self.rowFun = rowFun
+        self.totalColumns = totalColumns
+        self.totalRows = totalRows
+        self.colWidth = colWidth
+        self.rowHeight = rowHeight
+        if numLockRows >= totalRows:
+            raise "The number of totalRows must be greater than numLockRows."
+        self.numLockRows = numLockRows
+        self.numLockColumns = numLockColumns
+        if numLockColumns >= totalColumns:
+            raise "The number of totalColumns must be greater than numLockColumns."
+
+        # TODO: Add double click feature from
+        # current old sheet
+
     def recalculate(self):
-        self.exportData['numLockRows'] = 1
-        self.exportData['numLockColumns'] = 1
-        self.exportData['totalColumns'] = 500
-        self.exportData['totalRows'] = 900
+        self.exportData['numLockRows'] = self.numLockRows
+        self.exportData['numLockColumns'] = self.numLockColumns
+        self.exportData['totalColumns'] = self.totalColumns
+        self.exportData['totalRows'] = self.totalRows
+        self.exportData['colWidth'] = self.colWidth
+        self.exportData['rowHeight'] = self.rowHeight
+
+    def onMessage(self, msgFrame):
+        if msgFrame['event'] == "sheet_needs_data":
+            requested_frames = msgFrame['frames']
+            response_frames = []
+            for frame in requested_frames:
+                rows_to_send = self.rowFun(
+                    # start_row
+                    frame['origin']['y'],
+
+                    # end row
+                    frame['corner']['y'],
+
+                    # start_column
+                    frame['origin']['x'],
+
+                    # end_column
+                    frame['corner']['x']
+                )
+                response_frames.append({
+                    "data": rows_to_send,
+                    "origin": frame['origin'],
+                    "corner": frame['corner']
+                })
+
+            if self.exportData.get('dataInfo') is None:
+                self.exportData['dataInfo'] = response_frames
+            else:
+                self.exportData['dataInfo'] += response_frames
+            self.wasDataUpdated = True
+            self.markDirty()
+
 
 class Sheet(Cell):
     """A spreadsheet viewer. The dataset must be static."""

@@ -39,6 +39,7 @@ class NewSheet extends Component {
         this.afterCreate = this.afterCreate.bind(this);
         this.setupEvents = this.setupEvents.bind(this);
         this.tearDownEvents = this.tearDownEvents.bind(this);
+        this.onSheetNeedsData = this.onSheetNeedsData.bind(this);
 
         // Bind component event handlers
         this.onPageUp = this.onPageUp.bind(this);
@@ -271,92 +272,136 @@ class NewSheet extends Component {
         element.setAttribute('total-rows', this.props.totalRows);
         element.setAttribute('locked-rows', this.props.numLockRows);
         element.setAttribute('locked-columns', this.props.numLockColumns);
+        element.addEventListener('sheet-needs-data', this.onSheetNeedsData);
+    }
+
+    onSheetNeedsData(event){
+        let sheet = event.target;
+        let frames = event.detail.frames;
+
+        // We want to add some buffering
+        // to our requests so we don't
+        // keep fetching data when moving
+        // by small amounts.
+        // Here, we attempt to fetch an extra
+        // primaryFrame sized chunk in each
+        // direction for each frame.
+        frames.forEach(frame => {
+            let width = sheet.primaryFrame.size.x;
+            let height = sheet.primaryFrame.size.y;
+            let limitX = sheet.dataFrame.right;
+            let limitY = sheet.dataFrame.bottom;
+
+            frame.origin.x = Math.max(
+                0,
+                frame.origin.x - width
+            );
+            frame.origin.y = Math.max(
+                0,
+                frame.origin.y - height
+            );
+            frame.corner.x = Math.min(
+                limitX,
+                frame.corner.x + width
+            );
+            frame.corner.y = Math.min(
+                limitY,
+                frame.corner.y + height
+            );
+        });
+
+        this.sendMessage({
+            event: 'sheet_needs_data',
+            frames: frames.map(frame => {
+                return {
+                    origin: frame.origin,
+                    corner: frame.corner
+                };
+            })
+        });
+    }
+
+    _updateData(dataInfo, projector){
+        console.log('_updateData');
+        console.log(dataInfo);
+        let sheet = this.getDOMElement();
+
+        dataInfo.forEach(entry => {
+            sheet.dataFrame.loadFromArray(
+                entry.data,
+                entry.origin
+            );
+        });
+        sheet.primaryFrame.updateCellContents();
     }
 
     /* Event Handlers */
 
     onPageUp(event){
-        console.log('PageUp');
         event.target.selector.pageUp();
     }
 
     onSelectPageUp(event){
-        console.log('PageUp selecting');
         event.target.selector.pageUp(true);
     }
 
     onPageRight(event){
-        console.log('PageRight');
         event.target.selector.pageRight();
     }
 
     onSelectPageRight(event){
-        console.log('PageRight selecting');
         event.target.selector.pageRight(true);
     }
 
     onPageLeft(event){
-        console.log('PageLeft');
         event.target.selector.pageLeft();
     }
 
     onSelectPageLeft(event){
-        console.log('PageLeft selecting');
         event.target.selector.pageLeft(true);
     }
 
     onPageDown(event){
-        console.log('PageDown');
         event.target.selector.pageDown();
     }
 
     onSelectPageDown(event){
-        console.log('PageDown selecting');
         event.target.selector.pageDown(true);
     }
 
     onArrowUp(event){
-        console.log('ArrowUp');
         event.target.selector.moveUpBy(1);
     }
 
     onSelectArrowUp(event){
-        console.log('ArrowUp selecting');
         event.target.selector.moveUpBy(1, true);
     }
 
     onArrowDown(event){
-        console.log('ArrowDown');
         event.target.selector.moveDownBy(1);
     }
 
     onSelectArrowDown(event){
-        console.log('ArrowDown selecting');
         event.target.selector.moveDownBy(1, true);
     }
 
     onArrowLeft(event){
-        console.log('ArrowLeft');
         event.target.selector.moveLeftBy(1);
     }
 
     onSelectArrowLeft(event){
-        console.log('ArrowLeft selecting');
         event.target.selector.moveLeftBy(1, true);
     }
 
     onArrowRight(event){
-        console.log('ArrowRight');
         event.target.selector.moveRightBy(1);
     }
 
     onSelectArrowRight(event){
-        console.log('ArrowRight selecting');
         event.target.selector.moveRightBy(1, true);
     }
 
     onUpToTop(event){
-        console.log('moveToTopEnd');
         event.target.selector.moveToTopEnd();
     }
 
@@ -365,7 +410,6 @@ class NewSheet extends Component {
     }
 
     onDownToBottom(event){
-        console.log('moveToBottomEnd');
         event.target.selector.moveToBottomEnd();
     }
 
@@ -374,7 +418,6 @@ class NewSheet extends Component {
     }
 
     onOverToRight(event){
-        console.log('moveToRightEnd');
         event.target.selector.moveToRightEnd();
     }
 
@@ -383,7 +426,6 @@ class NewSheet extends Component {
     }
 
     onOverToLeft(event){
-        console.log('moveToLeftEnd');
         event.target.selector.moveToLeftEnd();
     }
 

@@ -881,7 +881,7 @@ describe('Selector navigation tests (locked rows and columns).', () => {
         assert.isFalse(selector.selectionFrame.isEmpty);
         assert.isTrue(selector.selectionFrame.equals(expectedSelectionFrame));
     });
-    it.skip('Move up selecting ViewFrame elements without crossing into locked columns', () => {
+    it('Move up selecting ViewFrame elements without crossing into locked columns', () => {
         let primaryFrame = new PrimaryFrame(exampleDataFrame, [10,5]);
         primaryFrame.lockRows(2);
         primaryFrame.lockColumns(2);
@@ -898,11 +898,11 @@ describe('Selector navigation tests (locked rows and columns).', () => {
         assert.pointsEqual(selector.anchor, expectedAnchor);
         assert.isTrue(selector.selectionFrame.isEmpty);
 
-        selector.moveUpBy(6);
-        expectedCursor = new Point([2,5]);
+        selector.moveUpBy(6, true);
+        expectedCursor = new Point([2,2]);
         expectedRelCursor = new Point([2,6]);
         expectedAnchor = new Point([2,12]);
-        let expectedSelectionFrame = new Frame([2, 2], [2, 12]);
+        let expectedSelectionFrame = new Frame([2, 6], [2, 12]);
 
         assert.pointsEqual(selector.cursor, expectedCursor);
         assert.pointsEqual(selector.relativeCursor, expectedRelCursor);

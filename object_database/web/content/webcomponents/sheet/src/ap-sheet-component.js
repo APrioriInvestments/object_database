@@ -44,6 +44,7 @@ class APSheet extends HTMLElement {
         this.updateLockedCols = this.updateLockedCols.bind(this);
         this.updateLockedRows = this.updateLockedRows.bind(this);
         this.resizePrimaryFrame = this.resizePrimaryFrame.bind(this);
+        this.afterShift = this.afterShift.bind(this);
     }
 
     connectedCallback(){
@@ -78,8 +79,39 @@ class APSheet extends HTMLElement {
         this.tableBody.innerHTML = "";
         this.tableBody.append(...this.primaryFrame.rowElements);
         this.primaryFrame.updateCellContents();
+        this.primaryFrame.afterShift = this.afterShift;
         this.selector.drawCursor();
         this.selector.updateElements();
+    }
+
+    afterShift(){
+        // We check to see if we have data
+        // for the three constinuent relative
+        // frames of primaryFrame. If not,
+        // we trigger an event that requests
+        // this for each
+        let relativeFrames = [
+            this.primaryFrame.relativeViewFrame,
+            this.primaryFrame.relativeLockedColumnsFrame,
+            this.primaryFrame.relativeLockedRowsFrame
+        ];
+        let framesToRequest = relativeFrames.filter(frame => {
+            return frame && !frame.isEmpty;
+        }).filter(frame => {
+            return !this.dataFrame.hasCompleteDataForFrame(frame);
+        });
+
+        // We dispatch the event only
+        // if there are valid frames to
+        // request
+        if(framesToRequest.length){
+            let event = new CustomEvent('sheet-needs-data', {
+                detail: {
+                    frames: framesToRequest
+                }
+            });
+            this.dispatchEvent(event);
+        }
     }
 
     /* Attribute Update Methods */

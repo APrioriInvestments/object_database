@@ -21,6 +21,7 @@ class MockEvent {
         this.ctrlKey = false;
         this.metaKey = false;
         this.shiftKey = false;
+        this.altKey = false;
         this.isStopPropagation = false;
         this.isStopImmediatePropagation = false;
         this.isPreventDefault = false;
@@ -183,6 +184,7 @@ describe("Keydown Event Tests.", () => {
             assert.isTrue(mockEvent.isPreventDefault);
         });
     });
+
     describe("KeyListener Class Tests.", () => {
         before(() => {
             // NOTE: this is a global object so will persist throughout the tests
@@ -316,5 +318,67 @@ describe("Keydown Event Tests.", () => {
             assert.exists(listeners);
             assert.equal(listeners.length, 2);
         });
+    });
+});
+
+describe('KeyListener Exclusivity Tests', () => {
+    it('When ArrowRight and ArrowRight+shifKey, only trigger former', () => {
+        let arrowCalled = false;
+        let arrowShiftCalled = false;
+        let singleBinding = new KeyBinding('ArrowRight', (e) => {
+            arrowCalled = true;
+        });
+        let compoundBinding = new KeyBinding('shiftKey+ArrowRight', (e) => {
+            arrowShiftCalled = true;
+        });
+        let mockEvent = new MockEvent(); // No shift key
+        mockEvent.key = 'ArrowRight';
+        singleBinding.handle(mockEvent);
+        compoundBinding.handle(mockEvent);
+
+        assert.isFalse(arrowShiftCalled);
+        assert.isTrue(arrowCalled);
+    });
+
+    it('When ArrowRight and ArrowRight+shiftKey, only trigger latter', () => {
+        let arrowCalled = false;
+        let arrowShiftCalled = false;
+        let singleBinding = new KeyBinding('ArrowRight', (e) => {
+            arrowCalled = true;
+        });
+        let compoundBinding = new KeyBinding('shiftKey+ArrowRight', (e) => {
+            arrowShiftCalled = true;
+        });
+        let mockEvent = new MockEvent();
+        mockEvent.shiftKey = true;
+        mockEvent.key = 'ArrowRight';
+
+        singleBinding.handle(mockEvent);
+        compoundBinding.handle(mockEvent);
+
+        assert.isFalse(arrowCalled);
+        assert.isTrue(arrowShiftCalled);
+    });
+
+    it('Calls correct binding in more complex example 1 (See comments)', () => {
+        let firstCalled = false;
+        let secondCalled = false;
+        let firstBinding = new KeyBinding('altKey+shiftKey+PageUp', (e) => {
+            firstCalled = true;
+        });
+        let secondBinding = new KeyBinding('altKey+PageUp', (e) => {
+            secondCalled = true;
+        });
+
+        let mockEvent = new MockEvent();
+        mockEvent.shiftKey = true;
+        mockEvent.altKey = true;
+        mockEvent.key = 'PageUp';
+
+        firstBinding.handle(mockEvent);
+        secondBinding.handle(mockEvent);
+
+        assert.isTrue(firstCalled);
+        assert.isFalse(secondCalled);
     });
 });

@@ -32,6 +32,18 @@ const modKeyMap = {
     'Ctrl': 'ctrlKey'
 };
 
+/**
+ * A list of the possible
+ * DOM key event modifier
+ * key names
+ */
+const modKeyNames = [
+    'shiftKey',
+    'altKey',
+    'metaKey',
+    'ctrlKey'
+];
+
 
 /**
  * A class whose instances manage keydown event listeners.
@@ -159,6 +171,7 @@ class KeyBinding {
         this.handle = this.handle.bind(this);
         this.handleSingleKey = this.handleSingleKey.bind(this);
         this.handleComboKey = this.handleComboKey.bind(this);
+        this.modKeysMatch = this.modKeysMatch.bind(this);
     }
 
     /**
@@ -174,6 +187,8 @@ class KeyBinding {
      */
     handle(event){
         if(!this.key){
+            return false;
+        } else if(!this.modKeysMatch(event)){
             return false;
         } else if(this.modKeys.length == 0){
             return this.handleSingleKey(event, this.key);
@@ -241,6 +256,20 @@ class KeyBinding {
         } else {
             return false;
         }
+    }
+
+    modKeysMatch(event){
+        let ourModKeys = {};
+        modKeyNames.forEach(keyName => {
+            ourModKeys[keyName] = this.modKeys.includes(keyName);
+        });
+        for(let i = 0; i < modKeyNames.length; i++){
+            let keyName = modKeyNames[i];
+            if(ourModKeys[keyName] !== event[keyName]){
+                return false;
+            }
+        }
+        return true;
     }
 }
 

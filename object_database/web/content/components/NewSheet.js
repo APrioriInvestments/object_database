@@ -110,19 +110,23 @@ class NewSheet extends Component {
     }
 
     onArrowUp(event){
-        console.log(event);
+        let selecting = event.shiftKey;
+        event.target.selector.moveUpBy(1, selecting);
     }
 
     onArrowDown(event){
-        console.log(event);
+        let selecting = event.shiftKey;
+        event.target.selector.moveDownBy(1, selecting);
     }
 
     onArrowLeft(event){
-        console.log(event);
+        let selecting = event.shiftKey;
+        event.target.selector.moveLeftBy(1, selecting);
     }
 
     onArrowRight(event){
-        console.log(event);
+        let selecting = event.shiftKey;
+        event.target.selector.moveRightBy(1, selecting);
     }
 };
 

@@ -128,6 +128,7 @@
     cursor: ew-resize;
 }
 
+
 /* Sheet (table) and related
 * =============================================================*/
 .sheet-cell {
@@ -228,6 +229,59 @@ td.row-index-item {
     padding-left: 2px;
     padding-top: 1px;
     padding-bottom: 1px;
+}
+
+/* NewSheet
+ * ============================================================*/
+ap-sheet td {
+    border: solid 1px lightblue;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 2px;
+    padding-left: 2px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-size: .8rem;
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+
+ap-sheet td.in-locked-row,
+ap-sheet td.in-locked-column {
+    background-color: lightgrey;
+}
+
+ap-sheet .selector-cursor {
+    border: solid 2px #568eca;
+    background-color: #c1daf5;
+    padding: 1px;
+}
+
+ap-sheet td.in-selection {
+    background-color: aliceblue;
+}
+
+ap-sheet td.selection-top-border {
+    border-top: 2px solid red;
+    padding: 1px;
+}
+
+ap-sheet td.selection-left-border {
+    border-left: 2px solid red;
+    padding: 1px;
+}
+
+ap-sheet td.selection-right-border {
+    border-right: 2px solid red;
+    padding: 1px;
+}
+
+ap-sheet td.selection-bottom-border {
+    border-bottom: 2px solid red;
+    padding: 1px;
 }
 
 /* Grid and Related Table

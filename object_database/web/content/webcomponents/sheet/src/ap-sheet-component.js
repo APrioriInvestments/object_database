@@ -20,6 +20,7 @@ class APSheet extends HTMLElement {
         // Initialize basic elements
         this.tableBody = document.createElement('tbody');
         this.table = document.createElement('table');
+        this.customStyle = document.createElement('style');
 
         // Initialize sheet properties
         // These will be updated by attributes
@@ -43,6 +44,7 @@ class APSheet extends HTMLElement {
         this.updateTotalCols = this.updateTotalCols.bind(this);
         this.updateLockedCols = this.updateLockedCols.bind(this);
         this.updateLockedRows = this.updateLockedRows.bind(this);
+        this.updateCustomStyle = this.updateCustomStyle.bind(this);
         this.resizePrimaryFrame = this.resizePrimaryFrame.bind(this);
         this.afterShift = this.afterShift.bind(this);
     }
@@ -52,9 +54,10 @@ class APSheet extends HTMLElement {
         this.resizePrimaryFrame(0, 0);
         this.updateLockedCols(0);
         this.updateLockedRows(0);
+        this.customStyle.setAttribute('scoped', true);
+        this.append(this.customStyle);
         this.table.append(this.tableBody);
         this.append(this.table);
-
         // Set a tabindex
         this.setAttribute('tabindex', 0);
     }
@@ -136,6 +139,14 @@ class APSheet extends HTMLElement {
             case 'locked-rows':
                 this.updateLockedRows(oldVal, newVal);
                 break;
+            case 'col-width':
+                this.colWidth = parseInt(newVal);
+                this.updateCustomStyle();
+                break;
+            case 'row-height':
+                this.rowHeight = parseInt(newVal);
+                this.updateCustomStyle();
+                break;
             default:
                 return;
             }
@@ -194,6 +205,25 @@ class APSheet extends HTMLElement {
         );
     }
 
+    updateCustomStyle(){
+        console.log('Calling updateCustomStyle');
+        console.log(this.colWidth);
+        console.log(this.rowHeight);
+        let styleString = "";
+        if(!this.colWidth && !this.colHeight){
+            return;
+        }
+        if(this.colWidth > 0){
+            styleString += `td { min-width: ${this.colWidth}px;\n `;
+            styleString += `max-width: ${this.colWidth}px; }\n`;
+        }
+        if(this.rowHeight > 0){
+            styleString += `td { min-height: ${this.rowHeight}px;\n`;
+            styleString += `max-height: ${this.rowHeight}px; }\n`;
+        }
+        this.customStyle.innerText = styleString;
+    }
+
 
     /* Dynamic Attributes */
     static get observedAttributes(){
@@ -203,7 +233,9 @@ class APSheet extends HTMLElement {
             'locked-rows',
             'locked-columns',
             'total-rows',
-            'total-columns'
+            'total-columns',
+            'col-width',
+            'row-height'
         ];
     }
 };

@@ -250,7 +250,7 @@ class NewSheet extends Component {
         // Not yet sure what to do here
     }
 
-    render(){
+    build(){
         return h('ap-sheet', {
             id: this.getElementId(),
             class: 'cell sheet-cell',
@@ -272,6 +272,8 @@ class NewSheet extends Component {
         element.setAttribute('total-rows', this.props.totalRows);
         element.setAttribute('locked-rows', this.props.numLockRows);
         element.setAttribute('locked-columns', this.props.numLockColumns);
+        element.setAttribute('row-height', this.props.rowHeight);
+        element.setAttribute('col-width', this.props.colWidth);
         element.addEventListener('sheet-needs-data', this.onSheetNeedsData);
     }
 

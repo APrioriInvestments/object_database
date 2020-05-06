@@ -7,9 +7,9 @@
     "test": "./node_modules/mocha/bin/mocha --require esm ./tests/ ./components/tests/",
     "test-libs": "./node_modules/mocha/bin/mocha --require esm ./tests/",
     "test-components": "./node_modules/mocha/bin/mocha --require esm ./components/tests/",
-      "build": "webpack && cd ./webcomponents/sheet/ && webpack",
-      "build:frontend": "webpack",
-      "build:sheet-webcomponent": "cd ./webcomponents/sheet/ && webpack",
+    "build": "webpack && cd ./webcomponents/sheet/ && webpack",
+    "build:frontend": "webpack",
+    "build:sheet-webcomponent": "cd ./webcomponents/sheet/ && webpack",
     "frontend": "webpack && python ../../frontends/object_database_webtest.py"
   },
   "author": "",

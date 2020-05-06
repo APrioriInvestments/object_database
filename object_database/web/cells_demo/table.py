@@ -175,3 +175,39 @@ class HugeTableSorting(CellsTestPage):
             "You should see a large table filled with three "
             "columns of random numbers that can be sorted"
         )
+
+
+class TableCellUpdate(CellsTestPage):
+    def cell(self):
+        cols = ["Col1", "Col2", "Col3"]
+        rows = [i for i in range(200)]
+        col_prefix = cells.Slot("MiddleCol")
+
+        def renderer(rowLabel, columnLabel):
+            if columnLabel == "Col2":
+                return cells.Subscribed(
+                    lambda: cells.Text("{}-{}".format(col_prefix.get(), rowLabel))
+                )
+            return cells.Text("{}-{}".format(columnLabel, rowLabel))
+
+        def onClick():
+            options = ["Dog", "Cat", "Kangaroo"]
+            new_prefix = random.choice(options)
+            col_prefix.set(new_prefix)
+
+        button = cells.Button("Click Me", onClick)
+
+        return button + cells.Table(
+            colFun=lambda: cols,
+            rowFun=lambda: rows,
+            headerFun=lambda label: label,
+            rendererFun=renderer,
+            maxRowsPerPage=20,
+        )
+
+    def text(self):
+        return (
+            "You should see a table whose middle column "
+            "has a label prefix that you can change by  "
+            "clicking the button."
+        )

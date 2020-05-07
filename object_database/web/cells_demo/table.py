@@ -184,7 +184,7 @@ class TableCellUpdate(CellsTestPage):
         col_prefix = cells.Slot("MiddleCol")
 
         def renderer(rowLabel, columnLabel):
-            if columnLabel == "Col2":
+            if columnLabel == "Col2" and rowLabel == 2:
                 return cells.Subscribed(
                     lambda: cells.Text("{}-{}".format(col_prefix.get(), rowLabel))
                 )

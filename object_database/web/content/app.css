@@ -233,6 +233,10 @@ td.row-index-item {
 
 /* NewSheet
  * ============================================================*/
+ap-sheet > table:hover {
+    cursor: cell;
+}
+
 ap-sheet td {
     border: solid 1px lightblue;
     text-align: center;
@@ -243,7 +247,6 @@ ap-sheet td {
     padding-top: 2px;
     padding-bottom: 2px;
     font-size: .8rem;
-    cursor: default;
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;

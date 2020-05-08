@@ -62,6 +62,8 @@ class Selector {
         this.moveToTopEnd = this.moveToTopEnd.bind(this);
         this.moveToBottomEnd = this.moveToBottomEnd.bind(this);
         this.selectFromAnchorTo = this.selectFromAnchorTo.bind(this);
+        this.setAnchorToElement = this.setAnchorToElement.bind(this);
+        this.setCursorToElement = this.setCursorToElement.bind(this);
         this.updateElements = this.updateElements.bind(this);
         this.drawAnchor = this.drawAnchor.bind(this);
         this.drawCursor = this.drawCursor.bind(this);
@@ -502,6 +504,51 @@ class Selector {
             aRelativePoint
         );
         this.selectionFrame.isEmpty = false;
+    }
+
+    /**
+     * I set the anchor to be the relative point
+     * described by the passed in td element.
+     * I will throw an error if the element
+     * is not contained within the PrimaryFrame's
+     * collection of td elements
+     * @param {HTMLElement} anElement - The td
+     * element in the PrimaryFrame that we want
+     * to use as the anchor.
+     */
+    setAnchorToElement(anElement){
+        if(!this.primaryFrame.tdElements.includes(anElement)){
+            throw new Error(`Element ${anElement} not included in PrimaryFrame`);
+        }
+        let relX = parseInt(anElement.dataset.relativeX);
+        let relY = parseInt(anElement.dataset.relativeY);
+        this.anchor = new Point([relX,relY]);
+        if(this.anchor.equals(this.relativeCursor)){
+            this.selectionFrame.isEmpty = true;
+        }
+    }
+
+    /**
+     * I set the cursor to be the absolute
+     * point described by the passed-in td
+     * element.
+     * I will throw an error if the element is
+     * not contained within the PrimaryFrame's
+     * collection of td elements.
+     * @param {HTMLElement} anElement - The td
+     * element in the PrimaryFrame that we want
+     * to use as the cursor
+     */
+    setCursorToElement(anElement){
+        if(!this.primaryFrame.tdElements.includes(anElement)){
+            throw new Error(`Element ${anElement} not included in PrimaryFrame`);
+        }
+        let x = parseInt(anElement.dataset.x);
+        let y = parseInt(anElement.dataset.y);
+        this.cursor = new Point([x,y]);
+        if(this.anchor.equals(this.relativeCursor)){
+            this.selectionFrame.isEmpty = true;
+        }
     }
 
 

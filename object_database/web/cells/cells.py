@@ -3060,17 +3060,18 @@ class CodeEditor(Cell):
 
         self.exportData["keybindings"] = [k for k in self.keybindings.keys()]
 
+
 class NewSheet(Cell):
     def __init__(
-            self,
-            rowFun,
-            totalColumns,
-            totalRows,
-            colWidth=50,
-            rowHeight=30,
-            numLockRows=0,
-            numLockColumns=0,
-            onCellDblClick=None
+        self,
+        rowFun,
+        totalColumns,
+        totalRows,
+        colWidth=50,
+        rowHeight=30,
+        numLockRows=0,
+        numLockColumns=0,
+        onCellDblClick=None,
     ):
         super().__init__()
 
@@ -3090,41 +3091,41 @@ class NewSheet(Cell):
         # current old sheet
 
     def recalculate(self):
-        self.exportData['numLockRows'] = self.numLockRows
-        self.exportData['numLockColumns'] = self.numLockColumns
-        self.exportData['totalColumns'] = self.totalColumns
-        self.exportData['totalRows'] = self.totalRows
-        self.exportData['colWidth'] = self.colWidth
-        self.exportData['rowHeight'] = self.rowHeight
+        self.exportData["numLockRows"] = self.numLockRows
+        self.exportData["numLockColumns"] = self.numLockColumns
+        self.exportData["totalColumns"] = self.totalColumns
+        self.exportData["totalRows"] = self.totalRows
+        self.exportData["colWidth"] = self.colWidth
+        self.exportData["rowHeight"] = self.rowHeight
 
     def onMessage(self, msgFrame):
-        if msgFrame['event'] == "sheet_needs_data":
-            requested_frames = msgFrame['frames']
+        if msgFrame["event"] == "sheet_needs_data":
+            requested_frames = msgFrame["frames"]
             response_frames = []
             for frame in requested_frames:
                 rows_to_send = self.rowFun(
                     # start_row
-                    frame['origin']['y'],
-
+                    frame["origin"]["y"],
                     # end row
-                    frame['corner']['y'],
-
+                    frame["corner"]["y"],
                     # start_column
-                    frame['origin']['x'],
-
+                    frame["origin"]["x"],
                     # end_column
-                    frame['corner']['x']
+                    frame["corner"]["x"],
                 )
-                response_frames.append({
-                    "data": rows_to_send,
-                    "origin": frame['origin'],
-                    "corner": frame['corner']
-                })
+                response_frames.append(
+                    {
+                        "data": rows_to_send,
+                        "origin": frame["origin"],
+                        "corner": frame["corner"],
+                    }
+                )
 
-            if self.exportData.get('dataInfo') is None:
-                self.exportData['dataInfo'] = response_frames
+            dataToSend = [{"action": msgFrame["action"], "frames": response_frames}]
+            if self.exportData.get("dataInfo") is None:
+                self.exportData["dataInfo"] = dataToSend
             else:
-                self.exportData['dataInfo'] += response_frames
+                self.exportData["dataInfo"] += dataToSend
             self.wasDataUpdated = True
             self.markDirty()
 

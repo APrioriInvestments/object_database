@@ -73,6 +73,7 @@ class NewSheet extends Component {
         this.onDownToBottom = this.onDownToBottom.bind(this);
         this.onSelectDownToBottom = this.onSelectDownToBottom.bind(this);
         this.onArrowRight = this.onArrowRight.bind(this);
+        this.onSelectDownToBottom = this.onSelectDownToBottom.bind(this);
         this.onSelectArrowRight = this.onSelectArrowRight.bind(this);
         this.onOverToRight = this.onOverToRight.bind(this);
         this.onSelectOverToRight = this.onSelectOverToRight.bind(this);

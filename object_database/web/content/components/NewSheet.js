@@ -25,6 +25,10 @@ class NewSheet extends Component {
     constructor(props, ...args){
         super(props, ...args);
 
+        // We hardcode the maximum selector.selectionFrame.area to copy
+        // to clipboard
+        this.maxCellsToClipboad = 1000000;
+
         // We cache a reference
         // do the DOM node we will
         // ultimately create.
@@ -60,6 +64,9 @@ class NewSheet extends Component {
         this.onSelectArrowRight = this.onSelectArrowRight.bind(this);
         this.onOverToRight = this.onOverToRight.bind(this);
         this.onArrowLeft = this.onArrowLeft.bind(this);
+        this.onCopyToClipboard = this.onCopyToClipboard.bind(this);
+        this.copyToClipboard = this.copyToClipboard.bind(this);
+        this.fetchClipboardData = this.fetchClipboardData.bind(this);
     }
 
     componentDidLoad(){
@@ -240,6 +247,13 @@ class NewSheet extends Component {
                 true,
                 true,
                 true
+            ),
+            new KeyBinding(
+                'ctrlKey+c',
+                this.onCopyToClipboard,
+                true,
+                true,
+                true
             )
         ];
         this.keyListener = new KeyListener(myElement, this.keyBindings);
@@ -314,6 +328,7 @@ class NewSheet extends Component {
 
         this.sendMessage({
             event: 'sheet_needs_data',
+            action: "update",
             frames: frames.map(frame => {
                 return {
                     origin: frame.origin,
@@ -323,18 +338,70 @@ class NewSheet extends Component {
         });
     }
 
+    onCopyToClipboard(event){
+        let selectionFrame = event.target.selector.selectionFrame;
+        if (selectionFrame.area > this.maxCellsToClipboad){
+            alert(`you can copy a maximum ${this.maxCellsToClipboad} cells`);
+        } else {
+             if(event.target.dataFrame.hasCompleteDataForFrame(selectionFrame)){
+                 this.copyToClipboard(selectionFrame);
+             } else {
+                 this.fetchClipboardData(selectionFrame);
+             }
+        }
+    }
+
+    copyToClipboard(){
+        console.log("copy to clipboard");
+        let sheet = this.getDOMElement();
+        let selectionFrame = sheet.selector.selectionFrame;
+        let data = sheet.dataFrame.getDataArrayForFrame(selectionFrame)
+        // generates a clipboard string from the current points
+        // Note: in order to create line breaks we slice along the y-axis
+        let clipboard = data.map(item => {return item.join("\t")}).join("\n");
+        // console.log(clipboard);
+        let inputEl = document.createElement("textarea");
+        inputEl.style.position = 'absolute';
+        inputEl.style.top = '-10000px';
+        sheet.appendChild(inputEl);
+        inputEl.value = clipboard;
+        inputEl.select();
+        document.execCommand("copy");
+        inputEl.remove();
+    }
+
+    fetchClipboardData(frame){
+        this.sendMessage({
+            event: 'sheet_needs_data',
+            action: 'copy',
+            frames: [
+            {
+                origin: frame.origin,
+                corner: frame.corner
+            }]
+        })
+    }
+
     _updateData(dataInfo, projector){
         console.log('_updateData');
         console.log(dataInfo);
         let sheet = this.getDOMElement();
 
-        dataInfo.forEach(entry => {
-            sheet.dataFrame.loadFromArray(
-                entry.data,
-                entry.origin
-            );
+        dataInfo.forEach(data => {
+            let frames = data.frames;
+            frames.forEach(entry => {
+                sheet.dataFrame.loadFromArray(
+                    entry.data,
+                    entry.origin
+                );
+            });
+            if (data.action === "update"){
+                sheet.primaryFrame.updateCellContents();
+            } else if (data.action === "copy"){
+                this.copyToClipboard();
+            }
         });
-        sheet.primaryFrame.updateCellContents();
+
     }
 
     /* Event Handlers */

@@ -75,6 +75,26 @@ class TableElementsFrame extends Frame {
         }
         return null;
     }
+
+    /**
+     * I respond with the corresponding point
+     * of the passed-in element.
+     * I will return null in the event
+     * that the element is not one of my
+     * contained td elements.
+     * @param {HTMLElement} anElement - The
+     * element for which we want to get the
+     * corresponding point. Must be a td
+     * element contained within my collection.
+     */
+    pointAtElement(anElement){
+        if(!this.tdElements.includes(anElement)){
+            return null;
+        }
+        let x = parseInt(anElement.dataset.x);
+        let y = parseInt(anElement.dataset.y);
+        return new Point([x,y]);
+    }
 }
 
 export {

@@ -39,6 +39,11 @@ class NewSheet extends Component {
         // purposes
         this.keyBindings = [];
 
+        // Set whether or not the mouse
+        // is clicked down. We use this
+        // to handle movement selections
+        this._mouseIsDown = false;
+
         // Bind component methods
         this.afterCreate = this.afterCreate.bind(this);
         this.afterCursorMove = this.afterCursorMove.bind(this);
@@ -76,6 +81,13 @@ class NewSheet extends Component {
         this.onOverToLeft = this.onOverToLeft.bind(this);
         this.onSelectOverToLeft = this.onSelectOverToRight.bind(this);
         this.onCopyToClipboard = this.onCopyToClipboard.bind(this);
+
+        // Bind mouse event handlers
+        this.onMouseDown = this.onMouseDown.bind(this);
+        this.onMouseUp = this.onMouseUp.bind(this);
+        this.onMouseMove = this.onMouseMove.bind(this);
+        this.onMouseLeave = this.onMouseLeave.bind(this);
+        this.onMouseEnter = this.onMouseEnter.bind(this);
     }
 
     componentDidLoad(){
@@ -295,7 +307,12 @@ class NewSheet extends Component {
             'locked-rows': this.props.numLockRows,
             'locked-columns': this.props.numLockColumns,
             'total-rows': this.props.totalRows,
-            'total-columns': this.props.totalColumns
+            'total-columns': this.props.totalColumns,
+            'onmousedown': this.onMouseDown,
+            'onmouseup': this.onMouseUp,
+            'onmousemove': this.onMouseMove,
+            'onmouseleave': this.onMouseLeave,
+            'onmouseenter': this.onMouseEnter
         }, []);
     }
 
@@ -488,7 +505,7 @@ class NewSheet extends Component {
         contentHeader.innerText = contentHeaderText;
     }
 
-    /* Event Handlers */
+    /* Keyboard Event Handlers */
 
     onPageUp(event){
         event.target.selector.pageUp();
@@ -608,6 +625,44 @@ class NewSheet extends Component {
     onSelectOverToLeft(event){
         event.target.selector.moveToLeftEnd(true);
         this.afterCursorMove();
+    }
+
+    /* Mouse Event Handlers */
+    onMouseDown(event){
+        let primaryButtonPushed = event.button == 0;
+        if(event.target.tagName == "TD" && primaryButtonPushed){
+            this._mouseIsDown = true;
+            let sheet = this.getDOMElement();
+            sheet.selector.setAnchorToElement(event.target);
+            sheet.selector.setCursorToElement(event.target);
+            sheet.selector.updateElements();
+        }
+    }
+
+    onMouseUp(event){
+        this._mouseIsDown = false;
+    }
+
+    onMouseEnter(event){
+        let primaryButtonDown = event.buttons == 1;
+        if(primaryButtonDown){
+            this._mouseIsDown = true;
+        }
+    }
+
+    onMouseLeave(event){
+        this._mouseIsDown = false;
+    }
+
+    onMouseMove(event, foo){
+        if(this._mouseIsDown && event.target.tagName =="TD"){
+            let sheet = this.getDOMElement();
+            sheet.selector.setCursorToElement(event.target);
+            sheet.selector.selectFromAnchorTo(
+                sheet.selector.relativeCursor
+            );
+            sheet.selector.updateElements();
+        }
     }
 };
 

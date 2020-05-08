@@ -50,8 +50,18 @@ class APSheet extends HTMLElement {
     }
 
     connectedCallback(){
+        console.log('Connected-');
+
+        // Get the initial numbers based on
+        // the assigned attributes to the element
+        this.numColumns = parseInt(this.getAttribute('columns')) || 0;
+        this.numRows = parseInt(this.getAttribute('rows')) || 0;
+
         // Initialize the primary frame
-        this.resizePrimaryFrame(0, 0);
+        this.resizePrimaryFrame(
+            this.numColumns,
+            this.numRows
+        );
         this.updateLockedCols(0);
         this.updateLockedRows(0);
         this.customStyle.setAttribute('scoped', true);
@@ -119,6 +129,7 @@ class APSheet extends HTMLElement {
 
     /* Attribute Update Methods */
     attributeChangedCallback(name, oldVal, newVal){
+        console.log(`Attribute changed: ${name} to ${newVal}`);
         if(this.isConnected){
             switch(name){
             case 'rows':
@@ -153,19 +164,24 @@ class APSheet extends HTMLElement {
         }
     }
 
-    updateRows(oldVal, newVal){
+    updateRows(oldVal, newVal, shouldResize=true){
+        console.log(`Update rows called with ${newVal}`);
         let numRows = parseInt(newVal) - 1;
         this.numRows = Math.max(0, numRows);
-        return this.resizePrimaryFrame(this.numColumns, this.numRows);
+        if(shouldResize){
+            return this.resizePrimaryFrame(this.numColumns, this.numRows);
+        }
     }
 
-    updateCols(oldVal, newVal){
+    updateCols(oldVal, newVal, shouldResize=true){
         let numCols = parseInt(newVal) - 1;
         this.numColumns = Math.max(0, numCols);
-        return this.resizePrimaryFrame(this.numColumns, this.numRows);
+        if(shouldResize){
+            return this.resizePrimaryFrame(this.numColumns, this.numRows);
+        }
     }
 
-    updateLockedCols(oldVal, newVal){
+    updateLockedCols(oldVal, newVal, shouldResize=true){
         let numLockedCols = parseInt(newVal);
         this.numLockColumns = Math.max(0, numLockedCols);
         this.primaryFrame.lockColumns(this.numLockedColumns);

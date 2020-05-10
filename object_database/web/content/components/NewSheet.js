@@ -41,6 +41,7 @@ class NewSheet extends Component {
 
         // Bind component methods
         this.afterCreate = this.afterCreate.bind(this);
+        this.afterCursorMove = this.afterCursorMove.bind(this);
         this.setupEvents = this.setupEvents.bind(this);
         this.setupResize = this.setupResize.bind(this);
         this.resize = this.resize.bind(this);
@@ -61,13 +62,19 @@ class NewSheet extends Component {
         this.onArrowUp = this.onArrowUp.bind(this);
         this.onSelectArrowUp = this.onSelectArrowUp.bind(this);
         this.onUpToTop = this.onUpToTop.bind(this);
+        this.onSelectUpToTop = this.onSelectUpToTop.bind(this);
         this.onArrowDown = this.onArrowDown.bind(this);
         this.onSelectArrowDown = this.onSelectArrowDown.bind(this);
         this.onDownToBottom = this.onDownToBottom.bind(this);
+        this.onSelectDownToBottom = this.onSelectDownToBottom.bind(this);
         this.onArrowRight = this.onArrowRight.bind(this);
         this.onSelectArrowRight = this.onSelectArrowRight.bind(this);
         this.onOverToRight = this.onOverToRight.bind(this);
+        this.onSelectOverToRight = this.onSelectOverToRight.bind(this);
         this.onArrowLeft = this.onArrowLeft.bind(this);
+        this.onSelectArrowLeft = this.onSelectArrowLeft.bind(this);
+        this.onOverToLeft = this.onOverToLeft.bind(this);
+        this.onSelectOverToLeft = this.onSelectOverToRight.bind(this);
         this.onCopyToClipboard = this.onCopyToClipboard.bind(this);
     }
 
@@ -190,7 +197,7 @@ class NewSheet extends Component {
             ),
             new KeyBinding(
                 'ctrlKey+shiftKey+ArrowDown',
-                this.selectDownToBottom,
+                this.onSelectDownToBottom,
                 true,
                 true,
                 true
@@ -451,102 +458,153 @@ class NewSheet extends Component {
 
     }
 
+    /* Local Callbacks */
+
+    afterCursorMove(){
+        let sheet = this.getDOMElement();
+        let coordinateHeader = sheet.querySelector('thead th:first-child');
+        let contentHeader = sheet.querySelector('thead th:last-child');
+
+        // Set the coordinate header element to display
+        // the cursor's current data-relative coordinate
+        let cursorX = sheet.selector.relativeCursor.x;
+        let cursorY = sheet.selector.relativeCursor.y;
+        let coordinateText = `(${cursorX},${cursorY})`;
+
+        // Set some information to display in the
+        // content header element.
+        let contentHeaderText = `No selection`;
+        if(!sheet.selector.selectionFrame.isEmpty){
+            let frame = sheet.selector.selectionFrame;
+            let boundsText = `Selection from ${frame.origin} to ${frame.corner}`;
+            let sizeText = `(${frame.area} selected cells)`;
+            contentHeaderText = `${boundsText} ${sizeText}`;
+        }
+
+        coordinateHeader.innerText = coordinateText;
+        contentHeader.innerText = contentHeaderText;
+    }
+
     /* Event Handlers */
 
     onPageUp(event){
         event.target.selector.pageUp();
+        this.afterCursorMove();
     }
 
     onSelectPageUp(event){
         event.target.selector.pageUp(true);
+        this.afterCursorMove();
     }
 
     onPageRight(event){
         event.target.selector.pageRight();
+        this.afterCursorMove();
     }
 
     onSelectPageRight(event){
         event.target.selector.pageRight(true);
+        this.afterCursorMove();
     }
 
     onPageLeft(event){
         event.target.selector.pageLeft();
+        this.afterCursorMove();
     }
 
     onSelectPageLeft(event){
         event.target.selector.pageLeft(true);
+        this.afterCursorMove();
     }
 
     onPageDown(event){
         event.target.selector.pageDown();
+        this.afterCursorMove();
     }
 
     onSelectPageDown(event){
         event.target.selector.pageDown(true);
+        this.afterCursorMove();
     }
 
     onArrowUp(event){
         event.target.selector.moveUpBy(1);
+        this.afterCursorMove();
     }
 
     onSelectArrowUp(event){
         event.target.selector.moveUpBy(1, true);
+        this.afterCursorMove();
     }
 
     onArrowDown(event){
         event.target.selector.moveDownBy(1);
+        this.afterCursorMove();
     }
 
     onSelectArrowDown(event){
         event.target.selector.moveDownBy(1, true);
+        this.afterCursorMove();
     }
 
     onArrowLeft(event){
         event.target.selector.moveLeftBy(1);
+        this.afterCursorMove();
     }
 
     onSelectArrowLeft(event){
         event.target.selector.moveLeftBy(1, true);
+        this.afterCursorMove();
     }
 
     onArrowRight(event){
         event.target.selector.moveRightBy(1);
+        this.afterCursorMove();
     }
 
     onSelectArrowRight(event){
         event.target.selector.moveRightBy(1, true);
+        this.afterCursorMove();
     }
 
     onUpToTop(event){
         event.target.selector.moveToTopEnd();
+        this.afterCursorMove();
     }
 
     onSelectUpToTop(event){
         event.target.selector.moveToTopEnd(true);
+        this.afterCursorMove();
     }
 
     onDownToBottom(event){
         event.target.selector.moveToBottomEnd();
+        this.afterCursorMove();
     }
 
-    onSelecteDownToBottom(event){
+    onSelectDownToBottom(event){
         event.target.selector.moveToBottomEnd(true);
+        this.afterCursorMove();
     }
 
     onOverToRight(event){
         event.target.selector.moveToRightEnd();
+        this.afterCursorMove();
     }
 
     onSelectOverToRight(event){
         event.target.selector.moveToRightEnd(true);
+        this.afterCursorMove();
     }
 
     onOverToLeft(event){
         event.target.selector.moveToLeftEnd();
+        this.afterCursorMove();
     }
 
     onSelectOverToLeft(event){
         event.target.selector.moveToLeftEnd(true);
+        this.afterCursorMove();
     }
 };
 

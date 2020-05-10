@@ -10,7 +10,7 @@
     "build": "webpack && cd ./webcomponents/sheet/ && webpack",
     "build:frontend": "webpack",
     "build:sheet-webcomponent": "cd ./webcomponents/sheet/ && webpack",
-    "frontend": "webpack && python ../../frontends/object_database_webtest.py"
+    "frontend": "cd ./webcomponents/sheet/ && webpack && cd ../../ && webpack && python ../../frontends/object_database_webtest.py"
   },
   "author": "",
   "license": "ISC",

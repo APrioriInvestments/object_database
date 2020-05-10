@@ -451,6 +451,7 @@ class NewSheet extends Component {
             });
             if (data.action === "update"){
                 sheet.primaryFrame.updateCellContents();
+                this.afterCursorMove();
             } else if (data.action === "copy"){
                 this.copyToClipboard();
             }
@@ -476,7 +477,9 @@ class NewSheet extends Component {
         let contentHeaderText = `No selection`;
         if(!sheet.selector.selectionFrame.isEmpty){
             let frame = sheet.selector.selectionFrame;
-            let boundsText = `Selection from ${frame.origin} to ${frame.corner}`;
+            let originText = `(${frame.origin.x},${frame.origin.y})`.replace("Point","");
+            let cornerText = `(${frame.corner.x},${frame.corner.y})`.replace("Point","");
+            let boundsText = `Selection from ${originText} to ${cornerText}`;
             let sizeText = `(${frame.area} selected cells)`;
             contentHeaderText = `${boundsText} ${sizeText}`;
         }

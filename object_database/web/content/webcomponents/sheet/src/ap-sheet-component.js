@@ -19,6 +19,7 @@ class APSheet extends HTMLElement {
 
         // Initialize basic elements
         this.tableBody = document.createElement('tbody');
+        this.tableHeader = document.createElement('thead');
         this.table = document.createElement('table');
         this.customStyle = document.createElement('style');
 
@@ -38,6 +39,7 @@ class APSheet extends HTMLElement {
         );
 
         // Bind component methods
+        this.createHeader = this.createHeader.bind(this);
         this.updateRows = this.updateRows.bind(this);
         this.updateCols = this.updateCols.bind(this);
         this.updateTotalRows = this.updateTotalRows.bind(this);
@@ -66,10 +68,25 @@ class APSheet extends HTMLElement {
         this.updateLockedRows(0);
         this.customStyle.setAttribute('scoped', true);
         this.append(this.customStyle);
+        this.createHeader();
+        this.table.append(this.tableHeader);
         this.table.append(this.tableBody);
         this.append(this.table);
         // Set a tabindex
         this.setAttribute('tabindex', 0);
+    }
+
+    createHeader(){
+        let headerRow = document.createElement('tr');
+        let headerCoordinateData = document.createElement('th');
+        let headerContentData = document.createElement('th');
+        headerCoordinateData.setAttribute("colSpan", 1);
+        headerContentData.setAttribute("colSpan", this.totalColumns - 1);
+        headerCoordinateData.textContent = "(0, 0)";
+        headerContentData.textContent = this.selector.dataAtCursor;
+        headerRow.append(headerCoordinateData);
+        headerRow.append(headerContentData);
+        this.tableHeader.append(headerRow);
     }
 
     resizePrimaryFrame(cornerX, cornerY){

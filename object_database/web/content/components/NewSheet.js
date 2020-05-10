@@ -42,8 +42,12 @@ class NewSheet extends Component {
         // Bind component methods
         this.afterCreate = this.afterCreate.bind(this);
         this.setupEvents = this.setupEvents.bind(this);
+        this.setupResize = this.setupResize.bind(this);
+        this.resize = this.resize.bind(this);
         this.tearDownEvents = this.tearDownEvents.bind(this);
         this.onSheetNeedsData = this.onSheetNeedsData.bind(this);
+        this.copyToClipboard = this.copyToClipboard.bind(this);
+        this.fetchClipboardData = this.fetchClipboardData.bind(this);
 
         // Bind component event handlers
         this.onPageUp = this.onPageUp.bind(this);
@@ -65,12 +69,11 @@ class NewSheet extends Component {
         this.onOverToRight = this.onOverToRight.bind(this);
         this.onArrowLeft = this.onArrowLeft.bind(this);
         this.onCopyToClipboard = this.onCopyToClipboard.bind(this);
-        this.copyToClipboard = this.copyToClipboard.bind(this);
-        this.fetchClipboardData = this.fetchClipboardData.bind(this);
     }
 
     componentDidLoad(){
         this.setupEvents();
+        this.setupResize();
     }
 
     componentWillUnload(){
@@ -260,6 +263,17 @@ class NewSheet extends Component {
         this.keyListener.start();
     }
 
+    /* I watch for size changes of the partent container and resize
+     * the sheet accordingly.
+     */
+    setupResize(){
+        this.container = this.getDOMElement().parentNode;
+        const ro = new ResizeObserver(entries => {
+            this.resize();
+        });
+        ro.observe(this.container.parentNode);
+    }
+
     tearDownEvents(){
         // Not yet sure what to do here
     }
@@ -280,7 +294,7 @@ class NewSheet extends Component {
 
     afterCreate(element){
         this._cachedNode = element;
-        element.setAttribute('rows', 10);
+        element.setAttribute('rows', 20);
         element.setAttribute('columns', 20);
         element.setAttribute('total-columns', this.props.totalColumns);
         element.setAttribute('total-rows', this.props.totalRows);
@@ -289,6 +303,26 @@ class NewSheet extends Component {
         element.setAttribute('row-height', this.props.rowHeight);
         element.setAttribute('col-width', this.props.colWidth);
         element.addEventListener('sheet-needs-data', this.onSheetNeedsData);
+    }
+
+    /* I resize the sheet by counting the max number of rows and columns which
+     * fit into the sheet parent container. I also account for the extra header
+     * row which appears at the top.
+     */
+    resize(){
+        let maxWidth = this.container.offsetWidth;
+        let maxHeight = this.container.offsetHeight;
+        // NOTE: we account for the header row
+        let rowNumber = Math.min(
+            this.props.totalRows,
+            Math.ceil(maxHeight/(this.props.rowHeight * 1.05)) - 1
+        );
+        // make sure to return at least one row
+        rowNumber = Math.max(1, rowNumber);
+        let columnNumber = Math.min(this.props.totalColumns, Math.ceil(maxWidth/this.props.colWidth));
+        let element = this.getDOMElement();
+        element.setAttribute('rows', rowNumber);
+        element.setAttribute('columns', columnNumber);
     }
 
     onSheetNeedsData(event){
@@ -340,19 +374,31 @@ class NewSheet extends Component {
 
     onCopyToClipboard(event){
         let selectionFrame = event.target.selector.selectionFrame;
+        // I first check to make sure that we are not asking for too much data
         if (selectionFrame.area > this.maxCellsToClipboad){
             alert(`you can copy a maximum ${this.maxCellsToClipboad} cells`);
         } else {
+            // then I check if the needed data is already loaded into the dataFrame
+            // if it is I simply copy it
              if(event.target.dataFrame.hasCompleteDataForFrame(selectionFrame)){
                  this.copyToClipboard(selectionFrame);
+             // if not I first fetch the needed data and then copy
              } else {
                  this.fetchClipboardData(selectionFrame);
              }
         }
     }
 
+    /*
+     * I generate a tab/newline delimited string from the underlying data in
+     * the selectionFrame.
+     * This I do somethihng pretty hacky, to get around the browser clipboard API,
+     * which is available only for secure apps (which this is not). I create a 'dummy'
+     * off-screen 'textarea' element, set its value to the set string, select the value
+     * and execute the document level copy command. This writes the selected content to
+     * the clipboard. Then I remove our 'dummy' element.
+     */
     copyToClipboard(){
-        console.log("copy to clipboard");
         let sheet = this.getDOMElement();
         let selectionFrame = sheet.selector.selectionFrame;
         let data = sheet.dataFrame.getDataArrayForFrame(selectionFrame)

@@ -46,7 +46,7 @@ class APSheet extends HTMLElement {
         this.updateLockedRows = this.updateLockedRows.bind(this);
         this.updateCustomStyle = this.updateCustomStyle.bind(this);
         this.resizePrimaryFrame = this.resizePrimaryFrame.bind(this);
-        this.afterShift = this.afterShift.bind(this);
+        this.afterChange = this.afterChange.bind(this);
     }
 
     connectedCallback(){
@@ -92,12 +92,12 @@ class APSheet extends HTMLElement {
         this.tableBody.innerHTML = "";
         this.tableBody.append(...this.primaryFrame.rowElements);
         this.primaryFrame.updateCellContents();
-        this.primaryFrame.afterShift = this.afterShift;
+        this.primaryFrame.afterChange = this.afterChange;
         this.selector.drawCursor();
         this.selector.updateElements();
     }
 
-    afterShift(){
+    afterChange(){
         // We check to see if we have data
         // for the three constinuent relative
         // frames of primaryFrame. If not,

@@ -55,7 +55,7 @@ class PrimaryFrame extends TableElementsFrame {
 
         // Callback fired after the frames
         // have actually shifted
-        this.afterShift = null;
+        this.afterChange = null;
 
         // Bind instance methods
         this.lockRows = this.lockRows.bind(this);
@@ -318,7 +318,7 @@ class PrimaryFrame extends TableElementsFrame {
      * the bounds of the dataFrame, I simply stop
      * at the maximum possible position in that direction.
      * Note that I will also attempt to trigger an
-     * `afterShift` callback when done, should one be
+     * `afterChange` callback when done, should one be
      * set.
      * @param {number} amount - The number of Points to
      * shift right by over the underlying dataFrame
@@ -341,7 +341,7 @@ class PrimaryFrame extends TableElementsFrame {
      * the bounds of the dataFrame, I simply stop
      * at the maximum possible position in that direction.
      * Note that I will also attempt to trigger an
-     * `afterShift` callback when done, should one be
+     * `afterChange` callback when done, should one be
      * set.
      * @param {number} amount - The number of Points to
      * shift left by over the underlying dataFrame
@@ -364,7 +364,7 @@ class PrimaryFrame extends TableElementsFrame {
      * the bounds of the dataFrame, I simply stop
      * at the maximum possible position in that direction.
      * Note that I will also attempt to trigger an
-     * `afterShift` callback when done, should one be
+     * `afterChange` callback when done, should one be
      * set.
      * @param {number} amount - The number of Points to
      * shift down by over the underlying dataFrame
@@ -387,7 +387,7 @@ class PrimaryFrame extends TableElementsFrame {
      * the bounds of the dataFrame, I simply stop
      * at the maximum possible position in that direction.
      * Note that I will also attempt to trigger an
-     * `afterShift` callback when done, should one be
+     * `afterChange` callback when done, should one be
      * set.
      * @param {number} amount - The number of Points to
      * shift up by over the underlying dataFrame
@@ -440,13 +440,13 @@ class PrimaryFrame extends TableElementsFrame {
 
     /**
      * If there is a callback set on my
-     * `afterShift` attribute, I will call it.
+     * `afterChange` attribute, I will call it.
      * I am usually triggered after any type of
      * shift has taken place
      */
     triggerAfterShift(){
-        if(this.afterShift){
-            this.afterShift(this);
+        if(this.afterChange){
+            this.afterChange(this);
         }
     }
 

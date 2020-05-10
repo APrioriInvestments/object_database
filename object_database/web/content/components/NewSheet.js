@@ -323,6 +323,7 @@ class NewSheet extends Component {
         let element = this.getDOMElement();
         element.setAttribute('rows', rowNumber);
         element.setAttribute('columns', columnNumber);
+        element.afterChange();
     }
 
     onSheetNeedsData(event){

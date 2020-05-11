@@ -325,7 +325,8 @@ class PrimaryFrame extends TableElementsFrame {
      */
     shiftRightBy(amount){
         let nextX = this.dataOffset.x + amount;
-        if((nextX + this.viewFrame.size.x) > this.dataFrame.right){
+        let nextRight = nextX + (this.viewFrame.size.x + this.numLockedColumns);
+        if(nextRight >= this.dataFrame.right){
             nextX = this.dataFrame.right - (this.numLockedColumns + this.viewFrame.size.x);
         }
         this.dataOffset.x = nextX;
@@ -371,7 +372,8 @@ class PrimaryFrame extends TableElementsFrame {
      */
     shiftDownBy(amount, debug=false){
         let nextY = this.dataOffset.y + amount;
-        if((nextY + this.viewFrame.size.y) > this.dataFrame.bottom){
+        let nextBottom = nextY + (this.viewFrame.size.y + this.numLockedRows);
+        if(nextBottom >= this.dataFrame.bottom){
             nextY = this.dataFrame.bottom - (this.numLockedRows + this.viewFrame.size.y);
         }
         this.dataOffset.y = nextY;

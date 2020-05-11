@@ -8,6 +8,24 @@ import DataFrame from './DataFrame';
 import Point from './Point';
 import Selector from './Selector';
 
+/**
+ * I return the value of parseInt
+ * on some object. Unlike regular
+ * parseInt, if the result is
+ * undefined or NaN, I return 0.
+ * @param {object} anObject - An object
+ * to parseInt on
+ * @returns {Number} - A valid integer
+ * or 0 if NaN|undefined
+ */
+const cleanParseInt = (anObject) => {
+    let result = parseInt(anObject);
+    if(result == undefined || isNaN(result)){
+        return 0;
+    }
+    return result;
+}
+
 class APSheet extends HTMLElement {
     constructor(){
         super();
@@ -52,20 +70,18 @@ class APSheet extends HTMLElement {
     }
 
     connectedCallback(){
-        console.log('Connected-');
-
         // Get the initial numbers based on
         // the assigned attributes to the element
-        this.numColumns = parseInt(this.getAttribute('columns')) || 0;
-        this.numRows = parseInt(this.getAttribute('rows')) || 0;
+        this.numColumns = cleanParseInt(this.getAttribute('columns')) || 0;
+        this.numRows = cleanParseInt(this.getAttribute('rows')) || 0;
+        this.numLockedRows = cleanParseInt(this.getAttribute('locked-rows')) || 0;
+        this.numLockedColumns = cleanParseInt(this.getAttribute('locked-columns')) || 0;
 
         // Initialize the primary frame
         this.resizePrimaryFrame(
             this.numColumns,
             this.numRows
         );
-        this.updateLockedCols(0);
-        this.updateLockedRows(0);
         this.customStyle.setAttribute('scoped', true);
         this.append(this.customStyle);
         this.createHeader();
@@ -95,14 +111,8 @@ class APSheet extends HTMLElement {
             new Point([cornerX, cornerY])
         );
         newPrimaryFrame.initialBuild();
-        let numLockedRows = parseInt(
-            this.getAttribute('locked-rows')
-        );
-        let numLockedCols = parseInt(
-            this.getAttribute('locked-columns')
-        );
-        newPrimaryFrame.lockRows(numLockedRows);
-        newPrimaryFrame.lockColumns(numLockedCols);
+        newPrimaryFrame.lockRows(this.numLockedRows);
+        newPrimaryFrame.lockColumns(this.numLockedColumns);
         newPrimaryFrame.labelElements();
         this.primaryFrame = newPrimaryFrame;
         this.selector.primaryFrame = newPrimaryFrame;
@@ -146,7 +156,6 @@ class APSheet extends HTMLElement {
 
     /* Attribute Update Methods */
     attributeChangedCallback(name, oldVal, newVal){
-        console.log(`Attribute changed: ${name} to ${newVal}`);
         if(this.isConnected){
             switch(name){
             case 'rows':
@@ -168,11 +177,11 @@ class APSheet extends HTMLElement {
                 this.updateLockedRows(oldVal, newVal);
                 break;
             case 'col-width':
-                this.colWidth = parseInt(newVal);
+                this.colWidth = cleanParseInt(newVal);
                 this.updateCustomStyle();
                 break;
             case 'row-height':
-                this.rowHeight = parseInt(newVal);
+                this.rowHeight = cleanParseInt(newVal);
                 this.updateCustomStyle();
                 break;
             default:
@@ -182,25 +191,28 @@ class APSheet extends HTMLElement {
     }
 
     updateRows(oldVal, newVal, shouldResize=true){
-        console.log(`Update rows called with ${newVal}`);
-        let numRows = parseInt(newVal) - 1;
+        let numRows = cleanParseInt(newVal);
         this.numRows = Math.max(0, numRows);
         if(shouldResize){
-            return this.resizePrimaryFrame(this.numColumns, this.numRows);
+            let newCornerY = Math.max(0, this.numRows - 1);
+            let newCornerX = Math.max(0, this.numColumns - 1);
+            return this.resizePrimaryFrame(newCornerX, newCornerY);
         }
     }
 
     updateCols(oldVal, newVal, shouldResize=true){
-        let numCols = parseInt(newVal) - 1;
+        let numCols = cleanParseInt(newVal);
         this.numColumns = Math.max(0, numCols);
         if(shouldResize){
-            return this.resizePrimaryFrame(this.numColumns, this.numRows);
+            let newCornerY = Math.max(0, this.numRows - 1);
+            let newCornerX = Math.max(0, this.numColumns - 1);
+            return this.resizePrimaryFrame(newCornerX, newCornerY);
         }
     }
 
     updateLockedCols(oldVal, newVal, shouldResize=true){
-        let numLockedCols = parseInt(newVal);
-        this.numLockColumns = Math.max(0, numLockedCols);
+        let numLockedCols = cleanParseInt(newVal);
+        this.numLockedColumns = Math.max(0, numLockedCols);
         this.primaryFrame.lockColumns(this.numLockedColumns);
         this.primaryFrame.labelElements();
         this.primaryFrame.updateCellContents();
@@ -208,7 +220,7 @@ class APSheet extends HTMLElement {
     }
 
     updateLockedRows(oldVal, newVal){
-        let numLockedRows = parseInt(newVal);
+        let numLockedRows = cleanParseInt(newVal);
         this.numLockedRows = Math.max(0, numLockedRows);
         this.primaryFrame.lockRows(this.numLockedRows);
         this.primaryFrame.labelElements();
@@ -217,7 +229,7 @@ class APSheet extends HTMLElement {
     }
 
     updateTotalCols(oldVal, newVal){
-        let numTotalCols = parseInt(newVal);
+        let numTotalCols = cleanParseInt(newVal);
         this.totalColumns = Math.max(0, numTotalCols);
         let newCornerX = Math.max(0, (numTotalCols - 1));
         let primaryCornerX = this.primaryFrame.corner.x;
@@ -228,7 +240,7 @@ class APSheet extends HTMLElement {
     }
 
     updateTotalRows(oldVal, newVal){
-        let numTotalRows = parseInt(newVal);
+        let numTotalRows = cleanParseInt(newVal);
         this.totalRows = Math.max(0, numTotalRows);
         let newCornerY = Math.max(0, (numTotalRows - 1));
         let primaryCornerY = this.primaryFrame.corner.y;
@@ -239,9 +251,6 @@ class APSheet extends HTMLElement {
     }
 
     updateCustomStyle(){
-        console.log('Calling updateCustomStyle');
-        console.log(this.colWidth);
-        console.log(this.rowHeight);
         let styleString = "";
         if(!this.colWidth && !this.colHeight){
             return;

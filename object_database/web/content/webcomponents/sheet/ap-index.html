@@ -9,6 +9,34 @@
         <div id="main">
           <ap-sheet rows="10" columns="20" locked-rows="2" locked-columns="1"></test-sheet>
         </div>
+        <div id="button-area">
+            <button id="move-right">Move 1 Right</button>
+            <button id="right-end">Move to Right End</button>
+            <button id="move-down">Move 1 Down</button>
+            <button id="bottom-end">Move to Bottom</button>
+        </div>
+        <script>
+         let sheet = document.querySelector('ap-sheet');
+         sheet.dataFrame.forEachPoint(aPoint => {
+             sheet.dataFrame.putAt(aPoint, aPoint);
+         });
+         let moveRightBtn = document.getElementById('move-right');
+         moveRightBtn.addEventListener('click', () => {
+             sheet.selector.moveRightBy(1);
+         })
+         let moveRightEndBtn = document.getElementById('right-end');
+         moveRightEndBtn.addEventListener('click', () => {
+             sheet.selector.moveToRightEnd();
+         });
+         let moveDownBtn = document.getElementById('move-down');
+         moveDownBtn.addEventListener('click', () => {
+             sheet.selector.moveDownBy(1);
+         });
+         let moveBottomBtn = document.getElementById('bottom-end');
+         moveBottomBtn.addEventListener('click', () => {
+             sheet.selector.moveToBottomEnd();
+         });
+        </script>
     </body>
     <style>
      .in-locked-row {

@@ -14,6 +14,7 @@
 import traceback
 from .cells import (
     Cell,
+    ComputingCellContext,
     Flex,
     Octicon,
     SubscribeAndRetry,
@@ -339,10 +340,17 @@ class TableRow(Cell):
             # Get the corresponding element at the column
             # index (same as the element index)
             element = self.getElementAtIndex(column_index)
-            element_term = element.sortsAs()
-            if element_term is not None:
-                element_term = str(element_term)
-                results.append(filter_term in element_term)
+
+            # NOTE: We use a ComputingCellContext here
+            # otherwise any Subscribed cells will attach
+            # potential Slots to whatever the cur_cell is
+            # (usually TablePage) rather then to themselves
+            # when calling sortsAs()
+            with ComputingCellContext(element):
+                element_term = element.sortsAs()
+                if element_term is not None:
+                    element_term = str(element_term)
+                    results.append(filter_term in element_term)
 
         return all(results)
 
@@ -536,7 +544,12 @@ class TablePage(Cell):
             sort_val = None
             element = row.getElementAtColumnKey(column_key)
             if element:
-                sort_val = element.sortsAs()
+                # NOTE: We use a ComputingCellContext
+                # here to delemit what Cells get subscribed
+                # to any slot changes that might be called
+                # in calling sortsAs (ie, for Subscribed cells)
+                with ComputingCellContext(element):
+                    sort_val = element.sortsAs()
             if sort_val is None:
                 sort_val = 0
 
@@ -585,7 +598,7 @@ class TablePage(Cell):
             return False
         self._clearSubscriptions()
         self.rows = []
-        self.display_ows = []
+        self.display_rows = []
         super().prepareForReuse()
 
 

@@ -197,13 +197,14 @@ class TableCellUpdate(CellsTestPage):
 
         button = cells.Button("Click Me", onClick)
 
-        return button + cells.Table(
+        table = cells.Table(
             colFun=lambda: cols,
             rowFun=lambda: rows,
             headerFun=lambda label: label,
             rendererFun=renderer,
             maxRowsPerPage=20,
         )
+        return button + table
 
     def text(self):
         return (

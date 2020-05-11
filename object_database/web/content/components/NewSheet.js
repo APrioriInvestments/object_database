@@ -80,7 +80,7 @@ class NewSheet extends Component {
 
     componentDidLoad(){
         this.setupEvents();
-        //this.setupResize();
+        this.setupResize();
     }
 
     componentWillUnload(){

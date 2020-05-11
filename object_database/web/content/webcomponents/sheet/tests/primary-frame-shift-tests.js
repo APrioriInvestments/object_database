@@ -2017,23 +2017,66 @@ describe('Miscallaneous from Origin Position, 1 locked col 2 locked rows, no dat
 });
 
 
+// Init an example 1000x1000 dataFrame
+const bigDataFrame = new DataFrame([0,0], [999,999]);
+describe('Misc Shift Tests', () => {
+    describe('Shifting right twice', () => {
+        // 20x20 primaryFrame
+        let primaryFrame = new PrimaryFrame(bigDataFrame, [19,19]);
+        primaryFrame.lockRows(2);
+        primaryFrame.lockColumns(2);
+        it('Initial shift to total right puts us at the data end', () => {
+            // Shift an impossible amount right
+            // (should take us to the end)
+            primaryFrame.shiftRightBy(bigDataFrame.corner.x * 3);
+            let expectedRelX = primaryFrame.dataFrame.corner.x;
 
+            assert.equal(primaryFrame.relativeViewFrame.corner.x, expectedRelX);
+            assert.equal(primaryFrame.relativeLockedRowsFrame.corner.x, expectedRelX);
+        });
 
+        it('Attempting to shift to right again by 1 shouldnt change anything', () => {
+            primaryFrame.shiftRightBy(1);
+            let expectedRelX = primaryFrame.dataFrame.corner.x;
 
-/* Expected move:
-         * .......................
-         * ...DDDDDDDDDDDDDDDDDDDD
-         * ...DDDDDDDDDDDDDDDDDDDD
-         * ...DDDDDDDDDDDDDDDDDDDD
-         * ...DDDDDDDDDDDDDAPPPPPB
-         * ...DDDDDDDDDDDDDPPPPPPP
-         * ...DDDDDDDDDDDDDPPPPPPP
-         * ...DDDDDDDDDDDDDCPPPPPE
-         *
-         * P=PrimaryFrame
-         * D=DataFrame
-         * A=viewFrame topLeft
-         * B=viewFrame topRight
-         * C=viewFrame bottomLeft
-         * D=viewFrame bottomRight
-         */
+            assert.equal(primaryFrame.relativeViewFrame.corner.x, expectedRelX);
+            assert.equal(primaryFrame.relativeLockedRowsFrame.corner.x, expectedRelX);
+        });
+    });
+
+    describe('Shifting down twice', () => {
+        // 20x20 primaryFrame
+        let primaryFrame = new PrimaryFrame(bigDataFrame, [19,19]);
+        primaryFrame.lockRows(2);
+        primaryFrame.lockColumns(2);
+        it('Initial shift to bottom puts us at data bottom', () => {
+            // Shift down by an impossible amount.
+            // (should stop us at bottom)
+            primaryFrame.shiftDownBy(bigDataFrame.corner.y * 3);
+            let expectedRelY = primaryFrame.dataFrame.corner.y;
+
+            assert.equal(
+                primaryFrame.relativeViewFrame.corner.y,
+                expectedRelY
+            );
+            assert.equal(
+                primaryFrame.relativeLockedColumnsFrame.corner.y,
+                expectedRelY
+            );
+        });
+
+        it('Attempting to shift down by 1 shouldnt change anything', () => {
+            primaryFrame.shiftDownBy(1);
+            let expectedRelY = primaryFrame.dataFrame.corner.y;
+
+            assert.equal(
+                primaryFrame.relativeViewFrame.corner.y,
+                expectedRelY
+            );
+            assert.equal(
+                primaryFrame.relativeLockedColumnsFrame.corner.y,
+                expectedRelY
+            );
+        });
+    });
+});

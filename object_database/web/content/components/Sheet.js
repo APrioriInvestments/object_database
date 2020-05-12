@@ -46,7 +46,7 @@ class Sheet extends Component {
 
         // Bind component methods
         this.afterCreate = this.afterCreate.bind(this);
-        this.afterCursorMove = this.afterCursorMove.bind(this);
+        this.updateHeaderDisplay = this.updateHeaderDisplay.bind(this);
         this.setupEvents = this.setupEvents.bind(this);
         this.setupResize = this.setupResize.bind(this);
         this.resize = this.resize.bind(this);
@@ -469,7 +469,7 @@ class Sheet extends Component {
             });
             if (data.action === "update"){
                 sheet.primaryFrame.updateCellContents();
-                this.afterCursorMove();
+                this.updateHeaderDisplay();
             } else if (data.action === "copy"){
                 this.copyToClipboard();
             }
@@ -479,7 +479,7 @@ class Sheet extends Component {
 
     /* Local Callbacks */
 
-    afterCursorMove(){
+    updateHeaderDisplay(){
         let sheet = this.getDOMElement();
         let coordinateHeader = sheet.querySelector('thead th:first-child');
         let contentHeader = sheet.querySelector('thead th:last-child');
@@ -492,7 +492,7 @@ class Sheet extends Component {
 
         // Set some information to display in the
         // content header element.
-        let contentHeaderText = `No selection`;
+        let contentHeaderText = `${sheet.selector.dataAtCursor}`;
         if(!sheet.selector.selectionFrame.isEmpty){
             let frame = sheet.selector.selectionFrame;
             let originText = `(${frame.origin.x},${frame.origin.y})`.replace("Point","");
@@ -510,122 +510,122 @@ class Sheet extends Component {
 
     onPageUp(event){
         event.target.selector.pageUp();
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onSelectPageUp(event){
         event.target.selector.pageUp(true);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onPageRight(event){
         event.target.selector.pageRight();
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onSelectPageRight(event){
         event.target.selector.pageRight(true);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onPageLeft(event){
         event.target.selector.pageLeft();
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onSelectPageLeft(event){
         event.target.selector.pageLeft(true);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onPageDown(event){
         event.target.selector.pageDown();
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onSelectPageDown(event){
         event.target.selector.pageDown(true);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onArrowUp(event){
         event.target.selector.moveUpBy(1);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onSelectArrowUp(event){
         event.target.selector.moveUpBy(1, true);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onArrowDown(event){
         event.target.selector.moveDownBy(1);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onSelectArrowDown(event){
         event.target.selector.moveDownBy(1, true);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onArrowLeft(event){
         event.target.selector.moveLeftBy(1);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onSelectArrowLeft(event){
         event.target.selector.moveLeftBy(1, true);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onArrowRight(event){
         event.target.selector.moveRightBy(1);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onSelectArrowRight(event){
         event.target.selector.moveRightBy(1, true);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onUpToTop(event){
         event.target.selector.moveToTopEnd();
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onSelectUpToTop(event){
         event.target.selector.moveToTopEnd(true);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onDownToBottom(event){
         event.target.selector.moveToBottomEnd();
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onSelectDownToBottom(event){
         event.target.selector.moveToBottomEnd(true);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onOverToRight(event){
         event.target.selector.moveToRightEnd();
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onSelectOverToRight(event){
         event.target.selector.moveToRightEnd(true);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onOverToLeft(event){
         event.target.selector.moveToLeftEnd();
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     onSelectOverToLeft(event){
         event.target.selector.moveToLeftEnd(true);
-        this.afterCursorMove();
+        this.updateHeaderDisplay();
     }
 
     /* Mouse Event Handlers */
@@ -639,7 +639,7 @@ class Sheet extends Component {
             sheet.selector.updateElements();
 
             // Update the header
-            this.afterCursorMove();
+            this.updateHeaderDisplay();
         }
     }
 
@@ -668,7 +668,7 @@ class Sheet extends Component {
             sheet.selector.updateElements();
 
             // Update the header
-            this.afterCursorMove();
+            this.updateHeaderDisplay();
         }
     }
 };

@@ -80,7 +80,7 @@ class Sheet extends Component {
         this.onArrowLeft = this.onArrowLeft.bind(this);
         this.onSelectArrowLeft = this.onSelectArrowLeft.bind(this);
         this.onOverToLeft = this.onOverToLeft.bind(this);
-        this.onSelectOverToLeft = this.onSelectOverToRight.bind(this);
+        this.onSelectOverToLeft = this.onSelectOverToLeft.bind(this);
         this.onCopyToClipboard = this.onCopyToClipboard.bind(this);
 
         // Bind mouse event handlers

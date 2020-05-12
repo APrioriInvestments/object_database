@@ -56,8 +56,6 @@ from object_database.web.cells.cells import (
     SubscribeAndRetry,
     Expands,
     CodeEditor,
-    Sheet,
-    NewSheet,
     Plot,
     _PlotUpdater,
     AsyncDropdown,
@@ -88,6 +86,8 @@ from object_database.web.cells.util import (
     MarginRight,
     MarginLeft,
 )
+
+from .sheet import Sheet
 
 from object_database.web.cells.views.resizable_panel import ResizablePanel
 

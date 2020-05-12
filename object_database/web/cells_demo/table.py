@@ -212,3 +212,42 @@ class TableCellUpdate(CellsTestPage):
             "has a label prefix that you can change by  "
             "clicking the button."
         )
+
+
+class TableCellUpdateWithPopover(CellsTestPage):
+    def cell(self):
+        cols = ["Col1", "Col2", "Col3"]
+        rows = [i for i in range(200)]
+        col_prefix = cells.Slot("MiddleCol")
+
+        def renderer(rowLabel, columnLabel):
+            if columnLabel == "Col2" and rowLabel == 2:
+                return cells.Subscribed(
+                    lambda: cells.Text("{}-{}".format(col_prefix.get(), rowLabel))
+                )
+            if columnLabel == "Col2" and rowLabel == 4:
+                return cells.Popover("One", "Two", "Three")
+            return cells.Text("{}-{}".format(columnLabel, rowLabel))
+
+        def onClick():
+            options = ["Dog", "Cat", "Kangaroo"]
+            new_prefix = random.choice(options)
+            col_prefix.set(new_prefix)
+
+        button = cells.Button("Click Me", onClick)
+
+        table = cells.Table(
+            colFun=lambda: cols,
+            rowFun=lambda: rows,
+            headerFun=lambda label: label,
+            rendererFun=renderer,
+            maxRowsPerPage=20,
+        )
+        return button + table
+
+    def text(self):
+        return (
+            "You should see a table whose middle column "
+            "has a label prefix that you can change by  "
+            "clicking the button."
+        )

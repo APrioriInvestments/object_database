@@ -500,6 +500,11 @@ class Sheet extends Component {
             let boundsText = `Selection from ${originText} to ${cornerText}`;
             let sizeText = `(${frame.area} selected cells)`;
             contentHeaderText = `${boundsText} ${sizeText}`;
+        } else {
+             // cleanup content for the header display removing newlines and
+            // the like
+            contentHeaderText = contentHeaderText.replace(/(\r\n|\n|\r)/gm, "");
+            contentHeaderText = contentHeaderText.replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/gm," ");
         }
 
         coordinateHeader.innerText = coordinateText;

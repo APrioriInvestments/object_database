@@ -80,7 +80,7 @@ class Sheet extends Component {
         this.onArrowLeft = this.onArrowLeft.bind(this);
         this.onSelectArrowLeft = this.onSelectArrowLeft.bind(this);
         this.onOverToLeft = this.onOverToLeft.bind(this);
-        this.onSelectOverToLeft = this.onSelectOverToLeft.bind(this);
+        this.onSelectOverToLeft = this.onSelectOverToRight.bind(this);
         this.onCopyToClipboard = this.onCopyToClipboard.bind(this);
 
         // Bind mouse event handlers
@@ -636,11 +636,11 @@ class Sheet extends Component {
     /* Mouse Event Handlers */
     onMouseDown(event){
         let primaryButtonPushed = event.button == 0;
-        if(event.target.tagName == "TD" && primaryButtonPushed){
+        if(event.target.matches('.sheet-cell-inner') && primaryButtonPushed){
             this._mouseIsDown = true;
             let sheet = this.getDOMElement();
-            sheet.selector.setAnchorToElement(event.target);
-            sheet.selector.setCursorToElement(event.target);
+            sheet.selector.setAnchorToElement(event.target.parentElement);
+            sheet.selector.setCursorToElement(event.target.parentElement);
             sheet.selector.updateElements();
 
             // Update the header
@@ -664,32 +664,16 @@ class Sheet extends Component {
     }
 
     onMouseMove(event, foo){
-        if(this._mouseIsDown && event.target.tagName =="TD"){
-            let isCursor = event.target.classList.contains('selector-cursor');
-            let isAnchor = event.target.classList.contains('selector-anchor');
+        if(this._mouseIsDown && event.target.matches('.sheet-cell-inner')){
             let sheet = this.getDOMElement();
-            if(isCursor && isAnchor){
-                // In this case we've selected back into
-                // a single cell, so we set the selection
-                // to empty
-                console.log('cursor and anchor');
-                sheet.selector.selectionFrame.isEmpty = true;
-                sheet.selector.setAnchorToElement(event.target);
-                sheet.selector.setCursorToElement(event.target);
-                sheet.selector.updateElements();
-                this.updateHeaderDisplay();
-            }
-            else if(!isCursor){
-                console.log('not cursor');
-                sheet.selector.setCursorToElement(event.target);
-                sheet.selector.selectFromAnchorTo(
-                    sheet.selector.relativeCursor
-                );
-                sheet.selector.updateElements();
+            sheet.selector.setCursorToElement(event.target.parentElement);
+            sheet.selector.selectFromAnchorTo(
+                sheet.selector.relativeCursor
+            );
+            sheet.selector.updateElements();
 
-                // Update the header
-                this.updateHeaderDisplay();
-            }
+            // Update the header
+            this.updateHeaderDisplay();
         }
     }
 };

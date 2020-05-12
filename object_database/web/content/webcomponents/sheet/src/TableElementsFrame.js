@@ -36,12 +36,15 @@ class TableElementsFrame extends Frame {
             rowEl.setAttribute('data-y', rowIndex);
             row.forEach(point => {
                 let tdEl = document.createElement('td');
+                let innerDiv = document.createElement('div');
+                innerDiv.classList.add('sheet-cell-inner');
                 tdEl.setAttribute('data-y', point.y);
                 tdEl.setAttribute('data-relative-y', point.y);
                 tdEl.setAttribute('data-x', point.x);
                 tdEl.setAttribute('data-relative-x', point.x);
                 tdEl.point = point;
                 this.tdElements.push(tdEl);
+                tdEl.appendChild(innerDiv);
                 rowEl.appendChild(tdEl);
             });
             this.rowElements.push(rowEl);

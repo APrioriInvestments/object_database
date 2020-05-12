@@ -636,11 +636,11 @@ class Sheet extends Component {
     /* Mouse Event Handlers */
     onMouseDown(event){
         let primaryButtonPushed = event.button == 0;
-        if(event.target.tagName == "TD" && primaryButtonPushed){
+        if(event.target.matches('.sheet-cell-inner') && primaryButtonPushed){
             this._mouseIsDown = true;
             let sheet = this.getDOMElement();
-            sheet.selector.setAnchorToElement(event.target);
-            sheet.selector.setCursorToElement(event.target);
+            sheet.selector.setAnchorToElement(event.target.parentElement);
+            sheet.selector.setCursorToElement(event.target.parentElement);
             sheet.selector.updateElements();
 
             // Update the header
@@ -664,9 +664,9 @@ class Sheet extends Component {
     }
 
     onMouseMove(event, foo){
-        if(this._mouseIsDown && event.target.tagName =="TD"){
+        if(this._mouseIsDown && event.target.matches('.sheet-cell-inner')){
             let sheet = this.getDOMElement();
-            sheet.selector.setCursorToElement(event.target);
+            sheet.selector.setCursorToElement(event.target.parentElement);
             sheet.selector.selectFromAnchorTo(
                 sheet.selector.relativeCursor
             );

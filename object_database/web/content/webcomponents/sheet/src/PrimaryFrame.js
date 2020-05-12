@@ -211,7 +211,7 @@ class PrimaryFrame extends TableElementsFrame {
                     (aPoint.x - this.dataOffset.x),
                     aPoint.y
                 ]);
-                let element = this.elementAt(translation);
+                let element = this.elementAt(translation).querySelector('div');
                 if(dataValue != undefined){
                     element.innerText = dataValue.toString();
                 } else {
@@ -242,7 +242,7 @@ class PrimaryFrame extends TableElementsFrame {
                     aPoint.x,
                     aPoint.y - offset.y
                 ]);
-                let element = this.elementAt(translation);
+                let element = this.elementAt(translation).querySelector('div');
                 if(dataValue != undefined){
                     element.innerText = dataValue.toString();
                 } else {
@@ -270,7 +270,7 @@ class PrimaryFrame extends TableElementsFrame {
                 aPoint.x - offset.x,
                 aPoint.y - offset.y
             ]);
-            let element =  this.elementAt(translation);
+            let element =  this.elementAt(translation).querySelector('div');
             if(value != undefined){
                     element.innerText = value.toString();
                 } else {

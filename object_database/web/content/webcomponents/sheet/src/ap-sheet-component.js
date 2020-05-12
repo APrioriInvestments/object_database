@@ -256,12 +256,10 @@ class APSheet extends HTMLElement {
             return;
         }
         if(this.colWidth > 0){
-            styleString += `td { min-width: ${this.colWidth}px;\n `;
-            styleString += `max-width: ${this.colWidth}px; }\n`;
+            styleString += `td > div.sheet-cell-inner { width: ${this.colWidth}px !important; }\n`;
         }
         if(this.rowHeight > 0){
-            styleString += `td { min-height: ${this.rowHeight}px;\n`;
-            styleString += `max-height: ${this.rowHeight}px; }\n`;
+            styleString += `tr div.sheet-cell-inner { height: ${this.rowHeight}px; }\n`;
         }
         this.customStyle.innerText = styleString;
     }

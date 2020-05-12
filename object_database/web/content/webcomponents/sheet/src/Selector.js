@@ -397,9 +397,12 @@ class Selector {
      * If there is a cached previousCursor, I
      * remove the CSS class from it.
      */
-    drawCursor(){
+    drawCursor(withAnchor=false){
         let element = this.primaryFrame.elementAt(this.cursor);
         element.classList.add('selector-cursor');
+        if(withAnchor){
+            element.classList.add('selector-anchor');
+        }
         if(this.prevCursorEl && this.prevCursorEl != element){
             this.prevCursorEl.classList.remove('selector-cursor');
         }
@@ -415,7 +418,7 @@ class Selector {
      */
     drawAnchor(){
         if(this.anchor.equals(this.relativeCursor)){
-            return this.drawCursor();
+            return this.drawCursor(true);
         }
         let absoluteAnchor = new Point([
             this.anchor.x - this.primaryFrame.dataOffset.x,

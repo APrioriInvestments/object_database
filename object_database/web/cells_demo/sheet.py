@@ -15,8 +15,6 @@
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
 
-# import time
-
 
 class BasicSheet(CellsTestPage):
     def cell(self):
@@ -279,19 +277,10 @@ def test_two_column_sheet_locked_rows_columnsdisplay(headless_browser):
     assert sheet
 
 
-class BiggerSheetLargeCellContent(CellsTestPage):
+class BasicNewSheet(CellsTestPage):
     def cell(self):
         num_columns = 300
         num_rows = 10000
-        long_text = """
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-        eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-        minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-        ex ea commodo consequat. Duis aute irure dolor in reprehenderit in
-        voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur
-        sint occaecat cupidatat non proident, sunt in culpa qui officia
-        deserunt mollit anim id est laborum.
-        """
 
         def rowFun(
             start_row,
@@ -307,11 +296,18 @@ class BiggerSheetLargeCellContent(CellsTestPage):
             end_column = min(end_column, num_columns)
             end_row = min(end_row, num_rows)
             for i in range(start_row, end_row + 1):
-                r = [long_text for j in range(start_column, end_column + 1)]
+                r = ["entry_%s_%s" % (j, i) for j in range(start_column, end_column + 1)]
                 rows.append(r)
             return rows
 
-        return cells.Sheet(rowFun, colWidth=80, totalColumns=num_columns, totalRows=num_rows)
+        return cells.Sheet(
+            rowFun,
+            colWidth=80,
+            totalColumns=num_columns,
+            totalRows=num_rows,
+            numLockRows=1,
+            numLockColumns=2,
+        )
 
     def text(self):
-        return "You should see a bigger sheet with a lot of text in each cell."
+        return "You should see a bigger sheet."

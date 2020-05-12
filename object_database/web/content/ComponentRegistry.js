@@ -47,7 +47,6 @@ import {Traceback} from './components/Traceback';
 import {_NavTab} from './components/_NavTab';
 import {Grid} from './components/Grid';
 import {Sheet} from './components/Sheet';
-import {NewSheet} from './components/NewSheet';
 import {Plot} from './components/Plot';
 import {_PlotUpdater} from './components/_PlotUpdater';
 import {Timestamp} from './components/Timestamp';
@@ -102,7 +101,6 @@ const ComponentRegistry = {
     _NavTab,
     Grid,
     Sheet,
-    NewSheet,
     Plot,
     _PlotUpdater,
     Timestamp,

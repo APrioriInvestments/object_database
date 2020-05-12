@@ -637,6 +637,9 @@ class NewSheet extends Component {
             sheet.selector.setAnchorToElement(event.target);
             sheet.selector.setCursorToElement(event.target);
             sheet.selector.updateElements();
+
+            // Update the header
+            this.afterCursorMove();
         }
     }
 
@@ -663,6 +666,9 @@ class NewSheet extends Component {
                 sheet.selector.relativeCursor
             );
             sheet.selector.updateElements();
+
+            // Update the header
+            this.afterCursorMove();
         }
     }
 };

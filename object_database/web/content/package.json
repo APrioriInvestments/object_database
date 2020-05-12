@@ -4,7 +4,7 @@
   "description": "",
   "main": "CellHandler.js",
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha --require esm ./tests/ ./components/tests/",
+    "test": "./node_modules/mocha/bin/mocha --require esm ./tests/ ./components/tests/ ./webcomponents/sheet/tests/",
     "test-libs": "./node_modules/mocha/bin/mocha --require esm ./tests/",
     "test-components": "./node_modules/mocha/bin/mocha --require esm ./components/tests/",
     "build": "webpack && cd ./webcomponents/sheet/ && webpack",

@@ -80,6 +80,22 @@ class TableElementsFrame extends Frame {
     }
 
     /**
+     * Returns the DOMElement that is the inner
+     * div (content element) of the td element
+     * retrieved by `elementAt`.
+     * @param {Array|Point} location - An array or
+     * Point that should be mapped to a DOMElement.
+     * @returns {DOMElement}
+     */
+    innerElementAt(location){
+        let parent = this.elementAt(location);
+        if(!parent){
+            return null;
+        }
+        return parent.querySelector('div');
+    }
+
+    /**
      * I respond with the corresponding point
      * of the passed-in element.
      * I will return null in the event

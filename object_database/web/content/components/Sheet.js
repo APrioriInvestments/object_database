@@ -27,7 +27,7 @@ class Sheet extends Component {
 
         // We hardcode the maximum selector.selectionFrame.area to copy
         // to clipboard
-        this.maxCellsToClipboad = 1000000;
+        this.maxCellsToClipboard = 1000000;
 
         // We cache a reference
         // do the DOM node we will
@@ -427,9 +427,12 @@ class Sheet extends Component {
 
     onCopyToClipboard(event){
         let selectionFrame = event.target.selector.selectionFrame;
+        if(selectionFrame.isEmpty){
+            return this.copyToClipboard();
+        }
         // I first check to make sure that we are not asking for too much data
-        if (selectionFrame.area > this.maxCellsToClipboad){
-            alert(`you can copy a maximum ${this.maxCellsToClipboad} cells`);
+        if (selectionFrame.area > this.maxCellsToClipboard){
+            alert(`you can copy a maximum ${this.maxCellsToClipboard} cells`);
         } else {
             // then I check if the needed data is already loaded into the dataFrame
             // if it is I simply copy it
@@ -453,12 +456,23 @@ class Sheet extends Component {
      */
     copyToClipboard(){
         let sheet = this.getDOMElement();
+        let clipboard;
         let selectionFrame = sheet.selector.selectionFrame;
-        let data = sheet.dataFrame.getDataArrayForFrame(selectionFrame);
-        // generates a clipboard string from the current points
-        // Note: in order to create line breaks we slice along the y-axis
-        let clipboard = data.map(item => {return item.join("\t");}).join("\n");
-        // console.log(clipboard);
+
+        // If the selection frame is empty, this
+        // means we are only copying the content at
+        // the current cursor location
+        if(selectionFrame.isEmpty){
+            clipboard = sheet.selector.dataAtCursor.toString();
+        } else {
+            let data = sheet.dataFrame.getDataArrayForFrame(selectionFrame);
+            // generates a clipboard string from the current points
+            // Note: in order to create line breaks we slice along the y-axis
+            clipboard = data.map(item => {return item.join("\t");}).join("\n");
+        }
+
+        // Create the dummy element for clipboard
+        // manipulation
         let inputEl = document.createElement("textarea");
         inputEl.style.position = 'absolute';
         inputEl.style.top = '-10000px';

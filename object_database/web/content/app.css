@@ -151,6 +151,7 @@ ap-sheet th:last-child {
     overflow: hidden;
     text-overflow: ellipsis;
     position: relative;
+    text-align: center;
 }
 
 ap-sheet td {

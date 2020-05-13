@@ -236,6 +236,7 @@ class MessageBus(object):
         self.inMessageType = inMessageType
         self.outMessageType = outMessageType
         self.eventType = MessageBusEvent(inMessageType)
+        self._eventQueue = queue.Queue()
         self._authToken = authToken
         self._listeningEndpoint = Endpoint(endpoint) if endpoint is not None else None
         self._lock = threading.RLock()
@@ -283,8 +284,10 @@ class MessageBus(object):
 
         self._inputThread = threading.Thread(target=self._inThreadLoop)
         self._outputThread = threading.Thread(target=self._outThreadLoop)
+        self._eventThread = threading.Thread(target=self._eventThreadLoop)
         self._inputThread.daemon = True
         self._outputThread.daemon = True
+        self._eventThread.daemon = True
         self._wantsSSL = wantsSSL
         self._sslContext = sslContext
 
@@ -326,6 +329,7 @@ class MessageBus(object):
         self._inThreadWakePipe = os.pipe()
         self._inputThread.start()
         self._outputThread.start()
+        self._eventThread.start()
 
     def stop(self, timeout=None):
         """
@@ -355,6 +359,14 @@ class MessageBus(object):
         self._outputThread.join(timeout=timeout)
 
         if self._inputThread.isAlive() or self._outputThread.isAlive():
+            raise Exception("Failed to shutdown our threads!")
+
+        # shutdown the event loop after the threadloops, so that we're guaranteed
+        # that we fire the shutdown events.
+        self._eventQueue.put(None)
+        self._eventThread.join(timeout=timeout)
+
+        if self._eventThread.isAlive():
             raise Exception("Failed to shutdown our threads!")
 
         if self._acceptSocket is not None:
@@ -744,11 +756,7 @@ class MessageBus(object):
             return True
 
     def _fireEvent(self, event):
-        try:
-            self.onEvent(event)
-        except Exception:
-            self._logger.exception("Message callback threw unexpected exception")
-            return
+        self._eventQueue.put(event)
 
     def _connectTo(self, connId: ConnectionId):
         """Actually form an outgoing connection.
@@ -796,6 +804,8 @@ class MessageBus(object):
             with self._lock:
                 t0 = time.time()
 
+                callback = None
+
                 if self._pendingTimedCallbacks and self._pendingTimedCallbacks[0][0] <= t0:
                     _, callback = self._pendingTimedCallbacks.pop(0)
                 else:
@@ -803,10 +813,25 @@ class MessageBus(object):
                         return max(self._pendingTimedCallbacks[0][0] - t0, 0.0)
                     return
 
-            try:
-                callback()
-            except Exception:
-                logging.exception(f"User callback {callback} threw unexpected exception:")
+                if callback is not None:
+                    self._eventQueue.put(callback)
+
+    def _eventThreadLoop(self):
+        while True:
+            msg = self._eventQueue.get()
+            if msg is None:
+                return
+
+            if isinstance(msg, self.eventType):
+                try:
+                    self.onEvent(msg)
+                except Exception:
+                    self._logger.exception("Message callback threw unexpected exception")
+            else:
+                try:
+                    msg()
+                except Exception:
+                    logging.exception(f"User callback {msg} threw unexpected exception:")
 
     def _outThreadLoop(self):
         socketToBytes = {}  # socket -> bytes that need to be written

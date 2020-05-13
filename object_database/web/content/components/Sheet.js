@@ -89,6 +89,7 @@ class Sheet extends Component {
         this.onMouseMove = this.onMouseMove.bind(this);
         this.onMouseLeave = this.onMouseLeave.bind(this);
         this.onMouseEnter = this.onMouseEnter.bind(this);
+        this.onMouseWheel = this.onMouseWheel.bind(this);
     }
 
     componentDidLoad(){
@@ -313,7 +314,8 @@ class Sheet extends Component {
             'onmouseup': this.onMouseUp,
             'onmousemove': this.onMouseMove,
             'onmouseleave': this.onMouseLeave,
-            'onmouseenter': this.onMouseEnter
+            'onmouseenter': this.onMouseEnter,
+            'onwheel': this.onMouseWheel
         }, []);
     }
 
@@ -455,8 +457,6 @@ class Sheet extends Component {
     }
 
     _updateData(dataInfo, projector){
-        console.log('_updateData');
-        console.log(dataInfo);
         let sheet = this.getDOMElement();
 
         dataInfo.forEach(data => {
@@ -663,7 +663,7 @@ class Sheet extends Component {
         this._mouseIsDown = false;
     }
 
-    onMouseMove(event, foo){
+    onMouseMove(event){
         if(this._mouseIsDown && event.target.matches('.sheet-cell-inner')){
             let sheet = this.getDOMElement();
             sheet.selector.setCursorToElement(event.target.parentElement);
@@ -675,6 +675,23 @@ class Sheet extends Component {
             // Update the header
             this.updateHeaderDisplay();
         }
+    }
+
+    onMouseWheel(event){
+        let didWheelUp  = event.deltaY < 0;
+        let didWheelDown = event.deltaY > 0;
+        let isSelecting = event.shiftKey;
+        let sheet = this.getDOMElement();
+
+        if(didWheelUp){
+            sheet.selector.moveUpBy(1, isSelecting);
+            this.updateHeaderDisplay();
+        } else if(didWheelDown){
+            sheet.selector.moveDownBy(1, isSelecting);
+            this.updateHeaderDisplay();
+        }
+        event.stopPropagation();
+        event.preventDefault();
     }
 };
 

@@ -93,11 +93,16 @@ class APSheet extends HTMLElement {
     }
 
     createHeader(){
+        this.tableHeader.innerHTML = "";
         let headerRow = document.createElement('tr');
         let headerCoordinateData = document.createElement('th');
         let headerContentData = document.createElement('th');
+        let newContentSpan = this.numColumns - 1;
+        if(newContentSpan <= 0){
+            newContentSpan = 1;
+        }
         headerCoordinateData.setAttribute("colSpan", 1);
-        headerContentData.setAttribute("colSpan", this.totalColumns - 1);
+        headerContentData.setAttribute("colSpan", newContentSpan);
         headerCoordinateData.textContent = "(0, 0)";
         headerContentData.textContent = this.selector.dataAtCursor;
         headerRow.append(headerCoordinateData);
@@ -119,6 +124,7 @@ class APSheet extends HTMLElement {
         this.tableBody.innerHTML = "";
         this.tableBody.append(...this.primaryFrame.rowElements);
         this.primaryFrame.updateCellContents();
+        this.createHeader();
         this.primaryFrame.afterChange = this.afterChange;
         this.selector.drawCursor();
         this.selector.updateElements();
@@ -257,6 +263,7 @@ class APSheet extends HTMLElement {
         }
         if(this.colWidth > 0){
             styleString += `td > div.sheet-cell-inner { width: ${this.colWidth}px !important; }\n`;
+            styleString += `th { max-width: ${this.colWidth}px }\n`;
         }
         if(this.rowHeight > 0){
             styleString += `tr div.sheet-cell-inner { height: ${this.rowHeight}px; }\n`;

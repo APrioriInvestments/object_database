@@ -631,55 +631,59 @@ class MessageBus(object):
                             )
                         )
                     else:
-                        assert socketWithData in allSockets
+                        if socketWithData in allSockets:
+                            try:
+                                bytesReceived = socketWithData.recv(MSG_BUF_SIZE)
+                            except ssl.SSLWantReadError:
+                                bytesReceived = None
+                            except ConnectionResetError:
+                                bytesReceived = b""
+                            except Exception as e:
+                                logging.info(
+                                    "MessageBus read socket shutting down "
+                                    "because of exception: %s",
+                                    e,
+                                )
+                                bytesReceived = b""
 
-                        try:
-                            bytesReceived = socketWithData.recv(MSG_BUF_SIZE)
-                        except ssl.SSLWantReadError:
-                            bytesReceived = None
-                        except ConnectionResetError:
-                            bytesReceived = b""
-                        except Exception as e:
-                            logging.info(
-                                "MessageBus read socket shutting down "
-                                "because of exception: %s",
-                                e,
-                            )
-                            bytesReceived = b""
+                            if bytesReceived is None:
+                                # do nothing
+                                pass
+                            elif bytesReceived == b"":
+                                self._markSocketClosed(socketWithData)
+                                allSockets.discard(socketWithData)
+                                del incomingSocketBuffers[socketWithData]
+                            else:
+                                self.totalBytesRead += len(bytesReceived)
 
-                        if bytesReceived is None:
-                            # do nothing
-                            pass
-                        elif bytesReceived == b"":
-                            self._markSocketClosed(socketWithData)
-                            allSockets.discard(socketWithData)
-                            del incomingSocketBuffers[socketWithData]
+                                oldBytecount = incomingSocketBuffers[
+                                    socketWithData
+                                ].pendingBytecount()
+                                newMessages = incomingSocketBuffers[socketWithData].write(
+                                    bytesReceived
+                                )
+
+                                self.totalBytesPendingInInputLoop += (
+                                    incomingSocketBuffers[socketWithData].pendingBytecount()
+                                    - oldBytecount
+                                )
+
+                                self.totalBytesPendingInInputLoopHighWatermark = max(
+                                    self.totalBytesPendingInInputLoop,
+                                    self.totalBytesPendingInInputLoopHighWatermark,
+                                )
+
+                                for m in newMessages:
+                                    if not self._handleIncomingMessage(m, socketWithData):
+                                        self._markSocketClosed(socketWithData)
+                                        allSockets.discard(socketWithData)
+                                        del incomingSocketBuffers[socketWithData]
+                                        break
                         else:
-                            self.totalBytesRead += len(bytesReceived)
-
-                            oldBytecount = incomingSocketBuffers[
-                                socketWithData
-                            ].pendingBytecount()
-                            newMessages = incomingSocketBuffers[socketWithData].write(
-                                bytesReceived
+                            self._logger.warning(
+                                "MessageBus got data on a socket it didn't know about: %s",
+                                socketWithData,
                             )
-
-                            self.totalBytesPendingInInputLoop += (
-                                incomingSocketBuffers[socketWithData].pendingBytecount()
-                                - oldBytecount
-                            )
-
-                            self.totalBytesPendingInInputLoopHighWatermark = max(
-                                self.totalBytesPendingInInputLoop,
-                                self.totalBytesPendingInInputLoopHighWatermark,
-                            )
-
-                            for m in newMessages:
-                                if not self._handleIncomingMessage(m, socketWithData):
-                                    self._markSocketClosed(socketWithData)
-                                    allSockets.discard(socketWithData)
-                                    del incomingSocketBuffers[socketWithData]
-                                    break
 
         except Exception:
             self._logger.exception("MessageBus input loop failed")

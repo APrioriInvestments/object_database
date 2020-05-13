@@ -133,11 +133,14 @@
  * ============================================================*/
 ap-sheet {
     display: block;
+    --border-width: 1px;
+    --border-style: solid;
 }
 
 ap-sheet table {
     border-collapse: separate;
     border-spacing: 0px;
+    table-layout: fixed;
 }
 
 ap-sheet > table:hover {
@@ -145,7 +148,9 @@ ap-sheet > table:hover {
 }
 
 ap-sheet td {
-    border: solid 1px rgba(173,216,230, 0.6);
+    border-width: var(--border-width);
+    border-style: var(--border-style);
+    border-color: rgba(173,216,230, 0.6);
     position: relative;
     box-sizing: border-box;
     text-align: center;
@@ -157,14 +162,16 @@ ap-sheet td {
 
 .sheet-cell-inner {
     display: flex;
+    position: relative
     width: 100%;
     height: 100%;
     text-align: center;
     align-items: center;
     justify-content: center;
-    margin: 0;
-    padding: 0;
+    overflow: hidden;
     box-sizing: border-box;
+    border-width: var(--border-width);
+    border-style: var(--border-style);
 }
 
 .sheet-cell-inner-content {
@@ -184,9 +191,16 @@ ap-sheet td.in-locked-column {
 }
 
 ap-sheet .selector-cursor.in-selection > .sheet-cell-inner {
-    border: solid 1px #568eca;
     background-color: #c1daf5;
-    /*padding: 1px;*/
+    border-style: var(--border-style);
+    border-width: var(--border-width);
+    border-color: #568eca;
+}
+
+ap-sheet .selector-cursor:not(.in-selection) > .sheet-cell-inner {
+    border-style: var(--border-style);
+    border-width: var(--border-width);
+    border-color: transparent;
 }
 
 ap-sheet .selector-cursor:not(.in-selection) {
@@ -199,19 +213,27 @@ ap-sheet td.in-selection {
 }
 
 ap-sheet td.selection-top-border {
-    border-top: 1px solid red;
+    border-top-width: var(--border-width);
+    border-top-style: var(--border-style);
+    border-top-color: red;
 }
 
 ap-sheet td.selection-left-border {
-    border-left: 1px solid red;
+    border-left-width: var(--border-width);
+    border-left-style: var(--border-style);
+    border-left-color: red;
 }
 
 ap-sheet td.selection-right-border {
-    border-right: 1px solid red;
+    border-right-width: var(--border-width);
+    border-right-style: var(--border-style);
+    border-right-color: red;
 }
 
 ap-sheet td.selection-bottom-border {
-    border-bottom: 1px solid red;
+    border-bottom-width: var(--border-width);
+    border-bottom-style: var(--border-style);
+    border-bottom-color: red;
 }
 
 /* Grid and Related Table

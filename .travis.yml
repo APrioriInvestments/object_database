@@ -32,17 +32,17 @@ jobs:
     - stage: "Tests"
       name: "Lint"
       install:
-        - pip install flake8
+        - pip install flake8==3.7.9
       script:
         - make lint-local
 
     - name: "pipenv check"
+      python: 3.6
       install:
         - pip install pipenv
+        - pip install safety
       script:
-        # `pipenv check` is occasionally flaky and depends on network connectivity,
-        # so try up to 3 times, waiting 60 seconds between tries
-        - pipenv check || (sleep 60; pipenv check) || (sleep 60; pipenv check)
+        - (pipenv lock --requirements | safety check --stdin) || (sleep 60; pipenv lock --requirements | safety check --stdin) || (sleep 60; pipenv lock --requirements | safety check --stdin)
 
     - name: "black check"
       install:

@@ -337,17 +337,42 @@ class Sheet extends Component {
      * row which appears at the top.
      */
     resize(){
-        let maxWidth = this.container.offsetWidth;
-        let maxHeight = this.container.offsetHeight;
-        // NOTE: we account for the header row
+        let element = this.getDOMElement();
+        let wrapper = this.container;
+        let bounds = wrapper.getBoundingClientRect();
+        let maxWidth = Math.floor(bounds.width);
+        let maxHeight = Math.floor(bounds.height);
+
+        // If we are using a table header, we need to
+        // subtract that from the maxHeight.
+        let tableHeader = element.querySelector('thead');
+        if(tableHeader){
+            let tableHeight = tableHeader.offsetHeight;
+            maxHeight -= tableHeight;
+        }
+        // If there are already attached td elements,
+        // we use their bounding size for the height and
+        // width. These will have more accurate bounding
+        // measurements that include padding, borders, etc.
+        let colWidth = this.props.colWidth;
+        let rowHeight = this.props.rowHeight;
+        let foundTDElement = wrapper.querySelector('td');
+        if(foundTDElement){
+            let tdBounds = foundTDElement.getBoundingClientRect();
+            colWidth = foundTDElement.offsetWidth;
+            rowHeight = foundTDElement.offsetHeight;
+        }
+
+        // Set the row height
         let rowNumber = Math.min(
             this.props.totalRows,
-            Math.ceil(maxHeight/(this.props.rowHeight * 1.05)) - 1
+            Math.floor(maxHeight/(rowHeight))
         );
-        // make sure to return at least one row
+
+        // Make sure to return at least one row
         rowNumber = Math.max(1, rowNumber);
-        let columnNumber = Math.min(this.props.totalColumns, Math.ceil(maxWidth/this.props.colWidth));
-        let element = this.getDOMElement();
+        let columnNumber = Math.min(this.props.totalColumns, Math.floor(maxWidth/colWidth));
+
         element.setAttribute('rows', rowNumber);
         element.setAttribute('columns', columnNumber);
         element.afterChange();

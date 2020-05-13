@@ -691,14 +691,30 @@ class Sheet extends Component {
     onMouseMove(event){
         if(this._mouseIsDown && event.target.matches('td')){
             let sheet = this.getDOMElement();
-            sheet.selector.setCursorToElement(event.target);
-            sheet.selector.selectFromAnchorTo(
-                sheet.selector.relativeCursor
-            );
-            sheet.selector.updateElements();
-
-            // Update the header
-            this.updateHeaderDisplay();
+            let currentCursor = sheet.selector.cursor;
+            let isCursor = event.target.classList.contains('selector-cursor');
+            let isAnchor = event.target.classList.contains('selector-anchor');
+            if(isAnchor){
+                // If we have moved back to the original
+                // anchor point, this means we want to
+                // reset the selection to be the single
+                // cursor (ie, empty selection)
+                sheet.selector.setAnchorToElement(event.target);
+                sheet.selector.setCursorToElement(event.target);
+                sheet.selector.updateElements();
+                this.updateHeaderDisplay();
+            } else if(!isCursor){
+                // So long as we aren't moving within
+                // the cursor element, we make a new
+                // selection to the element in which
+                // the mouse has moved
+                sheet.selector.setCursorToElement(event.target);
+                sheet.selector.selectFromAnchorTo(
+                    sheet.selector.relativeCursor
+                );
+                sheet.selector.updateElements();
+                this.updateHeaderDisplay();
+            }
         }
     }
 

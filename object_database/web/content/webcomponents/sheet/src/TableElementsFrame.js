@@ -38,6 +38,9 @@ class TableElementsFrame extends Frame {
                 let tdEl = document.createElement('td');
                 let innerDiv = document.createElement('div');
                 innerDiv.classList.add('sheet-cell-inner');
+                let innerSpan = document.createElement('span');
+                innerSpan.classList.add('sheet-cell-inner-content');
+                innerDiv.appendChild(innerSpan);
                 tdEl.setAttribute('data-y', point.y);
                 tdEl.setAttribute('data-relative-y', point.y);
                 tdEl.setAttribute('data-x', point.x);
@@ -93,6 +96,32 @@ class TableElementsFrame extends Frame {
             return null;
         }
         return parent.querySelector('div');
+    }
+
+    /**
+     * Sets the innerText of the inner content
+     * span element at the given location.
+     * @param {Array|Point} location - An Array
+     * or Point specifying the location of the
+     * parent td element in this Frame
+     * @param {String} content - The string
+     * content to set the innerText as
+     * @param {Boolean} allowNewlines - If false,
+     * we first remove any newlines from the incoming
+     * string, as these tend to mess up CSS styling
+     * on sheet cells. Defaults to false.
+     */
+    setTextContentAt(location, content, allowNewlines=false){
+        let inner = this.innerElementAt(location);
+        if(inner){
+            let span = inner.querySelector('span');
+            if(allowNewlines){
+                span.innerText = content;
+            } else {
+                let cleanContent = content.split("\n").join("");
+                span.innerText = cleanContent;
+            }
+        }
     }
 
     /**

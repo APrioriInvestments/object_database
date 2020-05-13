@@ -212,11 +212,10 @@ class PrimaryFrame extends TableElementsFrame {
                     aPoint.y
                 ]);
                 let element = this.elementAt(translation);
-                let contentElement = this.innerElementAt(translation);
                 if(dataValue != undefined){
-                    contentElement.innerText = dataValue.toString();
+                    this.setTextContentAt(translation, dataValue.toString());
                 } else {
-                    contentElement.innerText = 'undefined';
+                    this.setTextContentAt(translation, 'undefined');
                 }
                 element.setAttribute('data-relative-x', aPoint.x);
                 element.setAttribute('data-relative-y', aPoint.y);
@@ -244,11 +243,10 @@ class PrimaryFrame extends TableElementsFrame {
                     aPoint.y - offset.y
                 ]);
                 let element = this.elementAt(translation);
-                let contentElement = this.innerElementAt(translation);
                 if(dataValue != undefined){
-                    contentElement.innerText = dataValue.toString();
+                    this.setTextContentAt(translation, dataValue.toString());
                 } else {
-                    contentElement.innerText = 'undefined';
+                    this.setTextContentAt(translation, 'undefined');
                 }
                 element.setAttribute('data-relative-x', aPoint.x);
                 element.setAttribute('data-relative-y', aPoint.y);
@@ -273,12 +271,11 @@ class PrimaryFrame extends TableElementsFrame {
                 aPoint.y - offset.y
             ]);
             let element =  this.elementAt(translation);
-            let contentElement = this.innerElementAt(translation);
             if(value != undefined){
-                    contentElement.innerText = value.toString();
-                } else {
-                    contentElement.innerText = 'undefined';
-                }
+                this.setTextContentAt(translation, value.toString());
+            } else {
+                this.setTextContentAt(translation, 'undefined');
+            }
             element.setAttribute('data-relative-x', aPoint.x);
             element.setAttribute('data-relative-y', aPoint.y);
         });

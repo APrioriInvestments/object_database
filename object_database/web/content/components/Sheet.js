@@ -500,6 +500,11 @@ class Sheet extends Component {
             let boundsText = `Selection from ${originText} to ${cornerText}`;
             let sizeText = `(${frame.area} selected cells)`;
             contentHeaderText = `${boundsText} ${sizeText}`;
+        } else {
+             // cleanup content for the header display removing newlines and
+            // the like
+            contentHeaderText = contentHeaderText.replace(/(\r\n|\n|\r)/gm, "");
+            contentHeaderText = contentHeaderText.replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/gm," ");
         }
 
         coordinateHeader.innerText = coordinateText;
@@ -631,11 +636,11 @@ class Sheet extends Component {
     /* Mouse Event Handlers */
     onMouseDown(event){
         let primaryButtonPushed = event.button == 0;
-        if(event.target.tagName == "TD" && primaryButtonPushed){
+        if(event.target.matches('.sheet-cell-inner') && primaryButtonPushed){
             this._mouseIsDown = true;
             let sheet = this.getDOMElement();
-            sheet.selector.setAnchorToElement(event.target);
-            sheet.selector.setCursorToElement(event.target);
+            sheet.selector.setAnchorToElement(event.target.parentElement);
+            sheet.selector.setCursorToElement(event.target.parentElement);
             sheet.selector.updateElements();
 
             // Update the header
@@ -659,31 +664,26 @@ class Sheet extends Component {
     }
 
     onMouseMove(event, foo){
-        if(this._mouseIsDown && event.target.tagName =="TD"){
-            let isCursor = event.target.classList.contains('selector-cursor');
-            let isAnchor = event.target.classList.contains('selector-anchor');
+        if(this._mouseIsDown && event.target.matches('.sheet-cell-inner')){
+            let isCursor = event.target.parentElement.classList.contains('selector-cursor');
+            let isAnchor = event.target.parentElement.classList.contains('selector-anchor');
             let sheet = this.getDOMElement();
             if(isCursor && isAnchor){
                 // In this case we've selected back into
                 // a single cell, so we set the selection
                 // to empty
-                console.log('cursor and anchor');
                 sheet.selector.selectionFrame.isEmpty = true;
-                sheet.selector.setAnchorToElement(event.target);
-                sheet.selector.setCursorToElement(event.target);
+                sheet.selector.setAnchorToElement(event.target.parentElement);
+                sheet.selector.setCursorToElement(event.target.parentElement);
                 sheet.selector.updateElements();
                 this.updateHeaderDisplay();
             }
             else if(!isCursor){
-                console.log('not cursor');
-                sheet.selector.setCursorToElement(event.target);
+                sheet.selector.setCursorToElement(event.target.parentElement);
                 sheet.selector.selectFromAnchorTo(
                     sheet.selector.relativeCursor
                 );
                 sheet.selector.updateElements();
-
-                // Update the header
-                this.updateHeaderDisplay();
             }
         }
     }

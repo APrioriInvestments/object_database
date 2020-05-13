@@ -192,7 +192,7 @@ class PrimaryFrame extends TableElementsFrame {
         if(!this.lockedFramesIntersect.isEmpty){
             this.lockedFramesIntersect.forEachPoint(aPoint => {
                 let value = this.dataFrame.getAt(aPoint);
-                this.elementAt(aPoint).innerText = 'x';
+                this.innerElementAt(aPoint).innerText = 'x';
             });
         }
     }
@@ -211,11 +211,12 @@ class PrimaryFrame extends TableElementsFrame {
                     (aPoint.x - this.dataOffset.x),
                     aPoint.y
                 ]);
-                let element = this.elementAt(translation).querySelector('div');
+                let element = this.elementAt(translation);
+                let contentElement = this.innerElementAt(translation);
                 if(dataValue != undefined){
-                    element.innerText = dataValue.toString();
+                    contentElement.innerText = dataValue.toString();
                 } else {
-                    element.innerText = 'undefined';
+                    contentElement.innerText = 'undefined';
                 }
                 element.setAttribute('data-relative-x', aPoint.x);
                 element.setAttribute('data-relative-y', aPoint.y);
@@ -242,11 +243,12 @@ class PrimaryFrame extends TableElementsFrame {
                     aPoint.x,
                     aPoint.y - offset.y
                 ]);
-                let element = this.elementAt(translation).querySelector('div');
+                let element = this.elementAt(translation);
+                let contentElement = this.innerElementAt(translation);
                 if(dataValue != undefined){
-                    element.innerText = dataValue.toString();
+                    contentElement.innerText = dataValue.toString();
                 } else {
-                    element.innerText = 'undefined';
+                    contentElement.innerText = 'undefined';
                 }
                 element.setAttribute('data-relative-x', aPoint.x);
                 element.setAttribute('data-relative-y', aPoint.y);
@@ -270,11 +272,12 @@ class PrimaryFrame extends TableElementsFrame {
                 aPoint.x - offset.x,
                 aPoint.y - offset.y
             ]);
-            let element =  this.elementAt(translation).querySelector('div');
+            let element =  this.elementAt(translation);
+            let contentElement = this.innerElementAt(translation);
             if(value != undefined){
-                    element.innerText = value.toString();
+                    contentElement.innerText = value.toString();
                 } else {
-                    element.innerText = 'undefined';
+                    contentElement.innerText = 'undefined';
                 }
             element.setAttribute('data-relative-x', aPoint.x);
             element.setAttribute('data-relative-y', aPoint.y);

@@ -602,22 +602,22 @@ class MessageBus(object):
                         with self._lock:
                             connId = self._newConnectionId()
 
-                            with self._lock:
-                                if self._authToken is not None:
-                                    self._unauthenticatedConnections.add(connId)
-                                self._connIdToIncomingSocket[connId] = newSocket
-                                self._socketToIncomingConnId[newSocket] = connId
-                                self._connIdToIncomingEndpoint[connId] = newSocketSource
+                        with self._lock:
+                            if self._authToken is not None:
+                                self._unauthenticatedConnections.add(connId)
+                            self._connIdToIncomingSocket[connId] = newSocket
+                            self._socketToIncomingConnId[newSocket] = connId
+                            self._connIdToIncomingEndpoint[connId] = newSocketSource
 
-                                incomingSocketBuffers[newSocket] = MessageBuffer(
-                                    self.extraMessageSizeCheck
-                                )
-
-                            self._fireEvent(
-                                self.eventType.NewIncomingConnection(
-                                    source=Endpoint(newSocketSource), connectionId=connId
-                                )
+                            incomingSocketBuffers[newSocket] = MessageBuffer(
+                                self.extraMessageSizeCheck
                             )
+
+                        self._fireEvent(
+                            self.eventType.NewIncomingConnection(
+                                source=Endpoint(newSocketSource), connectionId=connId
+                            )
+                        )
                     else:
                         assert socketWithData in allSockets
 
@@ -679,6 +679,8 @@ class MessageBus(object):
             pass
 
     def _markSocketClosed(self, socket):
+        toFire = []
+
         with self._lock:
             if socket in self._socketToIncomingConnId:
                 connId = self._socketToIncomingConnId[socket]
@@ -686,13 +688,16 @@ class MessageBus(object):
                 del self._connIdToIncomingSocket[connId]
                 del self._connIdToIncomingEndpoint[connId]
                 self._unauthenticatedConnections.discard(connId)
-                self._fireEvent(self.eventType.IncomingConnectionClosed(connectionId=connId))
+                toFire.append(self.eventType.IncomingConnectionClosed(connectionId=connId))
             elif socket in self._socketToOutgoingConnId:
                 connId = self._socketToOutgoingConnId[socket]
                 del self._socketToOutgoingConnId[socket]
                 del self._connIdToOutgoingSocket[connId]
                 del self._connIdToOutgoingEndpoint[connId]
-                self._fireEvent(self.eventType.OutgoingConnectionClosed(connectionId=connId))
+                toFire.append(self.eventType.OutgoingConnectionClosed(connectionId=connId))
+
+        for event in toFire:
+            self._fireEvent(event)
 
         self._ensureSocketClosed(socket)
 

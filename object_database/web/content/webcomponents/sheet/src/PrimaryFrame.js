@@ -192,7 +192,11 @@ class PrimaryFrame extends TableElementsFrame {
         if(!this.lockedFramesIntersect.isEmpty){
             this.lockedFramesIntersect.forEachPoint(aPoint => {
                 let value = this.dataFrame.getAt(aPoint);
-                this.innerElementAt(aPoint).innerText = 'x';
+                if(value == undefined){
+                    this.setTextContentAt(aPoint, '...');
+                } else {
+                    this.setTextContentAt(aPoint, value.toString());
+                }
             });
         }
     }
@@ -215,7 +219,7 @@ class PrimaryFrame extends TableElementsFrame {
                 if(dataValue != undefined){
                     this.setTextContentAt(translation, dataValue.toString());
                 } else {
-                    this.setTextContentAt(translation, 'undefined');
+                    this.setTextContentAt(translation, '...');
                 }
                 element.setAttribute('data-relative-x', aPoint.x);
                 element.setAttribute('data-relative-y', aPoint.y);
@@ -246,7 +250,7 @@ class PrimaryFrame extends TableElementsFrame {
                 if(dataValue != undefined){
                     this.setTextContentAt(translation, dataValue.toString());
                 } else {
-                    this.setTextContentAt(translation, 'undefined');
+                    this.setTextContentAt(translation, '...');
                 }
                 element.setAttribute('data-relative-x', aPoint.x);
                 element.setAttribute('data-relative-y', aPoint.y);
@@ -274,7 +278,7 @@ class PrimaryFrame extends TableElementsFrame {
             if(value != undefined){
                 this.setTextContentAt(translation, value.toString());
             } else {
-                this.setTextContentAt(translation, 'undefined');
+                this.setTextContentAt(translation, '...');
             }
             element.setAttribute('data-relative-x', aPoint.x);
             element.setAttribute('data-relative-y', aPoint.y);

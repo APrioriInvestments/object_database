@@ -50,6 +50,7 @@ class Sheet extends Component {
         this.setupEvents = this.setupEvents.bind(this);
         this.setupResize = this.setupResize.bind(this);
         this.resize = this.resize.bind(this);
+        this._calculateSize = this._calculateSize.bind(this);
         this.tearDownEvents = this.tearDownEvents.bind(this);
         this.onSheetNeedsData = this.onSheetNeedsData.bind(this);
         this.copyToClipboard = this.copyToClipboard.bind(this);
@@ -300,6 +301,7 @@ class Sheet extends Component {
     }
 
     build(){
+        console.log("About to build");
         return h('ap-sheet', {
             id: this.getElementId(),
             class: 'cell sheet-cell',
@@ -320,7 +322,13 @@ class Sheet extends Component {
     }
 
     afterCreate(element){
+        console.log("running afterCreate");
         this._cachedNode = element;
+        let size = this._calculateSize();
+        console.log(size);
+
+        element.setAttribute('rows', size.rows);
+        element.setAttribute('columns', size.columns);
         element.setAttribute('total-columns', this.props.totalColumns);
         element.setAttribute('total-rows', this.props.totalRows);
         element.setAttribute('locked-rows', this.props.numLockRows);
@@ -335,8 +343,22 @@ class Sheet extends Component {
      * row which appears at the top.
      */
     resize(){
+        console.log("resize");
+        let element = this.getDOMElement();
+        let size = this._calculateSize();
+        console.log(size);
+
+        element.setAttribute('rows', size.rows);
+        element.setAttribute('columns', size.columns);
+        element.afterChange();
+    }
+
+    _calculateSize(){
         let element = this.getDOMElement();
         let wrapper = this.container;
+        if (wrapper === undefined){
+            wrapper = element.parentNode;
+        }
         let bounds = wrapper.getBoundingClientRect();
         let maxWidth = Math.floor(bounds.width);
         let maxHeight = Math.floor(bounds.height);
@@ -370,10 +392,7 @@ class Sheet extends Component {
         // Make sure to return at least one row
         rowNumber = Math.max(1, rowNumber);
         let columnNumber = Math.min(this.props.totalColumns, Math.floor(maxWidth/colWidth));
-
-        element.setAttribute('rows', rowNumber);
-        element.setAttribute('columns', columnNumber);
-        element.afterChange();
+        return {"columns": columnNumber, "rows": rowNumber};
     }
 
     onSheetNeedsData(event){

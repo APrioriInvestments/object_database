@@ -527,7 +527,7 @@ class Sheet extends Component {
     updateHeaderDisplay(){
         let sheet = this.getDOMElement();
         let coordinateHeader = sheet.querySelector('thead th:first-child');
-        let contentHeader = sheet.querySelector('thead th:last-child');
+        let contentDisplay = sheet.querySelector('.sheet-content-display');
 
         // Set the coordinate header element to display
         // the cursor's current data-relative coordinate
@@ -553,17 +553,16 @@ class Sheet extends Component {
         }
 
         coordinateHeader.innerText = coordinateText;
-        let contentWrapper = contentHeader.querySelector('div.header-content-wrapper');
-        if(contentWrapper){
-            console.log('found content wrapper');
-            contentWrapper.innerText = contentHeaderText;
-        } else {
-            console.log('did not find contentWrapper');
-            contentWrapper = document.createElement('div');
-            contentWrapper.classList.add('header-content-wrapper');
-            contentWrapper.innerText = contentHeaderText;
-            contentHeader.innerHTML = "";
-            contentHeader.append(contentWrapper);
+        if(contentDisplay){
+            // Find the coordinate display header and get
+            // its current width. We need this to calculate
+            // the offset from left of the contentDisplay.
+            let coordinateHeaderWidth = coordinateHeader.offsetWidth;
+            let displayWidth = sheet.offsetParent.offsetWidth;
+            let newWidth = Math.floor(displayWidth - coordinateHeaderWidth);
+            contentDisplay.style.width = `${newWidth}px`;
+            contentDisplay.style.left = `${coordinateHeaderWidth}px`;
+            contentDisplay.innerText = contentHeaderText;
         }
     }
 

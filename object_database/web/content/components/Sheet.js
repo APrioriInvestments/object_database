@@ -546,14 +546,25 @@ class Sheet extends Component {
             let sizeText = `(${frame.area} selected cells)`;
             contentHeaderText = `${boundsText} ${sizeText}`;
         } else {
-             // cleanup content for the header display removing newlines and
+            // cleanup content for the header display removing newlines and
             // the like
             contentHeaderText = contentHeaderText.replace(/(\r\n|\n|\r)/gm, "");
             contentHeaderText = contentHeaderText.replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/gm," ");
         }
 
         coordinateHeader.innerText = coordinateText;
-        contentHeader.innerText = contentHeaderText;
+        let contentWrapper = contentHeader.querySelector('div.header-content-wrapper');
+        if(contentWrapper){
+            console.log('found content wrapper');
+            contentWrapper.innerText = contentHeaderText;
+        } else {
+            console.log('did not find contentWrapper');
+            contentWrapper = document.createElement('div');
+            contentWrapper.classList.add('header-content-wrapper');
+            contentWrapper.innerText = contentHeaderText;
+            contentHeader.innerHTML = "";
+            contentHeader.append(contentWrapper);
+        }
     }
 
     /* Keyboard Event Handlers */

@@ -147,11 +147,34 @@ ap-sheet > table:hover {
     cursor: cell;
 }
 
-ap-sheet th:last-child {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    position: relative;
+ap-sheet th {
+    background-color: rgba(238, 238, 238);
     text-align: center;
+}
+
+ap-sheet th:last-child {
+    position: relative;
+}
+
+ap-sheet .header-content-wrapper {
+    display: inline-block;
+    position: absolute;
+    width: 100%;
+    top: 0;
+    left: 0;
+    text-align: left;
+    max-height: 200px;
+    padding-left: 5px;
+    padding-right: 5px;
+    overflow-wrap: break-word;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: normal;
+    background-color: rgba(230, 230, 230);
+    border-bottom: 1px solid rgba(50, 50, 50, 0.5);
+    border-left: 1px solid rgba(50, 50, 50, 0.5);
+    border-right: 1px solid rgba(50, 50, 50, 0.5);
+    z-index: 1;
 }
 
 ap-sheet td {

@@ -324,15 +324,8 @@ class Sheet extends Component {
     afterCreate(element){
         console.log("running afterCreate");
         this._cachedNode = element;
-        let size = this._calculateSize();
-        console.log(size);
-
-        element.setAttribute('rows', size.rows);
-        element.setAttribute('columns', size.columns);
         element.setAttribute('total-columns', this.props.totalColumns);
         element.setAttribute('total-rows', this.props.totalRows);
-        element.setAttribute('locked-rows', this.props.numLockRows);
-        element.setAttribute('locked-columns', this.props.numLockColumns);
         element.setAttribute('row-height', this.props.rowHeight);
         element.setAttribute('col-width', this.props.colWidth);
         element.addEventListener('sheet-needs-data', this.onSheetNeedsData);
@@ -343,22 +336,18 @@ class Sheet extends Component {
      * row which appears at the top.
      */
     resize(){
-        console.log("resize");
         let element = this.getDOMElement();
-        let size = this._calculateSize();
-        console.log(size);
+        let size = this._calculateSize(element);
 
         element.setAttribute('rows', size.rows);
         element.setAttribute('columns', size.columns);
+        element.setAttribute('locked-rows', this.props.numLockRows);
+        element.setAttribute('locked-columns', this.props.numLockColumns);
         element.afterChange();
     }
 
-    _calculateSize(){
-        let element = this.getDOMElement();
+    _calculateSize(element){
         let wrapper = this.container;
-        if (wrapper === undefined){
-            wrapper = element.parentNode;
-        }
         let bounds = wrapper.getBoundingClientRect();
         let maxWidth = Math.floor(bounds.width);
         let maxHeight = Math.floor(bounds.height);

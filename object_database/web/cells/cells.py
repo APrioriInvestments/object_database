@@ -1704,7 +1704,7 @@ class AsyncDropdown(Cell):
         """
         Parameters
         ----------
-        labelText: String
+        labelText: str
             A label for the dropdown
         contentCellFunc: Function or Lambda
             A lambda or function that will

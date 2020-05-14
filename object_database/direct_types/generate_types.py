@@ -53,12 +53,12 @@ def cpp_type(py_type) -> TupleType[str, dict]:
     """ Given a python Type, returns its C++ type name and a dict of prerequisites.
 
     examples:
-        given Int64 return "int64_t"
-        given ListOf(Int64) return ListOf<int64_t>
+        given int return "int64_t"
+        given ListOf(int) return ListOf<int64_t>
 
     For generated types with given names, just use the name
     example:
-        if Arb=NamedTuple(X=Int64,Y=Bool)
+        if Arb=NamedTuple(X=int,Y=bool)
         given Arb return "Arb"
 
     For types containing anonymous subtypes, keep track of them so they can be
@@ -74,7 +74,7 @@ def cpp_type(py_type) -> TupleType[str, dict]:
     """
     simple_cats = {
         "None": "None",
-        "Int64": "int64_t",
+        "int": "int64_t",
         "UInt64": "uint64_t",
         "Int32": "uint32_t",
         "UInt32": "uint32_t",
@@ -82,11 +82,11 @@ def cpp_type(py_type) -> TupleType[str, dict]:
         "UInt16": "uint16_t",
         "Int8": "uint8_t",
         "UInt8": "uint8_t",
-        "Bool": "bool",
-        "Float64": "double",
+        "bool": "bool",
+        "float": "double",
         "Float32": "float",
-        "Bytes": "Bytes",
-        "String": "String",
+        "bytes": "bytes",
+        "str": "str",
     }
     cat = py_type.__typed_python_category__
     cpp_name = "undefined_type"

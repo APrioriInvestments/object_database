@@ -18,7 +18,6 @@ import time
 from flask_login import current_user, login_user, logout_user
 from flask import flash, redirect, render_template, url_for
 
-from typed_python import Float64
 from object_database.web.ActiveWebServiceSchema import active_webservice_schema
 from object_database.web.flask_util import request_ip_address, next_url
 from object_database.view import revisionConflictRetry
@@ -122,7 +121,7 @@ USER_LOGIN_DURATION = 24 * 60 * 60  # 24 hours
 @active_webservice_schema.define
 class User:
     username = Indexed(str)
-    login_expiration = Float64
+    login_expiration = float
     login_ip = str
     userLoginStatus = object
 

@@ -321,8 +321,6 @@ class Sheet extends Component {
 
     afterCreate(element){
         this._cachedNode = element;
-        element.setAttribute('rows', 20);
-        element.setAttribute('columns', 20);
         element.setAttribute('total-columns', this.props.totalColumns);
         element.setAttribute('total-rows', this.props.totalRows);
         element.setAttribute('locked-rows', this.props.numLockRows);

@@ -7,6 +7,7 @@ The web app consists of three main files:
 * [page.html](./page.html) : this is what the web server actually serves; it contains the headers file and the application bundle
 * [main.js](main.js) : generally app level configuration. This is where much of the front end is setup: Websocket message handling, initial page load, component and keyevent registries etc.
 * [main.bundle.js](../dist/main.bundle.js) : this is the core of the application. It is built using [webpack](https://webpack.js.org/concepts/); see `Building the application below.`
+* [ap-sheet.bundle.js](../webcomponents/sheet/dist/ap-sheet.bundle.js): this is the Apriori sheet web-component sheet bundle.
 
 ### Installing
 Repository wide installation, as described in [INSTALLATION.md](../../../INSTALLATION.md) is the common way to install the application dependencies.

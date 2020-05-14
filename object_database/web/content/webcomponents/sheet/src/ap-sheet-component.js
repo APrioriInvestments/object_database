@@ -39,6 +39,7 @@ class APSheet extends HTMLElement {
         this.tableBody = document.createElement('tbody');
         this.tableHeader = document.createElement('thead');
         this.table = document.createElement('table');
+        this.cellContentDisplay = document.createElement('div');
         this.customStyle = document.createElement('style');
 
         // Initialize sheet properties
@@ -58,6 +59,7 @@ class APSheet extends HTMLElement {
 
         // Bind component methods
         this.createHeader = this.createHeader.bind(this);
+        this.createContentDisplay = this.createContentDisplay.bind(this);
         this.updateRows = this.updateRows.bind(this);
         this.updateCols = this.updateCols.bind(this);
         this.updateTotalRows = this.updateTotalRows.bind(this);
@@ -85,6 +87,7 @@ class APSheet extends HTMLElement {
         this.customStyle.setAttribute('scoped', true);
         this.append(this.customStyle);
         this.createHeader();
+        this.createContentDisplay();
         this.table.append(this.tableHeader);
         this.table.append(this.tableBody);
         this.append(this.table);
@@ -96,18 +99,16 @@ class APSheet extends HTMLElement {
         this.tableHeader.innerHTML = "";
         let headerRow = document.createElement('tr');
         let headerCoordinateData = document.createElement('th');
-        let headerContentData = document.createElement('th');
-        let newContentSpan = this.numColumns - 1;
-        if(newContentSpan <= 0){
-            newContentSpan = 1;
-        }
         headerCoordinateData.setAttribute("colSpan", 1);
-        headerContentData.setAttribute("colSpan", newContentSpan);
         headerCoordinateData.textContent = "(0, 0)";
-        headerContentData.textContent = this.selector.dataAtCursor;
         headerRow.append(headerCoordinateData);
-        headerRow.append(headerContentData);
         this.tableHeader.append(headerRow);
+    }
+
+    createContentDisplay(){
+        this.cellContentDisplay.innerHTML = "";
+        this.cellContentDisplay.classList.add('sheet-content-display');
+        this.prepend(this.cellContentDisplay);
     }
 
     resizePrimaryFrame(cornerX, cornerY){
@@ -125,6 +126,7 @@ class APSheet extends HTMLElement {
         this.tableBody.append(...this.primaryFrame.rowElements);
         this.primaryFrame.updateCellContents();
         this.createHeader();
+        this.createContentDisplay();
         this.primaryFrame.afterChange = this.afterChange;
         this.selector.drawCursor();
         this.selector.updateElements();

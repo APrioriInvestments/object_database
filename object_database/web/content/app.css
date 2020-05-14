@@ -156,13 +156,14 @@ ap-sheet th:last-child {
     position: relative;
 }
 
-ap-sheet .header-content-wrapper {
+ap-sheet .sheet-content-display {
     display: inline-block;
     position: absolute;
     width: 100%;
     top: 0;
     left: 0;
     text-align: left;
+    font-weight: bold;
     max-height: 200px;
     padding-left: 5px;
     padding-right: 5px;

@@ -283,12 +283,10 @@ class CodeEditor extends Component {
     }
 
     installChangeHandlers() {
-        //this.editor.on('focus', this._onFocus);
-        //this.editor.on('blur', this._onBlur);
 
         //any time we do anything, update the server
-        this.editor.selection.on("changeCursor", this.onChange)
-        this.editor.selection.on("changeSelection", this.onChange)
+        this.editor.selection.on("changeCursor", this.onChange);
+        this.editor.selection.on("changeSelection", this.onChange);
         this.editor.session.on("change", this.onChange);
         this.editor.session.on("changeScrollTop", this.onScroll);
     }

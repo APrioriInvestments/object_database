@@ -65,7 +65,7 @@ class KeyRegistry {
                 if (b.command === keyComboString){
                     listeners.push(this.keyListeners[key]);
                 }
-            })
+            });
         });
         return listeners;
     }

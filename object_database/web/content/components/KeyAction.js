@@ -27,12 +27,19 @@ class KeyAction extends Component {
             this.props.extraData['stopPropagation'],
             this.props.extraData['stopImmediatePropagation'],
             this.props.extraData['preventDefault']
-        )
+        );
         this.keyListener = new KeyListener(document, [binding], `#document-${this.props.id}`);
     }
 
     componentDidLoad(){
         this.keyListener.start();
+    }
+
+    componentWillUnload(){
+        // This method will remove the DOM
+        // listener(s) and also remove this
+        // keyListener object from the registry
+        this.keyListener.pause();
     }
 
     build(){
@@ -45,11 +52,11 @@ class KeyAction extends Component {
     onKeyDown(event){
         let responseData = {
             event: 'keydown',
-            'target_cell': this.props.id,
+            //'target_cell': this.props.id,
             data: {keyCmd: this.props.extraData['keyCmd']}
         };
 
-        cellSocket.sendString(JSON.stringify(responseData));
+        this.sendMessage(responseData);
     }
     componentWillUnload() {
         this.keyListener.pause();

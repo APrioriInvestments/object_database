@@ -87,7 +87,7 @@ class KeyListener {
         if (!target.dataset || !target.id){
             return target.nodeName;
         }
-        return `${target.dataset.cellType}-${target.id}`
+        return `${target.dataset.cellType}-${target.id}`;
     }
 
     /**
@@ -212,7 +212,7 @@ class KeyBinding {
      * other cases.
      */
     handleSingleKey(event, key){
-        if(event.key == key){
+        if(event.key == key || key == 'all'){
             let handlerReturn = this.handler(event);
             if(this.stopPropagation){
                 event.stopPropagation();

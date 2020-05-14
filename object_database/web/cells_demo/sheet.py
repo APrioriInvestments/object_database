@@ -65,18 +65,11 @@ def test_basic_sheet_selector(headless_browser):
     query_0_1 = '[data-x="0"][data-y="1"]'
     element_0_1 = headless_browser.find_by_css(query_0_1)
     # make sure the element is selected by default
-    selector_class = (
-        "sheet-cell custom-tooltip active active-selection-left "
-        + "active-selection-right active-selection-top "
-        + "active-selection-bottom"
-    )
-    sheet_element_class = "sheet-cell custom-tooltip"
+    selector_class = "view-cell selector-cursor selector-anchor"
     assert element_0_0.get_attribute("class") == selector_class
-    assert element_0_1.get_attribute("class") == sheet_element_class
     # click on another sheet cell and make sure it becomes the selector
     element_0_1.click()
     assert element_0_1.get_attribute("class") == selector_class
-    assert element_0_0.get_attribute("class") == sheet_element_class
 
 
 class BiggerSheet(CellsTestPage):
@@ -217,19 +210,12 @@ def test_bigger_sheet_locked_selector(headless_browser):
     query_0_1 = '[data-x="0"][data-y="1"]'
     element_0_1 = headless_browser.find_by_css(query_0_1)
     # make sure the element is selected by default
-    selector_class = (
-        "sheet-cell custom-tooltip locked active "
-        + "active-selection-left "
-        + "active-selection-right active-selection-top "
-        + "active-selection-bottom"
-    )
-    sheet_element_class = "sheet-cell custom-tooltip locked"
+    selector_class = "in-locked-row selector-cursor selector-anchor"
     assert element_0_0.get_attribute("class") == selector_class
-    assert element_0_1.get_attribute("class") == sheet_element_class
     # click on another sheet cell and make sure it becomes the selector
     element_0_1.click()
+    selector_class = "in-locked-column selector-cursor selector-anchor"
     assert element_0_1.get_attribute("class") == selector_class
-    assert element_0_0.get_attribute("class") == sheet_element_class
 
 
 class TwoColumnSheetLockedRowsColumns(CellsTestPage):

@@ -47,6 +47,7 @@ class Sheet extends Component {
         // Bind component methods
         this.afterCreate = this.afterCreate.bind(this);
         this.updateHeaderDisplay = this.updateHeaderDisplay.bind(this);
+        this.resizeHeaderDisplay = this.resizeHeaderDisplay.bind(this);
         this.setupEvents = this.setupEvents.bind(this);
         this.setupResize = this.setupResize.bind(this);
         this.resize = this.resize.bind(this);
@@ -344,6 +345,7 @@ class Sheet extends Component {
         element.setAttribute('locked-rows', this.props.numLockRows);
         element.setAttribute('locked-columns', this.props.numLockColumns);
         element.afterChange();
+        this.resizeHeaderDisplay();
     }
 
     _calculateSize(element){
@@ -554,17 +556,20 @@ class Sheet extends Component {
         }
 
         coordinateHeader.innerText = coordinateText;
-        if(contentDisplay){
-            // Find the coordinate display header and get
-            // its current width. We need this to calculate
-            // the offset from left of the contentDisplay.
+        contentDisplay.innerText = contentHeaderText;
+    }
+
+    resizeHeaderDisplay(){
+        console.log('calling resizeHeaderDisplay');
+        let sheet = this.getDOMElement();
+        let coordinateHeader = sheet.querySelector('th:first-child');
+        let dummyHeader = sheet.querySelector('th:last-child');
+        let contentDisplay = sheet.querySelector('.sheet-content-display');
+        if(dummyHeader && coordinateHeader && contentDisplay){
             let coordinateHeaderWidth = coordinateHeader.offsetWidth;
-            let displayWidth = sheet.offsetParent.offsetWidth;
-            //let newWidth = Math.floor(displayWidth - (coordinateHeaderWidth * 2));
-            let newWidth = Math.floor(dummyHeader.offsetWidth);
-            contentDisplay.style.width = `${newWidth}px`;
+            let dummyHeaderWidth = dummyHeader.offsetWidth;
+            contentDisplay.style.width = `${dummyHeaderWidth}px`;
             contentDisplay.style.left = `${coordinateHeaderWidth}px`;
-            contentDisplay.innerText = contentHeaderText;
         }
     }
 

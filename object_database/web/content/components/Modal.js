@@ -22,7 +22,9 @@ class Modal extends Component {
         // Track the component show/hide
         // state outside of the props
         // for callback purposes
-        this.isShowing = this.props.show || false;
+        // note that when we are first created, we are not yet showing, because
+        // we have not installed callbacks etc.
+        this.isShowing = false;
 
         // Bind component methods
         this.makeHeader = this.makeHeader.bind(this);

@@ -67,6 +67,7 @@ class KeyListener {
         this.bindings = bindings;
         this._id = id;
         this.id = this.createId(target);
+        this.deregistered = false;
 
         // Bind methods
         this.start = this.start.bind(this);
@@ -103,6 +104,7 @@ class KeyListener {
     start(){
         this.target.addEventListener('keydown', this.mainListener, {'capture': true});
         window.keyRegistry.addListener(this);
+        this.deregistered = false;
     }
 
     /**
@@ -114,8 +116,9 @@ class KeyListener {
      * arguments.
      */
     pause(){
-        this.target.removeEventListener('keydown', this.mainListener);
+        this.target.removeEventListener('keydown', this.mainListener, {'capture': true});
         window.keyRegistry.removeListener(this);
+        this.deregistered = true;
     }
 
     /**
@@ -127,9 +130,11 @@ class KeyListener {
      * @param {KeyEvent} event - A keydown event object.
      */
     mainListener(event){
-        this.bindings.forEach((binding) => {
-            binding.handle(event);
-        });
+        if (!this.deregistered) {
+            this.bindings.forEach((binding) => {
+                binding.handle(event);
+            });
+        }
     }
 }
 

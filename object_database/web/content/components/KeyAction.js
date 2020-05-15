@@ -66,9 +66,6 @@ class KeyAction extends Component {
 
         this.sendMessage(responseData);
     }
-    componentWillUnload() {
-        this.keyListener.pause();
-    }
 }
 
 export {KeyAction, KeyAction as default};

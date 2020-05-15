@@ -1282,7 +1282,7 @@ class Modal(Cell):
             # First, run the default action,
             # which should be the one associated
             # with the *first* button
-            if len(self.buttons) > 1:
+            if len(self.buttons) >= 1:
                 self.buttons["____button_0__"].onClick()
             self.show.set(False)
 

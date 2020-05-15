@@ -69,6 +69,7 @@ class Modal extends Component {
             // onHide
             this.onHide();
         }
+        this.isShowing = this.props.show;
     }
 
     componentWillReceiveProps(oldProps, newProps){

@@ -1259,7 +1259,16 @@ class Modal(Cell):
         self.initButtons(buttonActions)
 
     def initButtons(self, buttonActions):
-        buttons = [Button(k, v).tagged(k) for k, v in buttonActions.items()]
+        def augmentButtonAction(onClick):
+            def newOnClick():
+                self.show.set(False)
+                onClick()
+
+            return newOnClick
+
+        buttons = [
+            Button(k, augmentButtonAction(v)).tagged(k) for k, v in buttonActions.items()
+        ]
         self.buttons = {}
         for i in range(len(buttons)):
             button = buttons[i]
@@ -1284,7 +1293,6 @@ class Modal(Cell):
             # with the *first* button
             if len(self.buttons) >= 1:
                 self.buttons["____button_0__"].onClick()
-            self.show.set(False)
 
 
 class Octicon(Cell):

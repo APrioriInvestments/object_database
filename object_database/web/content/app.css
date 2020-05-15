@@ -138,10 +138,21 @@ ap-sheet {
     --border-style: solid;
 }
 
+ap-sheet:focus {
+    outline: none;
+}
+
 ap-sheet table {
     border-collapse: separate;
     border-spacing: 0px;
     table-layout: fixed;
+    border-width: var(--border-width);
+    border-style: var(--border-style);
+    border-color: rgba(150, 150, 150, 0.6);
+}
+
+ap-sheet:focus table {
+    border-color: rgba(150, 150, 150, 0.8);
 }
 
 ap-sheet > table:hover {

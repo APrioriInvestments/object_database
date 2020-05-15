@@ -53,7 +53,15 @@ class KeyAction extends Component {
         let responseData = {
             event: 'keydown',
             //'target_cell': this.props.id,
-            data: {keyCmd: this.props.extraData['keyCmd']}
+            data: {
+                keyCmd: this.props.extraData['keyCmd'],
+                key: event.key,
+                keyCode: event.keyCode,
+                ctrlKey: event.ctrlKey,
+                shiftKey: event.shiftKey,
+                altKey: event.altKey,
+                metaKey: event.metaKey
+            }
         };
 
         this.sendMessage(responseData);

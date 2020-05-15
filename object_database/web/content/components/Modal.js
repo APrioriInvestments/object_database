@@ -101,7 +101,7 @@ class Modal extends Component {
                 'data-cell-id': this.props.id,
                 'data-cell-type': "Modal",
                 class: this.makeClasses(),
-                //tabindex: "-1",
+                tabindex: "-1",
                 role: "dialog"
             }, [
                 h('div', {class: "modal-dialog", role: "document"}, [
@@ -148,10 +148,11 @@ class Modal extends Component {
         // and give it the focus, as long as the
         // modal is currently being shown.
         if(this.props.show){
-            console.log("Setting focus to first available input field");
             let firstInputField = this.getDOMElement().querySelector('input[type="text"]');
             if(firstInputField){
                 firstInputField.select();
+            } else {
+                this.getDOMElement().focus();
             }
         }
     }

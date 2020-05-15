@@ -23,7 +23,7 @@ class SingleLineTextBox extends Component {
                 "data-cell-id": this.props.id,
                 value: (this.props.defaultValue || ""),
                 "data-cell-type": "SingleLineTextBox",
-                onchange: (event) => {this.changeHandler(event.target.value);}
+                oninput: (event) => {this.changeHandler(event.target.value);}
             };
         if (this.props.inputValue !== undefined) {
             attrs.pattern = this.props.inputValue;

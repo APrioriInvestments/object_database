@@ -302,7 +302,6 @@ class Sheet extends Component {
     }
 
     build(){
-        console.log("About to build");
         return h('ap-sheet', {
             id: this.getElementId(),
             class: 'cell sheet-cell',
@@ -323,7 +322,6 @@ class Sheet extends Component {
     }
 
     afterCreate(element){
-        console.log("running afterCreate");
         this._cachedNode = element;
         element.setAttribute('total-columns', this.props.totalColumns);
         element.setAttribute('total-rows', this.props.totalRows);
@@ -342,8 +340,8 @@ class Sheet extends Component {
 
         element.setAttribute('rows', size.rows);
         element.setAttribute('columns', size.columns);
-        element.setAttribute('locked-rows', this.props.numLockRows);
-        element.setAttribute('locked-columns', this.props.numLockColumns);
+        element.setAttribute('locked-rows', size.numLockedRows);
+        element.setAttribute('locked-columns', size.numLockedColumns);
         element.afterChange();
         this.resizeHeaderDisplay();
     }
@@ -358,8 +356,8 @@ class Sheet extends Component {
         // subtract that from the maxHeight.
         let tableHeader = element.querySelector('thead');
         if(tableHeader){
-            let tableHeight = tableHeader.offsetHeight;
-            maxHeight -= tableHeight;
+            let tableHeaderHeight = tableHeader.offsetHeight;
+            maxHeight -= tableHeaderHeight * 2;
         }
         // If there are already attached td elements,
         // we use their bounding size for the height and
@@ -383,7 +381,28 @@ class Sheet extends Component {
         // Make sure to return at least one row
         rowNumber = Math.max(1, rowNumber);
         let columnNumber = Math.min(this.props.totalColumns, Math.floor(maxWidth/colWidth));
-        return {"columns": columnNumber, "rows": rowNumber};
+
+        // Ensure that the number of locked columns
+        // does not exceed the number of columns we will
+        // show. If it does, limit it to just that number
+        let adjustedLockedColumns = this.props.numLockColumns;
+        if(adjustedLockedColumns >= columnNumber){
+            adjustedLockedColumns = Math.max(0, columnNumber - 1);
+        }
+
+        // Ensure that the number of locked rows
+        // does not exceed the number of rows we will
+        // show. If it does, limit it to just that number
+        let adjustedLockedRows = this.props.numLockRows;
+        if(adjustedLockedRows >= rowNumber){
+            adjustedLockedRows = Math.max(0, rowNumber - 1);
+        }
+        return {
+            "columns": columnNumber,
+            "rows": rowNumber,
+            "numLockedColumns": adjustedLockedColumns,
+            "numLockedRows": adjustedLockedRows
+        };
     }
 
     onSheetNeedsData(event){
@@ -528,8 +547,7 @@ class Sheet extends Component {
 
     updateHeaderDisplay(){
         let sheet = this.getDOMElement();
-        let coordinateHeader = sheet.querySelector('thead th:first-child');
-        let dummyHeader = sheet.querySelector('thead th:last-child');
+        let coordinateHeader = sheet.querySelector('table > thead th:first-child');
         let contentDisplay = sheet.querySelector('.sheet-content-display');
 
         // Set the coordinate header element to display
@@ -554,13 +572,11 @@ class Sheet extends Component {
             contentHeaderText = contentHeaderText.replace(/(\r\n|\n|\r)/gm, "");
             contentHeaderText = contentHeaderText.replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/gm," ");
         }
-
         coordinateHeader.innerText = coordinateText;
         contentDisplay.innerText = contentHeaderText;
     }
 
     resizeHeaderDisplay(){
-        console.log('calling resizeHeaderDisplay');
         let sheet = this.getDOMElement();
         let coordinateHeader = sheet.querySelector('th:first-child');
         let dummyHeader = sheet.querySelector('th:last-child');
@@ -568,7 +584,8 @@ class Sheet extends Component {
         if(dummyHeader && coordinateHeader && contentDisplay){
             let coordinateHeaderWidth = coordinateHeader.offsetWidth;
             let dummyHeaderWidth = dummyHeader.offsetWidth;
-            contentDisplay.style.width = `${dummyHeaderWidth}px`;
+            let newWidth = contentDisplay.offsetParent.offsetWidth - coordinateHeaderWidth;
+            contentDisplay.style.maxWidth = `${newWidth}px`;
             contentDisplay.style.left = `${coordinateHeaderWidth}px`;
         }
     }

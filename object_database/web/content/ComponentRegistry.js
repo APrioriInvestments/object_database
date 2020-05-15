@@ -39,6 +39,7 @@ import {Scrollable} from './components/Scrollable';
 import {SingleLineTextBox} from './components/SingleLineTextBox';
 import {Span} from './components/Span';
 import {Subscribed} from './components/Subscribed';
+import {SizedPanel} from './components/SizedPanel';
 import {SubscribedSequence} from './components/SubscribedSequence';
 import {Table} from './components/Table';
 import {Tabs} from './components/Tabs';
@@ -94,6 +95,7 @@ const ComponentRegistry = {
     Span,
     Subscribed,
     SubscribedSequence,
+    SizedPanel,
     Table,
     Tabs,
     Text,

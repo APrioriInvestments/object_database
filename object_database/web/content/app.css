@@ -142,6 +142,11 @@ ap-sheet:focus {
     outline: none;
 }
 
+ap-sheet th,
+ap-sheet .sheet-content-display {
+    pointer-events: none;
+}
+
 ap-sheet table {
     border-collapse: separate;
     border-spacing: 0px;

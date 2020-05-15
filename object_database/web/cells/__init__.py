@@ -48,6 +48,7 @@ from object_database.web.cells.cells import (
     Grid,
     SortWrapper,
     SingleLineTextBox,
+    SizedPanel,
     Table,
     Clickable,
     Button,

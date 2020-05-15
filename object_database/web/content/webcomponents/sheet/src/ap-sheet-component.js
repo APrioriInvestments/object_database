@@ -99,9 +99,12 @@ class APSheet extends HTMLElement {
         this.tableHeader.innerHTML = "";
         let headerRow = document.createElement('tr');
         let headerCoordinateData = document.createElement('th');
+        let dummyHeader = document.createElement('th'); // Will be used only for measurement
         headerCoordinateData.setAttribute("colSpan", 1);
+        dummyHeader.setAttribute("colSpan", `${this.numColumns - 1}`);
         headerCoordinateData.textContent = "(0, 0)";
         headerRow.append(headerCoordinateData);
+        headerRow.append(dummyHeader);
         this.tableHeader.append(headerRow);
     }
 

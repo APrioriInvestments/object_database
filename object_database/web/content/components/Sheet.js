@@ -527,6 +527,7 @@ class Sheet extends Component {
     updateHeaderDisplay(){
         let sheet = this.getDOMElement();
         let coordinateHeader = sheet.querySelector('thead th:first-child');
+        let dummyHeader = sheet.querySelector('thead th:last-child');
         let contentDisplay = sheet.querySelector('.sheet-content-display');
 
         // Set the coordinate header element to display
@@ -559,7 +560,8 @@ class Sheet extends Component {
             // the offset from left of the contentDisplay.
             let coordinateHeaderWidth = coordinateHeader.offsetWidth;
             let displayWidth = sheet.offsetParent.offsetWidth;
-            let newWidth = Math.floor(displayWidth - coordinateHeaderWidth);
+            //let newWidth = Math.floor(displayWidth - (coordinateHeaderWidth * 2));
+            let newWidth = Math.floor(dummyHeader.offsetWidth);
             contentDisplay.style.width = `${newWidth}px`;
             contentDisplay.style.left = `${coordinateHeaderWidth}px`;
             contentDisplay.innerText = contentHeaderText;

@@ -325,8 +325,11 @@ class Sheet extends Component {
         this._cachedNode = element;
         element.setAttribute('total-columns', this.props.totalColumns);
         element.setAttribute('total-rows', this.props.totalRows);
-        element.setAttribute('row-height', this.props.rowHeight);
-        element.setAttribute('col-width', this.props.colWidth);
+
+        // subtract 4 pixels because each cell has 2 pixels of stuff around it
+        element.setAttribute('row-height', this.props.rowHeight - 4);
+        element.setAttribute('col-width', this.props.colWidth - 4);
+
         element.addEventListener('sheet-needs-data', this.onSheetNeedsData);
     }
 

@@ -348,9 +348,8 @@ class Sheet extends Component {
 
     _calculateSize(element){
         let wrapper = this.container;
-        let bounds = wrapper.getBoundingClientRect();
-        let maxWidth = Math.floor(bounds.width);
-        let maxHeight = Math.floor(bounds.height);
+        let maxWidth = Math.floor(wrapper.clientWidth);
+        let maxHeight = Math.floor(wrapper.clientHeight);
 
         // If we are using a table header, we need to
         // subtract that from the maxHeight.

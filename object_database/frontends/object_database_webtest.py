@@ -90,7 +90,16 @@ def main(argv=None):
             ActiveWebService.configureFromCommandline(
                 database,
                 service,
-                ["--port", "8000", "--host", "0.0.0.0", "--log-level", loglevel_name],
+                [
+                    "--port",
+                    "8000",
+                    "--internal-port",
+                    "8001",
+                    "--host",
+                    "0.0.0.0",
+                    "--log-level",
+                    loglevel_name,
+                ],
             )
 
             ActiveWebService.setLoginPlugin(

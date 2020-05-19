@@ -157,6 +157,10 @@ class SubprocessServiceManager(ServiceManager):
                     process.wait(self.subprocessCheckTimeout)
                 except subprocess.TimeoutExpired:
                     pass
+                except Exception:
+                    import traceback
+
+                    traceback.format_exc()
                 else:
                     if process.returncode:
                         msg = (
@@ -287,7 +291,7 @@ class SubprocessServiceManager(ServiceManager):
                             self._logger.warning(
                                 f"Worker Process '{identity}' failed to gracefully terminate"
                                 + f" within {self.shutdownTimeout} seconds."
-                                + " Sending KILL signal."
+                                + f" Sending KILL signal. PID={workerProcess.pid}"
                             )
                             self._killWorkerProcess(identity, workerProcess)
 

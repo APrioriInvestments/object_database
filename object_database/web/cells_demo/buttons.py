@@ -48,6 +48,8 @@ def test_some_buttons_display(headless_browser):
 
 
 def test_can_actually_load_page(headless_browser):
+    headless_browser.get_demo_root_for(SomeButtons)
+
     query = "#page_root"
     el = headless_browser.find_by_css(query)
     assert el

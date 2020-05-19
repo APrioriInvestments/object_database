@@ -234,6 +234,7 @@ class ServiceManager(object):
         # if we're the master, do some allocation
         if self.isMaster:
             self.collectDeadHosts()
+            self.collectDeadConnections()
             self.createInstanceRecords()
 
         instances = self.instanceRecordsToBoot()
@@ -288,23 +289,28 @@ class ServiceManager(object):
                     if serviceHost.coresUsed != actualCores:
                         serviceHost.coresUsed = actualCores
 
+    @revisionConflictRetry
+    def collectDeadConnections(self):
         with self.db.transaction():
             for serviceInstance in service_schema.ServiceInstance.lookupAll():
                 if (
                     not serviceInstance.host.exists()
                     or serviceInstance.connection
                     and not serviceInstance.connection.exists()
+                    or serviceInstance.owner is not None
+                    and not serviceInstance.owner.exists()
                 ):
-                    if serviceInstance.state == "FailedToStart":
-                        serviceInstance.service.timesBootedUnsuccessfully += 1
-                        serviceInstance.service.lastFailureReason = (
-                            serviceInstance.failureReason
-                        )
-                    elif serviceInstance.state == "Crashed":
-                        serviceInstance.service.timesCrashed += 1
-                        serviceInstance.service.lastFailureReason = (
-                            serviceInstance.failureReason
-                        )
+                    if serviceInstance.owner is None:
+                        if serviceInstance.state == "FailedToStart":
+                            serviceInstance.service.timesBootedUnsuccessfully += 1
+                            serviceInstance.service.lastFailureReason = (
+                                serviceInstance.failureReason
+                            )
+                        elif serviceInstance.state == "Crashed":
+                            serviceInstance.service.timesCrashed += 1
+                            serviceInstance.service.lastFailureReason = (
+                                serviceInstance.failureReason
+                            )
                     serviceInstance.delete()
 
     def redeployServicesIfNecessary(self):
@@ -361,7 +367,7 @@ class ServiceManager(object):
                 actual_by_service[service] = [
                     x
                     for x in service_schema.ServiceInstance.lookupAll(service=service)
-                    if x.isActive()
+                    if x.isActive() and x.owner is None
                 ]
 
         for service, actual_records in actual_by_service.items():

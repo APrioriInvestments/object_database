@@ -13,13 +13,10 @@
 #   limitations under the License.
 
 import queue
-import os
 import html
 import time
 import traceback
 import logging
-import gevent
-import gevent.fileobject
 import threading
 import numpy
 
@@ -140,39 +137,11 @@ def augmentToBeUnique(listOfItems):
     return output
 
 
-class GeventPipe:
-    """A simple mechanism for triggering the gevent webserver from a thread other than
-    the webserver thread. Gevent itself expects everything to happen on greenlets. The
-    database connection in the background is not based on gevent, so we cannot use any
-    standard gevent-based event or queue objects from the db-trigger thread.
-    """
-
-    def __init__(self):
-        self.read_fd, self.write_fd = os.pipe()
-        self.fileobj = gevent.fileobject.FileObjectPosix(self.read_fd, bufsize=2)
-        self.netChange = 0
-
-    def wait(self):
-        self.fileobj.read(1)
-        self.netChange -= 1
-
-    def trigger(self):
-        # it's OK that we don't check if the bytes are written because we're just
-        # trying to wake up the other side. If the operating system's buffer is full,
-        # then that means the other side hasn't been clearing the bytes anyways,
-        # and that it will come back around and read our data.
-        if self.netChange > 2:
-            return
-
-        self.netChange += 1
-        os.write(self.write_fd, b"\n")
-
-
 class Cells:
     def __init__(self, db):
         self.db = db
 
-        self._gEventHasTransactions = GeventPipe()
+        self._eventHasTransactions = queue.Queue()
 
         self.db.registerOnTransactionHandler(self._onTransaction)
 
@@ -261,7 +230,7 @@ class Cells:
         content back into Slot objects using these callbacks.
         """
         self._callbacks.put(callback)
-        self._gEventHasTransactions.trigger()
+        self._eventHasTransactions.put(1)
 
     def withRoot(self, root_cell, serialization_context=None, session_state=None):
         self._root.setChild(root_cell)
@@ -296,14 +265,21 @@ class Cells:
 
     def triggerIfHasDirty(self):
         if self._dirtyNodes:
-            self._gEventHasTransactions.trigger()
+            self._eventHasTransactions.put(1)
 
     def wait(self):
-        self._gEventHasTransactions.wait()
+        self._eventHasTransactions.get()
+
+        # drain the queue
+        try:
+            while True:
+                self._eventHasTransactions.get_nowait()
+        except queue.Empty:
+            pass
 
     def _onTransaction(self, *trans):
         self._transactionQueue.put(trans)
-        self._gEventHasTransactions.trigger()
+        self._eventHasTransactions.put(1)
 
     def _handleTransaction(self, key_value, set_adds, set_removes, transactionId):
         """ Given the updates coming from a transaction, update self._subscribedCells. """

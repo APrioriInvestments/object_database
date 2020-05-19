@@ -252,11 +252,24 @@ class ServiceInstance:
     codebase = OneOf(None, service_schema.Codebase)
     connection = Indexed(OneOf(None, core_schema.Connection))
 
+    # if 'None', then this is owned by the service manager. Otherwise,
+    # it's owned by another process
+    owner = Indexed(OneOf(None, service_schema.ServiceInstance))
+
     # a place for messages that are meaningful to users
     statusMessage = OneOf(None, str)
 
     shouldShutdown = bool
     shutdownTimestamp = OneOf(None, float)
+
+    def spawnChild(self):
+        return ServiceInstance(
+            host=self.host,
+            service=self.service,
+            state="Booting",
+            start_timestamp=time.time(),
+            owner=self,
+        )
 
     def triggerShutdown(self):
         if not self.shouldShutdown:

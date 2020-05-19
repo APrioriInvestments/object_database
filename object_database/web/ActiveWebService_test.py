@@ -103,6 +103,8 @@ class ActiveWebServiceTest(unittest.TestCase):
                 [
                     "--port",
                     str(WEB_SERVER_PORT),
+                    "--internal-port",
+                    str(WEB_SERVER_PORT + 1),
                     "--host",
                     hostname,
                     "--log-level",

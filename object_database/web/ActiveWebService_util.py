@@ -10,7 +10,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-import json
 import traceback
 
 from itertools import chain
@@ -54,10 +53,28 @@ class LoginPlugin:
 
 
 @active_webservice_schema.define
+class Session:
+    """Model a single ActiveWebService session runnon on a host somewhere."""
+
+    executingInstance = Indexed(service_schema.ServiceInstance)
+
+    # when the service is active, the port on which it's listening
+    listening_port = OneOf(None, int)
+
+    # data about the incoming request
+    path = str
+    queryArgs = ConstDict(str, str)
+    sessionId = str
+    user = str
+    authorized_groups_text = str
+
+
+@active_webservice_schema.define
 class Configuration:
     service = Indexed(service_schema.Service)
 
     port = int
+    internal_port = int
     hostname = str
 
     log_level = int
@@ -397,105 +414,3 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
             )
 
     return Traceback("Invalid url path: %s" % path), []
-
-
-def writeJsonMessage(
-    message, ws, largeMessageAck, logger, frames_per_ack=10, frame_size=32 * 1024
-):
-    """Send a message over the websocket.
-
-    Note: We have to chunk in 64kb frames
-    to keep the websocket from disconnecting on chrome for very large
-    messages. This appears to be a bug in the implementation?
-
-    Parameters:
-    ----------
-    frame_size : int
-    frames_per_ack : int
-        this HAS to line up with the constant in page.html for our ad-hoc
-        protocol to function.
-    largeMessageAck : gevent queue
-        large messages (more than frames_per_ack frames) send an ack
-        after every frames_per_ackth message
-    loggger : logging.logger
-
-    Returns: the bytecount of the json message we sent.
-    """
-    msg = json.dumps(message)
-
-    # split msg int 64kb frames
-    frames = []
-    i = 0
-    while i < len(msg):
-        frames.append(msg[i : i + frame_size])
-        i += frame_size
-
-    if len(frames) >= frames_per_ack:
-        logger.info("Sending large message of %s bytes over %s frames", len(msg), len(frames))
-
-    ws.send(json.dumps(len(frames)))
-
-    for index, frame in enumerate(frames):
-        ws.send(frame)
-
-        # block until we get the ack for frames_per_ack frames ago. That
-        # way we always have frames_per_ack frames in the buffer.
-        framesSent = index + 1
-        if framesSent % frames_per_ack == 0 and framesSent > frames_per_ack:
-            ack = largeMessageAck.get()
-            if ack is StopIteration:
-                return len(msg)
-            else:
-                assert ack == framesSent - frames_per_ack, (ack, framesSent - frames_per_ack)
-
-    framesSent = len(frames)
-
-    if framesSent >= frames_per_ack:
-        finalAckIx = framesSent - (framesSent % frames_per_ack)
-
-        ack = largeMessageAck.get()
-        if ack is StopIteration:
-            return len(msg)
-        else:
-            assert ack == finalAckIx, (ack, finalAckIx)
-
-    return len(msg)
-
-
-def readThread(ws, cells, largeMessageAck, logger):
-    """Read message coming over the websocket.
-
-    Note: We have to chunk in 64kb frames
-    to keep the websocket from disconnecting on chrome for very large
-    messages. This appears to be a bug in the implementation?
-
-    Parameters:
-    ----------
-    ws : gevent.socket instance
-    cells : cells object
-    largeMessageAck : gevent queue
-        large messages (more than frames_per_ack frames) send an ack
-        after every frames_per_ackth message
-    loggger : logging.logger
-    """
-    while not ws.closed:
-        msg = ws.receive()
-        if msg is None:
-            largeMessageAck.put(StopIteration)
-            return
-        else:
-            try:
-                jsonMsg = json.loads(msg)
-                if "ACK" in jsonMsg:
-                    largeMessageAck.put(jsonMsg["ACK"])
-                else:
-                    cell_id = jsonMsg.get("target_cell")
-                    cell = cells[cell_id]
-                    if cell is not None:
-                        cell.onMessageWithTransaction(jsonMsg)
-            except Exception:
-                logger.exception("Exception in inbound message:")
-
-            cells.triggerIfHasDirty()
-
-    largeMessageAck.put(StopIteration)

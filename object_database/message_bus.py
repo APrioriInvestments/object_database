@@ -224,7 +224,7 @@ class MessageBus(object):
         can pass to 'closeConnection' or 'sendMessage'.
         """
         if authToken is not None:
-            assert isinstance(authToken, str)
+            assert isinstance(authToken, str), (authToken, type(authToken))
 
         self._logger = logging.getLogger(__file__)
 
@@ -307,6 +307,10 @@ class MessageBus(object):
         self._pendingTimedCallbacks = sortedcontainers.SortedSet(
             key=lambda tsAndCallback: tsAndCallback[0]
         )
+
+    @property
+    def listeningEndpoint(self):
+        return self._listeningEndpoint
 
     def setMaxWriteQueueSize(self, queueSize):
         """Insist that we block any _sending_ threads if our outgoing queue gets too large."""
@@ -526,6 +530,13 @@ class MessageBus(object):
             sock.bind((self._listeningEndpoint.host, self._listeningEndpoint.port))
             sock.listen(2048)
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
+
+            # if we listen on port zero, we need to get the port assigned
+            # by the operating system
+            if self._listeningEndpoint.port == 0:
+                self._listeningEndpoint = Endpoint(
+                    host=self._listeningEndpoint.host, port=sock.getsockname()[1]
+                )
 
             with self._lock:
                 self._acceptSocket = sock

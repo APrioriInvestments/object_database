@@ -51,74 +51,80 @@ TEST_SERVICE = """
     """
 
 
-def bootup_server():
+def bootup_server(tmpDirName):
     token = genToken()
     port = 8020
-    loglevel_name = "WARNING"
-    with tempfile.TemporaryDirectory() as tmpDirName:
-        server = startServiceManagerProcess(
-            tmpDirName, port, token, loglevelName=loglevel_name, logDir=False, verbose=True
-        )
-        database = connect("localhost", port, token, retry=True)
-        database.subscribeToSchema(core_schema, service_schema, active_webservice_schema)
+    loglevel_name = "INFO"
 
-        with database.transaction():
-            service = ServiceManager.createOrUpdateService(
-                ActiveWebService, "ActiveWebService", target_count=0
-            )
+    server = startServiceManagerProcess(
+        tmpDirName, port, token, loglevelName=loglevel_name, logDir=False, verbose=True
+    )
+    database = connect("localhost", port, token, retry=True)
+    database.subscribeToSchema(core_schema, service_schema, active_webservice_schema)
 
-        ActiveWebService.configureFromCommandline(
-            database,
-            service,
-            ["--port", "8000", "--host", "0.0.0.0", "--log-level", loglevel_name],
+    with database.transaction():
+        service = ServiceManager.createOrUpdateService(
+            ActiveWebService, "ActiveWebService", target_count=0
         )
 
-        ActiveWebService.setLoginPlugin(
-            database,
-            service,
-            LoginIpPlugin,
-            [None],
-            config={"company_name": "A Testing Company"},
+    ActiveWebService.configureFromCommandline(
+        database,
+        service,
+        [
+            "--port",
+            "8000",
+            "--internal-port",
+            "8001",
+            "--host",
+            "0.0.0.0",
+            "--log-level",
+            loglevel_name,
+        ],
+    )
+
+    ActiveWebService.setLoginPlugin(
+        database, service, LoginIpPlugin, [None], config={"company_name": "A Testing Company"}
+    )
+
+    with database.transaction():
+        ServiceManager.startService("ActiveWebService", 1)
+
+    with database.transaction():
+        service = ServiceManager.createOrUpdateService(
+            CellsTestService, "CellsTestService", target_count=1
         )
 
-        with database.transaction():
-            ServiceManager.startService("ActiveWebService", 1)
+    with database.transaction():
+        ServiceManager.createOrUpdateServiceWithCodebase(
+            service_schema.Codebase.createFromFiles(
+                {
+                    "test_service/__init__.py": "",
+                    "test_service/service.py": textwrap.dedent(TEST_SERVICE),
+                }
+            ),
+            "test_service.service.TestService",
+            "TestService",
+            10,
+        )
 
-        with database.transaction():
-            service = ServiceManager.createOrUpdateService(
-                CellsTestService, "CellsTestService", target_count=1
-            )
+    print("server is booted")
+    try_to_connect = True
+    counter = 0
+    print("pinging server")
+    while try_to_connect:
+        counter += 1
+        sys.stdout.write(".")
+        sys.stdout.flush()
+        try:
+            response = requests.get("http://127.0.0.1:8000")
+            status_code = response.status_code
+            print("connection successfull")
+            print(status_code)
+            try_to_connect = False
+        except ConnectionError:
+            sleep(2)
+            continue
 
-        with database.transaction():
-            ServiceManager.createOrUpdateServiceWithCodebase(
-                service_schema.Codebase.createFromFiles(
-                    {
-                        "test_service/__init__.py": "",
-                        "test_service/service.py": textwrap.dedent(TEST_SERVICE),
-                    }
-                ),
-                "test_service.service.TestService",
-                "TestService",
-                10,
-            )
-
-        print("server is booted")
-        try_to_connect = True
-        counter = 0
-        print("pinging server")
-        while try_to_connect:
-            counter += 1
-            sys.stdout.write(".")
-            sys.stdout.flush()
-            try:
-                response = requests.get("http://127.0.0.1:8000")
-                status_code = response.status_code
-                print("connection successfull")
-                print(status_code)
-                try_to_connect = False
-            except ConnectionError:
-                sleep(2)
-                continue
     return server
 
 
@@ -177,7 +183,8 @@ class HeadlessTester:
 
         # Note that here we start the server
         # and the webdriver on initialization
-        self.server = bootup_server()
+        self.tempDir = tempfile.TemporaryDirectory()
+        self.server = bootup_server(self.tempDir.name)
         self.webdriver = bootup_webdriver()
         self.webdriver.implicitly_wait(5)
 
@@ -244,6 +251,7 @@ def headless_browser():
     tester.webdriver.close()
     tester.server.terminate()
     tester.server.wait()
+    tester.tempDir.cleanup()
 
 
 def test_server_connect(headless_browser):

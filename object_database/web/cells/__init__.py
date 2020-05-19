@@ -9,7 +9,6 @@ from object_database.web.cells.cells import (
     ensureSubscribedSchema,
     wrapCallback,
     # Classes
-    GeventPipe,
     Cells,
     Slot,
     ComputedSlot,

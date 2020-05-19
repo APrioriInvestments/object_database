@@ -20,12 +20,13 @@ class BasicModal(CellsTestPage):
     def cell(self):
         isShowing = cells.Slot(False)
 
-        def buttonCallback():
-            isShowing.set(not isShowing.get())
+        button = cells.Button("Toggle Modal", lambda: isShowing.set(True))
 
-        button = cells.Button("Toggle Modal", buttonCallback)
         modal = cells.Modal(
-            "Basic Modal", cells.Text("Modal Body"), isShowing, Close=buttonCallback
+            "Basic Modal",
+            cells.Text("Modal Body"),
+            isShowing,
+            Close=lambda: isShowing.set(False),
         )
         return cells.Card(button + modal)
 
@@ -41,16 +42,15 @@ class ModalWithUpdateField(CellsTestPage):
         isShowing = cells.Slot(False)
         sharedContent = cells.Slot("Some Text")
 
-        def buttonCallback():
-            isShowing.set(not isShowing.get())
+        button = cells.Button("Open Modal", lambda: isShowing.set(True))
 
-        button = cells.Button("Open Modal", buttonCallback)
         textDisplay = cells.Subscribed(lambda: cells.Text(sharedContent.get()))
+
         modal = cells.Modal(
             "Text Updater",
             cells.SingleLineTextBox(sharedContent),
             show=isShowing,
-            Close=buttonCallback,
+            OK=lambda: None,
         )
         return cells.Card(button + textDisplay + modal)
 
@@ -73,10 +73,9 @@ class ModalWithUpdateFieldAndCancel(CellsTestPage):
 
         def updateClick():
             pageContent.set(modalContent.get())
-            isShowing.set(False)
 
         def cancelClick():
-            isShowing.set(False)
+            pass
 
         button = cells.Button("Open Modal", buttonClick)
         textDisplay = cells.Subscribed(lambda: cells.Text(pageContent.get()))
@@ -182,7 +181,7 @@ def test_modal_with_update_field(headless_browser):
     # click on the modal button to hide the modal and update the card text
     modal_button_query = modal_query + ' [data-cell-type="Button"]'
     modal_button = headless_browser.find_by_css(modal_button_query)
-    assert modal_button.text == "Close"
+    assert modal_button.text == "OK"
 
     modal_button.click()
 

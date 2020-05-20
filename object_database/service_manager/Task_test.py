@@ -67,9 +67,6 @@ class TaskTest(ServiceManagerTestCommon, unittest.TestCase):
             self.testService1Codebase = self.testService1Object.codebase.instantiate()
 
         self.service1Conn = self.newDbConnection()
-        self.service1Conn.setSerializationContext(
-            self.testService1Codebase.serializationContext
-        )
         self.service1Conn.subscribeToType(Task.Task)
         self.service1Conn.subscribeToType(Task.TaskStatus)
         self.service1Conn.subscribeToType(

@@ -67,7 +67,7 @@ PyTypeObject* PyDatabaseObjectType::createDatabaseObjectType(PyObject* schema, s
         Py_True
         );
 
-    PyMethodDef* methods = new PyMethodDef[13] {
+    PyMethodDef* methods = new PyMethodDef[14] {
         {"fromIdentity", (PyCFunction)PyDatabaseObjectType::fromIdentity, METH_VARARGS | METH_CLASS, NULL},
         {"lookupAny", (PyCFunction)PyDatabaseObjectType::pyLookupAny, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"lookupAll", (PyCFunction)PyDatabaseObjectType::pyLookupAll, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
@@ -75,6 +75,7 @@ PyTypeObject* PyDatabaseObjectType::createDatabaseObjectType(PyObject* schema, s
         {"markLazyByDefault", (PyCFunction)PyDatabaseObjectType::pyMarkLazyByDefault, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"isLazyByDefault", (PyCFunction)PyDatabaseObjectType::pyIsLazyByDefault, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"finalize", (PyCFunction)PyDatabaseObjectType::pyFinalize, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
+        {"setModule", (PyCFunction)PyDatabaseObjectType::pySetModule, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"addField", (PyCFunction)PyDatabaseObjectType::pyAddField, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"addMethod", (PyCFunction)PyDatabaseObjectType::pyAddMethod, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"addStaticMethod", (PyCFunction)PyDatabaseObjectType::pyAddStaticMethod, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
@@ -786,6 +787,31 @@ PyObject* PyDatabaseObjectType::pyDelete(PyObject *self, PyObject* args, PyObjec
     });
 }
 
+PyObject* PyDatabaseObjectType::pySetModule(PyObject *databaseType, PyObject* args, PyObject* kwargs)
+{
+    static const char *kwlist[] = {"moduleName", NULL};
+    PyObject* moduleName;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist, &moduleName)) {
+        return nullptr;
+    }
+
+    PyDatabaseObjectType* obType = PyDatabaseObjectType::check(databaseType);
+    if (!obType) {
+        PyErr_Format(PyExc_TypeError, "Expected first argument to be a database type.");
+        return NULL;
+    }
+
+    return translateExceptionToPyObject([&] {
+        PyDict_SetItemString(
+            ((PyTypeObject*)obType)->tp_dict,
+            "__typed_python_module__",
+            moduleName
+        );
+        return incref(Py_None);
+    });
+}
+
 PyObject* PyDatabaseObjectType::pyAddField(PyObject *databaseType, PyObject* args, PyObject* kwargs)
 {
     static const char *kwlist[] = {"field", "type", NULL};
@@ -1165,4 +1191,3 @@ PyObject* PyDatabaseObjectType::tp_str(PyObject* o) {
         return PyUnicode_FromString(s.str().c_str());
     });
 }
-

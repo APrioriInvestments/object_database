@@ -14,7 +14,6 @@
 
 from flaky import flaky
 from typed_python import Alternative, TupleOf, OneOf, ConstDict
-from typed_python.SerializationContext import SerializationContext
 
 from object_database.schema import Indexed, Index, Schema, SubscribeLazilyByDefault
 from object_database.core_schema import core_schema
@@ -341,59 +340,6 @@ class ObjectDatabaseTests:
                     self.assertTrue(someThings[i].exists())
                 else:
                     self.assertFalse(someThings[i].exists())
-
-    def test_serialization_contexts(self):
-        db = self.createNewDb()
-
-        class ArbitraryBaseClass:
-            def __init__(self, x):
-                self.x = x
-
-        class ArbitrarySubclass(ArbitraryBaseClass):
-            def __init__(self, x, y):
-                super().__init__(x)
-                self.y = y
-
-        db.setSerializationContext(
-            SerializationContext({"ABC": ArbitraryBaseClass, "SUB": ArbitrarySubclass})
-        )
-
-        schema = Schema("test_schema")
-
-        @schema.define
-        class HoldsArbitrary:
-            holding = ArbitraryBaseClass
-
-        @schema.define
-        class HoldsObject:
-            holding = object
-
-        db.subscribeToSchema(schema)
-
-        with db.transaction():
-            x = HoldsArbitrary(holding=ArbitraryBaseClass(10))
-            self.assertEqual(x.holding.x, 10)
-
-        with db.transaction():
-            self.assertEqual(x.holding.x, 10)
-            self.assertIsInstance(x.holding, ArbitraryBaseClass)
-            x.holding = ArbitrarySubclass(10, 20)
-
-        with db.transaction():
-            self.assertEqual(x.holding.x, 10)
-            self.assertEqual(x.holding.y, 20)
-            self.assertIsInstance(x.holding, ArbitrarySubclass)
-
-        with self.assertRaises(Exception):
-            with db.transaction():
-                x.holding = "hi"
-
-        with db.transaction():
-            x = HoldsObject(holding="hi")
-            x.holding = 10
-
-        with db.transaction():
-            self.assertEqual(x.holding, 10)
 
     def test_reading_many_python_objects_from_many_threads(self):
         # this test simply verifies that we don't segfault when we do this.
@@ -1744,10 +1690,10 @@ class ObjectDatabaseTests:
             c1.k = 123
 
         for i in range(50, 101):
-            self.assertEqual(blocker.waitForCallback(self.PERFORMANCE_FACTOR), i)
+            self.assertEqual(blocker.waitForCallback(self.PERFORMANCE_FACTOR * 2.0), i)
             blocker.releaseCallback()
 
-        self.assertEqual(blocker.waitForCallback(self.PERFORMANCE_FACTOR), "DONE")
+        self.assertEqual(blocker.waitForCallback(self.PERFORMANCE_FACTOR * 2.0), "DONE")
         blocker.releaseCallback()
 
         for e in subscriptionEvents:
@@ -1995,49 +1941,6 @@ class ObjectDatabaseTests:
         self.assertEqual(db1.currentTransactionIdForType(T12), 3)
         self.assertEqual(db1.currentTransactionIdForSchema(schema1), 3)
         self.assertEqual(db1.currentTransactionIdForSchema(schema2), 0)
-
-    def test_multiple_serialization_contexts(self):
-        def make(versionString):
-            class Class:
-                vs = versionString
-
-                def f(self):
-                    return self.vs
-
-            context = SerializationContext({"Class": Class})
-
-            schema = Schema("version_test_schema")
-
-            schema.Class = Class
-
-            @schema.define
-            class Object:
-                c = OneOf(None, Class)
-
-            return (schema, context)
-
-        db1 = self.createNewDb()
-
-        schema1, context1 = make("v1")
-        schema2, context2 = make("v2")
-
-        db1.subscribeToSchema(schema1)
-        db1.setSerializationContext(context1)
-
-        with db1.transaction():
-            o = schema1.Object(c=schema1.Class())
-
-        with db1.view():
-            self.assertEqual(o.c.f(), "v1")
-
-        db1.subscribeToSchema(schema2)
-        with db1.view().setSerializationContext(context2):
-            self.assertEqual(len(schema2.Object.lookupAll()), 1)
-            o2 = schema2.Object.lookupOne()
-            self.assertEqual(o2._identity, o._identity)
-            self.assertTrue(o.exists())
-            self.assertTrue(o2.exists())
-            self.assertEqual(o2.c.f(), "v2")
 
 
 class ObjectDatabaseOverChannelTestsWithRedis(unittest.TestCase, ObjectDatabaseTests):

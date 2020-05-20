@@ -22,7 +22,6 @@ from object_database.identity import IDENTITY_BLOCK_SIZE
 from object_database._types import DatabaseConnectionState
 
 from typed_python.SerializationContext import SerializationContext
-from typed_python.Codebase import Codebase as TypedPythonCodebase
 from typed_python import Alternative, Dict, OneOf
 
 import threading
@@ -44,6 +43,9 @@ TransactionResult = Alternative(
 )
 
 
+defaultSerializationContext = SerializationContext().withoutCompression()
+
+
 class DatabaseConnection:
     def __init__(self, channel, connectionMetadata=None):
         self._channel = channel
@@ -55,9 +57,7 @@ class DatabaseConnection:
         # transaction of what's in the KV store
         self._cur_transaction_num = 0
 
-        self.serializationContext = (
-            TypedPythonCodebase.coreSerializationContext().withoutCompression()
-        )
+        self.serializationContext = defaultSerializationContext
 
         # a datastructure that keeps track of all the different versions of the objects
         # we have mapped in.
@@ -129,18 +129,6 @@ class DatabaseConnection:
     def dropTransactionHandler(self, handler):
         with self._lock:
             self._onTransactionHandlers.discard(handler)
-
-    def setSerializationContext(self, context):
-        assert isinstance(context, SerializationContext), context
-        self.serializationContext = context.withoutCompression()
-        self._connection_state.setSerializationContext(self.serializationContext)
-        return self
-
-    def serializeFromModule(self, module):
-        """Give the project root we want to serialize from."""
-        self.setSerializationContext(
-            TypedPythonCodebase.FromRootlevelModule(module).serializationContext
-        )
 
     def currentTransactionId(self):
         return self._cur_transaction_num

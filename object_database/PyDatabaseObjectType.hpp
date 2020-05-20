@@ -141,6 +141,8 @@ struct PyDatabaseObjectType {
 
   static void setFieldValue(PyDatabaseObjectType* obType, object_id oid, std::string attr, Type* fieldType, instance_ptr data);
 
+  static PyObject* pySetModule(PyObject *none, PyObject* args, PyObject* kwargs);
+
   static PyObject* pyAddField(PyObject *none, PyObject* args, PyObject* kwargs);
 
   static PyObject* pyAddMethod(PyObject *none, PyObject* args, PyObject* kwargs);

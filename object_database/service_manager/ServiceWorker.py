@@ -51,13 +51,8 @@ class ServiceWorker:
         self.db.subscribeToObject(self.instance)
 
         with self.db.view():
-            if self.instance.service.codebase is None:
-                context = None
-            else:
-                context = self.instance.service.codebase.instantiate().serializationContext
-
-        if context is not None:
-            self.db.setSerializationContext(context)
+            if self.instance.service.codebase is not None:
+                self.instance.service.codebase.instantiate()
 
         with self.db.view():
             host = self.instance.host

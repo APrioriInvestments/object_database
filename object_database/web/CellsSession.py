@@ -70,7 +70,6 @@ class CellsSession:
 
         self.cells = Cells(self.db).withRoot(
             Subscribed(lambda: self.displayForPathAndQueryArgs(path, queryArgs)),
-            serialization_context=self.db.serializationContext,
             session_state=self.sessionState,
         )
 

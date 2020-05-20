@@ -16,7 +16,9 @@
 from object_database.view import revisionConflictRetry
 from object_database.core_schema import core_schema
 from object_database.service_manager.ServiceSchema import service_schema
+
 from object_database.reactor import Reactor
+
 from typed_python.Codebase import Codebase as TypedPythonCodebase
 
 import psutil

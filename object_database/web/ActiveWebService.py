@@ -39,7 +39,6 @@ from object_database.web.ActiveWebService_util import Configuration, LoginPlugin
 from object_database.web.cells import Card, Text
 
 from typed_python import OneOf, TupleOf
-from typed_python.Codebase import Codebase as TypedPythonCodebase
 
 from gevent import pywsgi
 from gevent.greenlet import Greenlet
@@ -225,7 +224,7 @@ class ActiveWebService(ServiceBase):
     def serviceWebsocketLoop(self):
         self._logger.info("Configuring ActiveWebService")
 
-        with self.db.view() as view:
+        with self.db.view():
             config = Configuration.lookupAny(service=self.serviceObject)
             assert config, "No configuration available."
             self._logger.setLevel(config.log_level)
@@ -234,11 +233,8 @@ class ActiveWebService(ServiceBase):
             login_config = config.login_plugin
 
             codebase = login_config.codebase
-            if codebase is None:
-                ser_ctx = TypedPythonCodebase.coreSerializationContext()
-            else:
-                ser_ctx = codebase.instantiate().serializationContext
-            view.setSerializationContext(ser_ctx)
+            if codebase is not None:
+                codebase.instantiate()
 
             self.login_plugin = login_config.login_plugin_factory(
                 self.db, login_config.auth_plugins, login_config.config

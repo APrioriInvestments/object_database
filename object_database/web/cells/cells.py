@@ -26,7 +26,6 @@ from object_database.web.cells.children import Children
 from object_database.view import RevisionConflictException
 from object_database.view import current_transaction
 from object_database.util import Timer
-from typed_python.Codebase import Codebase as TypedPythonCodebase
 
 MAX_TIMEOUT = 1.0
 MAX_TRIES = 10
@@ -232,18 +231,13 @@ class Cells:
         self._callbacks.put(callback)
         self._eventHasTransactions.put(1)
 
-    def withRoot(self, root_cell, serialization_context=None, session_state=None):
+    def withRoot(self, root_cell, session_state=None):
         self._root.setChild(root_cell)
         self._root.setContext(
             SessionState,
             session_state
             or self._root.context.get(SessionState)
             or SessionState()._reset(self),
-        )
-        self._root.withSerializationContext(
-            serialization_context
-            or self._root.serializationContext
-            or self.db.serializationContext
         )
         return self
 
@@ -761,18 +755,6 @@ def sessionState():
     return context(SessionState)
 
 
-_coreSerializationContextCached = [None]
-
-
-def getCoreSerializationContext():
-    if _coreSerializationContextCached[0] is None:
-        _coreSerializationContextCached[
-            0
-        ] = TypedPythonCodebase.coreSerializationContext().withoutCompression()
-
-    return _coreSerializationContextCached[0]
-
-
 class Cell:
     def __init__(self):
         self.cells = None  # will get set when its added to a 'Cells' object
@@ -795,7 +777,6 @@ class Cell:
         self.garbageCollected = False
         self.subscriptions = set()
         self._style = {}
-        self.serializationContext = getCoreSerializationContext()
         self.context = {}
 
         # lifecylce state attributes
@@ -1064,10 +1045,6 @@ class Cell:
                     )
                     return
 
-    def withSerializationContext(self, context):
-        self.serializationContext = context
-        return self
-
     def _clearSubscriptions(self):
         if self.cells:
             for sub in self.subscriptions:
@@ -1087,19 +1064,13 @@ class Cell:
         self.subscriptions = new_subscriptions
 
     def view(self):
-        return self.cells.db.view().setSerializationContext(self.serializationContext)
+        return self.cells.db.view()
 
     def transaction(self):
-        return self.cells.db.transaction().setSerializationContext(self.serializationContext)
+        return self.cells.db.transaction()
 
     def prepare(self):
-        if (
-            self.serializationContext is getCoreSerializationContext()
-            and self.parent is not None
-        ):
-            if self.parent.serializationContext is getCoreSerializationContext():
-                self.parent.prepare()
-            self.serializationContext = self.parent.serializationContext
+        pass
 
     def sortsAs(self):
         return None

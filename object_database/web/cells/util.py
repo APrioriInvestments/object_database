@@ -18,8 +18,6 @@ from object_database.web.cells import Cells
 
 
 def waitForCellsCondition(cells: Cells, condition, timeout=10.0):
-    assert cells.db.serializationContext is not None
-
     t0 = time.time()
     while time.time() - t0 < timeout:
         condRes = condition()

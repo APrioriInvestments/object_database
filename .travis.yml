@@ -61,7 +61,7 @@ jobs:
         - ulimit -c unlimited -S       # enable core dumps
       install:
         - pip install pipenv codecov
-        - pip install typed_python==0.1.1
+        - pip3 install -e git+https://github.com/aprioriinvestments/typed_python.git@5289b827355e8969bd777d9ffb9905266597e216#egg=typed_python
         - pipenv lock --dev --requirements > dev-reqs.txt
         - pip install --requirement dev-reqs.txt
         - pip install --editable .  # install object_database in 'editable' form.

@@ -811,51 +811,6 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
         time.sleep(1.0)
         self.assertEqual(len(psutil.Process().children()[0].children()), 0)
 
-    def test_conflicting_codebases(self):
-        with self.database.transaction():
-            v1 = service_schema.Codebase.createFromFiles(
-                {
-                    "test_service/__init__.py": "",
-                    "test_service/helper/__init__.py": "g = 1",
-                    "test_service/service.py": textwrap.dedent(
-                        """
-                    import test_service.helper as helper
-                    def f():
-                        assert helper.g == 1
-                        return 1
-                """
-                    ),
-                }
-            )
-
-            v2 = service_schema.Codebase.createFromFiles(
-                {
-                    "test_service/__init__.py": "",
-                    "test_service/helper/__init__.py": "g = 2",
-                    "test_service/service.py": textwrap.dedent(
-                        """
-                    import test_service.helper as helper
-                    def f():
-                        assert helper.g == 2
-                        return 2
-                """
-                    ),
-                }
-            )
-
-            i1 = v1.instantiate("test_service.service")
-            i2 = v2.instantiate("test_service.service")
-            i12 = v1.instantiate("test_service.service")
-            i22 = v2.instantiate("test_service.service")
-
-            self.assertEqual(i1.f(), 1)
-            self.assertEqual(i2.f(), 2)
-            self.assertEqual(i12.f(), 1)
-            self.assertEqual(i22.f(), 2)
-
-            self.assertIs(i1, i12)
-            self.assertIs(i2, i22)
-
     @flaky(max_runs=3, min_passes=1)
     def test_redeploy_hanging_services(self):
         with self.database.transaction():
@@ -1043,6 +998,9 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
                 sys.path += [tf]
 
                 test_service = __import__("test_service.service")
+
+                print("DIR IS ", dir(test_service))
+                print("DIR IS ", dir(test_service.service))
 
                 with self.database.transaction():
                     ServiceManager.createOrUpdateService(

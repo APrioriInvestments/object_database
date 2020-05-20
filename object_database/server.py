@@ -28,13 +28,16 @@ from typed_python import (
     makeNamedTuple,
     NamedTuple,
 )
-from typed_python.Codebase import Codebase as TypedPythonCodebase
+from typed_python.SerializationContext import SerializationContext
 import queue
 import time
 import logging
 import threading
 
 DEFAULT_GC_INTERVAL = 900.0
+
+
+defaultSerializationContext = SerializationContext().withoutCompression()
 
 
 ObjectBase = NamedTuple(_identity=int)
@@ -139,9 +142,7 @@ class Server:
     def __init__(self, kvstore, auth_token):
         self._kvstore = kvstore
         self._auth_token = auth_token
-        self.serializationContext = (
-            TypedPythonCodebase.coreSerializationContext().withoutCompression()
-        )
+        self.serializationContext = defaultSerializationContext
 
         self._lock = threading.RLock()
 

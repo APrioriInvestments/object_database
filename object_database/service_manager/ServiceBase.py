@@ -41,12 +41,6 @@ class ServiceBase:
         self.db = db
         self.serviceObject = serviceObject
         self.runtimeConfig = runtimeConfig
-
-        if self.serviceObject is not None:
-            self.serializationContext = self.serviceObject.getSerializationContext()
-        else:
-            self.serializationContext = None
-
         self.registeredReactors = []
         self._reactorsRunning = False
 

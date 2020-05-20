@@ -124,9 +124,8 @@ class Codebase:
 
                 fileContents = {fpath: file.contents for fpath, file in self.files.items()}
 
-                _codebase_cache[self.hash] = TypedPythonCodebase.Instantiate(
-                    fileContents, disk_path
-                )
+                _codebase_cache[self.hash] = TypedPythonCodebase.FromFileMap(fileContents)
+                _codebase_cache[self.hash].instantiate(disk_path)
 
             if module_name is None:
                 return _codebase_cache[self.hash]

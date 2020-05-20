@@ -17,11 +17,8 @@ import logging
 import time
 import urllib.parse
 
-import object_database
-
 from object_database.service_manager.ServiceSchema import service_schema
 from object_database import Schema, Indexed, core_schema
-from typed_python.Codebase import Codebase as TypedPythonCodebase
 from typed_python import OneOf, TupleOf
 
 MAX_BAD_BOOTS = 5
@@ -145,14 +142,6 @@ class Service:
                 "Cannot set codebase of locked service '{}'".format(self.name)
             )
             return False
-
-    def getSerializationContext(self):
-        if self.codebase is None:
-            return TypedPythonCodebase.FromRootlevelModule(
-                object_database
-            ).serializationContext
-        else:
-            return self.codebase.instantiate().serializationContext
 
     def isThrottled(self):
         return self.timesBootedUnsuccessfully >= MAX_BAD_BOOTS

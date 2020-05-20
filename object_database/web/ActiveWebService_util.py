@@ -354,16 +354,13 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
 
         serviceType = serviceObj.instantiateServiceType()
 
-        serviceToggles = [
-            x.withSerializationContext(serviceObj.getSerializationContext())
-            for x in serviceType.serviceHeaderToggles(serviceObj)
-        ]
+        serviceToggles = serviceType.serviceHeaderToggles(serviceObj)
 
         if len(path) == 2:
             return (
                 Subscribed(
                     lambda: serviceType.serviceDisplay(serviceObj, queryArgs=queryArgs)
-                ).withSerializationContext(serviceObj.getSerializationContext()),
+                ),
                 serviceToggles,
             )
 
@@ -381,9 +378,7 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
 
         if len(path) == 3:
             return (
-                serviceType.serviceDisplay(
-                    serviceObj, objType=typename, queryArgs=queryArgs
-                ).withSerializationContext(serviceObj.getSerializationContext()),
+                serviceType.serviceDisplay(serviceObj, objType=typename, queryArgs=queryArgs),
                 serviceToggles,
             )
 
@@ -398,9 +393,7 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
         instance = typeObj.fromIdentity(identity)
         if instance.exists():
             return (
-                serviceType.serviceDisplay(
-                    serviceObj, instance=instance, queryArgs=queryArgs
-                ).withSerializationContext(serviceObj.getSerializationContext()),
+                serviceType.serviceDisplay(serviceObj, instance=instance, queryArgs=queryArgs),
                 serviceToggles,
             )
 

@@ -83,8 +83,6 @@ class ActiveWebServiceTest(unittest.TestCase):
 
             codebase = None
             if module is not None and not module.__name__.startswith("object_database."):
-                self.database.serializeFromModule(module)
-
                 root_path = TypedPythonCodebase.rootlevelPathFromModule(module)
 
                 tpcodebase = TypedPythonCodebase.FromRootlevelPath(root_path)

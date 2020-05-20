@@ -83,9 +83,6 @@ class LoginPluginInterface:
     def init_app(self, flask_app):
         raise NotImplementedError("derived class must implement this method")
 
-    def getSerializationContext(self):
-        raise NotImplementedError("derived class must implement this method")
-
     def load_user(self, username) -> FlaskUser:
         raise NotImplementedError("derived class must implement this method")
 

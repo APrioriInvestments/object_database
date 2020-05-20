@@ -236,9 +236,7 @@ class TaskService(ServiceBase):
                 taskStatus.subtasks = {}
                 taskStatus.wakeup_timestamp = None
 
-                typedPythonCodebase = codebase.instantiate()
-
-            self.db.setSerializationContext(typedPythonCodebase.serializationContext)
+                codebase.instantiate()
 
             if subtaskStatuses:
                 self.db.subscribeToObjects(list(subtaskStatuses.values()))

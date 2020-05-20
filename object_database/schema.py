@@ -175,6 +175,7 @@ class Schema:
         self._indices[typename][" exists"] = (" exists",)
         self._index_types[typename][" exists"] = bool
 
+        t.setModule(cls.__module__)
         t.addField(" exists", bool)
         t.addIndex(" exists", (" exists",))
 

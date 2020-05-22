@@ -342,7 +342,7 @@ class Cells:
 
     def computedSlotDirty(self, slot):
         self._dirtyComputedSlots.add(slot)
-        self._gEventHasTransactions.trigger()
+        self._eventHasTransactions.put(1)
 
     def markToDiscard(self, cell):
         assert not cell.garbageCollected, (cell, cell.text if isinstance(cell, Text) else "")

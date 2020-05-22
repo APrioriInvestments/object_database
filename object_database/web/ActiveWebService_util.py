@@ -74,7 +74,6 @@ class Configuration:
     service = Indexed(service_schema.Service)
 
     port = int
-    internal_port = int
     hostname = str
 
     log_level = int

@@ -94,7 +94,7 @@ class ActiveWebService(ServiceBase):
         self._logger = logging.getLogger(__name__)
 
     @staticmethod
-    def configure(db, serviceObject, hostname, port, internal_port, level_name="INFO"):
+    def configure(db, serviceObject, hostname, port, level_name="INFO"):
         db.subscribeToType(Configuration)
 
         with db.transaction():
@@ -104,7 +104,6 @@ class ActiveWebService(ServiceBase):
 
             c.hostname = hostname
             c.port = port
-            c.internal_port = port
             c.log_level = logging.getLevelName(level_name)
 
     @staticmethod
@@ -161,7 +160,6 @@ class ActiveWebService(ServiceBase):
             level_name = validateLogLevel(level_name, fallback="INFO")
 
             c.port = parsedArgs.port
-            c.internal_port = parsedArgs.internal_port
             c.hostname = parsedArgs.hostname
 
             c.log_level = logging.getLevelName(level_name)

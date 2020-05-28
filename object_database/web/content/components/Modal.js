@@ -178,6 +178,7 @@ class Modal extends Component {
     onEnterKey(event){
         if (this.props.show) {
             console.log("Enter pushed in modal");
+            document.activeElement.blur();
             this.sendMessage({event: 'accept'});
         }
     }

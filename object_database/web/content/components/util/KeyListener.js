@@ -191,6 +191,10 @@ class KeyBinding {
      * stops. false in all other cases.
      */
     handle(event){
+        if (this.key == "all") {
+            return this.handleSingleKey(event, this.key);
+        }
+
         if(!this.key){
             return false;
         } else if(!this.modKeysMatch(event)){

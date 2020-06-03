@@ -89,6 +89,8 @@ class ActiveWebService(ServiceBase):
     useage.
     """
 
+    coresUsed = 0
+
     def __init__(self, db, serviceObject, serviceRuntimeConfig):
         ServiceBase.__init__(self, db, serviceObject, serviceRuntimeConfig)
         self._logger = logging.getLogger(__name__)

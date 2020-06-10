@@ -16,6 +16,7 @@ from itertools import chain
 
 from object_database.web.ActiveWebServiceSchema import active_webservice_schema
 
+from object_database.web import cells
 from object_database.web.cells import (
     Main,
     Subscribed,
@@ -340,6 +341,10 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
     Returns:
         a tuple made of a cell.Cell and a list of toggles for the
         appropriate rervice
+
+    Raises: SubscribeAndRetry if the odb connection is not subscribed
+        to the schema of the typeObj (c.f., call to
+        cells.ensureSubscribedSchema)
     """
 
     if len(path) and path[0] == "services":
@@ -370,6 +375,7 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
         for s in schemas:
             typeObj = s.lookupFullyQualifiedTypeByName(typename)
             if typeObj:
+                cells.ensureSubscribedSchema(s)
                 break
 
         if typeObj is None:

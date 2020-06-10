@@ -44,7 +44,6 @@ from object_database.web.cells import (
     Grid,
     Flex,
     ensureSubscribedType,
-    SubscribeAndRetry,
     Expands,
     AsyncDropdown,
     ButtonGroup,
@@ -52,15 +51,7 @@ from object_database.web.cells import (
     SplitView,
 )
 
-from object_database import (
-    Schema,
-    Indexed,
-    core_schema,
-    Index,
-    service_schema,
-    current_transaction,
-    Reactor,
-)
+from object_database import Schema, Indexed, core_schema, Index, service_schema, Reactor
 
 ownDir = os.path.dirname(os.path.abspath(__file__))
 ownName = os.path.basename(os.path.abspath(__file__))
@@ -470,9 +461,6 @@ class HappyService(ServiceBase):
 
     @staticmethod
     def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
-        if not current_transaction().db().isSubscribedToType(Happy):
-            raise SubscribeAndRetry(lambda db: db.subscribeToType(Happy))
-
         if instance:
             return instance.display(queryArgs)
 

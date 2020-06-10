@@ -763,6 +763,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
         with self.database.view():
             self.assertEqual(s.count, 3)
 
+    @flaky(max_runs=3, min_passes=1)
     def test_racheting_service_count_up_and_down(self):
         with self.database.transaction():
             ServiceManager.createOrUpdateService(MockService, "MockService", target_count=1)

@@ -1,3 +1,5 @@
+import pytest
+
 from object_database import service_schema
 from object_database.service_manager.ServiceManager import ServiceManager
 from object_database.web import cells
@@ -43,9 +45,18 @@ def test_displayAndHeadersForPathAndQueryArgs(in_mem_odb_connection):
         assert res[1] == []  # HappyService has no toggles
 
     # path = ["services", "HappyService",  happyType]
-    db.subscribeToSchema(happy)
     happyType = f"{happy.name}.{happy.Happy.__name__}"
 
+    # we are not subscribed to happy so we expect to fail with SubscribeAndRetry
+    with pytest.raises(cells.SubscribeAndRetry) as excinfo:
+        with db.view():
+            res = displayAndHeadersForPathAndQueryArgs(
+                ["services", "HappyService", happyType], {}
+            )
+
+    # Performing the subscription that was required and retrying resolves the problem.
+    subscribeAndRetryException = excinfo.value
+    subscribeAndRetryException.callback(db)
     with db.view():
         res = displayAndHeadersForPathAndQueryArgs(["services", "HappyService", happyType], {})
         assert not isinstance(res[0], cells.Traceback)

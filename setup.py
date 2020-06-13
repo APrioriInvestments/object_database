@@ -28,17 +28,16 @@ class BuildExtension(build_ext):
     """
 
     def run(self):
-        self.include_dirs.append(pkg_resources.resource_filename("numpy", "core/include"))
+        numpy_dir = pkg_resources.resource_filename("numpy", "core/include")
+        self.include_dirs.append(numpy_dir)
 
         # The typed_python includes are inline.
         # We want to find them as #include <typed_python/...>, so we kluge this
         # together this way. Better to modify typed_python to export its
         # includes in a more reasonable way.
-        self.include_dirs.append(
-            os.path.dirname(
-                os.path.dirname(pkg_resources.resource_filename("typed_python", "."))
-            )
-        )
+        tp_dir = pkg_resources.resource_filename("typed_python", ".")
+        dir_to_add = os.path.dirname(os.path.dirname(tp_dir))
+        self.include_dirs.append(dir_to_add)
         build_ext.run(self)
 
 
@@ -80,7 +79,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     cmdclass={"build_ext": BuildExtension},
     ext_modules=ext_modules,
-    setup_requires=["numpy", "typed_python"],
+    # setup_requires: replaced by build-system:requires in pyproject.toml
     install_requires=INSTALL_REQUIRES,
     # https://pypi.org/classifiers/
     classifiers=[

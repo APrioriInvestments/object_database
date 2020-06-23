@@ -866,6 +866,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
         with self.database.view():
             return c.k / seconds
 
+    @flaky(max_runs=3, min_passes=1)
     def test_throughput_while_adjusting_servicecount(self):
         with self.database.transaction():
             ServiceManager.createOrUpdateService(MockService, "MockService", target_count=0)

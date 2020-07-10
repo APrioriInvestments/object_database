@@ -15,6 +15,7 @@
 import logging
 import time
 
+from abc import ABC, abstractmethod
 from flask_login import current_user, login_user, logout_user
 from flask import flash, redirect, render_template, url_for
 
@@ -68,7 +69,7 @@ class FlaskUser:
         return self.username  # must return unicode by Python 3 strings are unicode
 
 
-class LoginPluginInterface:
+class LoginPluginInterface(ABC):
     """ Interface for a class that implements a login flow for a Flask app.
 
         The derived class will register `/login` and `/logout` endpoints with
@@ -80,15 +81,18 @@ class LoginPluginInterface:
     def __init__(self, object_db, auth_plugins, config=None):
         raise NotImplementedError("derived class must implement this method")
 
+    @abstractmethod
     def init_app(self, flask_app):
-        raise NotImplementedError("derived class must implement this method")
+        pass
 
+    @abstractmethod
     def load_user(self, username) -> FlaskUser:
-        raise NotImplementedError("derived class must implement this method")
+        pass
 
     @property
+    @abstractmethod
     def authorized_groups(self):
-        raise NotImplementedError("derived class must implement this method")
+        pass
 
     def init_config(self, config):
         if config is None:
@@ -140,6 +144,11 @@ def authorized_groups_text(authorized_groups, default_text="All") -> str:
 
 
 class LoginIpPlugin(LoginPluginInterface):
+    """ LoginPlugin that remembers the IP from which a user had logged in.
+
+    If the same user appears to have a new IP, they will be asked to authenticate.
+    """
+
     REQUIRED_KEYS = ["company_name"]
 
     def __init__(self, db, auth_plugins, config=None):
@@ -185,10 +194,13 @@ class LoginIpPlugin(LoginPluginInterface):
         """
         login_ip = request_ip_address()
         self._logger.info(f"User '{username}' trying to authenticate from IP {login_ip}")
-        # error = self.authenticate(username, password, login_ip=login_ip)
+
         if not self.bypassAuth:
             error = self._auth_plugin.authenticate(username, password)
             if error:
+                self._logger.error(
+                    f"User '{username}' failed to authenticate with error: {error}"
+                )
                 return error
 
         self._login_user(username, login_ip)

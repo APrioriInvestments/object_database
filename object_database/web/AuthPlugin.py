@@ -15,8 +15,11 @@
 import ldap3
 import logging
 
+from abc import ABC, abstractmethod
 
-class AuthPluginBase:
+
+class AuthPluginBase(ABC):
+    @abstractmethod
     def authenticate(self, username, password) -> str:
         """ Tries to authenticate with given username and password.
 
@@ -25,7 +28,7 @@ class AuthPluginBase:
             str
                 "" if no error occurred, and an error message otherwise
         """
-        raise NotImplementedError("derived class must implement this method")
+        pass
 
     @property
     def authorized_groups(self):
@@ -33,14 +36,24 @@ class AuthPluginBase:
 
 
 class PermissiveAuthPlugin(AuthPluginBase):
-    " An AuthPlugin that allows anyone to login (useful for testing)"
+    """ An AuthPlugin that allows anyone to login (useful for testing). """
 
     def authenticate(self, username, password) -> str:
         return ""
 
 
 class LdapAuthPlugin(AuthPluginBase):
+    """ An AuthPlugin that relegates to LDAP for authentication. """
+
     def __init__(self, hostname, base_dn, ntlm_domain=None, authorized_groups=None):
+        """
+        Args:
+            hostname (str): hostname of the LDAP server
+            base_dn (str): LDAP style base domain name
+            ntlm_domain (str): Microsoft NT (new technology) LAN Manager (LM) domain
+            authorized_groups (List(str) or None): If not None, the groups that are
+                authorized; if None, all groups are authorized.
+        """
         self._hostname = hostname
         self._base_dn = base_dn
         self._ntlm_domain = ntlm_domain

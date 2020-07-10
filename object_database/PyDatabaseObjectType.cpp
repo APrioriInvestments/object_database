@@ -67,11 +67,12 @@ PyTypeObject* PyDatabaseObjectType::createDatabaseObjectType(PyObject* schema, s
         Py_True
         );
 
-    PyMethodDef* methods = new PyMethodDef[14] {
+    PyMethodDef* methods = new PyMethodDef[15] {
         {"fromIdentity", (PyCFunction)PyDatabaseObjectType::fromIdentity, METH_VARARGS | METH_CLASS, NULL},
         {"lookupAny", (PyCFunction)PyDatabaseObjectType::pyLookupAny, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"lookupAll", (PyCFunction)PyDatabaseObjectType::pyLookupAll, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"lookupOne", (PyCFunction)PyDatabaseObjectType::pyLookupOne, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
+        {"lookupUnique", (PyCFunction)PyDatabaseObjectType::pyLookupUnique, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"markLazyByDefault", (PyCFunction)PyDatabaseObjectType::pyMarkLazyByDefault, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"isLazyByDefault", (PyCFunction)PyDatabaseObjectType::pyIsLazyByDefault, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"finalize", (PyCFunction)PyDatabaseObjectType::pyFinalize, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
@@ -1038,7 +1039,7 @@ PyObject* PyDatabaseObjectType::pyLookupOne(PyObject *databaseType, PyObject* ar
 PyObject* PyDatabaseObjectType::pyLookupAny(PyObject *databaseType, PyObject* args, PyObject* kwargs) {
     return translateExceptionToPyObject([&] {
         if (PyTuple_Size(args)) {
-            throw std::runtime_error("lookupOne does not accept positional arguments");
+            throw std::runtime_error("lookupAny does not accept positional arguments");
         }
 
         PyDatabaseObjectType* obType = PyDatabaseObjectType::check(databaseType);
@@ -1065,10 +1066,48 @@ PyObject* PyDatabaseObjectType::pyLookupAny(PyObject *databaseType, PyObject* ar
     });
 }
 
+PyObject* PyDatabaseObjectType::pyLookupUnique(PyObject *databaseType, PyObject* args, PyObject* kwargs) {
+    return translateExceptionToPyObject([&] {
+        if (PyTuple_Size(args)) {
+            throw std::runtime_error("lookupUnique does not accept positional arguments");
+        }
+
+        PyDatabaseObjectType* obType = PyDatabaseObjectType::check(databaseType);
+        if (!obType) {
+            throw std::runtime_error("Expected first argument to be a database type.");
+        }
+
+        View* view = View::currentView();
+        if (!view) {
+            throw std::runtime_error(
+                "Can't lookup instances of " + obType->m_schema_and_typename + " outside of a view."
+            );
+        }
+
+        std::pair<field_id, index_value> lookup = obType->parseIndexLookupKwarg(view, kwargs);
+
+        object_id oid = view->indexLookupFirst(lookup.first, lookup.second);
+
+        if (oid == NO_OBJECT) {
+            return incref(Py_None);
+        }
+        PyObject* result = obType->fromIntegerIdentity(oid);
+
+        // check uniqueness
+        oid = view->indexLookupNext(lookup.first, lookup.second, oid);
+        if (oid != NO_OBJECT) {
+            throw std::runtime_error(
+                "" + obType->m_schema_and_typename + " not unique."
+            );
+        }
+        return result;
+    });
+}
+
 PyObject* PyDatabaseObjectType::pyLookupAll(PyObject *databaseType, PyObject* args, PyObject* kwargs) {
     return translateExceptionToPyObject([&] {
         if (PyTuple_Size(args)) {
-            throw std::runtime_error("lookupOne does not accept positional arguments");
+            throw std::runtime_error("lookupAll does not accept positional arguments");
         }
 
         PyDatabaseObjectType* obType = PyDatabaseObjectType::check(databaseType);

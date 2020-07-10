@@ -161,6 +161,8 @@ struct PyDatabaseObjectType {
 
   static PyObject* pyLookupOne(PyObject *none, PyObject* args, PyObject* kwargs);
 
+  static PyObject* pyLookupUnique(PyObject *none, PyObject* args, PyObject* kwargs);
+
   static PyObject* pyLookupAny(PyObject *none, PyObject* args, PyObject* kwargs);
 
   static PyObject* pyLookupAll(PyObject *none, PyObject* args, PyObject* kwargs);

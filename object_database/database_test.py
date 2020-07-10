@@ -182,6 +182,57 @@ class ObjectDatabaseTests:
         configureLogging("database_test")
         cls.PERFORMANCE_FACTOR = 1.0 if os.environ.get("TRAVIS_CI", None) is None else 2.0
 
+    def test_lookup_semantics(self):
+        schema = Schema("test_schema")
+
+        @schema.define
+        class Thing:
+            name = Indexed(str)
+
+        db = self.createNewDb()
+        db.subscribeToSchema(schema)
+
+        # no objects
+        with db.view():
+            self.assertEqual(len(Thing.lookupAll()), 0)
+            self.assertEqual(Thing.lookupAny(), None)
+            with self.assertRaises(TypeError):
+                Thing.lookupOne()
+            self.assertEqual(Thing.lookupUnique(), None)
+
+        # one object
+        with db.transaction():
+            one = Thing(name="one")
+
+        with db.view():
+            self.assertEqual(len(Thing.lookupAll()), 1)
+            self.assertEqual(Thing.lookupAny(), one)
+            self.assertEqual(Thing.lookupOne(), one)
+            self.assertEqual(Thing.lookupUnique(), one)
+
+        # two objects
+        with db.transaction():
+            two = Thing(name="two")
+
+        with db.view():
+            self.assertEqual(len(Thing.lookupAll()), 2)
+            self.assertIsNotNone(Thing.lookupAny())
+            self.assertIsNotNone(Thing.lookupOne())
+            with self.assertRaisesRegex(TypeError, "Thing not unique"):
+                Thing.lookupUnique()
+            self.assertEqual(Thing.lookupUnique(name="one"), one)
+            self.assertEqual(Thing.lookupUnique(name="two"), two)
+
+        # delete one
+        with db.transaction():
+            one.delete()
+
+        with db.view():
+            self.assertEqual(len(Thing.lookupAll()), 1)
+            self.assertEqual(Thing.lookupAny(), two)
+            self.assertEqual(Thing.lookupOne(), two)
+            self.assertEqual(Thing.lookupUnique(), two)
+
     def test_object_indices(self):
         db = self.createNewDb()
         db.subscribeToSchema(schema)

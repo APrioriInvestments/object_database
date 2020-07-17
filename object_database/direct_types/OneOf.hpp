@@ -15,6 +15,7 @@
 ******************************************************************************/
 #pragma once
 
+#include <algorithm>
 #include <typed_python/Type.hpp>
 #include <typed_python/PyInstance.hpp>
 

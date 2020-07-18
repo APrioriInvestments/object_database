@@ -143,11 +143,11 @@ public:
 
                     b.finalize();
 
-                    out[ObjectFieldId(keyAndCache.first.second, keyAndCache.first.first, false)] = Bytes((const char*)b.buffer(), b.size());
+		    out[ObjectFieldId(keyAndCache.first.second, keyAndCache.first.first, false)] = OneOf<None, Bytes>(Bytes((const char*)b.buffer(), b.size()));
                 }
 
                 for (auto keyAndCache: self->state->getDeleteCache()) {
-                    out[ObjectFieldId(keyAndCache.second, keyAndCache.first, false)] = None();
+                    out[ObjectFieldId(keyAndCache.second, keyAndCache.first, false)] = OneOf<None, Bytes>(None());
                 }
             }
 

@@ -72,7 +72,7 @@ public:
     static ConstDict fromPython(PyObject* p) {
         ConstDictType::layout* l = nullptr;
         PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
-        return ConstDict<key_type, value_type>(l);
+        return ConstDict(l);
     }
 
     // returns the number of items in the ConstDict
@@ -203,4 +203,3 @@ public:
 
     static const uint64_t bytecount = sizeof(void*);
 };
-

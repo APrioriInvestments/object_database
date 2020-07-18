@@ -46,7 +46,7 @@ class OneOf;
 template<class T1, class... Ts>
 class OneOf<T1, Ts...> {
 public:
-    static const size_t m_datasize = std::max(TypeDetails<T1>::bytecount, OneOf<Ts...>::m_datasize);
+    static const size_t m_datasize = std::max<size_t>(TypeDetails<T1>::bytecount, OneOf<Ts...>::m_datasize);
     struct layout {
         uint8_t which;
         uint8_t data[OneOf<T1, Ts...>::m_datasize];

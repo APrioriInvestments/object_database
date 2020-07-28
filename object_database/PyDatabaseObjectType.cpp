@@ -1096,6 +1096,7 @@ PyObject* PyDatabaseObjectType::pyLookupUnique(PyObject *databaseType, PyObject*
         // check uniqueness
         oid = view->indexLookupNext(lookup.first, lookup.second, oid);
         if (oid != NO_OBJECT) {
+            decref(result);
             throw std::runtime_error(
                 "" + obType->m_schema_and_typename + " not unique."
             );

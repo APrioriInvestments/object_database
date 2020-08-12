@@ -61,8 +61,9 @@ class ServiceWorker:
         self.serviceObject = None
         self.serviceName = None
 
-        self.serviceWorkerThread = threading.Thread(target=self.synchronouslyRunService)
-        self.serviceWorkerThread.daemon = True
+        self.serviceWorkerThread = threading.Thread(
+            target=self.synchronouslyRunService, daemon=True
+        )
         self.shouldStop = threading.Event()
         self.exitedGracefully = threading.Event()
 
@@ -103,9 +104,14 @@ class ServiceWorker:
                 return
 
     def checkForShutdown(self):
-        with self.db.view():
-            if self.instance.shouldShutdown:
-                self.shouldStop.set()
+        try:
+            with self.db.view():
+                if self.instance.shouldShutdown:
+                    self.shouldStop.set()
+        except Exception:
+            # If the connection to DB drops or if the ServiceInstance (self.instance)
+            # is deleted, we also want to trigger shouldStop.
+            self.shouldStop.set()
 
     def synchronouslyRunService(self):
         self.initialize()

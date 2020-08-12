@@ -231,6 +231,7 @@ class ServiceManager(object):
         self.updateServiceHostStats()
 
         # redeploy our own services
+        self.collectOrphanInstances()
         self.redeployServicesIfNecessary()
 
         # if we're the master, do some allocation
@@ -269,6 +270,19 @@ class ServiceManager(object):
                     psutil.virtual_memory().used / 1024 ** 3
                 )
                 self.serviceHostObject.statsLastUpdateTime = time.time()
+
+    @revisionConflictRetry
+    def collectOrphanInstances(self):
+        """ Remove instances whose associated service no longer exists. """
+        orphans = []
+        with self.db.transaction():
+            for instance in service_schema.ServiceInstance.lookupAll(
+                host=self.serviceHostObject
+            ):
+                if not instance.service.exists():
+                    orphans.append(instance)
+
+        self.stopServices(orphans)
 
     @revisionConflictRetry
     def collectDeadHosts(self):

@@ -508,7 +508,6 @@ class HappyService(ServiceBase):
                 h = Happy()
             time.sleep(0.5)
             with self.db.transaction():
-
                 h.delete()
 
 
@@ -750,6 +749,28 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
         self.assertTrue(self.database.waitForCondition(lambda: s.on is False, 0.5))
         with self.database.view():
             self.assertEqual(s.count, 3)
+
+    def test_delete_service(self):
+        def getInstances(db=None):
+            if db is not None:
+                with db.view():
+                    return service_schema.ServiceInstance.lookupAll()
+            else:
+                return service_schema.ServiceInstance.lookupAll()
+
+        with self.database.view():
+            self.assertEqual(len(getInstances()), 0)
+
+        with self.database.transaction():
+            ServiceManager.createOrUpdateService(HappyService, "HappyService", target_count=1)
+
+        self.assertTrue(self.database.waitForCondition(lambda: len(getInstances()) == 1, 1))
+
+        with self.database.transaction():
+            for service in service_schema.Service.lookupAll():
+                service.delete()
+
+        self.assertTrue(self.database.waitForCondition(lambda: len(getInstances()) == 0, 10))
 
     @flaky(max_runs=3, min_passes=1)
     def test_racheting_service_count_up_and_down(self):

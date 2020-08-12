@@ -248,7 +248,10 @@ class ServiceManager(object):
             try:
                 with self.db.view():
                     service = i.service
-                self.startServiceWorker(service, i._identity)
+                    if not service.exists():
+                        service = None
+                if service is not None:
+                    self.startServiceWorker(service, i._identity)
 
             except Exception:
                 self._logger.exception("Failed to start a worker for instance %s:", i)
@@ -283,6 +286,9 @@ class ServiceManager(object):
                     orphans.append(instance)
 
         self.stopServices(orphans)
+        with self.db.transaction():
+            for instance in orphans:
+                instance.delete()
 
     @revisionConflictRetry
     def collectDeadHosts(self):
@@ -334,7 +340,8 @@ class ServiceManager(object):
         with self.db.view():
             for i in service_schema.ServiceInstance.lookupAll(host=self.serviceHostObject):
                 if (
-                    i.service.codebase != i.codebase
+                    i.service.exists()
+                    and i.service.codebase != i.codebase
                     and i.connection is not None
                     and not i.shouldShutdown
                 ):
@@ -363,16 +370,27 @@ class ServiceManager(object):
             self.stopServices(needRedeploy)
 
     @revisionConflictRetry
-    def stopServices(self, needRedeploy):
+    def stopServices(self, serviceInstances):
+        if len(serviceInstances) == 0:
+            return
+
         with self.db.transaction():
-            for i in needRedeploy:
+            for i in serviceInstances:
                 if i.exists():
                     i.triggerShutdown()
 
         # wait for them to be down before proceeding
-        self.db.waitForCondition(
-            lambda: not [x for x in needRedeploy if x.exists()], self.shutdownTimeout * 2.0
+        success = self.db.waitForCondition(
+            lambda: not [x for x in serviceInstances if not x.isNotActive()],
+            self.shutdownTimeout * 2.0,
         )
+        if not success:
+            with self.db.view():
+                self._logger.warning(
+                    "Failed to stop services: "
+                    f"{[x for x in serviceInstances if not x.isNotActive()]}"
+                )
+        return success
 
     @revisionConflictRetry
     def createInstanceRecords(self):

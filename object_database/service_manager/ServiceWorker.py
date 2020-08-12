@@ -70,15 +70,16 @@ class ServiceWorker:
         self.shutdownPollReactor = Reactor(self.db, self.checkForShutdown)
 
     def initialize(self):
-        assert self.db.waitForCondition(lambda: self.instance.exists(), 5.0)
+        if not self.db.waitForCondition(lambda: self.instance.exists(), 5.0):
+            raise Exception("Failed to find Service Instance")
 
         with self.db.transaction():
-            assert self.instance.exists(), (
-                "Service Instance object %s doesn't exist" % self.instanceId
-            )
-            assert self.instance.service.exists(), (
-                "Service object %s doesn't exist" % self.instance.service._identity
-            )
+            if not self.instance.exists():
+                raise Exception("Service Instance object %s doesn't exist" % self.instanceId)
+            if not self.instance.service.exists():
+                raise Exception(
+                    "Service object %s doesn't exist" % self.instance.service._identity
+                )
             self.serviceName = self.instance.service.name
             self.instance.connection = self.db.connectionObject
             self.instance.codebase = self.instance.service.codebase
@@ -106,11 +107,12 @@ class ServiceWorker:
     def checkForShutdown(self):
         try:
             with self.db.view():
-                if self.instance.shouldShutdown:
+                if not self.instance.exists():
+                    self.shouldStop.set()
+                elif self.instance.shouldShutdown:
                     self.shouldStop.set()
         except Exception:
-            # If the connection to DB drops or if the ServiceInstance (self.instance)
-            # is deleted, we also want to trigger shouldStop.
+            # If the connection to DB drops, we also want to trigger shouldStop.
             self.shouldStop.set()
 
     def synchronouslyRunService(self):

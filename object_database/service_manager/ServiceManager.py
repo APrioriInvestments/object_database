@@ -182,7 +182,7 @@ class ServiceManager(object):
         service.target_count = targetCount
 
     @staticmethod
-    def waitRunning(db, serviceName, timeout=5.0):
+    def waitRunning(db, serviceName, timeout=5.0) -> bool:
         def isRunning():
             service = service_schema.Service.lookupAny(name=serviceName)
             if not service:
@@ -201,7 +201,7 @@ class ServiceManager(object):
         service.target_count = 0
 
     @staticmethod
-    def waitStopped(db, serviceName, timeout=5.0):
+    def waitStopped(db, serviceName, timeout=5.0) -> bool:
         def isStopped():
             service = service_schema.Service.lookupAny(name=serviceName)
             if not service:
@@ -213,6 +213,19 @@ class ServiceManager(object):
             return True
 
         return db.waitForCondition(isStopped, timeout)
+
+    @staticmethod
+    def removeService(serviceName, force=False):
+        service = service_schema.Service.lookupOne(name=serviceName)
+        instances = service_schema.ServiceInstance.lookupAll(service=service)
+        if not force and any(not inst.isNotActive() for inst in instances):
+            raise Exception(
+                f"Failed to remove service '{serviceName}' because of active ServiceInstances."
+                "Try stopping the service first, or set force to True"
+            )
+        for inst in instances:
+            inst.delete()
+        service.delete()
 
     def stopAllServices(self, timeout):
         with self.db.transaction():
@@ -451,10 +464,13 @@ class ServiceManager(object):
 
     def instanceRecordsToBoot(self):
         res = []
-        with self.db.view():
+        with self.db.transaction():
             for i in service_schema.ServiceInstance.lookupAll(host=self.serviceHostObject):
                 if i.state == "Booting":
-                    res.append(i)
+                    if i.shouldShutdown:
+                        i.delete()
+                    else:
+                        res.append(i)
         return res
 
     def startServiceWorker(self, service, instanceIdentity):

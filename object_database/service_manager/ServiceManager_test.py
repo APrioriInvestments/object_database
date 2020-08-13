@@ -503,10 +503,10 @@ class HappyService(ServiceBase):
             h = Happy(i=2)
 
         while not shouldStop.is_set():
-            time.sleep(0.5)
+            shouldStop.wait(0.5)
             with self.db.transaction():
                 h = Happy()
-            time.sleep(0.5)
+            shouldStop.wait(0.5)
             with self.db.transaction():
                 h.delete()
 
@@ -714,7 +714,9 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             with self.database.transaction():
                 ServiceManager.stopService(svcName)
 
-            ServiceManager.waitStopped(self.database, svcName, timeout=timeout)
+            self.assertTrue(
+                ServiceManager.waitStopped(self.database, svcName, timeout=timeout)
+            )
 
             with self.database.view():
                 self.assertIsNotNone(Stopped.lookupAny())
@@ -771,6 +773,73 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
                 service.delete()
 
         self.assertTrue(self.database.waitForCondition(lambda: len(getInstances()) == 0, 10))
+
+    def test_remove_service(self):
+        with self.database.view():
+            services = service_schema.Service.lookupAll()
+            self.assertEqual(len(services), 0)
+            instances = service_schema.ServiceInstance.lookupAll()
+            self.assertEqual(len(instances), 0)
+
+        with self.database.transaction():
+            ServiceManager.createOrUpdateService(HappyService, "HappyService", target_count=2)
+
+        self.assertTrue(
+            self.database.waitForCondition(
+                lambda: len(service_schema.ServiceInstance.lookupAll()) == 2, 1
+            )
+        )
+
+        with self.database.view():
+            services = service_schema.Service.lookupAll()
+            self.assertEqual(len(services), 1)
+            instances = service_schema.ServiceInstance.lookupAll()
+            self.assertEqual(len(instances), 2)
+
+        with self.database.transaction():
+            with self.assertRaisesRegex(Exception, "Failed to remove"):
+                ServiceManager.removeService("HappyService")
+
+            ServiceManager.stopService("HappyService")
+
+        timeout = 6.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
+        self.assertTrue(ServiceManager.waitStopped(self.database, "HappyService", timeout))
+
+        with self.database.transaction():
+            ServiceManager.removeService("HappyService")
+            services = service_schema.Service.lookupAll()
+            self.assertEqual(len(services), 0)
+            instances = service_schema.ServiceInstance.lookupAll()
+            self.assertEqual(len(instances), 0)
+
+    def test_force_remove_service(self):
+        with self.database.view():
+            services = service_schema.Service.lookupAll()
+            self.assertEqual(len(services), 0)
+            instances = service_schema.ServiceInstance.lookupAll()
+            self.assertEqual(len(instances), 0)
+
+        with self.database.transaction():
+            ServiceManager.createOrUpdateService(HappyService, "HappyService", target_count=2)
+
+        self.assertTrue(
+            self.database.waitForCondition(
+                lambda: len(service_schema.ServiceInstance.lookupAll()) == 2, 1
+            )
+        )
+
+        with self.database.view():
+            services = service_schema.Service.lookupAll()
+            self.assertEqual(len(services), 1)
+            instances = service_schema.ServiceInstance.lookupAll()
+            self.assertEqual(len(instances), 2)
+
+        with self.database.transaction():
+            ServiceManager.removeService("HappyService", force=True)
+            services = service_schema.Service.lookupAll()
+            self.assertEqual(len(services), 0)
+            instances = service_schema.ServiceInstance.lookupAll()
+            self.assertEqual(len(instances), 0)
 
     @flaky(max_runs=3, min_passes=1)
     def test_racheting_service_count_up_and_down(self):

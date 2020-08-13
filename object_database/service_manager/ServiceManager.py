@@ -260,9 +260,8 @@ class ServiceManager(object):
         for i in instances:
             try:
                 with self.db.view():
-                    service = i.service
-                    if not service.exists():
-                        service = None
+                    service = i.service if i.service.exists() else None
+
                 if service is not None:
                     self.startServiceWorker(service, i._identity)
 
@@ -329,7 +328,8 @@ class ServiceManager(object):
         with self.db.transaction():
             for serviceInstance in service_schema.ServiceInstance.lookupAll():
                 if (
-                    not serviceInstance.host.exists()
+                    serviceInstance.isNotActive()
+                    or not serviceInstance.host.exists()
                     or serviceInstance.connection
                     and not serviceInstance.connection.exists()
                     or serviceInstance.owner is not None
@@ -467,10 +467,7 @@ class ServiceManager(object):
         with self.db.transaction():
             for i in service_schema.ServiceInstance.lookupAll(host=self.serviceHostObject):
                 if i.state == "Booting":
-                    if i.shouldShutdown:
-                        i.delete()
-                    else:
-                        res.append(i)
+                    res.append(i)
         return res
 
     def startServiceWorker(self, service, instanceIdentity):

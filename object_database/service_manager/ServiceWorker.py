@@ -77,9 +77,11 @@ class ServiceWorker:
             if not self.instance.exists():
                 raise Exception("Service Instance object %s doesn't exist" % self.instanceId)
             if not self.instance.service.exists():
-                raise Exception(
-                    "Service object %s doesn't exist" % self.instance.service._identity
-                )
+                msg = "Service object %s doesn't exist" % self.instance.service._identity
+                with self.db.transaction():
+                    self.instance.markFailedToStart(msg)
+                raise Exception(msg)
+
             self.serviceName = self.instance.service.name
             self.instance.connection = self.db.connectionObject
             self.instance.codebase = self.instance.service.codebase

@@ -233,9 +233,7 @@ class SubprocessServiceManager(ServiceManager):
                     )
 
                     # don't update serviceProcesses because we're iterating through it
-                    self._killWorkerProcess(
-                        instanceIdentity, workerProcess, updateServiceProcesses=False
-                    )
+                    self._killWorkerProcess(instanceIdentity, workerProcess)
 
             self.serviceProcesses = {}
 
@@ -246,7 +244,7 @@ class SubprocessServiceManager(ServiceManager):
             if identity in self.serviceProcesses:
                 del self.serviceProcesses[identity]
 
-    def _killWorkerProcess(self, identity, workerProcess, updateServiceProcesses=True):
+    def _killWorkerProcess(self, identity, workerProcess):
         if workerProcess:
             workerProcess.kill()
             try:
@@ -254,16 +252,13 @@ class SubprocessServiceManager(ServiceManager):
             except subprocess.TimeoutExpired:
                 self._logger.error(f"Failed to kill Worker Process '{identity}'")
 
-        if updateServiceProcesses:
-            self._dropServiceProcess(identity)
-
     def cleanup(self):
         with self.cleanupLock:
             with self.lock:
                 toCheck = list(self.serviceProcesses.items())
 
             for identity, workerProcess in toCheck:
-                if workerProcess.poll() is not None:
+                if workerProcess.poll() is not None:  # i.e., the process has terminated
                     workerProcess.wait()
                     self._dropServiceProcess(identity)
 
@@ -275,25 +270,28 @@ class SubprocessServiceManager(ServiceManager):
                     serviceInstance = service_schema.ServiceInstance.fromIdentity(identity)
 
                     if not serviceInstance.exists():
-                        if workerProcess:
+                        if workerProcess.poll() is None:
                             self._logger.info(
                                 f"Worker Process '{identity}' shutting down because the "
                                 f"server removed its serviceInstance entirely. "
                                 f"Sending KILL signal."
                             )
                             self._killWorkerProcess(identity, workerProcess)
+                        self._dropServiceProcess(identity)
+
                     elif (
                         serviceInstance.shouldShutdown
                         and time.time() - serviceInstance.shutdownTimestamp
                         > self.shutdownTimeout
                     ):
-                        if workerProcess:
+                        if workerProcess.poll() is None:
                             self._logger.warning(
                                 f"Worker Process '{identity}' failed to gracefully terminate"
                                 + f" within {self.shutdownTimeout} seconds."
                                 + f" Sending KILL signal. PID={workerProcess.pid}"
                             )
                             self._killWorkerProcess(identity, workerProcess)
+                        self._dropServiceProcess(identity)
 
             self.moveCoverageFiles()
             self.cleanupOldLogfiles()

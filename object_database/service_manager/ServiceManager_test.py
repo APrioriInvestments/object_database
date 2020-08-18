@@ -802,8 +802,16 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
 
             ServiceManager.stopService("HappyService")
 
+        def serviceState():
+            with self.database.view():
+                service = service_schema.Service.lookupAny(name="HappyService")
+                instances = service_schema.ServiceInstance.lookupAll(service=service)
+                return [i.state for i in instances]
+
         timeout = 6.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
-        self.assertTrue(ServiceManager.waitStopped(self.database, "HappyService", timeout))
+        self.assertTrue(
+            ServiceManager.waitStopped(self.database, "HappyService", timeout), serviceState()
+        )
 
         with self.database.transaction():
             ServiceManager.removeService("HappyService")

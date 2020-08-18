@@ -467,7 +467,10 @@ class ServiceManager(object):
         with self.db.transaction():
             for i in service_schema.ServiceInstance.lookupAll(host=self.serviceHostObject):
                 if i.state == "Booting":
-                    res.append(i)
+                    if i.shouldShutdown:
+                        i.delete()
+                    else:
+                        res.append(i)
         return res
 
     def startServiceWorker(self, service, instanceIdentity):

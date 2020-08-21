@@ -193,7 +193,7 @@ clean:
 	echo "export PYTHONPATH=$(PWD)" >> $@
 
 $(VIRTUAL_ENV): $(PYTHON) .env
-	virtualenv $(VIRTUAL_ENV) --python=$(PYTHON)
+	$(PYTHON) -m venv $(VIRTUAL_ENV)
 
 $(ODB_BUILD_PATH)/all.o: $(ODB_SRC_PATH)/*.hpp $(ODB_SRC_PATH)/*.cpp $(TP_SRC_PATH)/*.hpp
 	$(CC) $(CPP_FLAGS) -c $(ODB_SRC_PATH)/all.cpp $ -o $@

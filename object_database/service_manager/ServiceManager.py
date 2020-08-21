@@ -300,7 +300,8 @@ class ServiceManager(object):
         self.stopServices(orphans)
         with self.db.transaction():
             for instance in orphans:
-                instance.delete()
+                if instance.exists():
+                    instance.delete()
 
     @revisionConflictRetry
     def collectDeadHosts(self):

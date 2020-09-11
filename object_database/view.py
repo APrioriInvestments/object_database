@@ -89,6 +89,7 @@ class View(object):
         self._view = _types.View(db._connection_state, transaction_id, self._writeable)
         self._confirmCommitCallback = None
         self._logger = logging.getLogger(__name__)
+        self._commitTimeout = None
 
     def db(self):
         return self._db
@@ -144,7 +145,10 @@ class View(object):
                 # this is the synchronous case - we want to wait for the confirm
                 t0 = time.time()
 
-                res = result_queue.get()
+                try:
+                    res = result_queue.get(timeout=self._commitTimeout)
+                except queue.Empty:
+                    raise Exception(f"Failed to get a commit in {self._commitTimeout} seconds")
 
                 if time.time() - t0 > LOG_SLOW_COMMIT_THRESHOLD:
                     self._logger.info(
@@ -239,6 +243,12 @@ class Transaction(View):
             pass
 
         self._confirmCommitCallback = ignoreConfirmResult
+
+        return self
+
+    def withCommitTimeout(self, commitTimeout):
+        """Return ourselves, but set the commit timeout."""
+        self._commitTimeout = commitTimeout
 
         return self
 

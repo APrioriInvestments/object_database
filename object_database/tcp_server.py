@@ -19,6 +19,8 @@ from object_database.message_bus import MessageBus
 from object_database.messages import ClientToServer, ServerToClient, getHeartbeatInterval
 from object_database.persistence import InMemoryPersistence
 
+from .channel import ServerToClientChannel, ClientToServerChannel
+
 from typed_python import serialize, deserialize
 import logging
 import ssl
@@ -28,7 +30,7 @@ import socket
 import atexit
 
 
-class PumpLoopChannel:
+class PumpLoopChannel(ClientToServerChannel):
     def __init__(self, SendT, RecvT, nativePumpLoop, socket, ssl, ssl_ctx):
         self._nativePumpLoop = nativePumpLoop
         self.SendT = SendT
@@ -226,7 +228,7 @@ def connect(host, port, auth_token, timeout=10.0, retry=False):
     return conn
 
 
-class ServerChannel:
+class ServerChannel(ServerToClientChannel):
     def __init__(self, bus, connectionId, source):
         self.bus = bus
         self.connectionId = connectionId

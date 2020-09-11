@@ -205,7 +205,7 @@ class DatabaseConnection:
 
         self._channel.write(ClientToServer.Authenticate(token=token))
 
-    def addSchema(self, schema):
+    def addSchema(self, schema, block=True, timeout=None):
         schema.freeze()
 
         with self._lock:
@@ -222,12 +222,13 @@ class DatabaseConnection:
 
             e = self._schema_response_events[schema.name]
 
-        e.wait()
+        if block and not e.wait(timeout):
+            raise Exception(f"Failed to add schema {schema} after {timeout} seconds")
 
         if self.disconnected.is_set():
             raise DisconnectedException()
 
-    def flush(self):
+    def flush(self, timeout=None):
         """Make sure we know all transactions that have happened up to this point."""
         with self._lock:
             if self.disconnected.is_set():
@@ -238,7 +239,10 @@ class DatabaseConnection:
             e = self._flushEvents[ix] = threading.Event()
             self._channel.write(ClientToServer.Flush(guid=ix))
 
-        e.wait()
+        if not e.wait(timeout):
+            raise Exception(
+                f"Failed to flush a round-trip with the server in {timeout} seconds"
+            )
 
         if self.disconnected.is_set():
             raise DisconnectedException()
@@ -246,12 +250,12 @@ class DatabaseConnection:
     def subscribeToObject(self, t):
         self.subscribeToObjects([t])
 
-    def subscribeToNone(self, type):
-        self.addSchema(type.__schema__)
+    def subscribeToNone(self, type, block=True, timeout=None):
+        self.addSchema(type.__schema__, block=block, timeout=timeout)
 
-    def subscribeToObjects(self, objects):
+    def subscribeToObjects(self, objects, block=True, timeout=None):
         for t in objects:
-            self.addSchema(type(t).__schema__)
+            self.addSchema(type(t).__schema__, block=block, timeout=timeout)
 
         self.subscribeMultiple(
             [
@@ -262,7 +266,9 @@ class DatabaseConnection:
                     False,
                 )
                 for t in objects
-            ]
+            ],
+            block=block,
+            timeout=timeout,
         )
 
     def _lazinessForType(self, typeObj, desiredLaziness):
@@ -270,8 +276,8 @@ class DatabaseConnection:
             return desiredLaziness
         return typeObj.isLazyByDefault()
 
-    def subscribeToIndex(self, t, block=True, lazySubscription=None, **kwarg):
-        self.addSchema(t.__schema__)
+    def subscribeToIndex(self, t, block=True, lazySubscription=None, timeout=None, **kwarg):
+        self.addSchema(t.__schema__, block=block, timeout=timeout)
 
         toSubscribe = []
 
@@ -291,10 +297,10 @@ class DatabaseConnection:
                 )
             )
 
-        return self.subscribeMultiple(toSubscribe, block=block)
+        return self.subscribeMultiple(toSubscribe, block=block, timeout=timeout)
 
-    def subscribeToType(self, t, block=True, lazySubscription=None):
-        self.addSchema(t.__schema__)
+    def subscribeToType(self, t, block=True, lazySubscription=None, timeout=None):
+        self.addSchema(t.__schema__, block=block, timeout=timeout)
 
         if (
             self._connection_state.typeSubscriptionLowestTransaction(
@@ -314,11 +320,14 @@ class DatabaseConnection:
                 )
             ],
             block,
+            timeout=timeout,
         )
 
-    def subscribeToSchema(self, *schemas, block=True, lazySubscription=None, excluding=()):
-        for s in schemas:
-            self.addSchema(s)
+    def subscribeToSchema(
+        self, *schemas, block=True, lazySubscription=None, excluding=(), timeout=None
+    ):
+        for schemaName in schemas:
+            self.addSchema(schemaName, block=block, timeout=timeout)
 
         unsubscribedTypes = []
         for schema in schemas:
@@ -329,7 +338,7 @@ class DatabaseConnection:
                     )
 
         if unsubscribedTypes:
-            return self.subscribeMultiple(unsubscribedTypes, block=block)
+            return self.subscribeMultiple(unsubscribedTypes, block=block, timeout=timeout)
 
         return ()
 
@@ -344,7 +353,7 @@ class DatabaseConnection:
             is not None
         )
 
-    def subscribeMultiple(self, subscriptionTuples, block=True):
+    def subscribeMultiple(self, subscriptionTuples, block=True, timeout=None):
         with self._lock:
             if self.disconnected.is_set():
                 raise DisconnectedException()
@@ -376,7 +385,8 @@ class DatabaseConnection:
             return tuple(events)
 
         for e in events:
-            e.wait()
+            if not e.wait(timeout=timeout):
+                raise Exception(f"Failed to subscribe within {timeout} seconds")
 
         with self._lock:
             if self.disconnected.is_set():

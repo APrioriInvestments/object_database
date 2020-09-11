@@ -19,6 +19,39 @@ def getHeartbeatInterval():
     return _heartbeatInterval[0]
 
 
+def MessageToStr(msg):
+    fields = {}
+
+    if hasattr(msg, "schema"):
+        fields["schema"] = msg.schema
+
+    if hasattr(msg, "name"):
+        fields["name"] = msg.name
+
+    if hasattr(msg, "typename"):
+        fields["typename"] = msg.typename
+
+    if hasattr(msg, "mapping"):
+        fields["mapping"] = f"#{len(msg.mapping)}"
+
+    if hasattr(msg, "transaction_guid"):
+        fields["transaction_guid"] = f"{msg.transaction_guid}"
+
+    if hasattr(msg, "success"):
+        fields["success"] = f"{msg.success}"
+
+    if hasattr(msg, "values"):
+        fields["values"] = f"#{len(msg.values)}"
+
+    if hasattr(msg, "tid"):
+        fields["tid"] = msg.tid
+
+    if hasattr(msg, "index_values"):
+        fields["index_values"] = f"#{len(msg.index_values)}"
+
+    return type(msg).__name__ + "(" + ", ".join([f"{k}={v}" for k, v in fields.items()]) + ")"
+
+
 ClientToServer = Alternative(
     "ClientToServer",
     TransactionData={
@@ -35,13 +68,17 @@ ClientToServer = Alternative(
     LoadLazyObject={"schema": str, "typename": str, "identity": ObjectId},
     Subscribe={
         "schema": str,
-        "typename": OneOf(None, str),
+        "typename": str,
         "fieldname_and_value": OneOf(None, Tuple(str, IndexValue)),
         # load values when we first request them, instead of blocking on all the data.
         "isLazy": bool,
     },
     Flush={"guid": int},
     Authenticate={"token": str},
+    # request a connection id that will be dependent on 'parentId' existing.
+    # this is used by proxies.
+    RequestDependentConnectionId={"parentId": ObjectId, "guid": str},
+    __str__=MessageToStr,
 )
 
 
@@ -97,4 +134,6 @@ ServerToClient = Alternative(
         "set_removes": ConstDict(IndexId, TupleOf(ObjectId)),
         "transaction_id": int,
     },
+    DependentConnectionId={"guid": str, "connIdentity": ObjectId, "identity_root": int},
+    __str__=MessageToStr,
 )

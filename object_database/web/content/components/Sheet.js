@@ -607,8 +607,8 @@ class Sheet extends Component {
         } else {
             // cleanup content for the header display removing newlines and
             // the like
-            contentHeaderText = contentHeaderText.replace(/(\r\n|\n|\r)/gm, "");
-            contentHeaderText = contentHeaderText.replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/gm," ");
+            //contentHeaderText = contentHeaderText.replace(/(\r\n|\n|\r)/gm, "");
+            //contentHeaderText = contentHeaderText.replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/gm," ");
         }
         coordinateHeader.innerText = coordinateText;
         contentDisplay.innerText = contentHeaderText;

@@ -3,13 +3,17 @@ from object_database.database_connection import DatabaseConnection
 from object_database.messages import ClientToServer, ServerToClient, getHeartbeatInterval
 from object_database.persistence import InMemoryPersistence
 
+from .channel import ServerToClientChannel, ClientToServerChannel
+
 import time
 import queue
 import logging
 import threading
 
 
-class InMemoryChannel:
+class InMemoryChannel(ClientToServerChannel, ServerToClientChannel):
+    """A bidirectional channel that serves both clients and servers simultaneously."""
+
     def __init__(self, server):
         self._server = server
         self._clientCallback = None
@@ -27,6 +31,13 @@ class InMemoryChannel:
         self._stopHeartbeatingSet = False
 
         self._logger = logging.getLogger(__name__)
+
+        self._serverName = None
+        self._clientName = None
+
+    def markVerbose(self, serverName, clientName):
+        self._serverName = serverName
+        self._clientName = clientName
 
     def _stopHeartbeating(self):
         self._stopHeartbeatingSet = True
@@ -68,7 +79,7 @@ class InMemoryChannel:
                 try:
                     self._serverCallback(e)
                 except Exception:
-                    self._logger.exception("Pump thread failed:")
+                    self._logger.exception("Pump thread failed for %s:", self)
                     return
 
         self._server.dropConnection(self)
@@ -90,8 +101,12 @@ class InMemoryChannel:
 
     def write(self, msg):
         if isinstance(msg, ClientToServer):
+            if self._serverName:
+                print(self._clientName, "->", self._serverName, ":", msg)
             self._clientToServerMsgQueue.put(msg)
         elif isinstance(msg, ServerToClient):
+            if self._serverName:
+                print(self._serverName, "->", self._clientName, ":", msg)
             self._serverToClientMsgQueue.put(msg)
         else:
             assert False

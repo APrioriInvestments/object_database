@@ -306,23 +306,24 @@ class Server:
 
             self._dropConnectionEntry(co)
 
-    def _createConnectionEntry(self):
+    def _createConnectionEntry(self, mirrorInDatabase=True):
         identity = self.identityProducer.createIdentity()
-        fieldId = self._currentTypeMap().fieldIdFor("core", "Connection", " exists")
-
-        exists_key = ObjectFieldId(objId=identity, fieldId=fieldId)
-        exists_index = IndexId(fieldId=fieldId, indexValue=indexValueFor(bool, True))
         identityRoot = self.allocateNewIdentityRoot()
 
-        self._handleNewTransaction(
-            None,
-            {exists_key: serialize(bool, True)},
-            {exists_index: set([identity])},
-            {},
-            [],
-            [],
-            self._cur_transaction_num,
-        )
+        if mirrorInDatabase:
+            fieldId = self._currentTypeMap().fieldIdFor("core", "Connection", " exists")
+            exists_key = ObjectFieldId(objId=identity, fieldId=fieldId)
+            exists_index = IndexId(fieldId=fieldId, indexValue=indexValueFor(bool, True))
+
+            self._handleNewTransaction(
+                None,
+                {exists_key: serialize(bool, True)},
+                {exists_index: set([identity])},
+                {},
+                [],
+                [],
+                self._cur_transaction_num,
+            )
 
         return core_schema.Connection.fromIdentity(identity), identityRoot
 
@@ -432,7 +433,6 @@ class Server:
 
         assert definition is not None, "can't subscribe to a schema we don't know about!"
 
-        assert msg.typename is not None
         typename = msg.typename
 
         assert typename in definition, (
@@ -802,6 +802,20 @@ class Server:
                 "Received unexpected client message %s on unauthenticated channel %s",
                 repr(msg)[:100],
                 connectedChannel.connectionObject._identity,
+            )
+            return
+
+        if msg.matches.RequestDependentConnectionId:
+            # for the moment, don't put the entry into the DB.
+            with self._lock:
+                connectionObject, identityRoot = self._createConnectionEntry(False)
+
+            connectedChannel.channel.write(
+                ServerToClient.DependentConnectionId(
+                    guid=msg.guid,
+                    connIdentity=connectionObject._identity,
+                    identity_root=identityRoot,
+                )
             )
             return
 

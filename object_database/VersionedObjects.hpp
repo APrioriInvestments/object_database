@@ -39,6 +39,10 @@ We provide functionality to
 
 class VersionedObjects {
 public:
+    bool existsAtTransaction(Type* t, field_id fieldId, object_id objectId, transaction_id version) {
+        return versionedObjectsForFieldId(fieldId)->existsAtTransaction(t, objectId, version);
+    }
+
     std::pair<instance_ptr, transaction_id> bestObjectVersion(Type* t, const std::shared_ptr<SerializationContext>& ctx, field_id fieldId, object_id objectId, transaction_id version) {
         return versionedObjectsForFieldId(fieldId)->best(t, ctx, objectId, version);
     }

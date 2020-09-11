@@ -156,6 +156,20 @@ public:
         return id;
     }
 
+    bool existsAtTransaction(Type* valueType, object_id objectId, transaction_id version) {
+        transaction_id bestTid = bestTransactionId(objectId, version);
+
+        if (bestTid == NO_TRANSACTION) {
+            return false;
+        }
+
+        if (isDeleted(objectId, bestTid)) {
+            return false;
+        }
+
+        return true;
+    }
+
     std::pair<instance_ptr, transaction_id> best(Type* valueType, const std::shared_ptr<SerializationContext>& ctx, object_id objectId, transaction_id version) {
         transaction_id bestTid = bestTransactionId(objectId, version);
 

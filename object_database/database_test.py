@@ -176,6 +176,11 @@ class ThingWithObjectIndex:
     name_and_value = Index("name", "value")
 
 
+@schema.define
+class HoldsArbitraryObject:
+    holding = object
+
+
 class ObjectDatabaseTests:
     @classmethod
     def setUpClass(cls):
@@ -250,6 +255,26 @@ class ObjectDatabaseTests:
             self.assertEqual(
                 ThingWithObjectIndex.lookupAny(name_and_value=("name", "hello")), z
             )
+
+    def test_broken_object_deserialization(self):
+        db = self.createNewDb()
+        db.subscribeToSchema(schema)
+
+        class AClass:
+            pass
+
+        db.serializationContext.addNamedObject("badlynamed", AClass)
+
+        with db.transaction():
+            z = HoldsArbitraryObject(holding=AClass)
+
+        db.serializationContext.dropNamedObject("badlynamed")
+
+        db2 = self.createNewDb()
+        db2.subscribeToSchema(schema)
+
+        with db2.transaction():
+            z.holding = 10
 
     def test_assigning_dicts(self):
         db = self.createNewDb()

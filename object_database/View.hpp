@@ -120,6 +120,26 @@ public:
       return i;
    }
 
+   bool fieldExists(field_id field, object_id oid, Type* t, bool recordAccess=true) {
+      auto delete_it = m_delete_cache.find(std::make_pair(field, oid));
+      if (delete_it != m_delete_cache.end()) {
+         return false;
+      }
+
+      auto write_it = m_write_cache.find(std::make_pair(field, oid));
+      if (write_it != m_write_cache.end()) {
+         return true;
+      }
+
+      bool res = m_versioned_objects.existsAtTransaction(t, field, oid, m_tid);
+
+      if (recordAccess) {
+         m_read_values.insert(std::make_pair(field, oid));
+      }
+
+      return res;
+   }
+
    void setField(field_id field, object_id oid, Type* t, instance_ptr data) {
       if (!m_allow_writes) {
          throw std::runtime_error("Please use a transaction if you wish to write to object_database fields.");
@@ -134,7 +154,7 @@ public:
       if (data) {
          //if we're writing a new value, record whether this is a new object
          //that we're populating into 'm_new_writes'
-         bool existsAlready = getField(field, oid, t, false) != nullptr;
+         bool existsAlready = fieldExists(field, oid, t, false);
          if (!existsAlready) {
             m_new_writes.insert(std::make_pair(field, oid));
          }

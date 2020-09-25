@@ -16,7 +16,7 @@
 from object_database.view import revisionConflictRetry
 from object_database.core_schema import core_schema
 from object_database.service_manager.ServiceSchema import service_schema
-
+from object_database.service_manager.aws.AwsWorkerBootService import schema as aws_schema
 from object_database.reactor import Reactor
 
 from typed_python.Codebase import Codebase as TypedPythonCodebase
@@ -74,6 +74,39 @@ class ServiceManager(object):
 
     def stop(self):
         self.reactor.stop()
+
+    def checkAwsImageHash(self, pathToImageHash):
+        """Check the image hash in the AwsWorkerBootService against the image in the path.
+
+        Args:
+            pathToImageHash (str) - the path to a writeable file containing the docker
+                image we want to have booted.
+
+        Returns:
+            True if we wrote a new docker image to the file and should exit.
+        """
+        with open(pathToImageHash, "r") as f:
+            existingHashOnDisk = f.read().strip()
+
+        self.db.subscribeToSchema(aws_schema)
+        with self.db.view():
+            config = aws_schema.Configuration.lookupAny()
+
+            # it's weird if AWS is not configured, but we shouldn't just
+            # start rebooting because we have nothing to replace our existing
+            # image
+            if not config:
+                return False
+
+            hashInAws = config.docker_image
+
+        if hashInAws != existingHashOnDisk:
+            with open(pathToImageHash, "w") as f:
+                f.write(hashInAws + "\n")
+
+            return True
+
+        return False
 
     @staticmethod
     def createOrUpdateService(

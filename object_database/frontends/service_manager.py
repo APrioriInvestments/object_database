@@ -135,14 +135,14 @@ def autoconfigureAndStartServiceManagerProcess(
             server.wait(timeout=15.0)
         except subprocess.TimeoutExpired:
             logging.getLogger(__name__).warning(
-                f"Failed to gracefully terminate service manager after 15 seconds."
-                + " Sending KILL signal"
+                "Failed to gracefully terminate service manager after 15 seconds."
+                " Sending KILL signal"
             )
             server.kill()
             try:
                 server.wait(timeout=5.0)
             except subprocess.TimeoutExpired:
-                logging.getLogger(__name__).warning(f"Failed to kill service manager process.")
+                logging.getLogger(__name__).warning("Failed to kill service manager process.")
 
         if error or server.returncode:
             logging.getLogger(__name__).warning(
@@ -196,6 +196,16 @@ def main(argv=None):
 
     parser.add_argument("--logdir", default=None, required=False)
     parser.add_argument("--log-level", required=False, default="INFO")
+    parser.add_argument(
+        "--watch-aws-image-hash",
+        required=False,
+        default=None,
+        help=(
+            "Path to file containing our docker image. If the AWS docker image"
+            "changes, we'll write the new image to this file and exit the process. "
+            "The invoking image is expected to re-run this."
+        ),
+    )
 
     parsedArgs = parser.parse_args(argv[1:])
 
@@ -304,6 +314,15 @@ def main(argv=None):
                     try:
                         serviceManager.cleanup()
 
+                        if parsedArgs.watch_aws_image_hash:
+                            shouldReboot = serviceManager.checkAwsImageHash(
+                                parsedArgs.watch_aws_image_hash
+                            )
+                            if shouldReboot:
+                                logger.info("Rebooting because docker image hash changed.")
+                                serviceManager.stop(gracefully=False)
+                                serviceManager = None
+                                return 0
                     except (
                         ConnectionRefusedError,
                         DisconnectedException,

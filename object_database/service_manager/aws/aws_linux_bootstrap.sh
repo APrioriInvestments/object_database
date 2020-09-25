@@ -44,10 +44,24 @@ sudo service docker start
 
 sudo chmod 777 /var/run/docker.sock
 
-sudo docker pull {image}
-sudo docker run --privileged --network=host -v $STORAGE:/storage {image} \
-    $(hostname) \
-    {db_hostname} \
-    {db_port} \
-    {placement_group} \
-    --service-token {worker_token}
+sudo mkdir /image_hash
+
+sudo echo {image} > /image_hash/image.txt
+
+while true; do
+    IMAGE=$(sudo cat /image_hash/image.txt)
+
+    echo "Running docker image $IMAGE"
+    sudo docker pull $IMAGE
+
+    sudo docker run --privileged --network=host -v $STORAGE:/storage -v /image_hash:/image_hash $IMAGE \
+        $(hostname) \
+        {db_hostname} \
+        {db_port} \
+        {placement_group} \
+        --service-token {worker_token} \
+        --watch-aws-image-hash /image_hash/image.txt
+
+    echo "Docker container restarting."
+    sleep 1
+done

@@ -182,7 +182,9 @@ class View(object):
         return Scope()
 
     def __enter__(self):
-        assert not hasattr(_cur_view, "view")
+        if hasattr(_cur_view, "view"):
+            raise Exception("You can't open a view or transaction while another one is open.")
+
         _cur_view.view = self
         self._view.enter()
         return self

@@ -113,16 +113,16 @@ public:
     int64_t find(const String& sub, int64_t start, int64_t end) const { return StringType::find(mLayout, sub.getLayout(), start, end); }
     int64_t find(const String& sub, int64_t start) const { return StringType::find(mLayout, sub.getLayout(), start, mLayout ? mLayout->pointcount : 0); }
     int64_t find(const String& sub) const { return StringType::find(mLayout, sub.getLayout(), 0, mLayout ? mLayout->pointcount : 0); }
-    ListOf<String> split(const String& sep, int64_t max = -1) const {
-       ListOf<String> ret;
-       StringType::split(ret.getLayout(), mLayout, sep.getLayout(), max);
-       return ret;
-    }
-    ListOf<String> split(int64_t max = -1) {
-       ListOf<String> ret;
-       StringType::split_3(ret.getLayout(), mLayout, max);
-       return ret;
-    }
+    // ListOf<String> split(const String& sep, int64_t max = -1) const {
+    //    ListOf<String> ret;
+    //    StringType::split(ret.getLayout(), mLayout, sep.getLayout(), max);
+    //    return ret;
+    // }
+    // ListOf<String> split(int64_t max = -1) {
+    //    ListOf<String> ret;
+    //    StringType::split_3(ret.getLayout(), mLayout, max);
+    //    return ret;
+    // }
     bool isalpha() const { return StringType::isalpha(mLayout); }
     bool isalnum() const { return StringType::isalnum(mLayout); }
     bool isdecimal() const { return StringType::isdecimal(mLayout); }

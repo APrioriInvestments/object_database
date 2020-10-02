@@ -112,7 +112,11 @@ class CellsSession:
         FRAME_SIZE = 32 * 1024
         FRAMES_PER_ACK = 10
 
-        msg = json.dumps(message)
+        try:
+            msg = json.dumps(message)
+        except Exception:
+            self._logger.exception("Failed to encode message as json.")
+            return 0
 
         # split msg into small frames
         frames = []

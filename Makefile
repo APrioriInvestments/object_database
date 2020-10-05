@@ -21,7 +21,9 @@ TP_LIB_PATH ?= build/lib.linux-x86_64-3.6/typed_python
 ODB_BUILD_PATH ?= build/temp.linux-x86_64-3.6/object_database
 ODB_LIB_PATH ?= build/lib.linux-x86_64-3.6/object_database
 
-CPP_FLAGS = -std=c++14  -O2  -Wall  -pthread  -DNDEBUG  -g  -fwrapv         \
+TP_BUILD_OPT_LEVEL ?= 2
+
+CPP_FLAGS = -std=c++14  -O$(TP_BUILD_OPT_LEVEL)  -Wall  -pthread  -DNDEBUG  -g  -fwrapv         \
             -fstack-protector-strong  -D_FORTIFY_SOURCE=2  -fPIC            \
             -Wno-terminate -Wno-bool-compare                                \
             -Wno-cpp                                                        \

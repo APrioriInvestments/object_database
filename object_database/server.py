@@ -1139,6 +1139,9 @@ class Server:
         for channel in channelsTriggeredForPriors:
             channel.sendTransaction(ServerToClient.LazyTransactionPriors(writes=priorValues))
 
+        set_adds = {k: tuple(v) for k, v in set_adds.items()}
+        set_removes = {k: tuple(v) for k, v in set_removes.items()}
+
         transaction_message = ServerToClient.Transaction(
             writes={k: v for k, v in key_value.items()},
             set_adds=set_adds,

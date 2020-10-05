@@ -68,7 +68,7 @@ public:
 
     static TupleOf<element_type> fromPython(PyObject* p) {
         TupleOfType::layout* l = nullptr;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return TupleOf<element_type>(l);
     }
 

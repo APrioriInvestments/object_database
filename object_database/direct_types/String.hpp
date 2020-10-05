@@ -28,7 +28,7 @@ public:
 
     static String fromPython(PyObject* p) {
         StringType::layout* l = nullptr;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return String(l);
     }
 

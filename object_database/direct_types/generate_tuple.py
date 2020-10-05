@@ -40,7 +40,7 @@ def gen_tuple_type(full_name, *args):
         ret.append(f"    typedef {value} {key}_type;")
     for i, (key, value) in enumerate(items):
         offset = (
-            "" if i == 0 else " + " + " + ".join([f"size" + str(j) for j in range(1, i + 1)])
+            "" if i == 0 else " + " + " + ".join(["size" + str(j) for j in range(1, i + 1)])
         )
         ret.append(f"    {key}_type& {key}() const {{ return *({key}_type*)(data{offset}); }}")
     ret.append("    static Tuple* getType() {")
@@ -59,7 +59,7 @@ def gen_tuple_type(full_name, *args):
     ret.append(f"        {name} l;")
     ret.append(
         "        PyInstance::copyConstructFromPythonInstance"
-        "(getType(), (instance_ptr)&l, p, true);"
+        "(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);"
     )
     ret.append("        return l;")
     ret.append("    }")

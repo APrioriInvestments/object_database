@@ -682,7 +682,8 @@ class DatabaseConnection:
                     # not, 'write' which queues the message after this function finishes!
                     self._channel.sendMessage(ClientToServer.Heartbeat())
                     t0 = time.time()
-        return setAdds
+
+        return {k: tuple(v) for k, v in setAdds.items()}
 
     def requestLazyObjects(self, objects):
         with self._lock:

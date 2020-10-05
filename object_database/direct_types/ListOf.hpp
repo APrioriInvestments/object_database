@@ -67,7 +67,7 @@ public:
 
     static ListOf<element_type> fromPython(PyObject* p) {
         ListOfType::layout* l = nullptr;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return ListOf<element_type>(l);
     }
 
@@ -166,4 +166,3 @@ public:
 
     static const uint64_t bytecount = sizeof(void*);
 };
-

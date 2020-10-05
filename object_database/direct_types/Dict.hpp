@@ -77,7 +77,7 @@ public:
 
     static Dict<key_type, value_type> fromPython(PyObject* p) {
         hash_table_layout* l = nullptr;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return Dict<key_type, value_type>(l);
     }
 
@@ -183,4 +183,3 @@ public:
 
     static const uint64_t bytecount = sizeof(void*);
 };
-

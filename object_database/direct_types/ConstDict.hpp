@@ -71,7 +71,7 @@ public:
 
     static ConstDict fromPython(PyObject* p) {
         ConstDictType::layout* l = nullptr;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return ConstDict<key_type, value_type>(l);
     }
 
@@ -203,4 +203,3 @@ public:
 
     static const uint64_t bytecount = sizeof(void*);
 };
-

@@ -374,7 +374,7 @@ int PyDatabaseObjectType::tp_init(PyObject* self, PyObject* args, PyObject* kwar
 
             try {
                 typedArgs[argName] = Instance(argType, [&](instance_ptr tgt) {
-                    PyInstance::copyConstructFromPythonInstance(argType, tgt, value, true);
+                    PyInstance::copyConstructFromPythonInstance(argType, tgt, value, ConversionLevel::ImplicitContainers);
                 });
             } catch(std::exception& e) {
                 throw std::runtime_error(
@@ -456,7 +456,7 @@ int PyDatabaseObjectType::tp_setattro(PyObject *o, PyObject* attrName, PyObject*
             Type* fieldType = fieldIt->second;
 
             Instance i(fieldType, [&](instance_ptr tgt) {
-                PyInstance::copyConstructFromPythonInstance(fieldType, tgt, attrVal, true);
+                PyInstance::copyConstructFromPythonInstance(fieldType, tgt, attrVal, ConversionLevel::ImplicitContainers);
             });
 
             setFieldValue(obType, oid, attr, fieldType, i.data());
@@ -1182,7 +1182,7 @@ std::pair<field_id, index_value> PyDatabaseObjectType::parseIndexLookupKwarg(Vie
     Type* indexValType = m_indexTypes[argName];
 
     Instance indexVal(indexValType, [&](instance_ptr tgt) {
-        PyInstance::copyConstructFromPythonInstance(indexValType, tgt, value, true);
+        PyInstance::copyConstructFromPythonInstance(indexValType, tgt, value, ConversionLevel::ImplicitContainers);
     });
 
     SerializationBuffer buffer(*view->getSerializationContext());

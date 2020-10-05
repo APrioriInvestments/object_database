@@ -79,7 +79,7 @@ def gen_alternative_type(full_name, d):
     ret.append("        Alternative::layout* l = nullptr;")
     ret.append(
         "        PyInstance::copyConstructFromPythonInstance"
-        "(getType(), (instance_ptr)&l, p, true);"
+        "(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);"
     )
     ret.append(f"        return {name}(l);")
     ret.append("    }")
@@ -180,7 +180,7 @@ def gen_alternative_type(full_name, d):
             ret.append("    }")
         ret.append(f"    {name}_{nt}(const {name}_{nt}& other):{name}(kind::{nt}) {{")
         ret.append(
-            f"        getType()->copy_constructor((instance_ptr)&mLayout, "
+            "        getType()->copy_constructor((instance_ptr)&mLayout, "
             "(instance_ptr)&other.mLayout);"
         )
         ret.append("    }")
@@ -196,7 +196,7 @@ def gen_alternative_type(full_name, d):
             offset = (
                 ""
                 if i == 0
-                else " + " + " + ".join([f"size" + str(j) for j in range(1, i + 1)])
+                else " + " + " + ".join(["size" + str(j) for j in range(1, i + 1)])
             )
             ret.append(f"    {t}& {a}() const {{ return *({t}*)(mLayout->data{offset}); }}")
         ret.append("private:")

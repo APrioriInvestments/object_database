@@ -21,7 +21,7 @@ public:
     }
     static A fromPython(PyObject* p) {
         Alternative::layout* l = nullptr;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return A(l);
     }
 
@@ -188,7 +188,7 @@ public:
     }
     static Overlap fromPython(PyObject* p) {
         Alternative::layout* l = nullptr;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::Implicit);
         return Overlap(l);
     }
 
@@ -377,7 +377,7 @@ public:
 
     static NamedTupleTwoStrings fromPython(PyObject* p) {
         NamedTupleTwoStrings l;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return l;
     }
 
@@ -452,7 +452,7 @@ public:
         }
         return t;
     }
-    static const uint64_t bytecount = 
+    static const uint64_t bytecount =
         sizeof(NamedTupleTwoStrings::X_type) +
         sizeof(NamedTupleTwoStrings::Y_type);
 };
@@ -486,7 +486,7 @@ public:
 
     static NamedTupleBoolIntStr fromPython(PyObject* p) {
         NamedTupleBoolIntStr l;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return l;
     }
 
@@ -573,7 +573,7 @@ public:
         }
         return t;
     }
-    static const uint64_t bytecount = 
+    static const uint64_t bytecount =
         sizeof(NamedTupleBoolIntStr::b_type) +
         sizeof(NamedTupleBoolIntStr::i_type) +
         sizeof(NamedTupleBoolIntStr::s_type);
@@ -608,7 +608,7 @@ public:
 
     static NamedTupleIntFloatDesc fromPython(PyObject* p) {
         NamedTupleIntFloatDesc l;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return l;
     }
 
@@ -695,7 +695,7 @@ public:
         }
         return t;
     }
-    static const uint64_t bytecount = 
+    static const uint64_t bytecount =
         sizeof(NamedTupleIntFloatDesc::a_type) +
         sizeof(NamedTupleIntFloatDesc::b_type) +
         sizeof(NamedTupleIntFloatDesc::desc_type);
@@ -725,7 +725,7 @@ public:
 
     static NamedTupleBoolListOfInt fromPython(PyObject* p) {
         NamedTupleBoolListOfInt l;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return l;
     }
 
@@ -800,7 +800,7 @@ public:
         }
         return t;
     }
-    static const uint64_t bytecount = 
+    static const uint64_t bytecount =
         sizeof(NamedTupleBoolListOfInt::X_type) +
         sizeof(NamedTupleBoolListOfInt::Y_type);
 };
@@ -829,7 +829,7 @@ public:
 
     static NamedTupleAttrAndValues fromPython(PyObject* p) {
         NamedTupleAttrAndValues l;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return l;
     }
 
@@ -904,7 +904,7 @@ public:
         }
         return t;
     }
-    static const uint64_t bytecount = 
+    static const uint64_t bytecount =
         sizeof(NamedTupleAttrAndValues::attributes_type) +
         sizeof(NamedTupleAttrAndValues::values_type);
 };
@@ -930,7 +930,7 @@ public:
 
     static Anon27165584 fromPython(PyObject* p) {
         Anon27165584 l;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return l;
     }
 
@@ -1005,7 +1005,7 @@ public:
         }
         return t;
     }
-    static const uint64_t bytecount = 
+    static const uint64_t bytecount =
         sizeof(Anon27165584::a0_type) +
         sizeof(Anon27165584::a1_type);
 };
@@ -1031,7 +1031,7 @@ public:
 
     static Anon27173904 fromPython(PyObject* p) {
         Anon27173904 l;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return l;
     }
 
@@ -1106,7 +1106,7 @@ public:
         }
         return t;
     }
-    static const uint64_t bytecount = 
+    static const uint64_t bytecount =
         sizeof(Anon27173904::a0_type) +
         sizeof(Anon27173904::a1_type);
 };
@@ -1135,7 +1135,7 @@ public:
 
     static Anon27201024 fromPython(PyObject* p) {
         Anon27201024 l;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return l;
     }
 
@@ -1210,7 +1210,7 @@ public:
         }
         return t;
     }
-    static const uint64_t bytecount = 
+    static const uint64_t bytecount =
         sizeof(Anon27201024::x_type) +
         sizeof(Anon27201024::y_type);
 };
@@ -1244,7 +1244,7 @@ public:
 
     static AnonTest fromPython(PyObject* p) {
         AnonTest l;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return l;
     }
 
@@ -1343,7 +1343,7 @@ public:
         }
         return t;
     }
-    static const uint64_t bytecount = 
+    static const uint64_t bytecount =
         sizeof(AnonTest::a0_type) +
         sizeof(AnonTest::a1_type) +
         sizeof(AnonTest::a2_type) +
@@ -1376,7 +1376,7 @@ public:
     }
     static Bexpress fromPython(PyObject* p) {
         Alternative::layout* l = nullptr;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return Bexpress(l);
     }
 
@@ -1557,4 +1557,3 @@ Bexpress Bexpress::right() const {
 }
 
 // END Generated Alternative Bexpress
-

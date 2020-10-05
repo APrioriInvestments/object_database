@@ -74,6 +74,7 @@ def main(argv=None):
     loglevel_name = "INFO"
 
     with tempfile.TemporaryDirectory() as tmpDirName:
+        server = None
         try:
             server = startServiceManagerProcess(
                 tmpDirName, port, token, loglevelName=loglevel_name, logDir=False
@@ -164,8 +165,9 @@ def main(argv=None):
             while True:
                 time.sleep(0.1)
         finally:
-            server.terminate()
-            server.wait()
+            if server is not None:
+                server.terminate()
+                server.wait()
 
     return 0
 

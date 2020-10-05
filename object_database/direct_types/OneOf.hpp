@@ -59,7 +59,7 @@ public:
 
     static OneOf<T1, Ts...> fromPython(PyObject* p) {
         OneOf<T1, Ts...>::layout l;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return OneOf<T1, Ts...>(l);
     }
 

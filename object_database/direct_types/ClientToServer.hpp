@@ -26,7 +26,7 @@ public:
 
     static ObjectFieldId fromPython(PyObject* p) {
         ObjectFieldId l;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return l;
     }
 
@@ -113,7 +113,7 @@ public:
         }
         return t;
     }
-    static const uint64_t bytecount = 
+    static const uint64_t bytecount =
         sizeof(ObjectFieldId::objId_type) +
         sizeof(ObjectFieldId::fieldId_type) +
         sizeof(ObjectFieldId::isIndexValue_type);
@@ -143,7 +143,7 @@ public:
 
     static IndexId fromPython(PyObject* p) {
         IndexId l;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return l;
     }
 
@@ -218,7 +218,7 @@ public:
         }
         return t;
     }
-    static const uint64_t bytecount = 
+    static const uint64_t bytecount =
         sizeof(IndexId::fieldId_type) +
         sizeof(IndexId::indexValue_type);
 };
@@ -247,7 +247,7 @@ public:
 
     static ValueType fromPython(PyObject* p) {
         ValueType l;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return l;
     }
 
@@ -322,7 +322,7 @@ public:
         }
         return t;
     }
-    static const uint64_t bytecount = 
+    static const uint64_t bytecount =
         sizeof(ValueType::fields_type) +
         sizeof(ValueType::indices_type);
 };
@@ -348,7 +348,7 @@ public:
 
     static Anon30231616 fromPython(PyObject* p) {
         Anon30231616 l;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return l;
     }
 
@@ -423,7 +423,7 @@ public:
         }
         return t;
     }
-    static const uint64_t bytecount = 
+    static const uint64_t bytecount =
         sizeof(Anon30231616::a0_type) +
         sizeof(Anon30231616::a1_type);
 };
@@ -464,7 +464,7 @@ public:
     }
     static ClientToServer fromPython(PyObject* p) {
         Alternative::layout* l = nullptr;
-        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, true);
+        PyInstance::copyConstructFromPythonInstance(getType(), (instance_ptr)&l, p, ConversionLevel::ImplicitContainers);
         return ClientToServer(l);
     }
 
@@ -914,4 +914,3 @@ String ClientToServer::token() const {
 }
 
 // END Generated Alternative ClientToServer
-

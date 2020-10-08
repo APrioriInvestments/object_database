@@ -36,8 +36,8 @@ class Badge extends Component {
 
 Badge.propTypes = {
     badgeStyle: {
-        description: "The style for the Badge. Can be 'primary' or ??",
-        type: PropTypes.oneOf(['primary'])
+        description: "The style for the Badge.",
+        type: PropTypes.oneOf(['primary', 'danger', 'success', 'warning', 'info', 'light', 'dark'])
     }
 };
 

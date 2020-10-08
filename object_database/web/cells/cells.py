@@ -2578,12 +2578,7 @@ class Table(Cell):
             pageCell = Cell.makeCell(totalPages).nowrap()
             self.children["page"] = pageCell
         else:
-            pageCell = (
-                SingleLineTextBox(self.curPage, pattern="[0-9]+")
-                .width(10 * len(str(totalPages)) + 6)
-                .height(20)
-                .nowrap()
-            )
+            pageCell = SingleLineTextBox(self.curPage, pattern="[0-9]+").nowrap()
             self.children["page"] = pageCell
         if self.curPage.get() == "1":
             leftCell = Octicon("triangle-left", color="lightgray").nowrap()

@@ -84,6 +84,13 @@ class CodeEditorStashedDemo(CellsTestPage):
         )
 
 
+# WARNING
+# These three tests are sequential, and rely on being run one after the other
+# becuase they depend on the state they left the system in from the prior test.
+# we should fix that. But for the moment, just note that you can't select them
+# and run them individuall and expect them to succeed.
+
+
 def test_stashed_editor_insert_text(headless_browser):
     # Test that we can find the editor and
     # add text to it.
@@ -117,7 +124,7 @@ def test_stashed_hides_code_editor(headless_browser):
     )
 
 
-def test_reloaded_editor_has_text(headless_browser):
+def test_stashed_reloaded_editor_has_text(headless_browser):
     # Now click the button again, revealing the editor
     # and ensure that the editor has the previous text
     # value we assigned to it in
@@ -128,7 +135,7 @@ def test_reloaded_editor_has_text(headless_browser):
     query = '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
     location = (headless_browser.by.CSS_SELECTOR, query)
     toggle_btn.click()
-    headless_browser.wait(5).until(
+    headless_browser.wait(15).until(
         headless_browser.expect.presence_of_element_located(location)
     )
     editor_content_area_query = "{} .ace_scroller".format(headless_browser.demo_root_selector)

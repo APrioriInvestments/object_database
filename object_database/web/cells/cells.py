@@ -2885,8 +2885,9 @@ class CodeEditor(Cell):
             ):
                 if msgFrame["buffer"] is not None:
                     self.exportData["initialText"] = msgFrame["buffer"]
-                    self.onTextChange(msgFrame["buffer"], msgFrame["selection"])
                     self.currentIteration = msgFrame["iteration"]
+                    self.onTextChange(msgFrame["buffer"], msgFrame["selection"])
+                    print("WROTE BUFFER INTO EDITOR")
 
                 self.selectionSlot.set(msgFrame["selection"])
 
@@ -2932,9 +2933,7 @@ class CodeEditor(Cell):
         self.currentIteration += 1000000
 
         self.triggerPostscript(
-            f"""
-            console.log("Setting contents to __text__")
-
+            """
             aceEditorComponents['editor__identity__'].setTextFromServer(
                 __iteration__,
                 "__text__",

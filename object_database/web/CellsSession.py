@@ -77,6 +77,22 @@ class CellsSession:
 
         self.readThread = None
 
+    def makeMessageCallback(self, jsonMsg):
+        """Return a callback that processes 'jsonMsg'
+
+        We have to process messages on the same thread as the rest of Cells or
+        we'll get race conditions.
+        """
+
+        def callbackFun():
+            cell_id = jsonMsg.get("target_cell")
+            cell = self.cells[cell_id]
+
+            if cell is not None:
+                cell.onMessageWithTransaction(jsonMsg)
+
+        return callbackFun
+
     def readThreadLoop(self):
         while not self.shouldStop.is_set():
             msg = self.inboundMessageQueue.get()
@@ -91,15 +107,9 @@ class CellsSession:
                 if "ACK" in jsonMsg:
                     self.largeMessageAck.put(jsonMsg["ACK"])
                 else:
-                    cell_id = jsonMsg.get("target_cell")
-                    cell = self.cells[cell_id]
-
-                    if cell is not None:
-                        cell.onMessageWithTransaction(jsonMsg)
+                    self.cells.scheduleCallback(self.makeMessageCallback(jsonMsg))
             except Exception:
                 self._logger.exception("Exception in inbound message:")
-
-            self.cells.triggerIfHasDirty()
 
         self.largeMessageAck.put(DISCONNECT)
 

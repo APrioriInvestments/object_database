@@ -26,6 +26,7 @@ from object_database.web.cells import (
     HorizontalSubscribedSequence,
     HSubscribedSequence,
     VSubscribedSequence,
+    ComputedSlot,
     Span,
     Text,
     Slot,
@@ -152,6 +153,58 @@ class CellsTests(unittest.TestCase):
 
         # Assert that the first Container has a Cell child
         self.assertIsInstance(pair[0].children["child"], Cell)
+
+    def test_cells_computed_slot(self):
+        aSlot = ComputedSlot(lambda: len(Thing.lookupAll()))
+
+        # make a 'subscribed' that translates the slot value into a
+        # something that will read it and keep it alive
+        subs = Subscribed(lambda: str(aSlot.get()))
+        self.cells.withRoot(subs)
+
+        self.cells.renderMessages()
+
+        assert subs.children["content"].text == "0"
+
+        with self.db.transaction():
+            Thing(x=1, k=1)
+            Thing(x=2, k=2)
+
+        self.cells.renderMessages()
+
+        assert subs.children["content"].text == "2"
+
+        aSlot2 = ComputedSlot(lambda: aSlot.get() + 2)
+
+        subs = Subscribed(lambda: str(aSlot2.get()))
+        self.cells.withRoot(subs)
+
+        self.cells.renderMessages()
+        assert subs.children["content"].text == "4"
+
+        with self.db.transaction():
+            Thing(x=1, k=1)
+            Thing(x=2, k=2)
+
+        self.cells.renderMessages()
+        assert subs.children["content"].text == "6"
+
+        self.cells.withRoot(Text("HI"))
+
+        self.cells.renderMessages()
+
+        with self.db.transaction():
+            Thing(x=1, k=1)
+            Thing(x=2, k=2)
+
+        self.cells.renderMessages()
+
+        assert aSlot.garbageCollected
+        assert aSlot2.garbageCollected
+
+        with self.db.transaction():
+            Thing(x=1, k=1)
+            Thing(x=2, k=2)
 
     def test_cells_reusable(self):
         c1 = Card(Text("HI"))

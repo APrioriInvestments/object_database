@@ -22,7 +22,7 @@ import numpy
 
 from object_database.web.cells import Messenger
 from object_database.web.cells.children import Children
-
+from object_database import MaskView
 from object_database.view import RevisionConflictException
 from object_database.view import current_transaction
 from object_database.util import Timer
@@ -467,15 +467,19 @@ class Cells:
     def _recalculateComputedSlots(self):
         t0 = time.time()
 
-        slotsComputed = 0
+        slotsComputed = set()
         while self._dirtyComputedSlots:
-            slotsComputed += 1
             slot = self._dirtyComputedSlots.pop()
+            slotsComputed.add(slot)
             slot.cells = self
             slot.ensureCalculated()
 
         if slotsComputed:
-            logging.info("Recomputed %s ComputedSlots in %s", slotsComputed, time.time() - t0)
+            logging.info(
+                "Recomputed %s ComputedSlots in %s", len(slotsComputed), time.time() - t0
+            )
+
+        return slotsComputed
 
     def _recalculateCells(self):
         # handle all the transactions so far
@@ -488,7 +492,7 @@ class Cells:
         except queue.Empty:
             pass
 
-        self._recalculateComputedSlots()
+        slotsRecomputed = self._recalculateComputedSlots()
 
         while self._dirtyNodes:
             cellsByLevel = {}
@@ -501,6 +505,23 @@ class Cells:
                 for node in nodesAtThisLevel:
                     if not node.garbageCollected:
                         self._recalculateSingleCell(node)
+
+        # walk all the computed slots and drop any that
+        # no longer have anybody looking at them so that we don't keep
+        # recomputing them.
+        orphanedAny = True
+        orphanedCount = 0
+        while orphanedAny:
+            orphanedAny = False
+
+            for s in list(slotsRecomputed):
+                if s.orphanSelfIfUnused():
+                    slotsRecomputed.discard(s)
+                    orphanedCount += 1
+                    orphanedAny = True
+
+        if orphanedCount:
+            logging.info("GC'd %s ComputedSlot objects", orphanedCount)
 
     def _recalculateSingleCell(self, node):
         if node.wasDataUpdated:
@@ -601,6 +622,9 @@ class Slot:
     def setter(self, val):
         return lambda: self.set(val)
 
+    def onWatchingSlot(self, slot):
+        pass
+
     def getWithoutRegisteringDependency(self):
         return self._value
 
@@ -613,6 +637,7 @@ class Slot:
 
         if curCell is not None and not ComputingCellContext.isProcessingMessage():
             self._subscribedCells.add(curCell)
+            curCell.onWatchingSlot(self)
 
         return self._value
 
@@ -642,24 +667,74 @@ class Slot:
 
 
 class ComputedSlot(Slot):
+    """Models a value that's computed from other Slot and ODB values.
+
+    This lets us stash expensive computations in the Slot and re-use them
+    in many places in the UI. It also allows us to break update chains caused
+    by computations reading from many different slots.
+
+    Usage:
+        # create a computed slot
+        x = ComputedSlot(lambda: someCalc)
+
+        # this reads the value of the computed slot and registers
+        # a dependency on it. If the slot recomputes but the value doesn't
+        # change, then you won't redeploy.
+        x.get()
+
+    Optionally you can add a 'setter' to it, and get a callback that lets you
+    push the 'set' operation into some other slot or ODB value.
+    """
+
     def __init__(self, valueFunction, onSet=None):
         self._valueFunction = valueFunction
         self._onSet = onSet
         self._value = None
         self._valueUpToDate = False
         self._subscribedCells = set()
+        self._slotsWatching = set()
+        self.subscriptions = set()
         self.cells = None
+        self.garbageCollected = False
 
     def getWithoutRegisteringDependency(self):
         self.ensureCalculated()
 
         return self._value
 
+    def onWatchingSlot(self, slot):
+        self._slotsWatching.add(slot)
+
+    def orphanSelfIfUnused(self):
+        """Check if nobody is using us and if so, mark ourselves as 'garbageCollected'
+
+        In this case, we also unhook ourselves from our subscriptions so that we don't
+        recalculate.
+
+        This should only get called _after_ the graph has settled down fully, so that
+        we know everything is OK.
+        """
+        if not self._subscribedCells:
+            self.garbageCollected = True
+
+            for s in self.subscriptions:
+                self.cells.unsubscribeCell(self, s)
+            self.subscriptions = set()
+
+            for s in self._slotsWatching:
+                s.slotGoingAway(self)
+
+            return True
+
+    def slotGoingAway(self, subSlot):
+        self._subscribedCells.discard(subSlot)
+
     def get(self):
         if self.cells is None and ComputingCellContext.get():
             self.cells = ComputingCellContext.get().cells
 
         self.ensureCalculated()
+
         return super().get()
 
     def set(self, val):
@@ -681,17 +756,53 @@ class ComputedSlot(Slot):
             self.cells.computedSlotDirty(self)
 
     def ensureCalculated(self):
+        if self.cells is None and ComputingCellContext.get():
+            self.cells = ComputingCellContext.get().cells
+
         if self._valueUpToDate:
             return
 
-        with ComputingCellContext(self):
-            oldValue = self._value
+        self._slotsWatching = set()
 
-            self._value = self._valueFunction()
-            self._valueUpToDate = True
+        while True:
+            try:
+                with ComputingCellContext(self):
+                    with MaskView():
+                        with self.cells.db.view() as v:
+                            oldValue = self._value
 
-            if oldValue != self._value:
-                self._triggerListeners()
+                            try:
+                                self._value = self._valueFunction()
+                            except SubscribeAndRetry:
+                                raise
+                            except Exception:
+                                logging.warn(
+                                    "Computed slot threw an exception: %s",
+                                    traceback.format_exc(),
+                                )
+                                self._value = None
+
+                            self._resetSubscriptionsToViewReads(v)
+
+                            self._valueUpToDate = True
+
+                            if oldValue != self._value:
+                                self._triggerListeners()
+
+                return
+            except SubscribeAndRetry as e:
+                e.callback(self.cells.db)
+
+    def _resetSubscriptionsToViewReads(self, view):
+        new_subscriptions = set(view.getFieldReads()).union(set(view.getIndexReads()))
+
+        for k in new_subscriptions.difference(self.subscriptions):
+            self.cells.subscribeCell(self, k)
+
+        for k in self.subscriptions.difference(new_subscriptions):
+            self.cells.unsubscribeCell(self, k)
+
+        self.subscriptions = new_subscriptions
 
 
 class SessionState(object):
@@ -801,6 +912,10 @@ class Cell:
     def onRemovedFromTree(self):
         """Called when a cell is removed from the tree. This shouldn't update any slots,
         but may schedule callbacks."""
+        pass
+
+    def onWatchingSlot(self, slot):
+        """Called when we become tied to the value of a slot."""
         pass
 
     def subscribedSlotChanged(self, slot):

@@ -112,15 +112,17 @@ class CodeEditor extends Component {
     componentDidUpdate(projector){
         // Replace the placeholder with the cached
         // DOM element
-        let placeholder = document.getElementById(`placeholder-${this.props.id}`);
-        if(placeholder){
-            placeholder.replaceWith(this._cachedDOMNode);
-        } else {
-            throw new Error(`Could not find replacement node for ${this.name}[${this.props.id}]`);
+        if (this.hasRenderedBefore) {
+            let placeholder = document.getElementById(`placeholder-${this.props.id}`);
+            if(placeholder){
+                placeholder.replaceWith(this._cachedDOMNode);
+            } else {
+                throw new Error(`Could not find replacement node for ${this.name}[${this.props.id}]`);
+            }
+            let newEditor = ace.edit(`editor${this.props.id}`);
+            newEditor.setSession(this.editor.session);
+            this.editor = newEditor;
         }
-        let newEditor = ace.edit(`editor${this.props.id}`);
-        newEditor.setSession(this.editor.session);
-        this.editor = newEditor;
     }
 
 

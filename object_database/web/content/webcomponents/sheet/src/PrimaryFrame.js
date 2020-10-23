@@ -155,19 +155,26 @@ class PrimaryFrame extends TableElementsFrame {
         // Begin with columns
         this.lockedColumnsFrame.forEachPoint(aPoint => {
             let el = this.elementAt(aPoint);
-            el.classList.remove(...classesToClear);
-            el.classList.add('in-locked-column');
+            if (el !== null) {
+                el.classList.remove(...classesToClear);
+                el.classList.add('in-locked-column');
+            }
         });
         this.lockedRowsFrame.forEachPoint(aPoint => {
             let el = this.elementAt(aPoint);
-            el.classList.remove(...classesToClear);
-            el.classList.add('in-locked-row');
+            if (el !== null) {
+                el.classList.remove(...classesToClear);
+                el.classList.add('in-locked-row');
+            }
         });
         this.viewFrame.forEachPoint(aPoint => {
             let el = this.elementAt(aPoint);
-            el.classList.remove(...classesToClear);
-            el.classList.add('view-cell');
+            if (el !== null) {
+                el.classList.remove(...classesToClear);
+                el.classList.add('view-cell');
+            }
         });
+
     }
 
     /**
@@ -247,13 +254,15 @@ class PrimaryFrame extends TableElementsFrame {
                     aPoint.y - offset.y
                 ]);
                 let element = this.elementAt(translation);
-                if(dataValue != undefined){
-                    this.setTextContentAt(translation, dataValue.toString());
-                } else {
-                    this.setTextContentAt(translation, '...');
+                if (element !== null) {
+                    if(dataValue != undefined){
+                        this.setTextContentAt(translation, dataValue.toString());
+                    } else {
+                        this.setTextContentAt(translation, '...');
+                    }
+                    element.setAttribute('data-relative-x', aPoint.x);
+                    element.setAttribute('data-relative-y', aPoint.y);
                 }
-                element.setAttribute('data-relative-x', aPoint.x);
-                element.setAttribute('data-relative-y', aPoint.y);
             });
         }
     }
@@ -274,14 +283,17 @@ class PrimaryFrame extends TableElementsFrame {
                 aPoint.x - offset.x,
                 aPoint.y - offset.y
             ]);
-            let element =  this.elementAt(translation);
-            if(value != undefined){
-                this.setTextContentAt(translation, value.toString());
-            } else {
-                this.setTextContentAt(translation, '...');
+            let element = this.elementAt(translation);
+
+            if (element !== null) {
+                if(value != undefined){
+                    this.setTextContentAt(translation, value.toString());
+                } else {
+                    this.setTextContentAt(translation, '...');
+                }
+                element.setAttribute('data-relative-x', aPoint.x);
+                element.setAttribute('data-relative-y', aPoint.y);
             }
-            element.setAttribute('data-relative-x', aPoint.x);
-            element.setAttribute('data-relative-y', aPoint.y);
         });
     }
 
@@ -519,8 +531,8 @@ class PrimaryFrame extends TableElementsFrame {
             (this.dataOffset.y + this.numLockedRows)
         ]);
         let corner = new Point([
-            (this.corner.x + this.dataOffset.x),
-            (this.corner.y + this.dataOffset.y)
+            Math.max(origin.x, this.corner.x + this.dataOffset.x),
+            Math.max(origin.y, this.corner.y + this.dataOffset.y)
         ]);
         return new Frame(origin, corner);
     }

@@ -1344,7 +1344,8 @@ class Modal(Cell):
                 "message": self.message,
             }
         )
-        self.exportData["show"] = self.show.get()
+        with ComputingCellContext(self):
+            self.exportData["show"] = self.show.get()
 
     def onMessage(self, messageFrame):
         if messageFrame["event"] == "close":

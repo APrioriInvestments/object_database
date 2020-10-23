@@ -252,9 +252,16 @@ class Component {
         }*/
         if(foundChild){
             let velement = render(foundChild);
+
+            // some children don't render themselves
+            if (velement === null) {
+                return null;
+            }
+
             velement.key = foundChild;
             return velement;
         }
+
         return null;
     }
 

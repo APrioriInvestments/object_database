@@ -13,7 +13,6 @@ import {Component, render} from './components/Component';
  **/
 window.langTools = ace.require("ace/ext/language_tools");
 window.aceEditorComponents = {};
-window.handsOnTables = {};
 window.keyRegistry = new KeyRegistry();
 
 /**

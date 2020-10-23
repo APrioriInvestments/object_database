@@ -32,7 +32,11 @@ class Sheet extends Component {
         // We cache a reference
         // do the DOM node we will
         // ultimately create.
-        this._cachedNode = null;
+        this._cachedDOMNode = null;
+
+        // every time we rebuild ourselves and want to remember our
+        // dom element we set this to true
+        this._isCachedInPlaceholder = false;
 
         // We store the created KeyBindings
         // here for now for debugging
@@ -97,6 +101,28 @@ class Sheet extends Component {
     componentDidLoad(){
         this.setupEvents();
         this.setupResize();
+
+        if(this.numRenders == 1){
+            this._cachedDOMNode = this.getDOMElement();
+        }
+    }
+
+    componentDidUpdate(projector) {
+        // Replace the placeholder with the cached
+        // DOM element
+        if (this._isCachedInPlaceholder) {
+            this._isCachedInPlaceholder = false;
+
+            let placeholder = document.getElementById(`placeholder-${this.props.id}`);
+            if(placeholder){
+                placeholder.replaceWith(this._cachedDOMNode);
+
+                // placeholder replacement deregisters our resize listener.
+                this.setupResize();
+            } else {
+                throw new Error(`Could not find replacement node for ${this.name}[${this.props.id}]`);
+            }
+        }
     }
 
     componentWillUnload(){
@@ -286,10 +312,10 @@ class Sheet extends Component {
         this.keyListener.start();
     }
 
-    /* I watch for size changes of the partent container and resize
+    /* I watch for size changes of the parent container and resize
      * the sheet accordingly.
      */
-    setupResize(){
+    setupResize() {
         this.container = this.getDOMElement().parentNode;
         const ro = new ResizeObserver(entries => {
             this.resize();
@@ -302,27 +328,37 @@ class Sheet extends Component {
     }
 
     build(){
-        return h('ap-sheet', {
-            id: this.getElementId(),
-            class: 'cell sheet-cell',
-            'data-cell-id': this.props.id,
-            'data-cell-type': 'Sheet',
-            afterCreate: this.afterCreate,
-            'locked-rows': this.props.numLockRows,
-            'locked-columns': this.props.numLockColumns,
-            'total-rows': this.props.totalRows,
-            'total-columns': this.props.totalColumns,
-            'onmousedown': this.onMouseDown,
-            'onmouseup': this.onMouseUp,
-            'onmousemove': this.onMouseMove,
-            'onmouseleave': this.onMouseLeave,
-            'onmouseenter': this.onMouseEnter,
-            'onwheel': this.onMouseWheel
-        }, []);
+        if(this.hasRenderedBefore){
+            console.log(`Cached re-render of ${this.name}[${this.props.id}]`);
+
+            this._isCachedInPlaceholder = true;
+
+            return h('div', {
+                class: "cell-placeholder",
+                id: `placeholder-${this.props.id}`
+            }, []);
+        } else {
+            return h('ap-sheet', {
+                id: this.getElementId(),
+                class: 'cell sheet-cell',
+                'data-cell-id': this.props.id,
+                'data-cell-type': 'Sheet',
+                afterCreate: this.afterCreate,
+                'locked-rows': this.props.numLockRows,
+                'locked-columns': this.props.numLockColumns,
+                'total-rows': this.props.totalRows,
+                'total-columns': this.props.totalColumns,
+                'onmousedown': this.onMouseDown,
+                'onmouseup': this.onMouseUp,
+                'onmousemove': this.onMouseMove,
+                'onmouseleave': this.onMouseLeave,
+                'onmouseenter': this.onMouseEnter,
+                'onwheel': this.onMouseWheel
+            }, []);
+        }
     }
 
     afterCreate(element){
-        this._cachedNode = element;
         element.setAttribute('total-columns', this.props.totalColumns);
         element.setAttribute('total-rows', this.props.totalRows);
 

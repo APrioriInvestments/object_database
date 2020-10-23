@@ -49,6 +49,13 @@ class KeyAction extends Component {
         return null;
     }
 
+    render() {
+        // This is a non-display cell
+        // and does not add any elements
+        // to the DOM.
+        return null;
+    }
+
     onKeyDown(event){
         let responseData = {
             event: 'keydown',

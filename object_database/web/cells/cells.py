@@ -625,6 +625,9 @@ class Slot:
     def onWatchingSlot(self, slot):
         pass
 
+    def slotGoingAway(self, subSlot):
+        self._subscribedCells.discard(subSlot)
+
     def getWithoutRegisteringDependency(self):
         return self._value
 
@@ -725,9 +728,6 @@ class ComputedSlot(Slot):
                 s.slotGoingAway(self)
 
             return True
-
-    def slotGoingAway(self, subSlot):
-        self._subscribedCells.discard(subSlot)
 
     def get(self):
         if self.cells is None and ComputingCellContext.get():

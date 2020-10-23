@@ -582,7 +582,7 @@ void PyDatabaseObjectType::checkVisible(View* view, PyObject* o) {
     if (!view) {
         view = View::currentView();
         if (!view) {
-            throw std::runtime_error("Database attributes cannot be set without an active transaction.");
+            throw std::runtime_error("Database attributes cannot be read without an active transaction.");
         }
     }
 

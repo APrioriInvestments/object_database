@@ -119,7 +119,7 @@ class CellsSession:
         We chunk it into small frames of 32 kb apiece to keep the browser
         from getting overloaded.
         """
-        FRAME_SIZE = 32 * 1024
+        FRAME_SIZE = 128 * 1024
         FRAMES_PER_ACK = 10
 
         try:

@@ -16,7 +16,7 @@ class _PlotUpdater extends Component {
         this.runUpdate = this.runUpdate.bind(this);
         this.listenForPlot = this.listenForPlot.bind(this);
         this.recursivelyUnpackNumpyArrays = this.recursivelyUnpackNumpyArrays.bind(this);
-        this.unpackHexFloats = this.unpackHexFloats.bind(this);
+        this.unpackHexEncodedArray = this.unpackHexEncodedArray.bind(this);
         this.hexcharToInt = this.hexcharToInt.bind(this);
         this.mergeObjects = this.mergeObjects.bind(this);
         this.lastWidth = -1
@@ -109,8 +109,8 @@ class _PlotUpdater extends Component {
 
     recursivelyUnpackNumpyArrays(elt) {
         if (typeof(elt) === "string") {
-            if (elt.startsWith("__hexencoded__")) {
-                return this.unpackHexFloats(elt.substr(14))
+            if (elt.startsWith("__hexencoded_")) {
+                return this.unpackHexEncodedArray(elt.substr(13, 3), elt.substr(18))
             }
             return elt
         }
@@ -141,20 +141,49 @@ class _PlotUpdater extends Component {
         return x - 48
     }
 
-    unpackHexFloats(x) {
-        if (typeof x != "string") {
-            return x
+    unpackHexEncodedArray(arrayType, arrayData) {
+        if (typeof arrayData != "string") {
+            return arrayData
         }
-        var buf = new ArrayBuffer(x.length/2);
+        var buf = new ArrayBuffer(arrayData.length/2);
         var bufView = new Uint8Array(buf);
 
-        for (var i=0, strLen=x.length/2; i < strLen; i+=1) {
+        for (var i=0, strLen=arrayData.length/2; i < strLen; i+=1) {
             bufView[i] = (
-                this.hexcharToInt(x.charCodeAt(i*2)) * 16 +
-                this.hexcharToInt(x.charCodeAt(i*2+1))
+                this.hexcharToInt(arrayData.charCodeAt(i*2)) * 16 +
+                this.hexcharToInt(arrayData.charCodeAt(i*2+1))
             )
         }
-        return new Float64Array(buf)
+        if (arrayType == "f64") {
+            return new Float64Array(buf)
+        }
+        if (arrayType == "f32") {
+            return new Float32Array(buf)
+        }
+        if (arrayType == "s64") {
+            return new BigInt64Array(buf)
+        }
+        if (arrayType == "s32") {
+            return new Int32Array(buf)
+        }
+        if (arrayType == "s16") {
+            return new Int16Array(buf)
+        }
+        if (arrayType == "s08") {
+            return new Int8Array(buf)
+        }
+        if (arrayType == "u64") {
+            return new BigUint64Array(buf)
+        }
+        if (arrayType == "u32") {
+            return new Uint32Array(buf)
+        }
+        if (arrayType == "u16") {
+            return new Uint16Array(buf)
+        }
+        if (arrayType == "u08") {
+            return new Uint8Array(buf)
+        }
     }
 
     mergeObjects(target, source) {

@@ -880,7 +880,7 @@ class Cell:
         self.isRoot = False
         self.isShrinkWrapped = False  # If will be shrinkwrapped inside flex parent
         self.isFlex = False  # If True, then we are 'Flex'
-        self._identity = None
+        self._identity = None  # None, or a string
         self._tag = None
         self._nowrap = None
         self._overflow = None
@@ -3242,7 +3242,31 @@ class _PlotUpdater(Cell):
 
             return res
         elif isinstance(trace, numpy.ndarray):
-            return "__hexencoded__" + trace.astype("float64").tostring().hex()
+            if trace.dtype == numpy.int64:
+                traceType = "s64"
+            elif trace.dtype == numpy.int32:
+                traceType = "s32"
+            elif trace.dtype == numpy.int16:
+                traceType = "s16"
+            elif trace.dtype == numpy.int8:
+                traceType = "s08"
+            elif trace.dtype == numpy.uint64:
+                traceType = "u64"
+            elif trace.dtype == numpy.uint32:
+                traceType = "u32"
+            elif trace.dtype == numpy.uint16:
+                traceType = "u16"
+            elif trace.dtype == numpy.uint8:
+                traceType = "u08"
+            elif trace.dtype == numpy.float64:
+                traceType = "f64"
+            elif trace.dtype == numpy.float32:
+                traceType = "f32"
+            else:
+                trace = trace.astype("float32")
+                traceType = "f32"
+
+            return f"__hexencoded_{traceType}__" + trace.tostring().hex()
         else:
             return trace
 

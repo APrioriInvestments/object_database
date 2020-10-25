@@ -185,8 +185,6 @@ class ActiveWebService(ServiceBase):
     def initialize(self):
         # dict from session id (cookie really) to a a list of
         # [cells.SessionState]
-        self.sessionStates = {}
-
         self.db.subscribeToType(Configuration)
         self.db.subscribeToType(LoginPlugin)
         self.db.subscribeToSchema(service_schema)
@@ -197,6 +195,7 @@ class ActiveWebService(ServiceBase):
             CORS(self.app)
             self.sockets = Sockets(self.app)
             self.configureApp()
+
         self.login_manager = LoginManager(self.app)
         self.login_manager.login_view = "login"
 

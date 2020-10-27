@@ -334,6 +334,10 @@ ap-sheet td.selection-bottom-border {
     opacity: 0.0;
 }
 
+.modal-dialog {
+    max-width: 800px;
+}
+
 .modal-cell-show {
     display: block;
     opacity: 1.0;

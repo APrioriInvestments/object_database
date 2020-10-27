@@ -201,12 +201,16 @@ class CodeEditor extends Component {
      */
     _updateData(dataInfos, projector) {
         dataInfos.map((dataInfo) => {
-            if (dataInfo.firstVisibleRow){
+            if (dataInfo.firstVisibleRow) {
                 console.log("CodeEditor updating first visible row to " + dataInfo.firstVisibleRow)
                 let row = parseInt(dataInfo.firstVisibleRow);
                 this.editor.resize(true);
                 this.editor.scrollToRow(row - 1)
                 this.editor.gotoLine(row, 0, true);
+            }
+            if (dataInfo.selection) {
+                console.log("CodeEditor updating selection to " + dataInfo.selection)
+                this.editor.selection.setSelectionRange(dataInfo.selection);
             }
         })
     }

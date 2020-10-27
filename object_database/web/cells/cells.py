@@ -3030,6 +3030,43 @@ class CodeEditor(Cell):
         self.wasDataUpdated = True
         self.markDirty()
 
+    def setSelection(self, selection):
+        """ Send a message to set the first visible row of the editor to
+        rowNum.
+
+        Args:
+            selection - a dict(
+                start=dict(row=int, column=int),
+                end=dict(row=int, column=int)
+            )
+
+            indicating what our selection state should be
+        """
+        assert isinstance(selection, dict)
+        selection = dict(
+            start=dict(
+                row=selection['start']['row'],
+                column=selection['start']['column'],
+            ),
+            end=dict(
+                row=selection['end']['row'],
+                column=selection['end']['column'],
+            )
+        )
+
+        self.selectionSlot.set(selection)
+
+        dataInfo = {"selection": selection}
+
+        # stage this piece of data to be sent when we recalculate
+        if self.exportData.get("dataInfo") is None:
+            self.exportData["dataInfo"] = [dataInfo]
+        else:
+            self.exportData["dataInfo"].append(dataInfo)
+
+        self.wasDataUpdated = True
+        self.markDirty()
+
     def setCurrentTextFromServer(self, text):
         if text is None:
             text = ""

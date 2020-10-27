@@ -242,8 +242,9 @@ class _PlotUpdater extends Component {
 
                     if (aDOMElement.data.length > 0) {
                         layoutToUse = {
-                            'xaxis': {'range': aDOMElement.layout.xaxis.range, 'autorange': false},
-                            'yaxis': {'range': aDOMElement.layout.yaxis.range}
+                            xaxis: {'range': aDOMElement.layout.xaxis.range, 'autorange': false},
+                            yaxis: {'range': aDOMElement.layout.yaxis.range},
+                            uirevision: 'true'
                         }
 
                         if (aDOMElement.layout.yaxis2 !== undefined) {

@@ -82,6 +82,10 @@ class Plot extends Component {
             {
                 margin: {t : 30, l: 30, r: 30, b:30 },
                 xaxis: {rangeslider: {visible: false}},
+                // setting this causes the uistate to persist across updates
+                // which are mostly caused by us zooming. This fixes the problem
+                // where we zoom and the plot state resets (e.g. series turned off/on etc)
+                uirevision: 'true'
             },
             { scrollZoom: true, dragmode: 'pan', displaylogo: false, displayModeBar: 'hover',
                 modeBarButtons: [ ['pan2d'], ['zoom2d'], ['zoomIn2d'], ['zoomOut2d'] ],

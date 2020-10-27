@@ -1319,6 +1319,7 @@ class Modal(Cell):
         else:
             self.show = show
         self.initButtons(buttonActions)
+        self.buttonActions = buttonActions
 
     def initButtons(self, buttonActions):
         def augmentButtonAction(onClick):
@@ -1350,6 +1351,9 @@ class Modal(Cell):
     def onMessage(self, messageFrame):
         if messageFrame["event"] == "close":
             self.show.set(False)
+            if "Cancel" in self.buttonActions:
+                self.buttonActions["Cancel"]()
+
         elif messageFrame["event"] == "accept":
             # First, run the default action,
             # which should be the one associated
@@ -3095,6 +3099,18 @@ class CodeEditor(Cell):
         """ Send a message to remove all row highlighting.
         """
         dataInfo = {"highlight": False}
+        # stage this piece of data to be sent when we recalculate
+        if self.exportData.get("dataInfo") is None:
+            self.exportData["dataInfo"] = [dataInfo]
+        else:
+            self.exportData["dataInfo"].append(dataInfo)
+
+        self.wasDataUpdated = True
+        self.markDirty()
+
+    def focusEditor(self):
+        """ Send a message to focus the editor immediately. """
+        dataInfo = {"focusNow": True}
         # stage this piece of data to be sent when we recalculate
         if self.exportData.get("dataInfo") is None:
             self.exportData["dataInfo"] = [dataInfo]

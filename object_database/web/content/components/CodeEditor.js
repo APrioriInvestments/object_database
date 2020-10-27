@@ -31,6 +31,11 @@ class CodeEditor extends Component {
         // later reference
         this._cachedDOMNode = null;
 
+        // every time we rebuild ourselves and want to remember our
+        // dom element we set this to true
+        this._isCachedInPlaceholder = false;
+        this._wasFocusedBeforePlaceholder = false;
+
         // Used to register and deregister
         // any global KeyListener instance
         this.disableEventFiring = false;
@@ -121,22 +126,35 @@ class CodeEditor extends Component {
     componentDidUpdate(projector){
         // Replace the placeholder with the cached
         // DOM element
-        if (this.hasRenderedBefore) {
+        if (this._isCachedInPlaceholder) {
+            this._isCachedInPlaceholder = false;
+
             let placeholder = document.getElementById(`placeholder-${this.props.id}`);
+
             if(placeholder){
                 placeholder.replaceWith(this._cachedDOMNode);
             } else {
                 throw new Error(`Could not find replacement node for ${this.name}[${this.props.id}]`);
             }
+
             let newEditor = ace.edit(`editor${this.props.id}`);
             newEditor.setSession(this.editor.session);
             this.editor = newEditor;
+
+            if (this._wasFocusedBeforePlaceholder) {
+                this._wasFocusedBeforePlaceholder = false;
+                this.editor.focus();
+            }
         }
     }
 
     build(){
         if(this.hasRenderedBefore){
             console.log(`Cached re-render of ${this.name}[${this.props.id}]`);
+
+            this._isCachedInPlaceholder = true;
+            this._wasFocusedBeforePlaceholder = this.editor.isFocused();
+
             return h('div', {
                 class: "cell-placeholder",
                 id: `placeholder-${this.props.id}`
@@ -225,10 +243,11 @@ class CodeEditor extends Component {
                 if (this.highlightMarker !== null){
                     this.session.removeMarker(this.highlightMarker);
                 }
-            }
-            if (dataInfo.selection) {
+            } else if (dataInfo.selection) {
                 console.log("CodeEditor updating selection to " + dataInfo.selection)
                 this.editor.selection.setSelectionRange(dataInfo.selection);
+            } else if (dataInfo.focusNow) {
+                this.editor.focus();
             }
         })
     }

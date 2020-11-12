@@ -48,12 +48,20 @@ sudo mkdir /image_hash
 
 sudo echo {image} > /image_hash/image.txt
 
+set +o errexit
 while true; do
     IMAGE=$(sudo cat /image_hash/image.txt)
 
-    echo "Running docker image $IMAGE"
+    echo "Pulling docker image $IMAGE"
     sudo docker pull $IMAGE
+    pullRes=$?
+    if (( $pullRes != 0 )); then
+        echo "Failed to pull docker image $IMAGE"
+        sleep 15
+        continue
+    fi
 
+    echo "Running docker image $IMAGE"
     sudo docker run --privileged --network=host -v $STORAGE:/storage -v /image_hash:/image_hash $IMAGE \
         $(hostname) \
         {db_hostname} \

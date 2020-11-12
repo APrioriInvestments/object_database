@@ -400,12 +400,12 @@ class AwsApi:
         spotPrice=None,
         placementGroup="Worker",
     ):
-        boot_script = linux_bootstrap_script.format(
-            db_hostname=self.config.db_hostname,
-            db_port=self.config.db_port,
-            image=self.config.docker_image,
-            worker_token=authToken,
-            placement_group=placementGroup,
+        boot_script = (
+            linux_bootstrap_script.replace("__db_hostname__", self.config.db_hostname)
+            .replace("__db_port__", str(self.config.db_port))
+            .replace("__image__", self.config.docker_image)
+            .replace("__worker_token__", authToken)
+            .replace("__placement_group__", placementGroup)
         )
 
         if clientToken is None:

@@ -46,7 +46,9 @@ sudo chmod 777 /var/run/docker.sock
 
 sudo mkdir /image_hash
 
-sudo echo {image} > /image_hash/image.txt
+sudo echo __image__ > /image_hash/image.txt
+
+totalk=$(awk '/^MemTotal:/{print $2}' /proc/meminfo)
 
 set +o errexit
 while true; do
@@ -62,12 +64,12 @@ while true; do
     fi
 
     echo "Running docker image $IMAGE"
-    sudo docker run --privileged --network=host -v $STORAGE:/storage -v /image_hash:/image_hash $IMAGE \
+    sudo docker run --privileged --network=host -m $((totalk/1024/1024 - 1))G -v $STORAGE:/storage -v /image_hash:/image_hash $IMAGE \
         $(hostname) \
-        {db_hostname} \
-        {db_port} \
-        {placement_group} \
-        --service-token {worker_token} \
+        __db_hostname__ \
+        __db_port__ \
+        __placement_group__ \
+        --service-token __worker_token__ \
         --watch-aws-image-hash /image_hash/image.txt
 
     echo "Docker container restarting."

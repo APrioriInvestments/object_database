@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -26,10 +27,14 @@ echo 'df -h $STORAGE'
 df -h $STORAGE
 echo "****************"
 
-echo "Installing docker"
+if ! command -v docker &> /dev/null
+then
+    echo "Docker is not installed. installing it using apt."
 
-sudo apt-get update
-sudo apt-get install -y docker.io
+    sudo apt-get update
+    sudo apt-get install -y docker.io
+    sudo service docker start
+fi
 
 echo "Moving docker directory to $STORAGE"
 sudo service docker stop

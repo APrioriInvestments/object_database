@@ -185,9 +185,12 @@ class Configuration:
     keypair = str  # security keypair name to use
     worker_name = str  # name of workers. This should be unique to this install.
     worker_iam_role_name = str  # AIM role to boot workers into
-    docker_image = str  # default linux AMI to use when booting linux workers
+    docker_image = str  # docker image that runs the actual odb service
     defaultStorageSize = int  # gb of disk to mount on booted workers (if they need ebs)
     max_to_boot = int  # maximum number of workers we'll boot
+
+    ami_override = OneOf(None, str)  # the AMI to use, if not our default
+    bootstrap_script_override = OneOf(None, str)  # the bootstrap script to use
 
 
 @schema.define
@@ -206,6 +209,16 @@ class State:
     spotPrices = ConstDict(str, float)
 
     storageSizeOverride = OneOf(None, int)
+
+
+@schema.define
+class RunningInstance:
+    instanceId = Indexed(str)
+    isSpot = bool
+    instance_type = str
+    placementGroup = str
+    hostname = str
+    state = OneOf("running", "pending")
 
 
 ownDir = os.path.dirname(os.path.abspath(__file__))
@@ -400,8 +413,10 @@ class AwsApi:
         spotPrice=None,
         placementGroup="Worker",
     ):
+        baseBootScript = self.config.bootstrap_script_override or linux_bootstrap_script
+
         boot_script = (
-            linux_bootstrap_script.replace("__db_hostname__", self.config.db_hostname)
+            baseBootScript.replace("__db_hostname__", self.config.db_hostname)
             .replace("__db_port__", str(self.config.db_port))
             .replace("__image__", self.config.docker_image)
             .replace("__worker_token__", authToken)
@@ -413,6 +428,8 @@ class AwsApi:
 
         if amiOverride is not None:
             ami = amiOverride
+        elif self.config.ami_override is not None:
+            ami = self.config.ami_override
         else:
             ami = "ami-759bc50a"  # ubuntu 16.04 hvm-ssd
 
@@ -537,6 +554,8 @@ class AwsWorkerBootService(ServiceBase):
         docker_image,
         defaultStorageSize,
         max_to_boot,
+        amiOverride=None,
+        bootstrap_script_override=None,
     ):
         c = Configuration.lookupAny()
         if not c:
@@ -567,6 +586,9 @@ class AwsWorkerBootService(ServiceBase):
         if max_to_boot is not None:
             c.max_to_boot = max_to_boot
 
+        c.ami_override = amiOverride
+        c.bootstrap_script_override = bootstrap_script_override
+
     def setBootCount(self, instance_type, count, placementGroup):
         state = State.lookupAny(instance_type_and_pg=(instance_type, placementGroup))
 
@@ -593,8 +615,7 @@ class AwsWorkerBootService(ServiceBase):
 
     @staticmethod
     def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
-        cells.ensureSubscribedType(Configuration)
-        cells.ensureSubscribedType(State)
+        cells.ensureSubscribedSchema(schema)
 
         c = Configuration.lookupAny()
 
@@ -613,86 +634,148 @@ class AwsWorkerBootService(ServiceBase):
 
             return f
 
-        return cells.Grid(
-            colFun=lambda: [
-                "Instance Type",
-                "PlacementGroup",
-                "COST",
-                "RAM",
-                "CPU",
-                "Booted",
-                "Desired",
-                "SpotBooted",
-                "SpotDesired",
-                "ObservedLimit",
-                "CapacityConstrained",
-                "Spot-us-east-1",
-                "a",
-                "b",
-                "c",
-                "d",
-                "e",
-                "f",
-            ],
-            rowFun=lambda: sorted(
-                [x for x in State.lookupAll() if x.instance_type in instance_types_to_show],
-                key=lambda s: s.instance_type,
-            ),
-            headerFun=lambda x: x,
-            rowLabelFun=None,
-            rendererFun=lambda s, field: cells.Subscribed(
-                lambda: s.instance_type
-                if field == "Instance Type"
-                else s.placementGroup
-                if field == "PlacementGroup"
-                else s.booted
-                if field == "Booted"
-                else cells.Dropdown(
-                    s.desired,
+        return cells.Tabs(
+            requests=cells.Grid(
+                colFun=lambda: [
+                    "Instance Type",
+                    "PlacementGroup",
+                    "COST",
+                    "RAM",
+                    "CPU",
+                    "Booted",
+                    "Desired",
+                    "SpotBooted",
+                    "SpotDesired",
+                    "ObservedLimit",
+                    "CapacityConstrained",
+                    "Spot-us-east-1",
+                    "a",
+                    "b",
+                    "c",
+                    "d",
+                    "e",
+                    "f",
+                ],
+                rowFun=lambda: sorted(
                     [
-                        (str(ct), bootCountSetter(s, ct))
-                        for ct in list(range(10)) + list(range(10, 101, 10))
+                        x
+                        for x in State.lookupAll()
+                        if x.instance_type in instance_types_to_show
                     ],
-                )
-                if field == "Desired"
-                else s.spot_booted
-                if field == "SpotBooted"
-                else cells.Dropdown(
-                    s.spot_desired,
-                    [
-                        (str(ct), bootCountSetterSpot(s, ct))
-                        for ct in list(range(10)) + list(range(10, 101, 10))
-                    ],
-                )
-                if field == "SpotDesired"
-                else ("" if s.observedLimit is None else s.observedLimit)
-                if field == "ObservedLimit"
-                else ("Yes" if s.capacityConstrained else "")
-                if field == "CapacityConstrained"
-                else valid_instance_types[s.instance_type]["COST"]
-                if field == "COST"
-                else valid_instance_types[s.instance_type]["RAM"]
-                if field == "RAM"
-                else valid_instance_types[s.instance_type]["CPU"]
-                if field == "CPU"
-                else s.spotPrices.get("us-east-1" + field, "")
-                if field in "abcdef"
-                else ""
+                    key=lambda s: s.instance_type,
+                ),
+                headerFun=lambda x: x,
+                rowLabelFun=None,
+                rendererFun=lambda s, field: cells.Subscribed(
+                    lambda: s.instance_type
+                    if field == "Instance Type"
+                    else s.placementGroup
+                    if field == "PlacementGroup"
+                    else s.booted
+                    if field == "Booted"
+                    else cells.Dropdown(
+                        s.desired,
+                        [
+                            (str(ct), bootCountSetter(s, ct))
+                            for ct in list(range(10)) + list(range(10, 101, 10))
+                        ],
+                    )
+                    if field == "Desired"
+                    else s.spot_booted
+                    if field == "SpotBooted"
+                    else cells.Dropdown(
+                        s.spot_desired,
+                        [
+                            (str(ct), bootCountSetterSpot(s, ct))
+                            for ct in list(range(10)) + list(range(10, 101, 10))
+                        ],
+                    )
+                    if field == "SpotDesired"
+                    else ("" if s.observedLimit is None else s.observedLimit)
+                    if field == "ObservedLimit"
+                    else ("Yes" if s.capacityConstrained else "")
+                    if field == "CapacityConstrained"
+                    else valid_instance_types[s.instance_type]["COST"]
+                    if field == "COST"
+                    else valid_instance_types[s.instance_type]["RAM"]
+                    if field == "RAM"
+                    else valid_instance_types[s.instance_type]["CPU"]
+                    if field == "CPU"
+                    else s.spotPrices.get("us-east-1" + field, "")
+                    if field in "abcdef"
+                    else ""
+                ),
             ),
-        ) + cells.Card(
-            cells.Text("db_hostname = " + str(c.db_hostname))
-            + cells.Text("db_port = " + str(c.db_port))
-            + cells.Text("region = " + str(c.region))
-            + cells.Text("vpc_id = " + str(c.vpc_id))
-            + cells.Text("subnet = " + str(c.subnet))
-            + cells.Text("security_group = " + str(c.security_group))
-            + cells.Text("keypair = " + str(c.keypair))
-            + cells.Text("worker_name = " + str(c.worker_name))
-            + cells.Text("worker_iam_role_name = " + str(c.worker_iam_role_name))
-            + cells.Text("docker_image = " + str(c.docker_image))
-            + cells.Text("defaultStorageSize = " + str(c.defaultStorageSize))
-            + cells.Text("max_to_boot = " + str(c.max_to_boot))
+            instances=cells.Grid(
+                colFun=lambda: [
+                    "InstanceId",
+                    "InstanceType",
+                    "PlacementGroup",
+                    "IsSpot",
+                    "Ip",
+                    "State",
+                ],
+                rowFun=lambda: sorted(RunningInstance.lookupAll(), key=lambda i: i.instanceId),
+                headerFun=lambda x: x,
+                rowLabelFun=None,
+                rendererFun=lambda i, field: cells.Subscribed(
+                    lambda: i.instanceId
+                    if field == "InstanceId"
+                    else i.instance_type
+                    if field == "InstanceType"
+                    else i.placementGroup
+                    if field == "PlacementGroup"
+                    else i.isSpot
+                    if field == "IsSpot"
+                    else i.hostname
+                    if field == "Ip"
+                    else i.state
+                    if field == "State"
+                    else ""
+                ),
+            ),
+            config=cells.Card(
+                cells.Text("db_hostname = " + str(c.db_hostname))
+                + cells.Text("db_port = " + str(c.db_port))
+                + cells.Text("region = " + str(c.region))
+                + cells.Text("vpc_id = " + str(c.vpc_id))
+                + cells.Text("subnet = " + str(c.subnet))
+                + cells.Text("security_group = " + str(c.security_group))
+                + cells.Text("keypair = " + str(c.keypair))
+                + cells.Text("worker_name = " + str(c.worker_name))
+                + cells.Text("worker_iam_role_name = " + str(c.worker_iam_role_name))
+                + cells.Text("docker_image = " + str(c.docker_image))
+                + cells.Text("defaultStorageSize = " + str(c.defaultStorageSize))
+                + cells.Text("max_to_boot = " + str(c.max_to_boot))
+                + cells.Text("ami_override = " + str(c.ami_override))
+            ),
         )
+
+    def mirrorInstancesIntoODB(self, instanceIdToState):
+        with self.db.transaction():
+            logging.info(
+                "synchronize %s states with %s states",
+                len(instanceIdToState),
+                len(RunningInstance.lookupAll()),
+            )
+
+            for instanceId, state in instanceIdToState.items():
+                instance = RunningInstance.lookupAny(instanceId=instanceId)
+                if instance is None:
+                    logging.info("Create record for new instance %s", instanceId)
+                    instance = RunningInstance(instanceId=instanceId)
+                    instance.isSpot = state.get("InstanceLifecycle") == "spot"
+                    instance.instance_type = state.get("InstanceType", "??")
+                    instance.placementGroup = instanceTagValue(state, "PlacementGroup")
+                    instance.hostname = state.get("PrivateIpAddress", "??")
+
+                if instance.state != state["State"]["Name"]:
+                    instance.state = state["State"]["Name"]
+
+            for instance in RunningInstance.lookupAll():
+                if instance.instanceId not in instanceIdToState:
+                    logging.info("Remove record for deleted instance %s", instance.instanceId)
+                    instance.delete()
 
     def pushTaskLoopForward(self):
         placementGroups = set()
@@ -728,6 +811,8 @@ class AwsWorkerBootService(ServiceBase):
         with self.db.view():
             onDemandInstances = self.api.allRunningInstances(spot=False)
             spotInstances = self.api.allRunningInstances(spot=True)
+
+        self.mirrorInstancesIntoODB(dict(**onDemandInstances, **spotInstances))
 
         def instanceKey(instance):
             return (instance["InstanceType"], instanceTagValue(instance, "PlacementGroup"))

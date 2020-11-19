@@ -492,6 +492,9 @@ class AwsApi:
 
 
 class AwsWorkerBootService(ServiceBase):
+    coresUsed = 0
+    gbRamUsed = 0
+
     def __init__(self, db, service, serviceRuntimeConfig):
         ServiceBase.__init__(self, db, service, serviceRuntimeConfig)
 

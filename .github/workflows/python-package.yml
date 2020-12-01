@@ -1,0 +1,108 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python package
+
+on: push
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.6]
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install APT dependencies
+      run: |
+        sudo apt-get install redis-server
+        curl https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O
+        sudo apt-get install ./google-chrome-stable_current_amd64.deb
+        CHROME_MAIN_VERSION=`google-chrome-stable --version | sed -E 's/(^Google Chrome |\.[0-9]+ )//g'`
+        CHROMEDRIVER_VERSION=`curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_MAIN_VERSION"`
+        curl "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip" -O
+        unzip chromedriver_linux64.zip -d ~/bin
+        ulimit -c unlimited -S       # enable core dumps
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip (Linux)
+      if: startsWith(runner.os, 'Linux')
+      uses: actions/cache@v2
+      with:
+        # This path is specific to Ubuntu
+        path: ~/.cache/pip
+        # Look to see if there is a cache hit for the corresponding requirements file
+        key: ${{ runner.os }}-pip-${{ hashFiles('Pipfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Cache pip (MacOS)
+      if: startsWith(runner.os, 'macOS')
+      uses: actions/cache@v2
+      with:
+        path: ~/Library/Caches/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('Pipfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+
+    - name: Install PIP dependencies
+      run: |
+        pip install pip==20.2.4  pipenv==2018.11.26
+        mkdir --parents ../typed_python
+
+        pipenv lock --requirements > reqs.txt
+        sed --in-place --expression 's/^-e.*//' reqs.txt
+        pip install --requirement reqs.txt
+
+        pipenv lock --dev --requirements > dev-reqs.txt
+        sed --in-place --expression 's/^-e//' dev-reqs.txt
+        cat dev-reqs.txt
+        pip install --requirement dev-reqs.txt
+
+        pip install --editable .
+
+    - name: Install NODE dependencies
+      run: |
+        make node-install
+        make build-js
+
+    # - name: Setup Debug SSH Session
+    #   uses: mxschmitt/action-tmate@v3
+
+    - name: Test Python & JS
+      env:
+        TRAVIS_CI: 1
+      run: |
+        make js-test
+        make testcert.cert
+        pytest --verbose --capture=no --log-level=info --log-cli-level=info
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8==3.7.9 pipenv safety black==19.3b0
+
+    - name: Check pipenv and lint
+      run: |
+        (pipenv lock --requirements | safety check --stdin) || \
+          (sleep 60; pipenv lock --requirements | safety check --stdin) || \
+          (sleep 60; pipenv lock --requirements | safety check --stdin)
+        make lint
+        make black-check-local

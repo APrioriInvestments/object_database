@@ -49,6 +49,7 @@ class RedisTestHelper:
             assert self.redisProcess.poll() is None
         except BaseException:
             self.tearDown()
+            raise
 
     def connect(self):
         """Try to connect. Returns None if we can't."""

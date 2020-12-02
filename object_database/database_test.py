@@ -2050,7 +2050,7 @@ class ObjectDatabaseOverChannelTestsWithRedis(unittest.TestCase, ObjectDatabaseT
         self.server.stop()
         self.redisProcess.tearDown()
         self.redisProcess = None
-        self.tempDir.__exit__(None, None, None)
+        self.tempDir.cleanup()
 
     def test_reboot_against_redis(self):
         db1 = self.createNewDb()

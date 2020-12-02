@@ -43,6 +43,10 @@ sudo cp /var/lib/docker $STORAGE -r
 sudo rm /var/lib/docker -rf
 (cd /var/lib; sudo ln -s $STORAGE/docker)
 
+# make sure DNS is working
+echo "Restarting DNS server."
+sudo service systemd-resolved restart
+
 echo "Starting docker"
 
 sudo service docker start
@@ -64,6 +68,11 @@ while true; do
     pullRes=$?
     if (( $pullRes != 0 )); then
         echo "Failed to pull docker image $IMAGE"
+
+        # restart the DNS server since that can sometimes be a problem
+        echo "Restarting DNS server."
+        sudo service systemd-resolved restart
+
         sleep 15
         continue
     fi

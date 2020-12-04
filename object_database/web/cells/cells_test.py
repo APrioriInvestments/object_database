@@ -571,7 +571,7 @@ class CellsStructureTests(unittest.TestCase):
         structure = getStructure(None, container, None)
         expected_subset = {"id": container.identity, "cellType": "Sequence"}
         self.assertTrue(isinstance(structure, dict))
-        self.assertDictContainsSubset(expected_subset, structure)
+        self.assertGreaterEqual(structure.items(), expected_subset.items())
         self.assertIn("elements", structure["namedChildren"].keys())
         self.assertIn(first.identity, structure["namedChildren"]["elements"])
         self.assertIn(second.identity, structure["namedChildren"]["elements"])
@@ -599,12 +599,12 @@ class CellsStructureTests(unittest.TestCase):
 
         self.assertTrue(isinstance(struct, dict))
         self.assertTrue(isinstance(struct["namedChildren"], dict))
-        self.assertDictContainsSubset(expected_subset, struct)
+        self.assertGreaterEqual(struct.items(), expected_subset.items())
         self.assertIn("elements", struct["namedChildren"])
         elements = struct["namedChildren"]["elements"]
         self.assertIsInstance(elements, list)
-        self.assertDictContainsSubset(expected_first_element, elements[0])
-        self.assertDictContainsSubset(expected_second_element, elements[1])
+        self.assertGreaterEqual(elements[0].items(), expected_first_element.items())
+        self.assertGreaterEqual(elements[1].items(), expected_second_element.items())
 
     def test_cell_self_flat_struct(self):
         c = Sequence([Text("Hello"), Text("World")])
@@ -618,7 +618,7 @@ class CellsStructureTests(unittest.TestCase):
         self.cells.withRoot(c)
         self.cells._recalculateCells()
         self.assertTrue("queryTag" in c.exportData)
-        self.assertEquals(c.exportData["queryTag"], "test")
+        self.assertEqual(c.exportData["queryTag"], "test")
 
 
 class CellsSequenceHandlingTests(unittest.TestCase):

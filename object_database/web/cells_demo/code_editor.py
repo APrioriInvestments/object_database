@@ -356,13 +356,13 @@ class CodeEditorHighlightRows(CellsTestPage):
         def onTextChange(content, selection):
             contents.set(content)
 
-        highlightRange = {"startRow": 5, "endRow": 10}
-
-        return cells.CodeEditor(
-            onTextChange=onTextChange,
-            textToDisplayFunction=lambda: text,
-            highlightRange=highlightRange,
+        editor = cells.CodeEditor(
+            onTextChange=onTextChange, textToDisplayFunction=lambda: text
         )
+
+        editor.setMarkers([dict(startRow=5, endRow=10)])
+
+        return editor
 
     def text(self):
         return "Should see a CodeEditor and its content with rows 5-10 " "highlighted"
@@ -400,13 +400,13 @@ class CodeEditorHighlightRowsInColor(CellsTestPage):
         def onTextChange(content, selection):
             contents.set(content)
 
-        highlightRange = {"startRow": 5, "endRow": 10, "color": "blue"}
-
-        return cells.CodeEditor(
-            onTextChange=onTextChange,
-            textToDisplayFunction=lambda: text,
-            highlightRange=highlightRange,
+        editor = cells.CodeEditor(
+            onTextChange=onTextChange, textToDisplayFunction=lambda: text
         )
+
+        editor.setMarkers([dict(startRow=5, endRow=10, color="blue")])
+
+        return editor
 
     def text(self):
         return "Should see a CodeEditor and its content with rows 5-10 " "highlighted"

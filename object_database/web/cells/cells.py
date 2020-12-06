@@ -1363,10 +1363,11 @@ class Modal(Cell):
 
 
 class Octicon(Cell):
-    def __init__(self, which, color="black"):
+    def __init__(self, which, color="black", hoverText=None):
         super().__init__()
         self.whichOcticon = which
         self.color = color
+        self.hoverText = hoverText
 
     def sortsAs(self):
         return self.whichOcticon
@@ -1375,6 +1376,7 @@ class Octicon(Cell):
         octiconClasses = ["octicon", ("octicon-%s" % self.whichOcticon)]
         self.exportData["octiconClasses"] = octiconClasses
         self.exportData["color"] = self.color
+        self.exportData["hoverText"] = str(self.hoverText or "")
 
 
 class Badge(Cell):
@@ -2931,10 +2933,10 @@ class CodeEditor(Cell):
         onTextChange=None,
         firstVisibleRow=None,
         onFirstRowChange=None,
+        onSelectionChanged=None,
         textToDisplayFunction=lambda: "",
         mouseoverTimeout=1000,
         onMouseover=None,
-        highlightRange=None,
     ):
         """Create a code editor
 
@@ -2961,17 +2963,16 @@ class CodeEditor(Cell):
         onFirstRowChange - a function that is called when the first visible row
             changes. It takes one argument which is said row.
 
+        onSelectionChanged - a function that is called when the selection changes.
+            It gets called with None, or a dict with start_row, end_row, start_column,
+            end_column.
+
         mouseoverTimeout - timeout for mouseover callback WS message in
             milliseconds
 
         onMouseover = a function which is called subsequent to the mouseover
             event fires on the client side and corresponding WS message is
             received.The entire message is passed to the function.
-
-        highlightRange : dict or None
-            dict should contain 'startRow' and 'endRow' int values setting the
-            highlight range. Additional you can add a "color" key with values
-            of "red" "blue" or "green" to change the highlight background-color.
         """
         super().__init__()
         # contains (current_iteration_number: int, text: str)
@@ -2980,10 +2981,10 @@ class CodeEditor(Cell):
         self.noScroll = noScroll
         self.fontSize = fontSize
         self.minLines = minLines
-        self.highlightRange = highlightRange
         self.readOnly = readOnly
         self.autocomplete = autocomplete
         self.onTextChange = onTextChange
+        self.onSelectionChanged = onSelectionChanged
         self.textToDisplayFunction = textToDisplayFunction
         self.mouseoverTimeout = mouseoverTimeout
         self.onMouseover = onMouseover
@@ -3008,16 +3009,19 @@ class CodeEditor(Cell):
         elif msgFrame["event"] == "editing":
             if (
                 msgFrame["iteration"] is not None
-                and self.onTextChange
                 and self.currentIteration < msgFrame["iteration"]
             ):
                 if msgFrame["buffer"] is not None:
                     self.exportData["initialText"] = msgFrame["buffer"]
                     self.currentIteration = msgFrame["iteration"]
-                    self.onTextChange(msgFrame["buffer"], msgFrame["selection"])
-                    print("WROTE BUFFER INTO EDITOR")
+
+                    if self.onTextChange:
+                        self.onTextChange(msgFrame["buffer"], msgFrame["selection"])
 
                 self.selectionSlot.set(msgFrame["selection"])
+
+                if self.onSelectionChanged:
+                    self.onSelectionChanged(msgFrame["selection"])
 
         elif msgFrame["event"] == "scrolling":
             self.firstVisibleRowSlot.set(msgFrame["firstVisibleRow"])
@@ -3077,35 +3081,38 @@ class CodeEditor(Cell):
         self.wasDataUpdated = True
         self.markDirty()
 
-    def addRowHighlight(self, startRow, endRow):
-        """ Send a message to highlight row range.
+    def setMarkers(self, markers):
+        """Set the list of markers.
 
-        Parameters
-        ----------
-        startRow : int
-        endRow : int
+        Each marker must be a dict with:
+            startRow
+            endRow (optional)
+            startColumn (optional)
+            endColumn (only if startColumn)
+            color (red, blue, green)
+            label
         """
-        dataInfo = {"startRow": startRow, "endRow": endRow, "highlight": True}
-        # stage this piece of data to be sent when we recalculate
+        res = []
+        for m in markers:
+            sm = {}
+            sm["startRow"] = int(m["startRow"])
+            sm["endRow"] = int(m.get("endRow", sm["startRow"]))
+            sm["startColumn"] = int(m.get("startColumn", 0))
+            sm["endColumn"] = int(m.get("endColumn", 1000))
+            sm["color"] = m.get("color", "red")
+            assert sm["color"] in ["red", "blue", "green"]
+            if m.get("label"):
+                sm["label"] = str(m.get("label"))
+            res.append(sm)
+
         if self.exportData.get("dataInfo") is None:
-            self.exportData["dataInfo"] = [dataInfo]
+            self.exportData["dataInfo"] = [{"updateMarkers": True, "markers": res}]
         else:
-            self.exportData["dataInfo"].append(dataInfo)
+            self.exportData["dataInfo"].append({"updateMarkers": True, "markers": res})
 
-        self.wasDataUpdated = True
-        self.markDirty()
+        if self.cells is not None:
+            self.wasDataUpdated = True
 
-    def removeRowHighlight(self):
-        """ Send a message to remove all row highlighting.
-        """
-        dataInfo = {"highlight": False}
-        # stage this piece of data to be sent when we recalculate
-        if self.exportData.get("dataInfo") is None:
-            self.exportData["dataInfo"] = [dataInfo]
-        else:
-            self.exportData["dataInfo"].append(dataInfo)
-
-        self.wasDataUpdated = True
         self.markDirty()
 
     def focusEditor(self):
@@ -3214,9 +3221,6 @@ class CodeEditor(Cell):
         ] = self.firstVisibleRowSlot.getWithoutRegisteringDependency()
 
         self.exportData["mouseoverTimeout"] = self.mouseoverTimeout
-
-        if self.highlightRange is not None:
-            self.exportData["highlightRange"] = self.highlightRange
 
         self.exportData["keybindings"] = [k for k in self.keybindings.keys()]
 

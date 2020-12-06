@@ -247,7 +247,7 @@ def headless_browser():
     # service and the web service
     tester = HeadlessTester()
     yield tester
-
+    tester.dumpLogs()
     tester.webdriver.close()
     tester.server.terminate()
     tester.server.wait()

@@ -499,16 +499,20 @@ ap-sheet td.selection-bottom-border {
     height: 100%;
 }
 
+.highlight-seethrough {
+    background-color: #00000000!important;
+}
+
 .highlight-red {
-    background-color: red!important;
+    background-color: #ffbbbb!important;
 }
 
 .highlight-blue {
-    background-color: #007bff!important;
+    background-color: #bbbbff!important;
 }
 
 .highlight-green {
-    background-color: green!important;
+    background-color: #bbffbb!important;
 }
 
 .code-editor-inner {

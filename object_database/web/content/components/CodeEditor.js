@@ -21,10 +21,12 @@ class CodeEditor extends Component {
         this.setupKeybindings = this.setupKeybindings.bind(this);
         this.installChangeHandlers = this.installChangeHandlers.bind(this);
         this.setTextFromServer = this.setTextFromServer.bind(this);
+        this.createCSSSelector = this.createCSSSelector.bind(this);
         this.lastSentText = null;
         this.mouseoverTimeout = null;
         // keeps track of any highlight related markers
-        this.highlightMarker = null;
+        this.highlightMarker = [];
+        this.highlightMarkerDefinitions = [];
 
         // A cached version of the created
         // DOM node will be put here for
@@ -42,84 +44,93 @@ class CodeEditor extends Component {
         this._onBlur = this._onBlur.bind(this);
         this._onFocus = this._onFocus.bind(this);
         this.onScroll = this.onScroll.bind(this);
-        this._highlight = this._highlight.bind(this);
+        this._addMarker = this._addMarker.bind(this);
+        this._resetMarkers = this._resetMarkers.bind(this);
     }
 
     componentDidLoad() {
         this.setupEditor();
 
-        if (this.editor === null) {
-            console.log("editor component loaded but failed to setup editor");
-        } else {
-            console.log("setting up editor");
-            // Note: Ace doens't handle 'mouseleave' events so this listener is
-            // bound directly to the code-editor DOM element, see .build() and
-            // handleMouseleave() below
-            this.editor.on("mousemove", (e) => this.handleMouseover(e));
-            this.editor.last_edit_millis = Date.now();
-            this.editor.setTheme("ace/theme/textmate");
-            this.editor.session.setMode("ace/mode/python");
-            // this.editor.setAutoScrollEditorIntoView(true);
-            this.editor.session.setUseSoftTabs(true);
+        let isValidValue = (val) => {
+            return val !== null && val !== undefined;
+        };
 
-
-            if (this.props.initialText !== null) {
-                this.editor.setValue(this.props.initialText, 1);
-            }
-
-            if (this.props.currentIteration !== null) {
-                this.editor.current_iteration = this.props.currentIteration;
-            }
-
-            if (this.props.autocomplete) {
-                this.editor.setOptions({enableBasicAutocompletion: true});
-                this.editor.setOptions({enableLiveAutocompletion: true});
-            }
-
-            if (this.props.noScroll) {
-                this.editor.setOption("maxLines", Infinity);
-            }
-
-            if (this.props.readOnly) {
-                this.editor.setReadOnly(true);
-            }
-
-            if (this.props.fontSize !== undefined) {
-                this.editor.setOption("fontSize", this.props.fontSize);
-            }
-
-            if (this.props.minLines !== undefined) {
-                this.editor.setOption("minLines", this.props.minLines);
+        try {
+            if (this.editor === null) {
+                console.log("editor component loaded but failed to setup editor");
             } else {
-                this.editor.setOption("minLines", Infinity);
-            }
+                console.log("setting up editor");
+                // Note: Ace doens't handle 'mouseleave' events so this listener is
+                // bound directly to the code-editor DOM element, see .build() and
+                // handleMouseleave() below
+                this.editor.on("mousemove", (e) => this.handleMouseover(e));
+                this.editor.last_edit_millis = Date.now();
+                this.editor.setTheme("ace/theme/textmate");
+                this.editor.session.setMode("ace/mode/python");
+                // this.editor.setAutoScrollEditorIntoView(true);
+                this.editor.session.setUseSoftTabs(true);
 
-            if (this.props.firstVisibleRow !== undefined){
-                this.editor.resize(true);
-                this.editor.scrollToRow(this.props.firstVisibleRow - 1)
-                this.editor.gotoLine(this.props.firstVisibleRow, 0, true);
-            }
+                if (isValidValue(this.props.initialText)) {
+                    this.editor.setValue(this.props.initialText, 1);
+                }
 
-            if (this.props.initialSelection !== null) {
-                this.editor.selection.setSelectionRange(this.props.initialSelection);
-                if (this.props.firstVisibleRow !== undefined){
+                if (isValidValue(this.props.currentIteration)) {
+                    this.editor.current_iteration = this.props.currentIteration;
+                }
+
+                if (this.props.autocomplete) {
+                    this.editor.setOptions({enableBasicAutocompletion: true});
+                    this.editor.setOptions({enableLiveAutocompletion: true});
+                }
+
+                if (this.props.noScroll) {
+                    this.editor.setOption("maxLines", Infinity);
+                }
+
+                if (this.props.readOnly) {
+                    this.editor.setReadOnly(true);
+                }
+
+                if (isValidValue(this.props.fontSize)) {
+                    this.editor.setOption("fontSize", this.props.fontSize);
+                }
+
+                if (isValidValue(this.props.minLines)) {
+                    this.editor.setOption("minLines", this.props.minLines);
+                } else {
+                    this.editor.setOption("minLines", Infinity);
+                }
+
+                if (isValidValue(this.props.firstVisibleRow)) {
+                    this.editor.resize(true);
                     this.editor.scrollToRow(this.props.firstVisibleRow - 1)
+                    this.editor.gotoLine(this.props.firstVisibleRow, 0, true);
+                }
+
+                if (isValidValue(this.props.initialSelection)) {
+                    this.editor.selection.setSelectionRange(this.props.initialSelection);
+
+                    if (isValidValue(this.props.firstVisibleRow)) {
+                        this.editor.scrollToRow(this.props.firstVisibleRow - 1)
+                    }
+                }
+
+                if (isValidValue(this.props.keybindings)) {
+                    this.setupKeybindings();
+                }
+
+                this.installChangeHandlers();
+
+                if (isValidValue(this.props.dataInfo)) {
+                    this._updateData(this.props.dataInfo, null);
                 }
             }
 
-            if (this.props.highlightRange !== undefined){
-                let startRow = this.props.highlightRange["startRow"] || 1;
-                let endRow = this.props.highlightRange["endRow"] || 1;
-                let highlightColor = this.props.highlightRange["color"] || "red";
-                this._highlight(startRow, endRow, highlightColor);
+            if(this.numRenders == 1){
+                this._cachedDOMNode = this.getDOMElement();
             }
-
-            this.setupKeybindings();
-            this.installChangeHandlers();
-        }
-
-        if(this.numRenders == 1){
-            this._cachedDOMNode = this.getDOMElement();
+        } catch (e) {
+            console.log("FAILED: " + e + "\n" + e.stack)
         }
     }
 
@@ -233,16 +244,10 @@ class CodeEditor extends Component {
                 this.editor.resize(true);
                 this.editor.scrollToRow(row - 1)
                 this.editor.gotoLine(row, 0, true);
-            } else if(dataInfo.highlight === true) {
-                let startRow = this.dataInfo.startRow || 1;
-                let endRow = this.dataInfo.endRow || 1;
-                let highlightColor = this.dataInfo.color || "red";
-                this._highlight(startRow, endRow, highlightColor);
-            } else if (dataInfo.highlight === false){
+            } else if(dataInfo.updateMarkers === true) {
                 // remove the highlighting
-                if (this.highlightMarker !== null){
-                    this.session.removeMarker(this.highlightMarker);
-                }
+                this.highlightMarkerDefinitions = dataInfo.markers;
+                this._resetMarkers();
             } else if (dataInfo.selection) {
                 console.log("CodeEditor updating selection to " + dataInfo.selection)
                 this.editor.selection.setSelectionRange(dataInfo.selection);
@@ -268,6 +273,8 @@ class CodeEditor extends Component {
             this.disableEventFiring = true;
             this.editor.setValue(newBufferText, 1);
             this.editor.selection.setSelectionRange(curRange);
+            this._resetMarkers();
+
         } finally {
             this.disableEventFiring = false;
         }
@@ -374,21 +381,164 @@ class CodeEditor extends Component {
         }
     }
 
-    /* I highlight rows by specififying their background color.
-     * Note: I use the ace.addMarker API which limits me to adding
-     * specific css classes, so as of writing the available colors are
-     * 'red' 'blue' and 'green.'
+    /* Add a marker to the editor display.
+
+    Args:
+        desc - must be an object with fields
+            startRow - 1 based
+            startColumn - 1 based
+            endRow - 1 based
+            endColumn - 1 based
+            color - one of 'red', 'blue', 'green'
+            label - one of None or a string.
      */
-    _highlight(startRow, endRow, color){
+    createCSSSelector (selector, style) {
+      if (!document.styleSheets) return;
+      if (document.getElementsByTagName('head').length == 0) return;
+
+      var styleSheet,mediaType;
+
+      if (document.styleSheets.length > 0) {
+        for (var i = 0, l = document.styleSheets.length; i < l; i++) {
+          if (document.styleSheets[i].disabled)
+            continue;
+          var media = document.styleSheets[i].media;
+          mediaType = typeof media;
+
+          if (mediaType === 'string') {
+            if (media === '' || (media.indexOf('screen') !== -1)) {
+              styleSheet = document.styleSheets[i];
+            }
+          }
+          else if (mediaType=='object') {
+            if (media.mediaText === '' || (media.mediaText.indexOf('screen') !== -1)) {
+              styleSheet = document.styleSheets[i];
+            }
+          }
+
+          if (typeof styleSheet !== 'undefined')
+            break;
+        }
+      }
+
+      if (typeof styleSheet === 'undefined') {
+        var styleSheetElement = document.createElement('style');
+        styleSheetElement.type = 'text/css';
+        document.getElementsByTagName('head')[0].appendChild(styleSheetElement);
+
+        for (i = 0; i < document.styleSheets.length; i++) {
+          if (document.styleSheets[i].disabled) {
+            continue;
+          }
+          styleSheet = document.styleSheets[i];
+        }
+
+        mediaType = typeof styleSheet.media;
+      }
+
+      if (mediaType === 'string') {
+        for (var i = 0, l = styleSheet.rules.length; i < l; i++) {
+          if(styleSheet.rules[i].selectorText && styleSheet.rules[i].selectorText.toLowerCase()==selector.toLowerCase()) {
+            styleSheet.rules[i].style.cssText = style;
+            return;
+          }
+        }
+        styleSheet.addRule(selector,style);
+      }
+      else if (mediaType === 'object') {
+        var styleSheetLength = (styleSheet.cssRules) ? styleSheet.cssRules.length : 0;
+        for (var i = 0; i < styleSheetLength; i++) {
+          if (styleSheet.cssRules[i].selectorText && styleSheet.cssRules[i].selectorText.toLowerCase() == selector.toLowerCase()) {
+            styleSheet.cssRules[i].style.cssText = style;
+            return;
+          }
+        }
+        styleSheet.insertRule(selector + '{' + style + '}', styleSheetLength);
+      }
+    }
+
+    // rebuild the markers from this.higlightMarkerDefinitions
+    _resetMarkers() {
+        this.highlightMarker.map((marker) => {
+            this.editor.session.removeMarker(marker);
+        });
+
+        this.highlightMarker = [];
+
+        this.highlightMarkerDefinitions.map((desc) => {
+            this._addMarker(desc)
+        });
+    }
+
+    _addMarker(desc) {
         let Range = ace.require('ace/range').Range;
-        let highlightRange = new Range(startRow - 1, 0, endRow - 1, 0);
-        this.highlightMarker = this.editor.session.addMarker(
-             highlightRange,
-            `ace_active-line highlight-${color}`,
-            "fullLine"
+
+        let highlightRange = new Range(
+            desc.startRow - 1,
+            desc.startColumn,
+            desc.endRow - 1,
+            desc.endColumn
+        );
+
+        if (desc.label !== null && desc.label !== undefined) {
+            if (CodeEditor.labelToCssClass[desc.label] === undefined) {
+                let className = (
+                    'cells-code-editor-marker-'
+                    + Object.keys(CodeEditor.labelToCssClass).length
+                );
+
+                CodeEditor.labelToCssClass[desc.label] = className;
+
+                this.createCSSSelector(
+                    "." + className + "::after",
+                    'content: '
+                    + "'" + desc.label.replace(/(['"])/g, "\\$1") + "';"
+                    + 'position:absolute;'
+                    + `background-color: ${desc.color};`
+                    + `color: white;`
+                    + 'border-color: black;'
+                    + 'border-width: 1px;'
+                    + 'border-style: solid;'
+                    + 'margin-top: -3px;'
+                    + 'padding: 3px 2px 1px 2px;'
+                    + 'z-index:999;'
+                    + 'top:-120%;'
+                    + 'left:0px;'
+                    + 'font-family: Arial;'
+                )
+            }
+            let labelRange = new Range(
+                desc.startRow - 1,
+                desc.startColumn,
+                desc.startRow - 1,
+                desc.startColumn + 1
+            );
+
+            this.highlightMarker.push(
+                this.editor.session.addMarker(
+                     labelRange,
+                    `ace_active-line highlight-seethrough ${CodeEditor.labelToCssClass[desc.label]}`,
+                    "bar",
+                    true
+                )
+            );
+        }
+
+        console.log("ADD one with ", `ace_active-line highlight-${desc.color}`)
+
+        this.highlightMarker.push(
+            this.editor.session.addMarker(
+                 highlightRange,
+                `ace_active-line highlight-${desc.color}`,
+                "bar",
+                false
+            )
         );
     }
 }
+
+// static storage
+CodeEditor.labelToCssClass = {};
 
 CodeEditor.propTypes = {
     keybindings: {

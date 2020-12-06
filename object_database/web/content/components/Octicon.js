@@ -26,6 +26,7 @@ class Octicon extends Component {
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Octicon",
                 "aria-hidden": true,
+                "title": (this.props.hoverText || '').replace("\n", "&#013;"),
                 style: this.style
             })
         );
@@ -47,6 +48,10 @@ Octicon.propTypes = {
     },
     color: {
         description: "Color of the Octicon",
+        type: PropTypes.oneOf([PropTypes.string])
+    },
+    hoverText: {
+        description: "Text to show on mouseover",
         type: PropTypes.oneOf([PropTypes.string])
     }
 };

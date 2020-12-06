@@ -313,7 +313,7 @@ class Reactor:
             True if we were triggered by a key update, False otherwise.
         """
         if not readKeys and timeout is None and nextWakeup is None:
-            raise DeadlockException("Reactor would block forever.")
+            raise DeadlockException(f"Reactor on {self.reactorFunction} would block forever.")
 
         curTime = time.time()
         finalTime = curTime + (timeout if timeout is not None else 10 ** 8)

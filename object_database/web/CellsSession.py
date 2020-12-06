@@ -68,6 +68,8 @@ class CellsSession:
 
         self.sessionState = SessionState()
 
+        self.sessionState.currentUser = currentUser
+
         self.cells = Cells(self.db).withRoot(
             Subscribed(lambda: self.displayForPathAndQueryArgs(path, queryArgs)),
             session_state=self.sessionState,

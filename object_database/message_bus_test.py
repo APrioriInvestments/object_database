@@ -23,6 +23,9 @@ from object_database.message_bus import MessageBus
 from object_database.bytecount_limited_queue import BytecountLimitedQueue
 
 
+TIMEOUT = 5.0
+
+
 class TestMessageBus(unittest.TestCase):
     def setUp(self):
         assert os.path.exists(
@@ -57,8 +60,8 @@ class TestMessageBus(unittest.TestCase):
         self.messageBus2.start()
 
     def tearDown(self):
-        self.messageBus1.stop(timeout=0.2)
-        self.messageBus2.stop(timeout=0.2)
+        self.messageBus1.stop(timeout=TIMEOUT)
+        self.messageBus2.stop(timeout=TIMEOUT)
 
     def test_starting_and_stopping(self):
         for _ in range(100):
@@ -73,7 +76,7 @@ class TestMessageBus(unittest.TestCase):
                 "testcert.cert",
             )
             messageBus3.start()
-            messageBus3.stop(timeout=0.2)
+            messageBus3.stop(timeout=TIMEOUT)
 
     def test_worker_can_send_messages(self):
         conn1 = self.messageBus1.connect(("localhost", 8001))
@@ -83,15 +86,15 @@ class TestMessageBus(unittest.TestCase):
 
         # the first bus knows we connected
         self.assertTrue(
-            self.messageQueue1.get(timeout=0.2).matches.OutgoingConnectionEstablished
+            self.messageQueue1.get(timeout=TIMEOUT).matches.OutgoingConnectionEstablished
         )
 
         # the incoming bus gets a IncomingMessage
-        channelMsg = self.messageQueue2.get(timeout=0.2)
+        channelMsg = self.messageQueue2.get(timeout=TIMEOUT)
         self.assertTrue(channelMsg.matches.NewIncomingConnection)
 
         # we should then get a message that knows which ID it is
-        dataMsg = self.messageQueue2.get(timeout=0.2)
+        dataMsg = self.messageQueue2.get(timeout=TIMEOUT)
         self.assertTrue(dataMsg.matches.IncomingMessage)
         self.assertTrue(dataMsg.message, "hi")
         self.assertEqual(dataMsg.connectionId, channelMsg.connectionId)
@@ -100,32 +103,34 @@ class TestMessageBus(unittest.TestCase):
         self.assertTrue(self.messageBus2.sendMessage(dataMsg.connectionId, "Response"))
 
         # we should get back the message on the first channel
-        self.assertEqual(self.messageQueue1.get(timeout=0.2).message, "Response")
+        self.assertEqual(self.messageQueue1.get(timeout=TIMEOUT).message, "Response")
 
     def test_invalid_connection(self):
         self.messageBus1.connect(("localhost", 9010))
-        self.assertTrue(self.messageQueue1.get(timeout=0.2).matches.OutgoingConnectionFailed)
+        self.assertTrue(
+            self.messageQueue1.get(timeout=TIMEOUT).matches.OutgoingConnectionFailed
+        )
 
     def test_stopping_triggers_disconnects(self):
         self.messageBus1.connect(("localhost", 8001))
         self.assertTrue(
-            self.messageQueue1.get(timeout=0.2).matches.OutgoingConnectionEstablished
+            self.messageQueue1.get(timeout=TIMEOUT).matches.OutgoingConnectionEstablished
         )
-        self.assertTrue(self.messageQueue2.get(timeout=0.2).matches.NewIncomingConnection)
+        self.assertTrue(self.messageQueue2.get(timeout=TIMEOUT).matches.NewIncomingConnection)
 
         self.messageBus2.connect(("localhost", 8000))
         self.assertTrue(
-            self.messageQueue2.get(timeout=0.2).matches.OutgoingConnectionEstablished
+            self.messageQueue2.get(timeout=TIMEOUT).matches.OutgoingConnectionEstablished
         )
-        self.assertTrue(self.messageQueue1.get(timeout=0.2).matches.NewIncomingConnection)
+        self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).matches.NewIncomingConnection)
 
         # stop the second bus
-        self.messageBus2.stop(timeout=0.2)
-        self.assertTrue(self.messageQueue2.get(timeout=0.2).matches.Stopped)
+        self.messageBus2.stop(timeout=TIMEOUT)
+        self.assertTrue(self.messageQueue2.get(timeout=TIMEOUT).matches.Stopped)
 
         # we should see our connections get closed
-        msg1 = self.messageQueue1.get(timeout=0.2)
-        msg2 = self.messageQueue1.get(timeout=0.2)
+        msg1 = self.messageQueue1.get(timeout=TIMEOUT)
+        msg2 = self.messageQueue1.get(timeout=TIMEOUT)
 
         if msg2.matches.IncomingConnectionClosed:
             msg1, msg2 = msg2, msg1
@@ -137,33 +142,37 @@ class TestMessageBus(unittest.TestCase):
         for passIx in range(100):
             connId = self.messageBus1.connect(("localhost", 8001))
             self.assertTrue(
-                self.messageQueue1.get(timeout=1.0).matches.OutgoingConnectionEstablished
+                self.messageQueue1.get(timeout=TIMEOUT).matches.OutgoingConnectionEstablished
             )
-            self.assertTrue(self.messageQueue2.get(timeout=1.0).matches.NewIncomingConnection)
+            self.assertTrue(
+                self.messageQueue2.get(timeout=TIMEOUT).matches.NewIncomingConnection
+            )
 
             self.messageBus1.closeConnection(connId)
             self.assertTrue(
-                self.messageQueue1.get(timeout=1.0).matches.OutgoingConnectionClosed
+                self.messageQueue1.get(timeout=TIMEOUT).matches.OutgoingConnectionClosed
             )
             self.assertTrue(
-                self.messageQueue2.get(timeout=1.0).matches.IncomingConnectionClosed
+                self.messageQueue2.get(timeout=TIMEOUT).matches.IncomingConnectionClosed
             )
 
     def test_closing_incoming(self):
         self.messageBus1.connect(("localhost", 8001))
         self.assertTrue(
-            self.messageQueue1.get(timeout=1.0).matches.OutgoingConnectionEstablished
+            self.messageQueue1.get(timeout=TIMEOUT).matches.OutgoingConnectionEstablished
         )
 
         # queue2 should see this
-        msgIncoming = self.messageQueue2.get(timeout=1.0)
+        msgIncoming = self.messageQueue2.get(timeout=TIMEOUT)
         self.assertTrue(msgIncoming.matches.NewIncomingConnection)
 
         # if queue2 closes it
         self.messageBus2.closeConnection(msgIncoming.connectionId)
 
         # then queue 1 should see it
-        self.assertTrue(self.messageQueue1.get(timeout=1.0).matches.OutgoingConnectionClosed)
+        self.assertTrue(
+            self.messageQueue1.get(timeout=TIMEOUT).matches.OutgoingConnectionClosed
+        )
 
     def test_callbacks(self):
         q = queue.Queue()
@@ -175,7 +184,7 @@ class TestMessageBus(unittest.TestCase):
             self.messageBus1.scheduleCallback(sender(i))
 
         for i in range(10):
-            self.assertEqual(q.get(timeout=0.1), i)
+            self.assertEqual(q.get(timeout=TIMEOUT), i)
 
     def test_callbacks_with_exceptions_are_ok(self):
         q = queue.Queue()
@@ -207,7 +216,7 @@ class TestMessageBus(unittest.TestCase):
             self.messageBus1.scheduleCallback(sender(i), atTimestamp=t0 + 0.05 - i / 1000.0)
 
         for i in reversed(range(10)):
-            self.assertEqual(q.get(timeout=0.2), i)
+            self.assertEqual(q.get(timeout=TIMEOUT), i)
 
     @flaky(max_runs=3, min_passes=1)
     def test_callbacks_intermixed_with_messages(self):
@@ -256,8 +265,8 @@ class TestMessageBus(unittest.TestCase):
         for i in range(100):
             self.assertEqual(q.get(timeout=0.1), i)
 
-        self.messageBus1.stop(timeout=0.2)
-        self.messageBus2.stop(timeout=0.2)
+        self.messageBus1.stop(timeout=TIMEOUT)
+        self.messageBus2.stop(timeout=TIMEOUT)
 
         t1.join()
         t2.join()
@@ -267,7 +276,7 @@ class TestMessageBus(unittest.TestCase):
 
     def test_auth(self):
         # bus1 requires auth
-        self.messageBus1.stop(timeout=0.2)
+        self.messageBus1.stop(timeout=TIMEOUT)
         self.messageQueue1 = queue.Queue()
         self.messageBus1 = MessageBus(
             "bus1",
@@ -283,11 +292,11 @@ class TestMessageBus(unittest.TestCase):
 
         # connecting to the other bus fails
         self.messageBus1.connect(("localhost", 8001))
-        self.assertTrue(self.messageQueue1.get(timeout=0.2).OutgoingConnectionEstablished)
-        self.assertTrue(self.messageQueue1.get(timeout=0.2).OutgoingConnectionClosed)
+        self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).OutgoingConnectionEstablished)
+        self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).OutgoingConnectionClosed)
 
         # now bus2 requires auth, but different auth
-        self.messageBus2.stop(timeout=0.2)
+        self.messageBus2.stop(timeout=TIMEOUT)
         self.messageQueue2 = queue.Queue()
         self.messageBus2 = MessageBus(
             "bus2",
@@ -303,11 +312,11 @@ class TestMessageBus(unittest.TestCase):
 
         # connecting to the other bus fails
         self.messageBus1.connect(("localhost", 8001))
-        self.assertTrue(self.messageQueue1.get(timeout=0.2).OutgoingConnectionEstablished)
-        self.assertTrue(self.messageQueue1.get(timeout=0.2).OutgoingConnectionClosed)
+        self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).OutgoingConnectionEstablished)
+        self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).OutgoingConnectionClosed)
 
         # but if they have the same token it works
-        self.messageBus2.stop(timeout=0.2)
+        self.messageBus2.stop(timeout=TIMEOUT)
         self.messageQueue2 = queue.Queue()
         self.messageBus2 = MessageBus(
             "bus2",
@@ -323,16 +332,16 @@ class TestMessageBus(unittest.TestCase):
 
         conn = self.messageBus1.connect(("localhost", 8001))
         self.messageBus1.sendMessage(conn, "msg_good")
-        self.assertTrue(self.messageQueue1.get(timeout=0.2).OutgoingConnectionEstablished)
+        self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).OutgoingConnectionEstablished)
 
-        self.assertTrue(self.messageQueue2.get(timeout=0.2).NewIncomingConnection)
-        self.assertEqual(self.messageQueue2.get(timeout=0.2).message, "msg_good")
+        self.assertTrue(self.messageQueue2.get(timeout=TIMEOUT).NewIncomingConnection)
+        self.assertEqual(self.messageQueue2.get(timeout=TIMEOUT).message, "msg_good")
 
     def test_message_throttles(self):
         self.messageBus1.setMaxWriteQueueSize(1024 * 1024)
 
         # use a bytecount-limited queue for bus 2
-        self.messageBus2.stop(timeout=0.2)
+        self.messageBus2.stop(timeout=TIMEOUT)
         self.messageQueue2 = BytecountLimitedQueue(len, 1024 ** 2)
 
         def onEvent(event):

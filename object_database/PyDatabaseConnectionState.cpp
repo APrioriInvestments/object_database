@@ -398,7 +398,11 @@ PyTypeObject PyType_DatabaseConnectionState = {
     .tp_basicsize = sizeof(PyDatabaseConnectionState),
     .tp_itemsize = 0,
     .tp_dealloc = (destructor) PyDatabaseConnectionState::dealloc,
+    #if PY_MINOR_VERSION < 8
     .tp_print = 0,
+    #else
+    .tp_vectorcall_offset = 0,                  // printfunc  (Changed to tp_vectorcall_offset in Python 3.8)
+    #endif
     .tp_getattr = 0,
     .tp_setattr = 0,
     .tp_as_async = 0,

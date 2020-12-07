@@ -91,7 +91,11 @@ PyTypeObject* PyDatabaseObjectType::createDatabaseObjectType(PyObject* schema, s
         .tp_basicsize = sizeof(PyInstance),         // Py_ssize_t
         .tp_itemsize = 0,                           // Py_ssize_t
         .tp_dealloc = 0,                            // destructor
-        .tp_print = 0,                              // printfunc
+        #if PY_MINOR_VERSION < 8
+        .tp_print = 0,
+        #else
+        .tp_vectorcall_offset = 0,                  // printfunc  (Changed to tp_vectorcall_offset in Python 3.8)
+        #endif
         .tp_getattr = 0,                            // getattrfunc
         .tp_setattr = 0,                            // setattrfunc
         .tp_as_async = 0,                           // PyAsyncMethods*

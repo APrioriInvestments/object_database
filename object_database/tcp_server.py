@@ -194,7 +194,12 @@ def connect(host, port, auth_token, timeout=10.0, retry=False):
             ssock = ssl_ctx.wrap_socket(sock)
             ssock.do_handshake()
 
-            nativePumpLoop = DatabaseConnectionPumpLoop(ssock._sslobj._sslobj)
+            # different versions of python stash the SSL context object in
+            # different places.
+            if hasattr(ssock._sslobj, "_sslobj"):
+                nativePumpLoop = DatabaseConnectionPumpLoop(ssock._sslobj._sslobj)
+            else:
+                nativePumpLoop = DatabaseConnectionPumpLoop(ssock._sslobj)
         except Exception:
             if not retry or time.time() - t0 > timeout * 0.8:
                 raise

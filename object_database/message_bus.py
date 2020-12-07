@@ -761,7 +761,8 @@ class MessageBus(object):
                         serializedMessage, self.inMessageType
                     )
             except Exception:
-                self._logger.exception("Failed to deserialize a message")
+                if serializedMessage != self._authToken:
+                    self._logger.exception("Failed to deserialize a message")
                 return False
 
             self._fireEvent(

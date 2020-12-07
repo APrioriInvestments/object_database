@@ -78,6 +78,7 @@ class TestMessageBus(unittest.TestCase):
             messageBus3.start()
             messageBus3.stop(timeout=TIMEOUT)
 
+    @flaky(max_runs=3, min_passes=1)
     def test_worker_can_send_messages(self):
         conn1 = self.messageBus1.connect(("localhost", 8001))
 

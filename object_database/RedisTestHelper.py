@@ -46,7 +46,10 @@ class RedisTestHelper:
             while not self.connect() and time.time() - t0 < CONNECT_TIMEOUT:
                 time.sleep(0.01)
 
-            assert self.redisProcess.poll() is None
+            pollRes = self.redisProcess.poll()
+            if pollRes is not None:
+                raise Exception(f"Failed to start Redis Service: poll() returned {pollRes}")
+
         except BaseException:
             self.tearDown()
             raise

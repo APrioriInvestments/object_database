@@ -19,5 +19,5 @@ redis
 requests
 selenium
 sortedcontainers
-typed_python
+typed_python @ git+https://github.com/aprioriinvestments/typed_python.git@ecd1061115553ce698be5b2c11bd7d1f5670bec9#egg=typed_python-999.999.999
 wtforms

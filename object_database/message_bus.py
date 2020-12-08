@@ -641,12 +641,8 @@ class MessageBus(object):
                 self._socketsWithSslWantWrite.add(socketWithData)
             except ConnectionResetError:
                 bytesReceived = b""
-            except Exception as e:
-                self._logger.info(
-                    "MessageBus read socket shutting down because of exception of type %s: %s",
-                    type(e),
-                    e,
-                )
+            except Exception:
+                self._logger.exception("MessageBus read socket shutting down")
                 bytesReceived = b""
 
             if bytesReceived is None:
@@ -869,6 +865,9 @@ class MessageBus(object):
 
     def _handleWriteReadySocket(self, writeable):
         """Socket 'writeable' can accept more bytes."""
+        if writeable not in self._socketToBytesNeedingWrite:
+            return
+
         try:
             bytesWritten = writeable.send(self._socketToBytesNeedingWrite[writeable])
         except ssl.SSLWantReadError:
@@ -880,10 +879,8 @@ class MessageBus(object):
             bytesWritten = 0
         except BrokenPipeError:
             bytesWritten = 0
-        except Exception as e:
-            self._logger.info(
-                "MessageBus write socket shutting down because of exception: %s", e
-            )
+        except Exception:
+            self._logger.exception("MessageBus write socket shutting down because of exception")
             bytesWritten = 0
 
         if bytesWritten > 0:
@@ -1003,15 +1000,15 @@ class MessageBus(object):
                 self._socketToOutgoingConnId[ssl_socket] = connId
                 self._connIdToOutgoingSocket[connId] = ssl_socket
 
-            # this message notifies the socket loop that it needs to pay attention to this
-            # connection.
-            self._scheduleEvent(self.eventType.OutgoingConnectionEstablished(connId))
+                # this message notifies the socket loop that it needs to pay attention to this
+                # connection.
+                self._scheduleEvent(self.eventType.OutgoingConnectionEstablished(connId))
 
-            if connId in self._messagesForUnconnectedOutgoingConnection:
-                messages = self._messagesForUnconnectedOutgoingConnection.pop(connId)
+                if connId in self._messagesForUnconnectedOutgoingConnection:
+                    messages = self._messagesForUnconnectedOutgoingConnection.pop(connId)
 
-                for m in messages:
-                    self._scheduleBytesForWrite(connId, m)
+                    for m in messages:
+                        self._scheduleBytesForWrite(connId, m)
 
             return True
         except Exception:
@@ -1021,7 +1018,7 @@ class MessageBus(object):
                     del self._connIdToOutgoingEndpoint[connId]
                 self._connIdPendingOutgoingConnection.discard(connId)
                 if connId in self._messagesForUnconnectedOutgoingConnection:
-                    self._messagesForUnconnectedOutgoingConnection[connId]
+                    del self._messagesForUnconnectedOutgoingConnection[connId]
 
             self._scheduleEvent(self.eventType.OutgoingConnectionFailed(connectionId=connId))
 

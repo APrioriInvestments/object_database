@@ -161,7 +161,7 @@ class ServiceWorker:
 
     def stop(self):
         self.shouldStop.set()
-        if self.serviceWorkerThread.isAlive():
+        if self.serviceWorkerThread.is_alive():
             self.serviceWorkerThread.join()
 
         self.shutdownPollReactor.stop()
@@ -178,4 +178,4 @@ class ServiceWorker:
         return service
 
     def isRunning(self):
-        return self.serviceWorkerThread.isAlive()
+        return self.serviceWorkerThread.is_alive()

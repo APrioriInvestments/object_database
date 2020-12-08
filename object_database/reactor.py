@@ -178,7 +178,7 @@ class Reactor:
     def isRunning(self):
         if self._thread is None:
             return False
-        return self._thread.isAlive()
+        return self._thread.is_alive()
 
     @contextmanager
     def running(self, teardown=False):

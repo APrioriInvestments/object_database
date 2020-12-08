@@ -362,7 +362,7 @@ class MessageBus(object):
         self._inputThread.join(timeout=timeout)
         self._outputThread.join(timeout=timeout)
 
-        if self._inputThread.isAlive() or self._outputThread.isAlive():
+        if self._inputThread.is_alive() or self._outputThread.is_alive():
             raise Exception("Failed to shutdown our threads!")
 
         # shutdown the event loop after the threadloops, so that we're guaranteed
@@ -370,7 +370,7 @@ class MessageBus(object):
         self._eventQueue.put(None)
         self._eventThread.join(timeout=timeout)
 
-        if self._eventThread.isAlive():
+        if self._eventThread.is_alive():
             raise Exception("Failed to shutdown our threads!")
 
         if self._acceptSocket is not None:

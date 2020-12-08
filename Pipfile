@@ -34,6 +34,3 @@ selenium = "*"
 sortedcontainers = "*"
 typed_python = {editable = true,path = "./../typed_python"}
 wtforms = "*"
-
-[requires]
-python_version = "3.6"

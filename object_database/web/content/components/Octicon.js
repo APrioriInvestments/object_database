@@ -26,7 +26,7 @@ class Octicon extends Component {
                 "data-cell-id": this.props.id,
                 "data-cell-type": "Octicon",
                 "aria-hidden": true,
-                "title": (this.props.hoverText || '').replace("\n", "&#013;"),
+                "title": (this.props.hoverText || ''),
                 style: this.style
             })
         );

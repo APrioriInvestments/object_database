@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 import collections
+import collections.abc
 import hashlib
 import logging
 import logging.config
@@ -47,7 +48,7 @@ def formatTable(rows):
 
 def recursiveUpdate(dictionary, updates):
     for k, v in updates.items():
-        if isinstance(v, collections.Mapping):
+        if isinstance(v, collections.abc.Mapping):
             dictionary[k] = recursiveUpdate(dictionary.get(k, {}), v)
         else:
             dictionary[k] = v

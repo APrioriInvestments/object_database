@@ -642,7 +642,7 @@ class MessageBus(object):
             except ConnectionResetError:
                 bytesReceived = b""
             except Exception as e:
-                logging.info(
+                self._logger.info(
                     "MessageBus read socket shutting down because of exception of type %s: %s",
                     type(e),
                     e,
@@ -881,7 +881,9 @@ class MessageBus(object):
         except BrokenPipeError:
             bytesWritten = 0
         except Exception as e:
-            logging.info("MessageBus write socket shutting down because of exception: %s", e)
+            self._logger.info(
+                "MessageBus write socket shutting down because of exception: %s", e
+            )
             bytesWritten = 0
 
         if bytesWritten > 0:
@@ -1063,4 +1065,4 @@ class MessageBus(object):
                 try:
                     msg()
                 except Exception:
-                    logging.exception(f"User callback {msg} threw unexpected exception:")
+                    self._logger.exception(f"User callback {msg} threw unexpected exception:")

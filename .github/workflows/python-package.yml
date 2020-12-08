@@ -76,11 +76,16 @@ jobs:
     # - name: Setup Debug SSH Session
     #   uses: mxschmitt/action-tmate@v3
 
-    - name: Test Python & JS
+    - name: Test JS
       env:
         TRAVIS_CI: 1
       run: |
         make js-test
+
+    - name: Test Python
+      env:
+        TRAVIS_CI: 1
+      run: |
         make testcert.cert
         pytest --verbose --capture=no --log-level=info --log-cli-level=info
 

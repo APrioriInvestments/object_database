@@ -470,8 +470,6 @@ class ObjectDatabaseTests:
             with db.view():
                 pass
 
-        usage = currentMemUsageMb(residentOnly=False)
-
         for i in range(100):
             db = self.createNewDb()
 
@@ -479,17 +477,21 @@ class ObjectDatabaseTests:
             db.flush()
             db.disconnect(block=True)
 
-        usage = currentMemUsageMb(residentOnly=False)
+        def loopThread():
+            for i in range(500):
+                db = self.createNewDb()
+                db.subscribeToSchema(schema)
+                db.flush()
+                db.disconnect(block=True)
+                if i % 10 == 0:
+                    print(i, currentMemUsageMb(residentOnly=False))
 
-        for i in range(500):
-            db = self.createNewDb()
-            db.subscribeToSchema(schema)
-            db.flush()
-            db.disconnect(block=True)
-            if i % 10 == 0:
-                print(i, currentMemUsageMb(residentOnly=False))
+        threads = [threading.Thread(target=loopThread, daemon=True) for _ in range(2)]
+        for t in threads:
+            t.start()
 
-            self.assertLess(currentMemUsageMb(residentOnly=False) - usage, 100)
+        for t in threads:
+            t.join()
 
     def test_disconnecting_is_immediate(self):
         db1 = self.createNewDb()

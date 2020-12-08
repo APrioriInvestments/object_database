@@ -188,11 +188,12 @@ def connect(host, port, auth_token, timeout=10.0, retry=False):
             sock = socket.create_connection((host, port))
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
 
+            sock.setblocking(False)
+
             peername = sock.getpeername()
             sockname = sock.getsockname()
 
-            ssock = ssl_ctx.wrap_socket(sock)
-            ssock.do_handshake()
+            ssock = ssl_ctx.wrap_socket(sock, do_handshake_on_connect=False)
 
             # different versions of python stash the SSL context object in
             # different places.

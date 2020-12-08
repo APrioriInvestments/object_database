@@ -35,7 +35,7 @@ from object_database.util import sslContextFromCertPathOrNone
 from object_database.bytecount_limited_queue import BytecountLimitedQueue
 
 MESSAGE_LEN_BYTES = 4  # sizeof an int32 used to pack messages
-SELECT_TIMEOUT = 0.5
+SELECT_TIMEOUT = 5.0
 MSG_BUF_SIZE = 128 * 1024
 
 
@@ -298,6 +298,7 @@ class MessageBus(object):
 
         # socket -> bytes that need to be written
         self._socketToBytesNeedingWrite = {}
+        self._socketsWithSslWantWrite = set()
 
         # set of sockets currently readable
         self._allReadSockets = set()
@@ -549,11 +550,6 @@ class MessageBus(object):
             with self._lock:
                 self._acceptSocket = sock
 
-                if self._wantsSSL:
-                    self._acceptSocket = self._sslContext.wrap_socket(
-                        self._acceptSocket, server_side=True
-                    )
-
                 self._logger.debug(
                     "%s listening on %s:%s",
                     self.busIdentity,
@@ -579,8 +575,11 @@ class MessageBus(object):
         elif connId in self._connIdToIncomingSocket:
             sslSock = self._connIdToIncomingSocket.get(connId)
         else:
-            # we're not connected yet, so we can't put this on the buffer set
-            assert connId in self._connIdPendingOutgoingConnection
+            # we're not connected yet, so we can't put this on the buffer
+            # so instead, put it on a pending buffer.
+            if connId not in self._connIdPendingOutgoingConnection:
+                # if we don't have one, it's because we disconnected
+                return
 
             with self._lock:
                 self._messagesForUnconnectedOutgoingConnection.setdefault(connId, []).append(
@@ -602,7 +601,14 @@ class MessageBus(object):
         """Our select loop indicated 'socketWithData' has data pending."""
         if socketWithData is self._acceptSocket:
             newSocket, newSocketSource = socketWithData.accept()
+            newSocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
             newSocket.setblocking(False)
+
+            if self._wantsSSL:
+                newSocket = self._sslContext.wrap_socket(
+                    newSocket, server_side=True, do_handshake_on_connect=False
+                )
+
             self._allReadSockets.add(newSocket)
 
             with self._lock:
@@ -624,16 +630,22 @@ class MessageBus(object):
                     source=Endpoint(newSocketSource), connectionId=connId
                 )
             )
+
+            return True
         elif socketWithData in self._allReadSockets:
             try:
                 bytesReceived = socketWithData.recv(MSG_BUF_SIZE)
             except ssl.SSLWantReadError:
                 bytesReceived = None
+            except ssl.SSLWantWriteError:
+                self._socketsWithSslWantWrite.add(socketWithData)
             except ConnectionResetError:
                 bytesReceived = b""
             except Exception as e:
                 logging.info(
-                    "MessageBus read socket shutting down " "because of exception: %s", e
+                    "MessageBus read socket shutting down because of exception of type %s: %s",
+                    type(e),
+                    e,
                 )
                 bytesReceived = b""
 
@@ -644,6 +656,7 @@ class MessageBus(object):
                 self._markSocketClosed(socketWithData)
                 self._allReadSockets.discard(socketWithData)
                 del self._incomingSocketBuffers[socketWithData]
+                return True
             else:
                 self.totalBytesRead += len(bytesReceived)
 
@@ -666,12 +679,15 @@ class MessageBus(object):
                         self._allReadSockets.discard(socketWithData)
                         del self._incomingSocketBuffers[socketWithData]
                         break
+
+                return True
         else:
             self._logger.warning(
                 "MessageBus got data on a socket it didn't know about: %s", socketWithData
             )
 
     def _socketThreadLoop(self):
+        selectsWithNoUpdate = 0
         try:
             while True:
                 # don't read from the serialization queue unless we can handle the
@@ -703,12 +719,21 @@ class MessageBus(object):
                     readableSockets.append(self._messageToSendWakePipe[0])
 
                 try:
+                    writeableSelectSockets = set(self._socketsWithSslWantWrite)
+
+                    # if we're just spinning making no progress, don't bother
+                    if selectsWithNoUpdate < 10:
+                        writeableSelectSockets = set(self._socketToBytesNeedingWrite)
+
                     readReady, writeReady = select.select(
                         readableSockets,
-                        self._socketToBytesNeedingWrite,
+                        writeableSelectSockets,
                         [],
                         min(maxSleepTime, SELECT_TIMEOUT),
                     )[:2]
+
+                    if time.time() > 0.01:
+                        selectsWithNoUpdate = 0
 
                 except ValueError:
                     # one of the sockets must have failed
@@ -726,19 +751,35 @@ class MessageBus(object):
                     for s in failedSockets:
                         if s in self._socketToBytesNeedingWrite:
                             del self._socketToBytesNeedingWrite[s]
+                else:
+                    writeReady.extend(self._socketsWithSslWantWrite)
 
-                for socketWithData in readReady:
-                    if socketWithData == self._messageToSendWakePipe[0]:
-                        self._handleMessageToSendWakePipe()
-                    elif socketWithData == self._eventToFireWakePipe[0]:
-                        self._handleEventToFireWakePipe()
-                    elif socketWithData == self._generalWakePipe[0]:
-                        self._handleGeneralWakePipe()
+                    self._socketsWithSslWantWrite.clear()
+
+                    didSomething = False
+
+                    for socketWithData in readReady:
+                        if socketWithData == self._messageToSendWakePipe[0]:
+                            self._handleMessageToSendWakePipe()
+                            didSomething = True
+                        elif socketWithData == self._eventToFireWakePipe[0]:
+                            self._handleEventToFireWakePipe()
+                            didSomething = True
+                        elif socketWithData == self._generalWakePipe[0]:
+                            self._handleGeneralWakePipe()
+                            didSomething = True
+                        else:
+                            if self._handleReadReadySocket(socketWithData):
+                                didSomething = True
+
+                    for writeable in writeReady:
+                        if self._handleWriteReadySocket(writeable):
+                            didSomething = True
+
+                    if didSomething:
+                        selectsWithNoUpdate = 0
                     else:
-                        self._handleReadReadySocket(socketWithData)
-
-                for writeable in writeReady:
-                    self._handleWriteReadySocket(writeable)
+                        selectsWithNoUpdate += 1
 
         except MessageBusLoopExit:
             self._logger.debug("Socket loop for MessageBus exiting gracefully")
@@ -830,7 +871,10 @@ class MessageBus(object):
         """Socket 'writeable' can accept more bytes."""
         try:
             bytesWritten = writeable.send(self._socketToBytesNeedingWrite[writeable])
+        except ssl.SSLWantReadError:
+            bytesWritten = -1
         except ssl.SSLWantWriteError:
+            self._socketsWithSslWantWrite.add(writeable)
             bytesWritten = -1
         except OSError:
             bytesWritten = 0
@@ -856,6 +900,8 @@ class MessageBus(object):
             if not self._socketToBytesNeedingWrite[writeable]:
                 # we have no bytes to flush
                 del self._socketToBytesNeedingWrite[writeable]
+
+            return True
 
     def _ensureSocketClosed(self, sock):
         try:

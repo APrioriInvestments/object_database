@@ -83,7 +83,7 @@ class ServiceManagerTestCommon(object):
                 core_schema, service_schema, *self.schemasToSubscribeTo()
             )
         except Exception:
-            self.logger.error(f"Failed to initialize for test")
+            self.logger.error("Failed to initialize for test")
             self.server.terminate()
             self.server.wait()
             self.tempDirObj.cleanup()
@@ -98,13 +98,13 @@ class ServiceManagerTestCommon(object):
             self.server.wait(timeout=15.0)
         except subprocess.TimeoutExpired:
             self.logger.warning(
-                f"Failed to gracefully terminate service manager. Sending KILL signal"
+                "Failed to gracefully terminate service manager. Sending KILL signal"
             )
             self.server.kill()
             try:
                 self.server.wait(timeout=5.0)
             except subprocess.TimeoutExpired:
-                self.logger.error(f"Failed to kill service manager process.")
+                self.logger.error("Failed to kill service manager process.")
 
         try:
             self.tempDirObj.cleanup()

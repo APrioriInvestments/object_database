@@ -89,6 +89,7 @@ jobs:
       timeout-minutes: 20  # Runs in ~10 min
       env:
         TRAVIS_CI: 1
+        PYTHONUNBUFFERED: true
       run: |
         make testcert.cert
         pytest --verbose --capture=no --log-level=info --log-cli-level=info

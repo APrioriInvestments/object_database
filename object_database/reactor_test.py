@@ -66,7 +66,7 @@ def test_reactor_invalid_uses(in_mem_odb_connection):
     r = Reactor(in_mem_odb_connection, noop)
 
     r.next()
-    with pytest.raises(Exception, match="Reactor would block forever"):
+    with pytest.raises(Exception, match="Reactor .* would block forever"):
         r.next()
 
     r.start()

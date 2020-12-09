@@ -495,7 +495,7 @@ def test_set_first_row_serverside(headless_browser):
     assert demo_root
     first_line = headless_browser.find_by_css(".ace_gutter-active-line")
     assert first_line
-    assert first_line.text == "1"
+    assert first_line.text == "29"
     toggle_btn = headless_browser.find_by_css('[data-cell-type="WSTesterButton"]')
     toggle_btn.click()
 

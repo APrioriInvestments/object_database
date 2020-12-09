@@ -59,23 +59,22 @@ install: $(VIRTUAL_ENV) testcert.cert testcert.key install-dependencies pre-comm
 
 
 .PHONY: install-dependencies
+.ONESHELL:
 install-dependencies: $(VIRTUAL_ENV)
-	. $(VIRTUAL_ENV)/bin/activate; \
-		pip install pipenv==2018.11.26; \
-		pip install black==19.3b0; \
-		pipenv install --dev --deploy; \
-		pip install -e .; \
-		nodeenv --python-virtualenv --prebuilt --node=12.13.0 $(NODE_ENV); \
-		npm install --global webpack webpack-cli; \
-		cd object_database/web/content; \
-		npm install; \
-	 	webpack
+	. $(VIRTUAL_ENV)/bin/activate
+	pipenv install --dev --deploy
+	pip install --editable .
+	nodeenv --python-virtualenv --prebuilt --node=12.13.0 $(NODE_ENV)
+	npm install --global webpack webpack-cli
+	cd object_database/web/content
+	npm install
+	webpack
 
 .PHONY: pre-commit-install
 pre-commit-install: $(VIRTUAL_ENV)
-	. $(VIRTUAL_ENV)/bin/activate; \
-		pip install pre-commit; \
-		pre-commit install; \
+	. $(VIRTUAL_ENV)/bin/activate
+	pip install pre-commit
+	pre-commit install
 
 .PHONY: node-install
 node-install:
@@ -93,11 +92,11 @@ build-js:
 	npm run build
 
 .PHONY: install-local
+.ONESHELL:
 install-local: $(VIRTUAL_ENV)
-	. $(VIRTUAL_ENV)/bin/activate; \
-		pip install pipenv==2018.11.26; \
-		pip install --editable ../typed_python; \
-		pip install --editable .
+	. $(VIRTUAL_ENV)/bin/activate
+	pip install --editable ../typed_python
+	pip install --editable .
 
 .PHONY: test
 test: $(VIRTUAL_ENV) testcert.cert testcert.key js-test
@@ -194,8 +193,14 @@ clean:
 	echo "export COVERAGE_PROCESS_START=$(PWD)/tox.ini" >> $@
 	echo "export PYTHONPATH=$(PWD)" >> $@
 
+.ONESHELL:
 $(VIRTUAL_ENV): $(PYTHON) .env
 	$(PYTHON) -m venv $(VIRTUAL_ENV)
+	. $(VIRTUAL_ENV)/bin/activate
+	pip install --upgrade pip
+	pip install pipenv==2020.11.4  # 2020.11.15 doesn't correcly record TP's deps
+	pip install black==19.3b0
+	pip install wheel
 
 $(ODB_BUILD_PATH)/all.o: $(ODB_SRC_PATH)/*.hpp $(ODB_SRC_PATH)/*.cpp $(TP_SRC_PATH)/*.hpp
 	$(CC) $(CPP_FLAGS) -c $(ODB_SRC_PATH)/all.cpp $ -o $@
@@ -209,16 +214,16 @@ $(ODB_LIB_PATH)/_types.cpython-36m-x86_64-linux-gnu.so: $(ODB_LIB_PATH) $(ODB_BU
 		-o $(ODB_LIB_PATH)/_types.cpython-36m-x86_64-linux-gnu.so $(LINK_FLAGS_POST)
 
 $(TP_BUILD_PATH):
-	mkdir -p $(TP_BUILD_PATH)
+	mkdir --parents $(TP_BUILD_PATH)
 
 $(ODB_BUILD_PATH):
-	mkdir -p $(ODB_BUILD_PATH)
+	mkdir --parents $(ODB_BUILD_PATH)
 
 $(TP_LIB_PATH):
-	mkdir -p $(TP_LIB_PATH)
+	mkdir --parents $(TP_LIB_PATH)
 
 $(ODB_LIB_PATH):
-	mkdir -p $(ODB_LIB_PATH)
+	mkdir --parents $(ODB_LIB_PATH)
 
 testcert.cert testcert.key:
 	openssl req -x509 -newkey rsa:2048 -keyout testcert.key -nodes \

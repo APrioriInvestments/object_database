@@ -55,7 +55,8 @@ jobs:
     - name: Install PIP dependencies
       timeout-minutes: 15  # Should run in ~2 to 3 min with cache
       run: |
-        pip install pip==20.2.4  pipenv==2018.11.26
+        pip install --upgrade pip
+        pip install pipenv==2018.11.26  # Newer versions choke on the editable tp dependency
         mkdir --parents ../typed_python
 
         pipenv lock --requirements > reqs.txt

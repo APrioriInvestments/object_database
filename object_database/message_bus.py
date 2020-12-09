@@ -880,7 +880,9 @@ class MessageBus(object):
         except BrokenPipeError:
             bytesWritten = 0
         except Exception:
-            self._logger.exception("MessageBus write socket shutting down because of exception")
+            self._logger.exception(
+                "MessageBus write socket shutting down because of exception"
+            )
             bytesWritten = 0
 
         if bytesWritten > 0:

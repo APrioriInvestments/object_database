@@ -29,7 +29,7 @@ overloaded trying to write connection data out to all the connections.
 import logging
 import threading
 import uuid
-from typed_python import OneOf, NamedTuple, Dict, Set, Tuple, ConstDict, makeNamedTuple, ListOf
+from typed_python import OneOf, NamedTuple, Dict, Set, Tuple, ConstDict, makeNamedTuple
 
 from .channel import ServerToClientChannel, ClientToServerChannel
 from .messages import ServerToClient, ClientToServer
@@ -77,8 +77,20 @@ class SubscriptionState:
     def __init__(self):
         # for each fieldId, the set of channels subscribed to it and vice versa
         # this is what we use to determine which channels are subscribed
-        self.fieldIdToChannel = Dict(FieldId, Set(ServerToClientChannel))()
-        self.channelToFieldId = Dict(ServerToClientChannel, Set(FieldId))()
+        self.fieldIdToSubscribedChannels = Dict(FieldId, Set(ServerToClientChannel))()
+        self.channelToSubscribedFieldIds = Dict(ServerToClientChannel, Set(FieldId))()
+
+        self.fieldIdAndIndexValToSubscribedChannels = Dict(
+            Tuple(FieldId, IndexValue), Set(ServerToClientChannel)
+        )()
+        self.channelToSubscribedFieldAndIndexVal = Dict(
+            ServerToClientChannel, Set(Tuple(FieldId, IndexValue))
+        )()
+
+        self.channelToSubscribedOids = Dict(ServerToClientChannel, Set(ObjectId))()
+        self.oidToSubscribedChannels = Dict(
+            ObjectId, Set(ServerToClientChannel)
+        )()  # TODO: do we really need this?
 
         # the definition of each schema as we know it
         self.schemaDefs = Dict(str, ConstDict(FieldDefinition, FieldId))()
@@ -87,9 +99,15 @@ class SubscriptionState:
 
         # mapping between a channel and its subscriptions
         self.channelSubscriptions = Dict(ServerToClientChannel, Set(SubscriptionKey))()
+
+        # subscriptions pending a schema/typname being fully subscribed
+        self.channelToPendingSubscriptions = Dict(
+            ServerToClientChannel, Set(SubscriptionKey)
+        )()
         self.subscriptionsPendingSchemaDef = Dict(
-            str,
-            ListOf(NamedTuple(channel=ServerToClientChannel, subscriptionKey=SubscriptionKey)),
+            # schema and typename
+            Tuple(str, str),
+            Set(Tuple(ServerToClientChannel, SubscriptionKey)),
         )()
 
         # the current top transaction we've ever seen.
@@ -101,48 +119,178 @@ class SubscriptionState:
         # the state of our subscriptions
         self.objectValues = Dict(FieldId, Dict(ObjectId, bytes))()
         self.indexValues = Dict(FieldId, Dict(ObjectId, IndexValue))()
+        self.reverseIndexValues = Dict(FieldId, Dict(IndexValue, Set(ObjectId)))()
+
+    def dropConnection(self, channel: ServerToClientChannel):
+        if channel in self.channelToSubscribedFieldIds:
+            for fieldId in self.channelToSubscribedFieldIds[channel]:
+                self.fieldIdToSubscribedChannels[fieldId].discard(channel)
+
+            self.channelToSubscribedFieldIds.pop(channel)
+
+        if channel in self.channelToSubscribedFieldAndIndexVal:
+            for fieldAndIv in self.channelToSubscribedFieldAndIndexVal[channel]:
+                self.fieldIdAndIndexValToSubscribedChannels[fieldAndIv].discard(channel)
+            self.channelToSubscribedFieldAndIndexVal.pop(channel)
+
+        if channel in self.channelToSubscribedOids:
+            for oid in self.channelToSubscribedOids[channel]:
+                self.oidToSubscribedChannels[oid].discard(channel)
+                if not self.oidToSubscribedChannels[oid]:
+                    self.oidToSubscribedChannels.pop(oid)
+
+            self.channelToSubscribedOids.pop(channel)
+
+        if channel in self.channelSubscriptions:
+            self.channelSubscriptions.pop(channel)
+
+        if channel in self.channelToPendingSubscriptions:
+            for subsKey in self.channelToPendingSubscriptions[channel]:
+                self.subscriptionsPendingSchemaDef[subsKey.schema, subsKey.typename].pop(
+                    (channel, subsKey)
+                )
+
+            self.channelToPendingSubscriptions.pop(channel)
 
     def addSubscription(self, channel, subscriptionKey: SubscriptionKey):
-        # we don't handle index, object, or lazy-level subscriptions yet
-        assert subscriptionKey.fieldname_and_value is None, "Not Implemented"
+        # we don't handle lazy-level subscriptions yet
         assert subscriptionKey.isLazy is False, "Not Implemented"
 
         self.channelSubscriptions.setdefault(channel).add(subscriptionKey)
 
         # if we don't have a schema def for this yet, we have to wait until we get one
         if subscriptionKey.schema not in self.schemaDefs:
-            self.subscriptionsPendingSchemaDef.setdefault(subscriptionKey.schema).append(
-                makeNamedTuple(channel=channel, subscriptionKey=subscriptionKey)
-            )
             return
-
-        for fieldId in self.schemaDefs[subscriptionKey.schema].values():
-            self.fieldIdToChannel.setdefault(fieldId).add(channel)
-            self.channelToFieldId.setdefault(channel).add(fieldId)
 
         if (
             makeNamedTuple(schema=subscriptionKey.schema, typename=subscriptionKey.typename)
             in self.completedTypes
         ):
-            # we can send the schema data for this
-            channel.sendMessage(
-                ServerToClient.SubscriptionData(
-                    schema=subscriptionKey.schema,
-                    typename=subscriptionKey.typename,
-                    fieldname_and_value=None,
-                    values=self.objectValuesForSubscriptionKey(subscriptionKey),
-                    index_values=self.indexValuesForSubscriptionKey(subscriptionKey),
-                    identities=None,
-                )
+            self.sendDataForSubscription(channel, subscriptionKey)
+        else:
+            self.subscriptionsPendingSchemaDef.setdefault(
+                (subscriptionKey.schema, subscriptionKey.typename)
+            ).add((channel, subscriptionKey))
+            self.channelToPendingSubscriptions.setdefault(channel).add(subscriptionKey)
+
+    def sendDataForSubscription(self, channel, subscriptionKey: SubscriptionKey):
+        self.subscribeChannelToKey(channel, subscriptionKey)
+
+        # we can send the schema data for this
+        oids = self.objectIndentitiesForSubscriptionKey(subscriptionKey)
+
+        if subscriptionKey.fieldname_and_value:
+            self.channelToSubscribedOids[channel] = oids
+            for oid in oids:
+                self.oidToSubscribedChannels.setdefault(oid).add(channel)
+
+        channel.sendMessage(
+            ServerToClient.SubscriptionData(
+                schema=subscriptionKey.schema,
+                typename=subscriptionKey.typename,
+                fieldname_and_value=subscriptionKey.fieldname_and_value,
+                values=self.objectValuesForOids(
+                    subscriptionKey.schema, subscriptionKey.typename, oids
+                ),
+                index_values=self.indexValuesForOids(
+                    subscriptionKey.schema, subscriptionKey.typename, oids
+                ),
+                identities=None if subscriptionKey.fieldname_and_value is None else oids,
             )
-            channel.sendMessage(
-                ServerToClient.SubscriptionComplete(
-                    schema=subscriptionKey.schema,
-                    typename=subscriptionKey.typename,
-                    fieldname_and_value=None,
-                    tid=self.transactionId,
-                )
+        )
+        channel.sendMessage(
+            ServerToClient.SubscriptionComplete(
+                schema=subscriptionKey.schema,
+                typename=subscriptionKey.typename,
+                fieldname_and_value=subscriptionKey.fieldname_and_value,
+                tid=self.transactionId,
             )
+        )
+
+    def subscribeChannelToKey(self, channel, key: SubscriptionKey):
+        """Mark 'channel' subscribed to 'key' assuming the schema is defined."""
+        if key.fieldname_and_value is not None:
+            fieldname, indexValue = key.fieldname_and_value
+
+            fieldId = self.schemaTypeAndNameToFieldId[key.schema][key.typename][fieldname]
+
+            self.fieldIdAndIndexValToSubscribedChannels.setdefault((fieldId, indexValue)).add(
+                channel
+            )
+            self.channelToSubscribedFieldAndIndexVal.setdefault(channel).add(
+                (fieldId, indexValue)
+            )
+        else:
+            # subscribe this channel to all the values
+            for fieldId in self.schemaTypeAndNameToFieldId[key.schema][key.typename].values():
+                self.fieldIdToSubscribedChannels.setdefault(fieldId).add(channel)
+                self.channelToSubscribedFieldIds.setdefault(channel).add(fieldId)
+
+    def objectIndentitiesForSubscriptionKey(
+        self, subscriptionKey: SubscriptionKey
+    ) -> Set(ObjectId):
+        oids = Set(ObjectId)()
+
+        if subscriptionKey.schema in self.schemaTypeAndNameToFieldId:
+            typenameToFieldMap = self.schemaTypeAndNameToFieldId[subscriptionKey.schema]
+
+            if subscriptionKey.typename in typenameToFieldMap:
+                if subscriptionKey.fieldname_and_value is None:
+                    for fieldId in typenameToFieldMap[subscriptionKey.typename].values():
+                        if fieldId in self.objectValues:
+                            oids.update(self.objectValues[fieldId])
+                else:
+                    fieldname, indexValue = subscriptionKey.fieldname_and_value
+
+                    if fieldname in typenameToFieldMap[subscriptionKey.typename]:
+                        fieldId = typenameToFieldMap[subscriptionKey.typename][fieldname]
+
+                        if indexValue in self.reverseIndexValues[fieldId]:
+                            oids.update(self.reverseIndexValues[fieldId][indexValue])
+
+        return oids
+
+    def objectValuesForOids(self, schema, typename, oids):
+        res = Dict(ObjectFieldId, OneOf(None, bytes))()
+
+        if schema in self.schemaTypeAndNameToFieldId:
+            typenameToFieldMap = self.schemaTypeAndNameToFieldId[schema]
+
+            if typename in typenameToFieldMap:
+                for fieldId in typenameToFieldMap[typename].values():
+                    if fieldId in self.objectValues:
+                        oidToVal = self.objectValues[fieldId]
+
+                        for oid in oids:
+                            if oid in oidToVal:
+                                res[
+                                    ObjectFieldId(
+                                        objId=oid, fieldId=fieldId, isIndexValue=False
+                                    )
+                                ] = oidToVal[oid]
+
+        return ConstDict(ObjectFieldId, OneOf(None, bytes))(res)
+
+    def indexValuesForOids(self, schema, typename, oids):
+        res = Dict(ObjectFieldId, OneOf(None, IndexValue))()
+
+        if schema in self.schemaTypeAndNameToFieldId:
+            typenameToFieldMap = self.schemaTypeAndNameToFieldId[schema]
+
+            if typename in typenameToFieldMap:
+                for fieldId in typenameToFieldMap[typename].values():
+                    if fieldId in self.indexValues:
+                        oidToVal = self.indexValues[fieldId]
+
+                        for oid in oids:
+                            if oid in oidToVal:
+                                res[
+                                    ObjectFieldId(
+                                        objId=oid, fieldId=fieldId, isIndexValue=True
+                                    )
+                                ] = oidToVal[oid]
+
+        return ConstDict(ObjectFieldId, OneOf(None, IndexValue))(res)
 
     def objectValuesForSubscriptionKey(self, subscriptionKey):
         res = Dict(ObjectFieldId, OneOf(None, bytes))()
@@ -184,12 +332,6 @@ class SubscriptionState:
                 fieldDef.typename
             )[fieldDef.fieldname] = fieldId
 
-        if schemaName in self.subscriptionsPendingSchemaDef:
-            for channel in self.subscriptionsPendingSchemaDef.pop(schemaName):
-                for fieldId in schemaDef.values():
-                    self.fieldIdToChannel.setdefault(fieldId).add(channel)
-                    self.channelToFieldId.setdefault(channel).add(fieldId)
-
     def handleSubscriptionData(
         self, schema, typename, fieldnameAndValue, values, indexValues, identities
     ):
@@ -209,6 +351,11 @@ class SubscriptionState:
             assert key.isIndexValue
             update(self.indexValues.setdefault(key.fieldId), key.objId, indexData)
 
+            indexValueToObjects = self.reverseIndexValues.setdefault(key.fieldId)
+
+            if indexData is not None:
+                indexValueToObjects.setdefault(indexData).add(key.objId)
+
     def getChannelsForSchemaAndTypename(self, schema, typename):
         channels = set()
 
@@ -219,8 +366,8 @@ class SubscriptionState:
             return channels
 
         for fieldId in self.schemaTypeAndNameToFieldId[schema][typename].values():
-            if fieldId in self.fieldIdToChannel:
-                channels.update(self.fieldIdToChannel[fieldId])
+            if fieldId in self.fieldIdToSubscribedChannels:
+                channels.update(self.fieldIdToSubscribedChannels[fieldId])
 
         return channels
 
@@ -231,37 +378,23 @@ class SubscriptionState:
         # this will always be for an entire schema
         self.completedTypes.add(makeNamedTuple(schema=schema, typename=typename))
 
-        # figure out which channels need to see this data
-        channels = self.getChannelsForSchemaAndTypename(schema, typename)
+        if (schema, typename) not in self.subscriptionsPendingSchemaDef:
+            return
 
-        key = SubscriptionKey(
-            schema=schema,
-            typename=typename,
-            fieldname_and_value=fieldnameAndValue,
-            isLazy=False,
-        )
-
-        msg = ServerToClient.SubscriptionData(
-            schema=schema,
-            typename=typename,
-            fieldname_and_value=None,
-            values=self.objectValuesForSubscriptionKey(key),
-            index_values=self.indexValuesForSubscriptionKey(key),
-            identities=None,
-        )
-
-        msg2 = ServerToClient.SubscriptionComplete(
-            schema=schema, typename=typename, fieldname_and_value=None, tid=self.transactionId
-        )
-
-        for c in channels:
-            c.sendMessage(msg)
-            c.sendMessage(msg2)
+        for channel, subscriptionKey in self.subscriptionsPendingSchemaDef.pop(
+            (schema, typename)
+        ):
+            self.channelToPendingSubscriptions[channel].discard(subscriptionKey)
+            self.sendDataForSubscription(channel, subscriptionKey)
 
     def handleTransaction(self, writes, set_adds, set_removes, transaction_id):
         fieldIds = Set(FieldId)()
 
+        oidsMentioned = Set(ObjectId)()
+
         for objectFieldId, val in writes.items():
+            oidsMentioned.add(objectFieldId.objId)
+
             fieldIds.add(objectFieldId.fieldId)
 
             oidMap = self.objectValues.setdefault(objectFieldId.fieldId)
@@ -274,13 +407,30 @@ class SubscriptionState:
         for indexId, oids in set_removes.items():
             vals = self.indexValues.setdefault(indexId.fieldId)
             for oid in oids:
+                oidsMentioned.add(oid)
                 vals.pop(oid)
+
+            objectsWithThisIndexVal = self.reverseIndexValues.setdefault(
+                indexId.fieldId
+            ).setdefault(indexId.indexValue)
+
+            for oid in oids:
+                objectsWithThisIndexVal.discard(oid)
+
+            if not objectsWithThisIndexVal:
+                self.reverseIndexValues[indexId.fieldId].pop(indexId.indexValue)
 
         for indexId, oids in set_adds.items():
             vals = self.indexValues.setdefault(indexId.fieldId)
 
+            objectsWithThisIndexVal = self.reverseIndexValues.setdefault(
+                indexId.fieldId
+            ).setdefault(indexId.indexValue)
+
             for oid in oids:
+                oidsMentioned.add(oid)
                 vals[oid] = indexId.indexValue
+                objectsWithThisIndexVal.add(oid)
 
         for indexId in set_adds:
             fieldIds.add(indexId.fieldId)
@@ -288,11 +438,16 @@ class SubscriptionState:
         for indexId in set_removes:
             fieldIds.add(indexId.fieldId)
 
+        # determine which channels are affected
         channels = set()
 
         for f in fieldIds:
-            if f in self.fieldIdToChannel:
-                channels.update(self.fieldIdToChannel[f])
+            if f in self.fieldIdToSubscribedChannels:
+                channels.update(self.fieldIdToSubscribedChannels[f])
+
+        for oid in oidsMentioned:
+            if oid in self.oidToSubscribedChannels:
+                channels.update(self.oidToSubscribedChannels[oid])
 
         if transaction_id > self.transactionId:
             self.transactionId = transaction_id
@@ -398,6 +553,7 @@ class ProxyServer:
             if channel not in self._downstreamChannels:
                 return
 
+            self._subscriptionState.dropConnection(channel)
             self._downstreamChannels.discard(channel)
             del self._channelToMissedHeartbeatCount[channel]
             self._authenticatedDownstreamChannels.discard(channel)

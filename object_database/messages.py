@@ -69,6 +69,10 @@ ClientToServer = Alternative(
     Subscribe={
         "schema": str,
         "typename": str,
+        # send us only the subset of objects that have IndexValue as the value
+        # the given field. The resulting response will contain this set of
+        # identities, and we'll get a SubscriptionIncrease message every time
+        # a new value gets added to our subscription
         "fieldname_and_value": OneOf(None, Tuple(str, IndexValue)),
         # load values when we first request them, instead of blocking on all the data.
         "isLazy": bool,

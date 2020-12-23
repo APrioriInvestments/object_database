@@ -172,11 +172,8 @@ class DatabaseProxyTests(unittest.TestCase):
 
         p1.tearDown()
 
-        dbRoot.flush()
-
-        with dbRoot.view():
-            assert not db1.connectionObject.exists()
-            assert not db2.connectionObject.exists()
+        assert dbRoot.waitForCondition(lambda: not db1.connectionObject.exists(), 1.0)
+        assert dbRoot.waitForCondition(lambda: not db2.connectionObject.exists(), 1.0)
 
     def test_stop_heartbeating(self):
         old_interval = getHeartbeatInterval()
@@ -203,3 +200,22 @@ class DatabaseProxyTests(unittest.TestCase):
 
         finally:
             setHeartbeatInterval(old_interval)
+
+    def test_subscribe_to_index_basic(self):
+        dbRoot = self.createNewDb()
+        dbRoot.subscribeToType(Counter)
+
+        with dbRoot.transaction():
+            c10 = Counter(k=10)
+            c9 = Counter(k=9)
+
+        p1 = self.createNewProxyServer()
+        db1 = p1.connect()
+        db1.subscribeToIndex(Counter, k=10, timeout=1.0)
+
+        db1.flush()
+
+        with db1.view():
+            assert Counter.lookupAll() == (c10,)
+            assert Counter.lookupAll(k=10) == (c10,)
+            assert not c9.exists()

@@ -78,6 +78,7 @@ ClientToServer = Alternative(
     # request a connection id that will be dependent on 'parentId' existing.
     # this is used by proxies.
     RequestDependentConnectionId={"parentId": ObjectId, "guid": str},
+    DropDependentConnectionId={"connIdentity": ObjectId},
     __str__=MessageToStr,
 )
 

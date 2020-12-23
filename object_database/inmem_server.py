@@ -71,7 +71,10 @@ class InMemoryChannel(ClientToServerChannel, ServerToClientChannel):
                 e = ClientToServer.Heartbeat()
             else:
                 try:
-                    e = self._clientToServerMsgQueue.get(timeout=1.0)
+                    maxSleep = max(
+                        0.001, min(time.time() - lastHeartbeat, getHeartbeatInterval())
+                    )
+                    e = self._clientToServerMsgQueue.get(timeout=maxSleep)
                 except queue.Empty:
                     e = None
 

@@ -310,7 +310,7 @@ class SubscriptionState:
 
 class ProxyServer:
     def __init__(self, upstreamChannel: ClientToServerChannel, authToken):
-        self._upstreamChannel = upstreamChannel
+        self._channelToMainServer = upstreamChannel
 
         self._authToken = authToken
 
@@ -327,9 +327,13 @@ class ProxyServer:
 
         self._deferredMessagesAndEndpoints = []
 
-        self._upstreamChannel.setServerToClientHandler(self.handleServerToClientMessage)
+        self._channelToMainServer.setServerToClientHandler(self.handleServerToClientMessage)
 
         self._guidToChannelRequestingIdentity = {}
+
+        self._channelToMissedHeartbeatCount = Dict(ServerToClientChannel, int)()
+
+        self._channelToConnectionId = Dict(ServerToClientChannel, ObjectId)()
 
         # dictionary from (channel, schemaName) -> SchemaDefinition
         self._channelSchemas = Dict(Tuple(ServerToClientChannel, str), SchemaDefinition)()
@@ -374,12 +378,15 @@ class ProxyServer:
         return self._authToken
 
     def authenticate(self):
-        self._upstreamChannel.sendMessage(ClientToServer.Authenticate(token=self.authToken))
+        self._channelToMainServer.sendMessage(
+            ClientToServer.Authenticate(token=self.authToken)
+        )
 
     def addConnection(self, channel: ServerToClientChannel):
         """An incoming connection is being made."""
         with self._lock:
             self._downstreamChannels.add(channel)
+            self._channelToMissedHeartbeatCount[channel] = 0
 
             channel.setClientToServerHandler(
                 lambda msg: self.handleClientToServerMessage(channel, msg)
@@ -388,14 +395,40 @@ class ProxyServer:
     def dropConnection(self, channel: ServerToClientChannel):
         """An incoming connection has dropped."""
         with self._lock:
+            if channel not in self._downstreamChannels:
+                return
+
             self._downstreamChannels.discard(channel)
+            del self._channelToMissedHeartbeatCount[channel]
             self._authenticatedDownstreamChannels.discard(channel)
+
+            if channel in self._channelToConnectionId:
+                connId = self._channelToConnectionId.pop(channel)
+
+                self._channelToMainServer.sendMessage(
+                    ClientToServer.DropDependentConnectionId(connIdentity=connId)
+                )
 
         channel.close()
 
     def handleClientToServerMessage(self, channel, msg: ClientToServer):
         with self._lock:
             self._handleClientToServerMessage(channel, msg)
+
+    def checkForDeadConnections(self):
+        with self._lock:
+            for c in list(self._channelToMissedHeartbeatCount):
+                self._channelToMissedHeartbeatCount[c] += 1
+
+                if self._channelToMissedHeartbeatCount[c] >= 4:
+                    logging.info(
+                        "Connection %s has not heartbeat in a long time. Killing it.",
+                        self._channelToConnectionId.get(c),
+                    )
+
+                    c.close()
+
+                    self.dropConnection(c)
 
     def _handleClientToServerMessage(self, channel, msg: ClientToServer):
         if channel not in self._downstreamChannels:
@@ -426,7 +459,7 @@ class ProxyServer:
 
             self._guidToChannelRequestingIdentity[guid] = channel
 
-            self._upstreamChannel.sendMessage(
+            self._channelToMainServer.sendMessage(
                 ClientToServer.RequestDependentConnectionId(
                     parentId=self._connectionIdentity, guid=guid
                 )
@@ -446,7 +479,7 @@ class ProxyServer:
             self._channelSchemas[channel, msg.name] = msg.definition
 
             if msg.name not in self._definedSchemas:
-                self._upstreamChannel.sendMessage(
+                self._channelToMainServer.sendMessage(
                     ClientToServer.DefineSchema(name=msg.name, definition=msg.definition)
                 )
                 self._definedSchemas[msg.name] = msg.definition
@@ -484,7 +517,7 @@ class ProxyServer:
             )
 
             if schemaAndTypename not in self._subscribedTypes:
-                self._upstreamChannel.sendMessage(
+                self._channelToMainServer.sendMessage(
                     ClientToServer.Subscribe(
                         schema=subscription.schema,
                         typename=subscription.typename,
@@ -504,7 +537,7 @@ class ProxyServer:
 
             self._outgoingFlushGuidToChannelAndFlushGuid[guid] = (channel, msg.guid)
 
-            self._upstreamChannel.sendMessage(ClientToServer.Flush(guid=guid))
+            self._channelToMainServer.sendMessage(ClientToServer.Flush(guid=guid))
             return
 
         if msg.matches.TransactionData:
@@ -519,7 +552,7 @@ class ProxyServer:
                 channel, msg.transaction_guid
             ] = guid
 
-            self._upstreamChannel.sendMessage(
+            self._channelToMainServer.sendMessage(
                 ClientToServer.TransactionData(
                     writes=msg.writes,
                     set_adds=msg.set_adds,
@@ -545,11 +578,16 @@ class ProxyServer:
                 channel, msg.transaction_guid
             ]
 
-            self._upstreamChannel.sendMessage(
+            self._channelToMainServer.sendMessage(
                 ClientToServer.CompleteTransaction(
                     as_of_version=msg.as_of_version, transaction_guid=guid
                 )
             )
+            return
+
+        if msg.matches.Heartbeat:
+            if channel in self._downstreamChannels:
+                self._channelToMissedHeartbeatCount[channel] = 0
             return
 
         raise Exception("Don't know how to handle ", msg)
@@ -575,8 +613,14 @@ class ProxyServer:
                 channel = self._guidToChannelRequestingIdentity.pop(guid, None)
 
                 if channel is None or channel not in self._downstreamChannels:
-                    # channel may have disconnected
+                    # the channel was disconnected before we processed the message.
+                    # just send the drop back.
+                    self._channelToMainServer.sendMessage(
+                        ClientToServer.DropDependentConnectionId(connIdentity=msg.connIdentity)
+                    )
                     return None
+
+                self._channelToConnectionId[channel] = msg.connIdentity
 
                 channel.sendMessage(
                     ServerToClient.Initialize(

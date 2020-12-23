@@ -81,6 +81,7 @@ class ConnectedChannel:
         self.subscribedIndexKeys = {}  # full index keys to lazy transaction id
         self.identityRoot = identityRoot
         self.pendingTransactions = {}
+        self.dependentConnections = set([connectionObject])
         self._needsAuthentication = True
 
     @property
@@ -300,30 +301,30 @@ class Server:
                     if not self._id_to_channel[identity]:
                         del self._id_to_channel[identity]
 
-            co = connectedChannel.connectionObject
+            connectionsToDrop = connectedChannel.dependentConnections
 
             del self._clientChannels[channel]
 
-            self._dropConnectionEntry(co)
+            for co in connectionsToDrop:
+                self._dropConnectionEntry(co)
 
-    def _createConnectionEntry(self, mirrorInDatabase=True):
+    def _createConnectionEntry(self):
         identity = self.identityProducer.createIdentity()
         identityRoot = self.allocateNewIdentityRoot()
 
-        if mirrorInDatabase:
-            fieldId = self._currentTypeMap().fieldIdFor("core", "Connection", " exists")
-            exists_key = ObjectFieldId(objId=identity, fieldId=fieldId)
-            exists_index = IndexId(fieldId=fieldId, indexValue=indexValueFor(bool, True))
+        fieldId = self._currentTypeMap().fieldIdFor("core", "Connection", " exists")
+        exists_key = ObjectFieldId(objId=identity, fieldId=fieldId)
+        exists_index = IndexId(fieldId=fieldId, indexValue=indexValueFor(bool, True))
 
-            self._handleNewTransaction(
-                None,
-                {exists_key: serialize(bool, True)},
-                {exists_index: set([identity])},
-                {},
-                [],
-                [],
-                self._cur_transaction_num,
-            )
+        self._handleNewTransaction(
+            None,
+            {exists_key: serialize(bool, True)},
+            {exists_index: set([identity])},
+            {},
+            [],
+            [],
+            self._cur_transaction_num,
+        )
 
         return core_schema.Connection.fromIdentity(identity), identityRoot
 
@@ -805,11 +806,19 @@ class Server:
             )
             return
 
+        if msg.matches.DropDependentConnectionId:
+            with self._lock:
+                connObj = core_schema.Connection.fromIdentity(msg.connIdentity)
+                connectedChannel.dependentConnections.remove(connObj)
+                self._dropConnectionEntry(connObj)
+            return
+
         if msg.matches.RequestDependentConnectionId:
             # for the moment, don't put the entry into the DB.
             with self._lock:
-                connectionObject, identityRoot = self._createConnectionEntry(False)
+                connectionObject, identityRoot = self._createConnectionEntry()
 
+            connectedChannel.dependentConnections.add(connectionObject)
             connectedChannel.channel.write(
                 ServerToClient.DependentConnectionId(
                     guid=msg.guid,

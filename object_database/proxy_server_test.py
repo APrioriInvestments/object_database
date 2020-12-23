@@ -17,6 +17,7 @@ import threading
 import os
 
 from object_database.util import configureLogging, genToken
+from object_database.messages import setHeartbeatInterval, getHeartbeatInterval
 from object_database.persistence import InMemoryPersistence
 from object_database.proxy_server import ProxyServer
 from object_database.inmem_server import InMemServer, InMemoryChannel, DatabaseConnection
@@ -29,6 +30,9 @@ class InmemProxyServer(ProxyServer):
 
         self.channels = []
         self.stopped = threading.Event()
+
+    def tearDown(self):
+        self._channelToMainServer.stop()
 
     def getChannel(self):
         channel = InMemoryChannel(self)
@@ -150,3 +154,52 @@ class DatabaseProxyTests(unittest.TestCase):
         db2.flush()
         with db2.view():
             assert c.exists()
+
+    def test_can_see_connection_to_proxy_servers(self):
+        dbRoot = self.createNewDb()
+        dbRoot.subscribeToType(type(dbRoot.connectionObject))
+
+        p1 = self.createNewProxyServer()
+
+        db1 = p1.connect()
+        db2 = p1.connect()
+
+        dbRoot.flush()
+
+        with dbRoot.view():
+            assert db1.connectionObject.exists()
+            assert db2.connectionObject.exists()
+
+        p1.tearDown()
+
+        dbRoot.flush()
+
+        with dbRoot.view():
+            assert not db1.connectionObject.exists()
+            assert not db2.connectionObject.exists()
+
+    def test_stop_heartbeating(self):
+        old_interval = getHeartbeatInterval()
+        setHeartbeatInterval(0.1)
+
+        try:
+            dbRoot = self.createNewDb()
+            dbRoot.subscribeToType(type(dbRoot.connectionObject))
+            p1 = self.createNewProxyServer()
+
+            db1 = p1.connect()
+
+            dbRoot.flush()
+            with dbRoot.view():
+                assert db1.connectionObject.exists()
+
+            db1Conn = db1.connectionObject
+            db1._stopHeartbeating()
+
+            for _ in range(10):
+                p1.checkForDeadConnections()
+
+            assert dbRoot.waitForCondition(lambda: not db1Conn.exists(), 1.0)
+
+        finally:
+            setHeartbeatInterval(old_interval)

@@ -219,3 +219,37 @@ class DatabaseProxyTests(unittest.TestCase):
             assert Counter.lookupAll() == (c10,)
             assert Counter.lookupAll(k=10) == (c10,)
             assert not c9.exists()
+
+        # verify we see writes
+        with dbRoot.transaction():
+            c10.x = 123
+
+        assert db1.waitForCondition(lambda: c10.x == 123, timeout=1.0)
+
+    def test_move_object_into_index(self):
+        dbRoot = self.createNewDb()
+        dbRoot.subscribeToType(Counter)
+
+        with dbRoot.transaction():
+            c = Counter(k=9)
+
+        p1 = self.createNewProxyServer()
+        db1 = p1.connect()
+        db1.subscribeToIndex(Counter, k=10, timeout=1.0)
+
+        db1.flush(timeout=1)
+
+        with db1.view():
+            assert Counter.lookupAll() == ()
+            assert Counter.lookupAll(k=10) == ()
+            assert not c.exists()
+
+        with dbRoot.transaction():
+            c.k = 10
+
+        db1.flush(timeout=1)
+
+        with db1.view():
+            assert Counter.lookupAll() == (c,)
+            assert Counter.lookupAll(k=10) == (c,)
+            assert c.exists()

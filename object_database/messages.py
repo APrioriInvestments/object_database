@@ -31,8 +31,35 @@ def MessageToStr(msg):
     if hasattr(msg, "typename"):
         fields["typename"] = msg.typename
 
+    if hasattr(msg, "transaction_id"):
+        fields["transaction_id"] = msg.transaction_id
+
+    if hasattr(msg, "writes"):
+        fields["writes"] = f"#{len(msg.writes)}"
+
+    if hasattr(msg, "set_adds"):
+        fields["set_adds"] = f"#{len(msg.set_adds)}"
+
+    if hasattr(msg, "set_removes"):
+        fields["set_removes"] = f"#{len(msg.set_removes)}"
+
     if hasattr(msg, "mapping"):
         fields["mapping"] = f"#{len(msg.mapping)}"
+
+    if hasattr(msg, "identities") and msg.identities:
+        fields["identities"] = f"#{len(msg.identities)}"
+
+    if hasattr(msg, "fieldname_and_value") and msg.fieldname_and_value is not None:
+
+        def clip(x):
+            stringified = repr(x)
+            if len(stringified) > 20:
+                stringified = stringified[:20] + stringified[0]
+            return stringified
+
+        fields[
+            "fieldname_and_value"
+        ] = f"({msg.fieldname_and_value[0]}, {clip(msg.fieldname_and_value[1])})"
 
     if hasattr(msg, "transaction_guid"):
         fields["transaction_guid"] = f"{msg.transaction_guid}"

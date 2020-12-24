@@ -731,8 +731,6 @@ class Server:
         if checkPending:
             for transactionMessage in self._pendingSubscriptionRecheck:
                 for key in transactionMessage.writes:
-                    transactionMessage.writes[key]
-
                     # if we write to a key we've already sent, we'll need to resend it
                     identity = key.objId
 

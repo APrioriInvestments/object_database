@@ -13,46 +13,20 @@
 #   limitations under the License.
 
 import unittest
-import threading
 import os
 
 from object_database.util import configureLogging, genToken
 from object_database.messages import setHeartbeatInterval, getHeartbeatInterval
 from object_database.persistence import InMemoryPersistence
-from object_database.proxy_server import ProxyServer
-from object_database.inmem_server import InMemServer, InMemoryChannel, DatabaseConnection
-from object_database.database_test import Counter
+from object_database.inmem_proxy_server import InMemProxyServer
+from object_database.inmem_server import InMemServer
+from object_database.database_test import Counter, ObjectDatabaseTests
 
 
-class InmemProxyServer(ProxyServer):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class ExecuteOdbTestsOnProxyServer(unittest.TestCase, ObjectDatabaseTests):
+    # set to True to get printouts on every message being sent
+    VERBOSE = False
 
-        self.channels = []
-        self.stopped = threading.Event()
-
-    def tearDown(self):
-        self._channelToMainServer.stop()
-
-    def getChannel(self):
-        channel = InMemoryChannel(self)
-        channel.start()
-
-        channel.markVerbose("Proxy", "View")
-
-        self.addConnection(channel)
-        self.channels.append(channel)
-
-        return channel
-
-    def connect(self):
-        dbc = DatabaseConnection(self.getChannel())
-        dbc.authenticate(self.authToken)
-        dbc.initialized.wait(timeout=1)
-        return dbc
-
-
-class DatabaseProxyTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         configureLogging("proxy_test")
@@ -68,6 +42,7 @@ class DatabaseProxyTests(unittest.TestCase):
 
         self.allConnections = []
         self.allChannels = []
+        self.allProxies = []
 
     def tearDown(self):
         for c in self.allConnections:
@@ -76,16 +51,87 @@ class DatabaseProxyTests(unittest.TestCase):
         for c in self.allChannels:
             c.stop()
 
+        for p in self.allProxies:
+            p.tearDown()
+
         self.server.stop()
 
     def createNewProxyServer(self):
         conn = self.server.getChannel()
 
+        self.allChannels.append(conn)
+
+        proxy = InMemProxyServer(conn, self.auth_token, verbose=self.VERBOSE)
+        self.allProxies.append(proxy)
+
+        if self.VERBOSE:
+            conn.markVerbose("Server", f"Proxy({id(proxy)})")
+
+        proxy.authenticate()
+
+        return proxy
+
+    def createNewDb(self, forceNotProxy=False):
+        if forceNotProxy:
+            return self.server.connect(self.auth_token)
+
+        return self.createNewProxyServer().connect()
+
+    # these tests don't make sense with the proxy since the proxy itself doesn't
+    # have a lazy load trigger
+    def test_lazy_subscriptions_read(self):
+        pass
+
+    def test_lazy_subscriptions_write(self):
+        pass
+
+    def test_lazy_subscriptions_exists(self):
+        pass
+
+    def test_lazy_subscriptions_delete(self):
+        pass
+
+    def test_max_tid(self):
+        pass
+
+
+class ProxyServerTestsDirect(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        configureLogging("proxy_test")
+        cls.PERFORMANCE_FACTOR = 1.0 if os.environ.get("TRAVIS_CI", None) is None else 2.0
+
+    def setUp(self):
+        self.auth_token = genToken()
+
+        self.mem_store = InMemoryPersistence()
+        self.server = InMemServer(self.mem_store, self.auth_token)
+        self.server._gc_interval = 0.1
+        self.server.start()
+
+        self.allConnections = []
+        self.allChannels = []
+        self.allProxies = []
+
+    def tearDown(self):
+        for c in self.allConnections:
+            c.disconnect(block=True)
+
+        for c in self.allChannels:
+            c.stop()
+
+        for p in self.allProxies:
+            p.tearDown()
+
+        self.server.stop()
+
+    def createNewProxyServer(self):
+        conn = self.server.getChannel()
         conn.markVerbose("Server", "Proxy")
 
         self.allChannels.append(conn)
 
-        proxy = InmemProxyServer(conn, self.auth_token)
+        proxy = InMemProxyServer(conn, self.auth_token, verbose=True)
         proxy.authenticate()
 
         return proxy
@@ -193,9 +239,6 @@ class DatabaseProxyTests(unittest.TestCase):
             db1Conn = db1.connectionObject
             db1._stopHeartbeating()
 
-            for _ in range(10):
-                p1.checkForDeadConnections()
-
             assert dbRoot.waitForCondition(lambda: not db1Conn.exists(), 1.0)
 
         finally:
@@ -293,3 +336,41 @@ class DatabaseProxyTests(unittest.TestCase):
         db1.flush()
         with db1.transaction():
             assert c1.k == 2
+
+    def test_commit_in_one_proxy_read_another(self):
+        p1 = self.createNewProxyServer()
+        p2 = self.createNewProxyServer()
+
+        db1 = p1.connect()
+        db2 = p2.connect()
+
+        db1.subscribeToNone(Counter)
+        db2.subscribeToType(Counter)
+
+        with db1.transaction():
+            c = Counter()
+
+        db2.flush()
+
+        with db2.view():
+            assert c.exists()
+
+    def test_commit_a_lot_in_one_proxy_read_another(self):
+        p1 = self.createNewProxyServer()
+        p2 = self.createNewProxyServer()
+
+        db1 = p1.connect()
+        db2 = p2.connect()
+
+        db1.subscribeToType(Counter)
+        db2.subscribeToType(Counter)
+
+        with db1.transaction():
+            for _ in range(10000):
+                Counter(k=123, x=1)
+            Counter()
+
+        db2.flush()
+
+        with db2.view():
+            assert len(Counter.lookupAll()) == 10001

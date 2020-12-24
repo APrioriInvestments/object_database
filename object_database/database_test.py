@@ -1727,6 +1727,8 @@ class ObjectDatabaseTests:
         for e in subscriptionEvents:
             assert e.wait(timeout=2.0 * pfactor)
 
+        # db2.flush()
+
         with db2.transaction():
             # verify we see the write on c1
             self.assertTrue(c1.exists())
@@ -1758,7 +1760,7 @@ class ObjectDatabaseTests:
             blocker.releaseCallback()
 
         # even while this is going, we should be able to subscribe to something small
-        db3 = self.createNewDb()
+        db3 = self.createNewDb(forceNotProxy=True)
         db3.subscribeToIndex(Counter, k=0)
         with db3.view():
             self.assertTrue(c1.exists())
@@ -2002,6 +2004,7 @@ class ObjectDatabaseTests:
 
         db1.subscribeToSchema(schema1)
         db1.subscribeToSchema(schema2)
+
         with db1.transaction():
             T11(k=0)
 
@@ -2045,7 +2048,7 @@ class ObjectDatabaseOverChannelTestsWithRedis(unittest.TestCase, ObjectDatabaseT
             self.redisProcess.tearDown()
             raise
 
-    def createNewDb(self):
+    def createNewDb(self, forceNotProxy=False):
         return self.server.connect(self.auth_token)
 
     def tearDown(self):
@@ -2104,7 +2107,7 @@ class ObjectDatabaseOverChannelTestsInMemory(unittest.TestCase, ObjectDatabaseTe
         self.server.start()
         self.allConnections = []
 
-    def createNewDb(self):
+    def createNewDb(self, forceNotProxy=False):
         conn = self.server.connect(self.auth_token)
         self.allConnections.append(conn)
         return conn
@@ -2233,7 +2236,7 @@ class ObjectDatabaseOverSocketTests(unittest.TestCase, ObjectDatabaseTests):
         self.server._gc_interval = 0.1
         self.server.start()
 
-    def createNewDb(self):
+    def createNewDb(self, forceNotProxy=False):
         db = self.server.connect(self.auth_token)
         db.initialized.wait()
         return db

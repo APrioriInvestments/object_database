@@ -38,10 +38,13 @@ from typed_python import (
     ConstDict,
     makeNamedTuple,
     TupleOf,
+    ListOf,
+    deserialize,
 )
 
 from .channel import ServerToClientChannel, ClientToServerChannel
 from .messages import ServerToClient, ClientToServer
+from .server import ObjectBase
 from .schema import (
     IndexValue,
     FieldId,
@@ -117,7 +120,10 @@ class SubscriptionState:
         self.channelToPendingSubscriptions = Dict(
             ServerToClientChannel, Set(SubscriptionKey)
         )()
-        self.subscriptionsPendingSchemaDef = Dict(
+        self.channelToPendingTransactions = Dict(
+            ServerToClientChannel, ListOf(ClientToServer)
+        )()
+        self.subscriptionsPendingSubscriptionOnServer = Dict(
             # schema and typename
             Tuple(str, str),
             Set(Tuple(ServerToClientChannel, SubscriptionKey)),
@@ -157,11 +163,14 @@ class SubscriptionState:
         if channel in self.channelSubscriptions:
             self.channelSubscriptions.pop(channel)
 
+        if channel in self.channelToPendingTransactions:
+            self.channelToPendingTransactions.pop(channel)
+
         if channel in self.channelToPendingSubscriptions:
             for subsKey in self.channelToPendingSubscriptions[channel]:
-                self.subscriptionsPendingSchemaDef[subsKey.schema, subsKey.typename].pop(
-                    (channel, subsKey)
-                )
+                self.subscriptionsPendingSubscriptionOnServer[
+                    subsKey.schema, subsKey.typename
+                ].pop((channel, subsKey))
 
             self.channelToPendingSubscriptions.pop(channel)
 
@@ -174,17 +183,13 @@ class SubscriptionState:
     def addSubscription(self, channel, subscriptionKey: SubscriptionKey):
         self.channelSubscriptions.setdefault(channel).add(subscriptionKey)
 
-        # if we don't have a schema def for this yet, we have to wait until we get one
-        if subscriptionKey.schema not in self.schemaDefs:
-            return
-
         if (
             makeNamedTuple(schema=subscriptionKey.schema, typename=subscriptionKey.typename)
             in self.completedTypes
         ):
             self.sendDataForSubscription(channel, subscriptionKey)
         else:
-            self.subscriptionsPendingSchemaDef.setdefault(
+            self.subscriptionsPendingSubscriptionOnServer.setdefault(
                 (subscriptionKey.schema, subscriptionKey.typename)
             ).add((channel, subscriptionKey))
             self.channelToPendingSubscriptions.setdefault(channel).add(subscriptionKey)
@@ -196,15 +201,16 @@ class SubscriptionState:
         if key.fieldname_and_value is not None:
             fieldname, indexValue = key.fieldname_and_value
 
-            fieldId = self.schemaTypeAndNameToFieldId[key.schema][key.typename][fieldname]
+            if fieldname != "_identity":
+                fieldId = self.schemaTypeAndNameToFieldId[key.schema][key.typename][fieldname]
 
-            self.indexIdToSubscribedChannels.setdefault((fieldId, indexValue)).add(channel)
-            self.channelToSubscribedIndexIds.setdefault(channel).add((fieldId, indexValue))
+                self.indexIdToSubscribedChannels.setdefault((fieldId, indexValue)).add(channel)
+                self.channelToSubscribedIndexIds.setdefault(channel).add((fieldId, indexValue))
 
-            if key.isLazy:
-                self.channelToLazilySubscribedIndexIds.setdefault(channel).add(
-                    IndexId(fieldId=fieldId, indexValue=indexValue)
-                )
+                if key.isLazy:
+                    self.channelToLazilySubscribedIndexIds.setdefault(channel).add(
+                        IndexId(fieldId=fieldId, indexValue=indexValue)
+                    )
 
             # and also mark the specific values its subscribed to
             self.channelToSubscribedOids[channel] = oids
@@ -250,24 +256,28 @@ class SubscriptionState:
             )
         )
 
-    def objectIndentitiesForSubscriptionKey(
-        self, subscriptionKey: SubscriptionKey
-    ) -> Set(ObjectId):
+    def objectIndentitiesForSubscriptionKey(self, key: SubscriptionKey) -> Set(ObjectId):
         oids = Set(ObjectId)()
 
-        if subscriptionKey.schema in self.schemaTypeAndNameToFieldId:
-            typenameToFieldMap = self.schemaTypeAndNameToFieldId[subscriptionKey.schema]
+        if key.fieldname_and_value is not None:
+            if key.fieldname_and_value[0] == "_identity":
+                # this is an 'identity' subscription, which subscribes to a single object
+                oids.add(deserialize(ObjectBase, key.fieldname_and_value[1])._identity)
+                return oids
 
-            if subscriptionKey.typename in typenameToFieldMap:
-                if subscriptionKey.fieldname_and_value is None:
-                    for fieldId in typenameToFieldMap[subscriptionKey.typename].values():
+        if key.schema in self.schemaTypeAndNameToFieldId:
+            typenameToFieldMap = self.schemaTypeAndNameToFieldId[key.schema]
+
+            if key.typename in typenameToFieldMap:
+                if key.fieldname_and_value is None:
+                    for fieldId in typenameToFieldMap[key.typename].values():
                         if fieldId in self.objectValues:
                             oids.update(self.objectValues[fieldId])
                 else:
-                    fieldname, indexValue = subscriptionKey.fieldname_and_value
+                    fieldname, indexValue = key.fieldname_and_value
 
-                    if fieldname in typenameToFieldMap[subscriptionKey.typename]:
-                        fieldId = typenameToFieldMap[subscriptionKey.typename][fieldname]
+                    if fieldname in typenameToFieldMap[key.typename]:
+                        fieldId = typenameToFieldMap[key.typename][fieldname]
 
                         if (
                             fieldId in self.reverseIndexValues
@@ -403,17 +413,27 @@ class SubscriptionState:
         if tid > self.transactionId:
             self.transactionId = tid
 
+        channelsToMessageToSend = Dict(ServerToClientChannel, ListOf(ServerToClient))()
+
         # this will always be for an entire schema
         self.completedTypes.add(makeNamedTuple(schema=schema, typename=typename))
 
-        if (schema, typename) not in self.subscriptionsPendingSchemaDef:
-            return
+        if (schema, typename) in self.subscriptionsPendingSubscriptionOnServer:
+            for channel, subscriptionKey in self.subscriptionsPendingSubscriptionOnServer.pop(
+                (schema, typename)
+            ):
+                self.channelToPendingSubscriptions[channel].discard(subscriptionKey)
+                self.sendDataForSubscription(channel, subscriptionKey)
 
-        for channel, subscriptionKey in self.subscriptionsPendingSchemaDef.pop(
-            (schema, typename)
-        ):
-            self.channelToPendingSubscriptions[channel].discard(subscriptionKey)
-            self.sendDataForSubscription(channel, subscriptionKey)
+                if not self.channelToPendingSubscriptions[channel]:
+                    self.channelToPendingSubscriptions.pop(channel)
+
+                    if channel in self.channelToPendingTransactions:
+                        channelsToMessageToSend[
+                            channel
+                        ] = self.channelToPendingTransactions.pop(channel)
+
+        return channelsToMessageToSend
 
     def _increaseBroadcastTransactionToInclude(
         self, indexId, writes, set_adds, set_removes, newOids
@@ -905,16 +925,31 @@ class ProxyServer:
             return
 
         if msg.matches.TransactionData:
-            self._transactionGuidIx += 1
-            guid = self._transactionGuidIx
+            if channel in self._subscriptionState.channelToPendingSubscriptions:
+                assert self._subscriptionState.channelToPendingSubscriptions[channel]
+                self._subscriptionState.channelToPendingTransactions.setdefault(
+                    channel
+                ).append(msg)
+                return
 
-            self._outgoingTransactionGuidToChannelAndTransactionGuid[guid] = (
+            if (
                 channel,
                 msg.transaction_guid,
-            )
-            self._channelAndTransactionGuidToOutgoingTransactionGuid[
-                channel, msg.transaction_guid
-            ] = guid
+            ) in self._channelAndTransactionGuidToOutgoingTransactionGuid:
+                guid = self._channelAndTransactionGuidToOutgoingTransactionGuid[
+                    channel, msg.transaction_guid
+                ]
+            else:
+                self._transactionGuidIx += 1
+                guid = self._transactionGuidIx
+
+                self._outgoingTransactionGuidToChannelAndTransactionGuid[guid] = (
+                    channel,
+                    msg.transaction_guid,
+                )
+                self._channelAndTransactionGuidToOutgoingTransactionGuid[
+                    channel, msg.transaction_guid
+                ] = guid
 
             self._subscriptionState.increaseSubscriptionIfNecessary(
                 channel, msg.set_adds, self._transactionNum
@@ -933,6 +968,13 @@ class ProxyServer:
             return
 
         if msg.matches.CompleteTransaction:
+            if channel in self._subscriptionState.channelToPendingSubscriptions:
+                assert self._subscriptionState.channelToPendingSubscriptions[channel]
+                self._subscriptionState.channelToPendingTransactions.setdefault(
+                    channel
+                ).append(msg)
+                return
+
             if (
                 channel,
                 msg.transaction_guid,
@@ -1022,9 +1064,13 @@ class ProxyServer:
                 return
 
             if msg.matches.SubscriptionComplete:
-                self._subscriptionState.handleSubscriptionComplete(
+                channelsToMessageToSend = self._subscriptionState.handleSubscriptionComplete(
                     msg.schema, msg.typename, msg.fieldname_and_value, msg.tid
                 )
+
+                for channel, messages in channelsToMessageToSend.items():
+                    for msg in messages:
+                        self.handleClientToServerMessage(channel, msg)
                 return
 
             if msg.matches.Transaction:

@@ -271,3 +271,25 @@ class DatabaseProxyTests(unittest.TestCase):
             c.x = 10
 
         assert db1.waitForCondition(lambda: c.exists(), 1.0)
+
+    def test_subscribe_lazy(self):
+        dbRoot = self.createNewDb()
+        dbRoot.subscribeToType(Counter)
+
+        with dbRoot.transaction():
+            c1 = Counter(k=1)
+
+        p1 = self.createNewProxyServer()
+        db1 = p1.connect()
+        db1.subscribeToType(Counter, lazySubscription=True)
+
+        with db1.transaction():
+            assert c1.exists()
+            assert c1.k == 1
+
+        with dbRoot.transaction():
+            c1.k = 2
+
+        db1.flush()
+        with db1.transaction():
+            assert c1.k == 2

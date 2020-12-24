@@ -96,6 +96,9 @@ class SubscriptionState:
         self.channelToSubscribedOids = Dict(ServerToClientChannel, Set(ObjectId))()
         self.oidToSubscribedChannels = Dict(ObjectId, Set(ServerToClientChannel))()
 
+        self.channelToLazilySubscribedFieldIds = Dict(ServerToClientChannel, Set(FieldId))()
+        self.channelToLazilySubscribedIndexIds = Dict(ServerToClientChannel, Set(IndexId))()
+
         # the definition of each schema as we know it
         self.schemaDefs = Dict(str, ConstDict(FieldDefinition, FieldId))()
 
@@ -162,10 +165,13 @@ class SubscriptionState:
 
             self.channelToPendingSubscriptions.pop(channel)
 
-    def addSubscription(self, channel, subscriptionKey: SubscriptionKey):
-        # we don't handle lazy-level subscriptions yet
-        assert subscriptionKey.isLazy is False, "Not Implemented"
+        if channel in self.channelToLazilySubscribedFieldIds:
+            self.channelToLazilySubscribedFieldIds.pop(channel)
 
+        if channel in self.channelToLazilySubscribedIndexIds:
+            self.channelToLazilySubscribedIndexIds.pop(channel)
+
+    def addSubscription(self, channel, subscriptionKey: SubscriptionKey):
         self.channelSubscriptions.setdefault(channel).add(subscriptionKey)
 
         # if we don't have a schema def for this yet, we have to wait until we get one
@@ -195,6 +201,11 @@ class SubscriptionState:
             self.indexIdToSubscribedChannels.setdefault((fieldId, indexValue)).add(channel)
             self.channelToSubscribedIndexIds.setdefault(channel).add((fieldId, indexValue))
 
+            if key.isLazy:
+                self.channelToLazilySubscribedIndexIds.setdefault(channel).add(
+                    IndexId(fieldId=fieldId, indexValue=indexValue)
+                )
+
             # and also mark the specific values its subscribed to
             self.channelToSubscribedOids[channel] = oids
             for oid in oids:
@@ -205,16 +216,30 @@ class SubscriptionState:
                 self.fieldIdToSubscribedChannels.setdefault(fieldId).add(channel)
                 self.channelToSubscribedFieldIds.setdefault(channel).add(fieldId)
 
-        channel.sendMessage(
-            ServerToClient.SubscriptionData(
-                schema=key.schema,
-                typename=key.typename,
-                fieldname_and_value=key.fieldname_and_value,
-                values=self.objectValuesForOids(key.schema, key.typename, oids),
-                index_values=self.indexValuesForOids(key.schema, key.typename, oids),
-                identities=None if key.fieldname_and_value is None else oids,
+                if key.isLazy:
+                    self.channelToLazilySubscribedFieldIds.setdefault(channel).add(fieldId)
+
+        if key.isLazy:
+            channel.sendMessage(
+                ServerToClient.LazySubscriptionData(
+                    schema=key.schema,
+                    typename=key.typename,
+                    fieldname_and_value=key.fieldname_and_value,
+                    identities=oids,
+                    index_values=self.indexValuesForOids(key.schema, key.typename, oids),
+                )
             )
-        )
+        else:
+            channel.sendMessage(
+                ServerToClient.SubscriptionData(
+                    schema=key.schema,
+                    typename=key.typename,
+                    fieldname_and_value=key.fieldname_and_value,
+                    values=self.objectValuesForOids(key.schema, key.typename, oids),
+                    index_values=self.indexValuesForOids(key.schema, key.typename, oids),
+                    identities=None if key.fieldname_and_value is None else oids,
+                )
+            )
 
         channel.sendMessage(
             ServerToClient.SubscriptionComplete(
@@ -430,6 +455,11 @@ class SubscriptionState:
     def handleTransaction(self, writes, set_adds, set_removes, transaction_id):
         # we may have to modify the transaction values
         writes = Dict(ObjectFieldId, OneOf(None, bytes))(writes)
+        priorValues = Dict(ObjectFieldId, OneOf(None, bytes))()
+
+        for ofi, value in writes.items():
+            priorValues[ofi] = self.objectValues.setdefault(ofi.fieldId).get(ofi.objId)
+
         set_adds = Dict(IndexId, Set(ObjectId))(
             {k: Set(ObjectId)(v) for k, v in set_adds.items()}
         )
@@ -440,6 +470,11 @@ class SubscriptionState:
         fieldIds = Set(FieldId)()
 
         oidsMentioned = Set(ObjectId)()
+
+        # all channels that need to get the prior values of each thing
+        # being written before they receive the transaction (because of
+        # laziness)
+        channelsTriggeredForPriors = Set(ServerToClientChannel)()
 
         for objectFieldId, val in writes.items():
             oidsMentioned.add(objectFieldId.objId)
@@ -478,6 +513,12 @@ class SubscriptionState:
             # message.
             if indexId in self.indexIdToSubscribedChannels:
                 for channel in self.indexIdToSubscribedChannels[indexId]:
+                    # if this channel is lazily subscribed to this index then we need to send
+                    # priors for every value we're updating. We're not being careful about
+                    # tracking this on a per-object basis, so in theory we could do better
+                    if indexId in self.channelToLazilySubscribedIndexIds.setdefault(channel):
+                        channelsTriggeredForPriors.add(channel)
+
                     if channel not in self.channelToSubscribedOids:
                         newOids = oids
                     else:
@@ -530,12 +571,19 @@ class SubscriptionState:
             if f in self.fieldIdToSubscribedChannels:
                 channels.update(self.fieldIdToSubscribedChannels[f])
 
+                for c in self.fieldIdToSubscribedChannels[f]:
+                    if f in self.channelToLazilySubscribedFieldIds.setdefault(c):
+                        channelsTriggeredForPriors.add(c)
+
         for oid in oidsMentioned:
             if oid in self.oidToSubscribedChannels:
                 channels.update(self.oidToSubscribedChannels[oid])
 
         if transaction_id > self.transactionId:
             self.transactionId = transaction_id
+
+        for channel in channelsTriggeredForPriors:
+            channel.sendMessage(ServerToClient.LazyTransactionPriors(writes=priorValues))
 
         if channels:
             msg = ServerToClient.Transaction(
@@ -586,6 +634,14 @@ class SubscriptionState:
                             transaction_id=transaction_id,
                         )
                     )
+
+    def lazyLoadObject(self, channel, schema, typename, identity):
+        channel.write(
+            ServerToClient.LazyLoadResponse(
+                identity=identity,
+                values=self.objectValuesForOids(schema, typename, [identity]),
+            )
+        )
 
 
 class ProxyServer:
@@ -831,6 +887,21 @@ class ProxyServer:
             self._outgoingFlushGuidToChannelAndFlushGuid[guid] = (channel, msg.guid)
 
             self._channelToMainServer.sendMessage(ClientToServer.Flush(guid=guid))
+            return
+
+        if msg.matches.LoadLazyObject:
+            if (
+                makeNamedTuple(schema=msg.schema, typename=msg.typename)
+                not in self._subscriptionState.completedTypes
+            ):
+                logging.error("Client tried to lazy load for a type we're not subscribed to")
+                self.dropConnection(channel)
+                return
+
+            self._subscriptionState.lazyLoadObject(
+                channel, msg.schema, msg.typename, msg.identity
+            )
+
             return
 
         if msg.matches.TransactionData:

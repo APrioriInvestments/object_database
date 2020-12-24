@@ -844,6 +844,10 @@ class Server:
         elif msg.matches.DefineSchema:
             with self._lock:
                 self._defineSchema(connectedChannel, msg.name, msg.definition)
+        elif msg.matches.SubscribeNone:
+            # drop this on the floor. This message exists so that the proxy server can
+            # more efficiently track which types it needs to keep track of
+            pass
         elif msg.matches.Subscribe:
             with self._lock:
                 self._handleSubscriptionInForeground(connectedChannel, msg)

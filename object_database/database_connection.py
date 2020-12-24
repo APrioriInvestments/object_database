@@ -253,6 +253,12 @@ class DatabaseConnection:
     def subscribeToNone(self, type, block=True, timeout=None):
         self.addSchema(type.__schema__, block=block, timeout=timeout)
 
+        self._channel.write(
+            ClientToServer.SubscribeNone(
+                schema=type.__schema__.name, typename=type.__qualname__
+            )
+        )
+
     def subscribeToObjects(self, objects, block=True, timeout=None):
         for t in objects:
             self.addSchema(type(t).__schema__, block=block, timeout=timeout)

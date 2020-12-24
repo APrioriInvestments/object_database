@@ -551,6 +551,42 @@ class SubscriptionState:
             for c in channels:
                 c.sendMessage(msg)
 
+    def increaseSubscriptionIfNecessary(self, channel, set_adds, transaction_id):
+        """Mark any new objects we need to track based on contents of 'set_adds'.
+
+        When a client creates new objects, it needs to track them regardless of
+        whether it's explicitly subscribed to the object.
+
+        So we check whether any new objects are being created (set_adds with field ' exists')
+        and if we're not subscribed the type we increase the subscription.
+        """
+        for indexId, oids in set_adds.items():
+            fieldDef = self.fieldIdToDef[indexId.fieldId]
+
+            if fieldDef.fieldname == " exists" and (
+                channel not in self.fieldIdToSubscribedChannels.setdefault(indexId.fieldId)
+            ):
+                newIds = [
+                    x
+                    for x in oids
+                    if x not in self.channelToSubscribedOids.setdefault(channel)
+                ]
+
+                if newIds:
+                    self.channelToSubscribedOids[channel].update(newIds)
+                    for oid in newIds:
+                        self.oidToSubscribedChannels.setdefault(oid).add(channel)
+
+                    channel.sendMessage(
+                        ServerToClient.SubscriptionIncrease(
+                            schema=fieldDef.schema,
+                            typename=fieldDef.typename,
+                            fieldname_and_value=(fieldDef.fieldname, indexId.indexValue),
+                            identities=newIds,
+                            transaction_id=transaction_id,
+                        )
+                    )
+
 
 class ProxyServer:
     def __init__(self, upstreamChannel: ClientToServerChannel, authToken):
@@ -741,6 +777,22 @@ class ProxyServer:
 
             return
 
+        if msg.matches.SubscribeNone:
+            schemaAndTypename = makeNamedTuple(schema=msg.schema, typename=msg.typename)
+
+            if schemaAndTypename not in self._subscribedTypes:
+                self._channelToMainServer.sendMessage(
+                    ClientToServer.Subscribe(
+                        schema=msg.schema,
+                        typename=msg.typename,
+                        fieldname_and_value=None,
+                        isLazy=False,
+                    )
+                )
+
+                self._subscribedTypes.add(schemaAndTypename)
+            return
+
         if msg.matches.Subscribe:
             schemaAndTypename = makeNamedTuple(schema=msg.schema, typename=msg.typename)
 
@@ -792,6 +844,10 @@ class ProxyServer:
             self._channelAndTransactionGuidToOutgoingTransactionGuid[
                 channel, msg.transaction_guid
             ] = guid
+
+            self._subscriptionState.increaseSubscriptionIfNecessary(
+                channel, msg.set_adds, self._transactionNum
+            )
 
             self._channelToMainServer.sendMessage(
                 ClientToServer.TransactionData(

@@ -110,6 +110,9 @@ ClientToServer = Alternative(
     # this is used by proxies.
     RequestDependentConnectionId={"parentId": ObjectId, "guid": str},
     DropDependentConnectionId={"connIdentity": ObjectId},
+    # indicate that we may be getting new objects for this type
+    # even if we have not subscribed to any indices.
+    SubscribeNone={"schema": str, "typename": str},
     __str__=MessageToStr,
 )
 

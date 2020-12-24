@@ -253,3 +253,21 @@ class DatabaseProxyTests(unittest.TestCase):
             assert Counter.lookupAll() == (c,)
             assert Counter.lookupAll(k=10) == (c,)
             assert c.exists()
+
+    def test_subscribed_to_our_own_creations(self):
+        dbRoot = self.createNewDb()
+        dbRoot.subscribeToType(Counter)
+
+        p1 = self.createNewProxyServer()
+        db1 = p1.connect()
+        db1.subscribeToNone(Counter)
+
+        with db1.transaction():
+            c = Counter(k=0, x=0)
+
+        assert dbRoot.waitForCondition(lambda: c.exists(), 1.0)
+
+        with dbRoot.transaction():
+            c.x = 10
+
+        assert db1.waitForCondition(lambda: c.exists(), 1.0)

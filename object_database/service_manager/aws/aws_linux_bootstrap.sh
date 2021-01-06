@@ -83,6 +83,7 @@ while true; do
         __db_hostname__ \
         __db_port__ \
         __placement_group__ \
+        --proxyPort __db_port__ \
         --service-token __worker_token__ \
         --watch-aws-image-hash /image_hash/image.txt
 

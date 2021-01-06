@@ -35,6 +35,10 @@ VERBOSE = False if os.environ.get("TRAVIS_CI", None) else VERBOSE
 class ServiceManagerTestCommon(object):
     ENVIRONMENT_WAIT_MULTIPLIER = 5 if os.environ.get("TRAVIS_CI", None) is not None else 1
 
+    # set to an integer to test running the services over a proxy port.
+    PROXY_SERVER_PORT = None
+    ODB_PORT = 8023
+
     def schemasToSubscribeTo(self):
         """Subclasses can override to extend the schema set."""
         return []
@@ -70,15 +74,18 @@ class ServiceManagerTestCommon(object):
 
         self.server = service_manager.startServiceManagerProcess(
             self.tempDirectoryName,
-            8023,
+            self.ODB_PORT,
             self.token,
             loglevelName=logLevelName,
             sslPath=os.path.join(ownDir, "..", "..", "testcert.cert"),
             verbose=VERBOSE,
+            proxyPort=self.PROXY_SERVER_PORT,
         )
 
         try:
-            self.database = connect("localhost", 8023, self.token, retry=True)
+            self.database = connect(
+                "localhost", self.PROXY_SERVER_PORT or self.ODB_PORT, self.token, retry=True
+            )
             self.database.subscribeToSchema(
                 core_schema, service_schema, *self.schemasToSubscribeTo()
             )
@@ -90,7 +97,9 @@ class ServiceManagerTestCommon(object):
             raise
 
     def newDbConnection(self):
-        return connect("localhost", 8023, self.token, retry=True)
+        return connect(
+            "localhost", self.PROXY_SERVER_PORT or self.ODB_PORT, self.token, retry=True
+        )
 
     def tearDown(self):
         self.server.terminate()

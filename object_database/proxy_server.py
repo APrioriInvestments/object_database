@@ -52,6 +52,7 @@ from .schema import (
     ObjectId,
     ObjectFieldId,
     SchemaDefinition,
+    TypeDefinition,
     IndexId,
 )
 
@@ -74,6 +75,25 @@ SubscriptionKey = NamedTuple(
 # TypeDefinition = NamedTuple(fields=TupleOf(str), indices=TupleOf(str))
 # SchemaDefinition = ConstDict(str, TypeDefinition)
 # FieldDefinition = NamedTuple(schema=str, typename=str, fieldname=str)
+
+
+def mergeTypeDefinition(typedef1, typedef2):
+    return TypeDefinition(
+        fields=typedef1.fields + [x for x in typedef2.fields if x not in typedef1.fields],
+        indices=typedef1.indices + [x for x in typedef2.indices if x not in typedef1.indices],
+    )
+
+
+def mergeSchemaDefinitions(schemaDef1, schemaDef2):
+    out = dict(schemaDef1)
+
+    for typename, typedef in schemaDef2.items():
+        if typename not in out:
+            out[typename] = typedef
+        else:
+            out[typename] = mergeTypeDefinition(out[typename], typedef)
+
+    return SchemaDefinition(out)
 
 
 class FieldIdToDefMapping:
@@ -694,11 +714,12 @@ class ProxyServer:
         # dictionary from (channel, schemaName) -> SchemaDefinition
         self._channelSchemas = Dict(Tuple(ServerToClientChannel, str), SchemaDefinition)()
 
-        # map from schema name to ConstDict(FieldDefinition, int)
-        # for schemas where the server has responded
-        self._mappedSchemas = Dict(str, ConstDict(FieldDefinition, FieldId))()
+        # map from schema name to iteration number to ConstDict(FieldDefinition, int)
+        self._mappedSchemas = Dict(str, Dict(int, ConstDict(FieldDefinition, FieldId)))()
+        self._requestedSchemaIteration = Dict(str, int)()
+        self._receivedSchemaIteration = Dict(str, int)()
 
-        # for each requested schema, the set of channels waiting for it
+        # for each requested (schema, iteration), the set of channels waiting for it
         self._unmappedSchemasToChannels = {}
 
         self._fieldIdToDefMapping = FieldIdToDefMapping()
@@ -821,7 +842,13 @@ class ProxyServer:
 
         # ensure that we're connected
         if channel not in self._authenticatedDownstreamChannels:
-            self._logger.warn("Channel attempted to communicate without authenticating")
+            # don't worry about heartbeats
+            if msg.matches.Heartbeat:
+                return
+
+            self._logger.warn(
+                "Channel attempted to communicate without authenticating: %s", type(msg)
+            )
             self.dropConnection(channel)
             return
 
@@ -832,24 +859,41 @@ class ProxyServer:
             self._channelSchemas[channel, msg.name] = msg.definition
 
             if msg.name not in self._subscriptionState._definedSchemas:
+                self._requestedSchemaIteration[msg.name] = 0
                 self._channelToMainServer.sendMessage(
                     ClientToServer.DefineSchema(name=msg.name, definition=msg.definition)
                 )
                 self._subscriptionState._definedSchemas[msg.name] = msg.definition
             else:
                 if msg.definition != self._subscriptionState._definedSchemas[msg.name]:
-                    raise Exception(
-                        "We don't handle multiply-defined versions of the same schema."
+                    biggerSchema = mergeSchemaDefinitions(
+                        self._subscriptionState._definedSchemas[msg.name], msg.definition
                     )
 
-            if msg.name in self._mappedSchemas:
+                    # if the schema contains new fields we need to send this message and
+                    # enlarge the schema definition
+                    if biggerSchema != self._subscriptionState._definedSchemas[msg.name]:
+                        self._requestedSchemaIteration[msg.name] += 1
+                        self._channelToMainServer.sendMessage(
+                            ClientToServer.DefineSchema(name=msg.name, definition=biggerSchema)
+                        )
+                        self._subscriptionState._definedSchemas[msg.name] = biggerSchema
+
+            schemaIteration = self._requestedSchemaIteration[msg.name]
+
+            if (
+                msg.name in self._mappedSchemas
+                and schemaIteration in self._mappedSchemas[msg.name]
+            ):
                 channel.sendMessage(
                     ServerToClient.SchemaMapping(
-                        schema=msg.name, mapping=self._mappedSchemas[msg.name]
+                        schema=msg.name, mapping=self._mappedSchemas[msg.name][schemaIteration]
                     )
                 )
             else:
-                self._unmappedSchemasToChannels.setdefault(msg.name, set()).add(channel)
+                self._unmappedSchemasToChannels.setdefault(
+                    (msg.name, schemaIteration), set()
+                ).add(channel)
 
             return
 
@@ -1042,11 +1086,17 @@ class ProxyServer:
                 return
 
             if msg.matches.SchemaMapping:
+                assert msg.schema in self._requestedSchemaIteration
+                schemaIteration = self._receivedSchemaIteration.get(msg.schema, -1) + 1
+                self._receivedSchemaIteration[msg.schema] = schemaIteration
+
                 self._subscriptionState.mapSchema(msg.schema, msg.mapping)
-                self._mappedSchemas[msg.schema] = msg.mapping
+                self._mappedSchemas.setdefault(msg.schema)[schemaIteration] = msg.mapping
 
                 # forward the mapping to any of our channels who need it
-                for channel in self._unmappedSchemasToChannels.pop(msg.schema, set()):
+                for channel in self._unmappedSchemasToChannels.pop(
+                    (msg.schema, schemaIteration), set()
+                ):
                     channel.sendMessage(
                         ServerToClient.SchemaMapping(schema=msg.schema, mapping=msg.mapping)
                     )

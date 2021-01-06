@@ -99,6 +99,10 @@ class MockServiceLastTimestamp:
     def aliveCount(window=None):
         return len(MockServiceLastTimestamp.aliveServices(window))
 
+    @staticmethod
+    def allCount(window=None):
+        return len(MockServiceLastTimestamp.lookupAll())
+
 
 class MockService(ServiceBase):
     gbRamUsed = 0
@@ -632,10 +636,17 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
         self.waitForCount(count)
 
     def waitForCount(self, count, timeout=5.0):
+        def checkAliveCount():
+            logging.info(
+                "ALIVE COUNT IS %s (of %s total)",
+                MockServiceLastTimestamp.aliveCount(),
+                MockServiceLastTimestamp.allCount(),
+            )
+            return MockServiceLastTimestamp.aliveCount() == count
+
         self.assertTrue(
             self.database.waitForCondition(
-                lambda: MockServiceLastTimestamp.aliveCount() == count,
-                timeout=timeout * self.ENVIRONMENT_WAIT_MULTIPLIER,
+                checkAliveCount, timeout=timeout * self.ENVIRONMENT_WAIT_MULTIPLIER
             )
         )
 
@@ -1175,3 +1186,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
         # Trying to update the codebase after locking should fail
         lock_helper()
         s = deploy_helper(7, 6)
+
+
+class ServiceManagerOverProxyTest(ServiceManagerTest):
+    PROXY_SERVER_PORT = 8024

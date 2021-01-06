@@ -36,6 +36,8 @@ from object_database.util import (
 )
 from object_database import (
     TcpServer,
+    TcpProxyServer,
+    connect,
     RedisPersistence,
     InMemoryPersistence,
     DisconnectedException,
@@ -59,6 +61,7 @@ def startServiceManagerProcess(
     runDb=True,
     logDir=True,
     sslPath=None,
+    proxyPort=None,
 ):
     if not verbose:
         kwargs = dict(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -85,6 +88,12 @@ def startServiceManagerProcess(
     ]
     if runDb:
         cmd.append("--run_db")
+
+    if proxyPort is not None:
+        assert isinstance(proxyPort, int)
+
+        cmd.append("--proxy-port")
+        cmd.append(str(proxyPort))
 
     if logDir:
         cmd.extend(["--logdir", os.path.join(tempDirectoryName, "logs")])
@@ -155,6 +164,48 @@ def autoconfigureAndStartServiceManagerProcess(
     return server, cleanupFn
 
 
+def runProxyServer(shouldStop, dbHostname, dbPort, ownHostname, ownPort, authToken, sslPath):
+    """A background thread loop for running a proxy server.
+
+    If we get disconnected, we'll attempt to reconnect."""
+    logger = logging.getLogger(__name__)
+
+    ssl_ctx = sslContextFromCertPathOrNone(sslPath)
+
+    logger.info("Started a proxy server on %s:%s", ownHostname, ownPort)
+
+    proxyServer = None
+
+    while not shouldStop.is_set():
+        if proxyServer is not None and proxyServer.disconnected.is_set():
+            proxyServer.stop()
+            proxyServer = None
+
+        if proxyServer is None:
+            try:
+                proxyServer = TcpProxyServer(
+                    dbHostname,
+                    dbPort,
+                    ownHostname,
+                    ownPort,
+                    ssl_context=ssl_ctx,
+                    auth_token=authToken,
+                )
+
+                proxyServer.start()
+            except (
+                ConnectionRefusedError,
+                DisconnectedException,
+                concurrent.futures._base.TimeoutError,
+                OSError,
+            ):
+                proxyServer = None
+                logger.error("Failed to connect to central ODB. Sleeping and retrying")
+                time.sleep(5)
+
+        shouldStop.wait(timeout=1.0)
+
+
 def main(argv=None):
     if argv is None:
         # this is a needed pathway for the 'console_scripts' in setup.py
@@ -180,7 +231,21 @@ def main(argv=None):
         required=True,
         help="the auth token to be used with this service",
     )
-    parser.add_argument("--run_db", default=False, action="store_true")
+    parser.add_argument(
+        "--run_db",
+        default=False,
+        action="store_true",
+        help="run an odb server here, not just a service manager.",
+    )
+    parser.add_argument(
+        "--proxy-port",
+        default=None,
+        required=False,
+        type=int,
+        help="run an odb proxy server here, connecting back to the main dbserver. "
+        "Services booted here will connect to the proxy server directly. "
+        "This is the port they'll use.",
+    )
 
     parser.add_argument(
         "--ssl-path",
@@ -241,8 +306,6 @@ def main(argv=None):
 
     resource.setrlimit(resource.RLIMIT_NOFILE, (2048, 4096))
 
-    object_database_port = parsedArgs.port
-
     databaseServer = None
     serviceManager = None
 
@@ -251,7 +314,7 @@ def main(argv=None):
             ssl_ctx = sslContextFromCertPathOrNone(parsedArgs.ssl_path)
             databaseServer = TcpServer(
                 parsedArgs.own_hostname,
-                object_database_port,
+                parsedArgs.port,
                 RedisPersistence(port=parsedArgs.redis_port)
                 if parsedArgs.redis_port is not None
                 else InMemoryPersistence(),
@@ -262,14 +325,44 @@ def main(argv=None):
             databaseServer.start()
 
             logger.info(
-                "Started a database server on %s:%s",
-                parsedArgs.own_hostname,
-                object_database_port,
+                "Started a database server on %s:%s", parsedArgs.own_hostname, parsedArgs.port
             )
 
-        serviceManager = None
+        if parsedArgs.proxy_port is not None:
+            proxyThread = threading.Thread(
+                target=runProxyServer,
+                args=(
+                    shouldStop,
+                    parsedArgs.db_hostname,
+                    parsedArgs.port,
+                    # put proxy traffic on the loopback
+                    "localhost",
+                    parsedArgs.proxy_port,
+                    parsedArgs.service_token,
+                    parsedArgs.ssl_path,
+                ),
+                daemon=True,
+            )
+            proxyThread.start()
 
-        logger.info("Started object_database")
+            # ensure we can connect to the proxy server
+            try:
+                connect(
+                    "localhost",
+                    parsedArgs.proxy_port,
+                    parsedArgs.service_token,
+                    timeout=2.0,
+                    retry=True,
+                )
+            except Exception:
+                logging.warn(
+                    "Failed to connect to the proxy server. Perhaps the upstream is down."
+                )
+
+        else:
+            proxyThread = None
+
+        serviceManager = None
 
         try:
             while not shouldStop.is_set():
@@ -277,8 +370,13 @@ def main(argv=None):
                     try:
                         serviceManager = SubprocessServiceManager(
                             parsedArgs.own_hostname,
-                            parsedArgs.db_hostname,
-                            parsedArgs.port,
+                            # if we're running a proxy, connect to ourselves
+                            "localhost"
+                            if parsedArgs.proxy_port is None
+                            else parsedArgs.own_hostname,
+                            parsedArgs.port
+                            if parsedArgs.proxy_port is None
+                            else parsedArgs.proxy_port,
                             parsedArgs.source,
                             parsedArgs.storage,
                             parsedArgs.service_token,

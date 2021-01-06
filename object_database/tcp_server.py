@@ -15,6 +15,7 @@
 from object_database.database_connection import DatabaseConnection
 from object_database._types import DatabaseConnectionPumpLoop
 from object_database.server import Server
+from object_database.proxy_server import ProxyServer
 from object_database.message_bus import MessageBus
 from object_database.messages import ClientToServer, ServerToClient, getHeartbeatInterval
 from object_database.persistence import InMemoryPersistence
@@ -175,11 +176,18 @@ class PumpLoopChannel(ClientToServerChannel):
             atexit.unregister(self._atExit)
 
     def write(self, msg):
-        self._nativePumpLoop.write(serialize(self.SendT, msg))
+        with self._lock:
+            if self._nativePumpLoop is not None:
+                pumpLoop = self._nativePumpLoop
+            else:
+                return
+
+        pumpLoop.write(serialize(self.SendT, msg))
 
 
-def connect(host, port, auth_token, timeout=10.0, retry=False):
+def _connectedChannel(host, port, auth_token, timeout=10.0, retry=False):
     t0 = time.time()
+
     # With CLIENT_AUTH we are setting up the SSL to use encryption only, which is what we want.
     # If we also wanted authentication, we would use SERVER_AUTH.
     ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -211,11 +219,20 @@ def connect(host, port, auth_token, timeout=10.0, retry=False):
     if nativePumpLoop is None:
         raise ConnectionRefusedError()
 
-    channel = PumpLoopChannel(
-        ClientToServer, ServerToClient, nativePumpLoop, sock, ssock, ssl_ctx
+    connectionDict = dict(peername=peername, socket=sock, sockname=sockname)
+
+    return (
+        PumpLoopChannel(ClientToServer, ServerToClient, nativePumpLoop, sock, ssock, ssl_ctx),
+        connectionDict,
     )
 
-    conn = DatabaseConnection(channel, dict(peername=peername, socket=sock, sockname=sockname))
+
+def connect(host, port, auth_token, timeout=10.0, retry=False):
+    t0 = time.time()
+
+    channel, connectionDict = _connectedChannel(host, port, auth_token, timeout, retry)
+
+    conn = DatabaseConnection(channel, connectionDict)
 
     channel.setOnClosed(conn._onDisconnected)
 
@@ -290,6 +307,82 @@ class TcpServer(Server):
 
     def stop(self):
         Server.stop(self)
+        self.bus.stop()
+
+    def onEvent(self, event):
+        if event.matches.NewIncomingConnection:
+            channel = ServerChannel(self.bus, event.connectionId, event.source)
+
+            self._messageBusChannels[event.connectionId] = channel
+
+            self.addConnection(channel)
+
+        if event.matches.IncomingConnectionClosed:
+            id = event.connectionId
+            if id in self._messageBusChannels:
+                channel = self._messageBusChannels.pop(id)
+                self.dropConnection(channel)
+
+        if event.matches.IncomingMessage:
+            id = event.connectionId
+            if id in self._messageBusChannels:
+                self._messageBusChannels[id].receive(event.message)
+
+    def connect(self, auth_token):
+        return connect(self.host, self.port, auth_token)
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, t, v, traceback):
+        self.stop()
+
+
+class TcpProxyServer(ProxyServer):
+    def __init__(self, upstreamHost, upstreamPort, ownHost, ownPort, ssl_context, auth_token):
+        channel, _ = _connectedChannel(upstreamHost, upstreamPort, auth_token)
+
+        channel.setOnClosed(self._onDisconnected)
+
+        ProxyServer.__init__(self, channel, auth_token)
+        self.authenticate()
+
+        self.host = ownHost
+        self.port = ownPort
+        self.ssl_ctx = ssl_context
+        self.bus = MessageBus(
+            "odb_server",
+            (ownHost, ownPort),
+            ClientToServer,
+            ServerToClient,
+            self.onEvent,
+            sslContext=ssl_context,
+            extraMessageSizeCheck=False,
+        )
+        self._messageBusChannels = {}
+        self.disconnected = threading.Event()
+        self.stopped = False
+
+    def _onDisconnected(self):
+        self.disconnected.set()
+
+    def start(self):
+        self.bus.start()
+        self.bus.scheduleCallback(self.checkHeartbeatsCallback, delay=getHeartbeatInterval())
+
+    def checkHeartbeatsCallback(self):
+        if not self.stopped:
+            self.bus.scheduleCallback(
+                self.checkHeartbeatsCallback, delay=getHeartbeatInterval()
+            )
+
+            try:
+                self.checkForDeadConnections()
+            except Exception:
+                logging.exception("Caught exception in checkForDeadConnections:")
+
+    def stop(self):
         self.bus.stop()
 
     def onEvent(self, event):

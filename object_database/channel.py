@@ -20,7 +20,7 @@ class ServerToClientChannel:
 
     def sendMessage(self, msg: ServerToClient):
         """Send a message to the client."""
-        raise NotImplemented(self)
+        raise NotImplementedError(self)
 
     def setClientToServerHandler(self, handler):
         """Set the callback to call when we get a message from this client.
@@ -34,7 +34,7 @@ class ServerToClientChannel:
         Args:
             handler - a function taking a single message of type ClientToServer.
         """
-        raise NotImplemented(self)
+        raise NotImplementedError(self)
 
     def close(self):
         """Close the channel.
@@ -44,7 +44,7 @@ class ServerToClientChannel:
 
         No further calls to 'handler' should be made after this is called.
         """
-        raise NotImplemented(self)
+        raise NotImplementedError(self)
 
 
 class ClientToServerChannel:
@@ -52,7 +52,7 @@ class ClientToServerChannel:
 
     def sendMessage(self, msg: ClientToServer):
         """Send a message to the server."""
-        raise NotImplemented(self)
+        raise NotImplementedError(self)
 
     def setServerToClientHandler(self, handler):
         """Set the callback to call when we get a message from this client.
@@ -66,7 +66,7 @@ class ClientToServerChannel:
         Args:
             handler - a function taking a single message of type ServerToClient.
         """
-        raise NotImplemented(self)
+        raise NotImplementedError(self)
 
     def close(self):
         """Close the channel.
@@ -76,4 +76,4 @@ class ClientToServerChannel:
 
         No further calls to 'handler' should be made after this is called.
         """
-        raise NotImplemented(self)
+        raise NotImplementedError(self)

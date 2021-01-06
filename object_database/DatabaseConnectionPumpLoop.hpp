@@ -161,6 +161,9 @@ public:
                     return;
                 }
 
+                // make sure we don't have any writes we need to flush before we go to sleep.
+                writeAnyPendingDataToSocket();
+
                 fd_set readFds;
                 fd_set writeFds;
 
@@ -170,8 +173,10 @@ public:
                 FD_SET(mSSLSocketFD, &readFds);
                 FD_SET(mWakePipe[0], &readFds);
 
+                bool wantedToWrite = false;
                 if ((mMessagesInWriteBuffer.size() && !(SSL_want_read(mSSL) && selectsWithNoUpdate > 2)) || SSL_want_write(mSSL)) {
                     FD_SET(mSSLSocketFD, &writeFds);
+                    wantedToWrite = true;
                 }
 
                 timeval toSleep;
@@ -185,7 +190,7 @@ public:
                 if (mHeartbeatMessage.size() && mHeartbeatInterval > 0.0) {
                     wantsToWakeUp = true;
                     if (sleepSeconds < 0) {
-                        sleepSeconds = 0.0;
+                        sleepSeconds = 0.00001;
                     }
 
                     toSleep.tv_sec = int(sleepSeconds);
@@ -204,6 +209,10 @@ public:
                 // spin loop.
                 if (curClock() - t0 > 0.01) {
                     selectsWithNoUpdate = 0;
+                }
+
+                if (curClock() - t0 > 1.0 && wantedToWrite) {
+                    std::cerr << "WARNING: spent more than 1 second asleep even though we had writes.\n";
                 }
 
                 if (selectRes == -1) {
@@ -513,7 +522,9 @@ public:
 
         mMessagesToSend.push_back(std::string(data, data + bytes));
 
-        ::write(mWakePipe[1], (void*)" ", 1);
+        if (::write(mWakePipe[1], (void*)" ", 1) != 1) {
+            std::cerr << "Warning: failed to write to the wake-pipe" << std::endl;
+        }
 
         return true;
     }

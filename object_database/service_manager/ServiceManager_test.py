@@ -1098,9 +1098,6 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
 
                 test_service = __import__("test_service.service")
 
-                print("DIR IS ", dir(test_service))
-                print("DIR IS ", dir(test_service.service))
-
                 with self.database.transaction():
                     ServiceManager.createOrUpdateService(
                         test_service.service.Service, "MockService", target_count=1
@@ -1109,6 +1106,8 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
                 self.waitForCount(1)
             finally:
                 sys.path = [x for x in sys.path if x != tf]
+                del sys.modules["test_service.service"]
+                del sys.modules["test_service"]
 
     def test_update_module_code(self):
         serviceName = "MockService"
@@ -1190,3 +1189,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
 
 class ServiceManagerOverProxyTest(ServiceManagerTest):
     PROXY_SERVER_PORT = 8024
+
+    # @pytest.mark.skip(reason='can only run this test once per process')
+    # def test_deploy_imported_module(self):
+    #     pass

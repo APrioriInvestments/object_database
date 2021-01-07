@@ -1,4 +1,4 @@
-#   Copyright 2017-2020 object_database Authors
+#   Copyright 2017-2021 object_database Authors
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import pytest
 import unittest
 import os
 
@@ -26,6 +27,7 @@ from object_database.database_test import Counter, ObjectDatabaseTests
 class ExecuteOdbTestsOnProxyServer(unittest.TestCase, ObjectDatabaseTests):
     # set to True to get printouts on every message being sent
     VERBOSE = False
+    USE_SINGLE_PROXY = False
 
     @classmethod
     def setUpClass(cls):
@@ -75,6 +77,9 @@ class ExecuteOdbTestsOnProxyServer(unittest.TestCase, ObjectDatabaseTests):
         if forceNotProxy:
             return self.server.connect(self.auth_token)
 
+        if self.allProxies and self.USE_SINGLE_PROXY:
+            return self.allProxies[0].connect()
+
         return self.createNewProxyServer().connect()
 
     # these tests don't make sense with the proxy since the proxy itself doesn't
@@ -92,6 +97,29 @@ class ExecuteOdbTestsOnProxyServer(unittest.TestCase, ObjectDatabaseTests):
         pass
 
     def test_max_tid(self):
+        pass
+
+
+class ExecuteOdbTestsOnSingleProxyServer(ExecuteOdbTestsOnProxyServer):
+    USE_SINGLE_PROXY = True
+
+    @pytest.mark.skip(reason="single proxy server doesnt have subscribe callback")
+    def test_adding_while_subscribing_and_moving_into_index(self):
+        pass
+
+    @pytest.mark.skip(reason="single proxy server doesnt have subscribe callback")
+    def test_adding_while_subscribing(self):
+        pass
+
+    @pytest.mark.skip(reason="single proxy server doesnt have subscribe callback")
+    def test_adding_while_subscribing_to_index(self):
+        pass
+
+    @pytest.mark.skip(
+        reason="test has dependency on specifics of tids "
+        "that are not maintained in this setup"
+    )
+    def test_object_versions_robust(self):
         pass
 
 

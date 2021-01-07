@@ -1143,6 +1143,7 @@ class ObjectDatabaseTests:
                         if not c.exists():
                             assert c not in counter_vals_by_tn[tid], tid
                         else:
+                            assert tid in set(counter_vals_by_tn)
                             self.assertEqual(c.k, counter_vals_by_tn[tid][c])
 
                 del views_by_tn[tid]

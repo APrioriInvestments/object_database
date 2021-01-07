@@ -380,8 +380,6 @@ class SubscriptionState:
         return ConstDict(ObjectFieldId, OneOf(None, bytes))(res)
 
     def mapSchema(self, schemaName, schemaDef: ConstDict(FieldDefinition, FieldId)):
-        assert schemaName not in self.schemaDefs
-
         self.schemaDefs[schemaName] = schemaDef
 
         for fieldDef, fieldId in schemaDef.items():
@@ -965,7 +963,6 @@ class ProxyServer:
             self._subscriptionState.lazyLoadObject(
                 channel, msg.schema, msg.typename, msg.identity
             )
-
             return
 
         if msg.matches.TransactionData:
@@ -1028,9 +1025,9 @@ class ProxyServer:
                 )
                 return
 
-            guid = self._channelAndTransactionGuidToOutgoingTransactionGuid[
-                channel, msg.transaction_guid
-            ]
+            guid = self._channelAndTransactionGuidToOutgoingTransactionGuid.pop(
+                (channel, msg.transaction_guid)
+            )
 
             self._channelToMainServer.sendMessage(
                 ClientToServer.CompleteTransaction(

@@ -459,7 +459,7 @@ class DatabaseConnection:
                 self._onDisconnected()
         elif msg.matches.FlushResponse:
             with self._lock:
-                e = self._flushEvents.get(msg.guid)
+                e = self._flushEvents.pop(msg.guid, None)
                 if not e:
                     self._logger.error("Got an unrequested flush response: %s", msg.guid)
                 else:

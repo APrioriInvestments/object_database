@@ -206,6 +206,14 @@ def runProxyServer(shouldStop, dbHostname, dbPort, ownHostname, ownPort, authTok
         shouldStop.wait(timeout=1.0)
 
 
+def processHostnameArg(hostname):
+    # if hostname is ip-XXX-XXX-XXX-XXX, convert to 'dot' form since our
+    # default linux build doesnt have this hostname mapped correctly.
+    if hostname.startswith("ip-"):
+        return hostname[3:].replace("-", ".")
+    return hostname
+
+
 def main(argv=None):
     if argv is None:
         # this is a needed pathway for the 'console_scripts' in setup.py
@@ -289,9 +297,11 @@ def main(argv=None):
         parser.print_help()
         return 2
 
+    ownHostname = processHostnameArg(parsedArgs.own_hostname)
+
     logger.info(
         "ServiceManager on %s connecting to %s:%s",
-        parsedArgs.own_hostname,
+        ownHostname,
         parsedArgs.db_hostname,
         parsedArgs.port,
     )
@@ -313,7 +323,7 @@ def main(argv=None):
         if parsedArgs.run_db:
             ssl_ctx = sslContextFromCertPathOrNone(parsedArgs.ssl_path)
             databaseServer = TcpServer(
-                parsedArgs.own_hostname,
+                ownHostname,
                 parsedArgs.port,
                 RedisPersistence(port=parsedArgs.redis_port)
                 if parsedArgs.redis_port is not None
@@ -324,9 +334,7 @@ def main(argv=None):
 
             databaseServer.start()
 
-            logger.info(
-                "Started a database server on %s:%s", parsedArgs.own_hostname, parsedArgs.port
-            )
+            logger.info("Started a database server on %s:%s", ownHostname, parsedArgs.port)
 
         if parsedArgs.proxy_port is not None:
             proxyThread = threading.Thread(
@@ -336,7 +344,7 @@ def main(argv=None):
                     parsedArgs.db_hostname,
                     parsedArgs.port,
                     # put proxy traffic on the loopback
-                    "localhost",
+                    ownHostname,
                     parsedArgs.proxy_port,
                     parsedArgs.service_token,
                     parsedArgs.ssl_path,
@@ -348,7 +356,7 @@ def main(argv=None):
             # ensure we can connect to the proxy server
             try:
                 connect(
-                    "localhost",
+                    ownHostname,
                     parsedArgs.proxy_port,
                     parsedArgs.service_token,
                     timeout=2.0,
@@ -369,11 +377,11 @@ def main(argv=None):
                 if serviceManager is None:
                     try:
                         serviceManager = SubprocessServiceManager(
-                            parsedArgs.own_hostname,
+                            ownHostname,
                             # if we're running a proxy, connect to ourselves
-                            "localhost"
-                            if parsedArgs.proxy_port is None
-                            else parsedArgs.own_hostname,
+                            ownHostname
+                            if parsedArgs.proxy_port is not None
+                            else parsedArgs.db_hostname,
                             parsedArgs.port
                             if parsedArgs.proxy_port is None
                             else parsedArgs.proxy_port,
@@ -397,6 +405,7 @@ def main(argv=None):
                         concurrent.futures._base.TimeoutError,
                         OSError,
                     ):
+                        logger.exception("Failed to connect the ServiceManager to the ODB.")
                         serviceManager = None
 
                     if serviceManager is None:

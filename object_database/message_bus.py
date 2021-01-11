@@ -733,9 +733,15 @@ class MessageBus(object):
 
                 except ValueError:
                     # one of the sockets must have failed
+                    def filenoFor(socketOrFd):
+                        if isinstance(socketOrFd, int):
+                            return socketOrFd
+                        else:
+                            return socketOrFd.fileno()
+
                     failedSockets = [
-                        s for s in self._socketToBytesNeedingWrite if s.fileno() < 0
-                    ] + [s for s in readableSockets if s.fileno() < 0]
+                        s for s in self._socketToBytesNeedingWrite if filenoFor(s) < 0
+                    ] + [s for s in readableSockets if filenoFor(s) < 0]
 
                     if not failedSockets:
                         # if not, then we don't have a good understanding of why this happened

@@ -530,7 +530,8 @@ class SubscriptionState:
             vals = self.indexValues.setdefault(indexId.fieldId)
             for oid in oids:
                 oidsMentioned.add(oid)
-                vals.pop(oid)
+                if oid in vals:
+                    vals.pop(oid)
 
             objectsWithThisIndexVal = self.reverseIndexValues.setdefault(
                 indexId.fieldId

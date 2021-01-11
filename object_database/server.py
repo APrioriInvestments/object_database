@@ -173,7 +173,11 @@ class Server:
         self._id_to_channel = {}
 
         self.longTransactionThreshold = 1.0
-        self.logFrequency = 10.0
+
+        self.logInterval = 10.0
+        self.fieldTransactionsSinceLastLog = {}
+        self.transactionsSinceLastLogEvent = 0
+        self.lastLogEvent = time.time()
 
         self.MAX_NORMAL_TO_SEND_SYNCHRONOUSLY = 1000
         self.MAX_LAZY_TO_SEND_SYNCHRONOUSLY = 10000
@@ -1148,6 +1152,11 @@ class Server:
         channelsTriggered = set()
 
         for fieldId in fieldIdsWriting:
+            if fieldId not in self.fieldTransactionsSinceLastLog:
+                self.fieldTransactionsSinceLastLog[fieldId] = 1
+            else:
+                self.fieldTransactionsSinceLastLog[fieldId] += 1
+
             for channel in self._field_id_to_channel.get(fieldId, ()):
                 if channel.subscribedFields[fieldId] >= 0:
                     # this is a lazy subscription. We're not using the
@@ -1190,6 +1199,30 @@ class Server:
                 len(set_adds) + len(set_removes),
                 sorted(key_value)[:3],
             )
+
+        self.transactionsSinceLastLogEvent += 1
+
+        if time.time() - self.lastLogEvent > self.logInterval:
+            msg = []
+            for fieldId, count in sorted(
+                self.fieldTransactionsSinceLastLog.items(), key=lambda p: (-p[1], p[0])
+            )[:20]:
+                fieldDef = self._currentTypeMap().fieldIdToDef.get(fieldId)
+
+                msg.append(
+                    f"{count:05d} -- {fieldDef.schema}"
+                    f".{fieldDef.typename}.{fieldDef.fieldname}"
+                )
+
+            self._logger.info(
+                "In the last %s seconds, %s transactions:\n%s",
+                time.time() - self.lastLogEvent,
+                self.transactionsSinceLastLogEvent,
+                "\n".join(msg),
+            )
+            self.fieldTransactionsSinceLastLog = {}
+            self.transactionsSinceLastLogEvent = 0
+            self.lastLogEvent = time.time()
 
         self._garbage_collect()
 

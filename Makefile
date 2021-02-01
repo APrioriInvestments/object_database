@@ -23,6 +23,10 @@ ODB_LIB_PATH ?= build/lib.linux-x86_64-3.6/object_database
 
 TP_BUILD_OPT_LEVEL ?= 2
 
+PYINCLUDE = $(shell python3 -c 'import sysconfig; print(sysconfig.get_paths()["include"])')
+
+NUMPYINCLUDE = $(shell python3 -c 'import pkg_resources; print(pkg_resources.resource_filename("numpy", "core/include"))')
+
 CPP_FLAGS = -std=c++14  -O$(TP_BUILD_OPT_LEVEL)  -Wall  -pthread  -DNDEBUG  -g  -fwrapv         \
             -fstack-protector-strong  -D_FORTIFY_SOURCE=2  -fPIC            \
             -Wno-terminate -Wno-bool-compare                                \
@@ -31,9 +35,9 @@ CPP_FLAGS = -std=c++14  -O$(TP_BUILD_OPT_LEVEL)  -Wall  -pthread  -DNDEBUG  -g  
             -Wno-sign-compare  -Wno-narrowing  -Wno-int-in-bool-context     \
             -I$(VIRTUAL_ENV)/include/python3.6m                             \
             -I$(VIRTUAL_ENV)/lib/python3.6/site-packages/numpy/core/include \
-            -I../typed_python                                                \
-            -I/usr/include/python3.6m                                       \
-            -I/usr/local/lib/python3.6/dist-packages/numpy/core/include
+            -I../typed_python                                               \
+            -I$(PYINCLUDE)                                       			\
+            -I$(NUMPYINCLUDE)											    \
 
 LINKER_FLAGS = -Wl,-O1                  \
                -Wl,-Bsymbolic-functions \

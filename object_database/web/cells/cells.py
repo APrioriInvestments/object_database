@@ -2488,7 +2488,27 @@ class SingleLineTextBox(Cell):
 class Table(Cell):
     """An active table with paging, filtering, sortable columns."""
 
-    def __init__(self, colFun, rowFun, headerFun, rendererFun, maxRowsPerPage=20):
+    def __init__(
+        self,
+        colFun,
+        rowFun,
+        headerFun,
+        rendererFun,
+        maxRowsPerPage=20,
+        sortColumn=None,
+        sortColumnAscending=True,
+    ):
+        """
+        Args:
+            colFun: a function from nothing to a list of column names
+            rowFun: a function from nothing to a list of row elements.
+                Typically this is something like lambda: schema.Type.lookupAll()
+            headerFun: usually lambda x: x
+            rendererFun: a function from (row, column:str) to the value of that cell
+            maxRowsPerPage (int): max number of rows per page
+            sortColumn (int or None): index of column to sort (starts at 0).
+            sortColumnAscending (bool): ascending or descending sorting.
+        """
         super().__init__()
         self.colFun = colFun
         self.rowFun = rowFun
@@ -2502,8 +2522,8 @@ class Table(Cell):
         self.maxRowsPerPage = maxRowsPerPage
 
         self.curPage = Slot("1")
-        self.sortColumn = Slot(None)
-        self.sortColumnAscending = Slot(True)
+        self.sortColumn = Slot(sortColumn)
+        self.sortColumnAscending = Slot(sortColumnAscending)
         self.columnFilters = {}
 
     def prepareForReuse(self):
@@ -2728,20 +2748,31 @@ class Table(Cell):
 
 
 class Clickable(Cell):
-    def __init__(self, content, onClick, makeBold=False, makeUnderling=False):
+    def __init__(self, content, onClick, makeBold=False, aTarget=None):
+        """
+        Args:
+            content (Cell or something that auto-converts to a Cell): the cell to display
+            onClick: str or zero-argument function that either returns a string which will be
+                the link to follow, or that performs the action to be performed.
+            makeBold (bool): should the text be bold
+            aTarget (str): target to an HTML a element. One of _blank, _self,
+                _parent, _top, or a valid framename.
+        """
         super().__init__()
         self.onClick = onClick
         self.content = Cell.makeCell(content)
         self.bold = makeBold
+        if aTarget is None:
+            self._jsStrTemplate = "window.location.href = '__url__'"
+        else:
+            self._jsStrTemplate = f"window.open('__url__', '{aTarget}')"
+
+    def _makeJs(self, url: str):
+        return quoteForJs(self._jsStrTemplate.replace("__url__", quoteForJs(url, "'")), '"')
 
     def calculatedOnClick(self):
         if isinstance(self.onClick, str):
-            return quoteForJs(
-                "window.location.href = '__url__'".replace(
-                    "__url__", quoteForJs(self.onClick, "'")
-                ),
-                '"',
-            )
+            return self._makeJs(self.onClick)
         else:
             return (
                 """
@@ -2763,16 +2794,9 @@ class Clickable(Cell):
         return self.content.sortsAs()
 
     def onMessage(self, msgFrame):
-        val = self.onClick()
+        val = self.onClick if isinstance(self.onClick, str) else self.onClick()
         if isinstance(val, str):
-            self.triggerPostscript(
-                quoteForJs(
-                    "window.location.href = '__url__'".replace(
-                        "__url__", quoteForJs(val, "'")
-                    ),
-                    '"',
-                )
-            )
+            self.triggerPostscript(self._makeJs(val))
 
 
 class Button(Clickable):

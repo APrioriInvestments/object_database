@@ -46,3 +46,29 @@ def test_clickable_clicking_works(headless_browser):
             (headless_browser.by.CSS_SELECTOR, query), "You've clicked on this text 1 times"
         )
     )
+
+
+class LinkText(CellsTestPage):
+    def cell(self):
+        return cells.Clickable(
+            "www.google.com", lambda: "https://www.google.com", aTarget="_blank"
+        )
+
+    def text(self):
+        return "You should see some link-text that opens in a new tab or window."
+
+
+def test_linktext_displays(headless_browser):
+    demo_root = headless_browser.get_demo_root_for(LinkText)
+    assert demo_root
+    assert demo_root.get_attribute("data-cell-type") == "Clickable"
+    query = "{} > *".format(headless_browser.demo_root_selector)
+    link = headless_browser.find_by_css(query)
+    assert link.text == "www.google.com"
+    assert len(headless_browser.window_handles) == 1
+
+    link.click()
+    headless_browser.wait(10).until(headless_browser.expect.number_of_windows_to_be(2))
+    assert len(headless_browser.window_handles) == 2
+    headless_browser.switch_to_window(headless_browser.window_handles[1])
+    assert headless_browser.current_url == "https://www.google.com/"

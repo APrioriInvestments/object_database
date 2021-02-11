@@ -24,6 +24,8 @@ class MultiPageTable(CellsTestPage):
             headerFun=lambda x: x,
             rendererFun=lambda w, field: "hi",
             maxRowsPerPage=50,
+            sortColumn=1,
+            sortColumnAscending=True,
         )
 
     def text(self):

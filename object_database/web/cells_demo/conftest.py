@@ -240,6 +240,17 @@ class HeadlessTester:
         selector = self.demo_root_selector
         return self.webdriver.find_element_by_css_selector(selector)
 
+    @property
+    def window_handles(self):
+        return self.webdriver.window_handles
+
+    @property
+    def current_url(self):
+        return self.webdriver.current_url
+
+    def switch_to_window(self, handle):
+        return self.webdriver.switch_to_window(handle)
+
 
 @pytest.fixture(scope="session")
 def headless_browser():

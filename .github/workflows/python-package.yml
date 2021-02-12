@@ -95,6 +95,33 @@ jobs:
         make testcert.cert
         pytest --verbose --capture=no --log-level=info --log-cli-level=info
 
+  pip-install:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.6, 3.7, 3.8]
+    steps:
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: pip install object_database from github
+      timeout-minutes: 10  # Runs in ~3 min
+      run: |
+        python --version
+        pip --version
+        pip freeze
+        pip install -v git+git://github.com/APrioriInvestments/object_database.git@${GITHUB_SHA}
+
+    - name: import object_database
+      timeout-minutes: 1  # Runs in <10 sec
+      run : |
+        pip freeze
+        python -c "import typed_python"
+        python -c "import object_database"
+
   lint:
     runs-on: ubuntu-latest
     steps:

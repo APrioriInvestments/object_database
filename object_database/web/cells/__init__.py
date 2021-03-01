@@ -71,8 +71,6 @@ from object_database.web.cells.views.page_view import PageView
 
 from .non_display.key_action import KeyAction
 
-from object_database.web.cells.CellsTestMixin import CellsTestMixin
-
 from object_database.web.cells.util import waitForCellsCondition
 
 from object_database.web.cells.util import (

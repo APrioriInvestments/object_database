@@ -79,6 +79,6 @@ class InProcessServiceManager(ServiceManager):
         inferCodebase=False,  # don't infer codebase by default
         **kwargs,
     ):
-        ServiceManager.createOrUpdateService(
+        return ServiceManager.createOrUpdateService(
             serviceClass, serviceName, inferCodebase=inferCodebase, **kwargs
         )

@@ -17,11 +17,15 @@ import os
 import object_database
 
 from object_database import Indexed, SubscribeLazilyByDefault
-from typed_python import ConstDict, sha_hash
+from typed_python import ConstDict, sha_hash, NamedTuple
 import threading
 
 from object_database.service_manager.ServiceSchema import service_schema
 from typed_python.Codebase import Codebase as TypedPythonCodebase
+
+
+CommitInfo = NamedTuple(reposUrl=str, commitHash=str)
+
 
 # singleton state objects for the codebase cache
 _codebase_lock = threading.Lock()
@@ -73,6 +77,7 @@ class Codebase:
 
     # filename (at root of project import) to contents
     files = ConstDict(str, service_schema.File)
+    commitInfo = CommitInfo
 
     @staticmethod
     def createFromRootlevelPath(rootPath, **kwargs):
@@ -131,3 +136,6 @@ class Codebase:
                 return _codebase_cache[self.hash]
 
             return _codebase_cache[self.hash].getModuleByName(module_name)
+
+    def setCommitInfo(self, commitInfo):
+        self.commitInfo = commitInfo

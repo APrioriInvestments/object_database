@@ -95,16 +95,16 @@ def bootup_server(tmpDirName):
         )
 
     with database.transaction():
-        ServiceManager.createOrUpdateServiceWithCodebase(
-            service_schema.Codebase.createFromFiles(
+        ServiceManager.createOrUpdateService(
+            "test_service.service.TestService",
+            "TestService",
+            10,
+            codebase=service_schema.Codebase.createFromFiles(
                 {
                     "test_service/__init__.py": "",
                     "test_service/service.py": textwrap.dedent(TEST_SERVICE),
                 }
             ),
-            "test_service.service.TestService",
-            "TestService",
-            10,
         )
 
     print("server is booted")

@@ -58,11 +58,11 @@ class TaskTest(ServiceManagerTestCommon, unittest.TestCase):
             files = {"TestModule1.py": f.read()}
 
         with self.database.transaction():
-            self.testService1Object = ServiceManager.createOrUpdateServiceWithCodebase(
-                service_schema.Codebase.createFromFiles(files),
+            self.testService1Object = ServiceManager.createOrUpdateService(
                 "TestModule1.TestService1",
                 "TestService1",
                 0,
+                codebase=service_schema.Codebase.createFromFiles(files),
             )
             self.testService1Codebase = self.testService1Object.codebase.instantiate()
 

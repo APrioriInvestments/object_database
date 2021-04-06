@@ -2755,7 +2755,7 @@ class Clickable(Cell):
             onClick: str or zero-argument function that either returns a string which will be
                 the link to follow, or that performs the action to be performed.
             makeBold (bool): should the text be bold
-            aTarget (str): target to an HTML a element. One of _blank, _self,
+            aTarget (str): None or a target to an HTML <a> element. One of _blank, _self,
                 _parent, _top, or a valid framename.
         """
         super().__init__()

@@ -112,9 +112,9 @@ class Service:
             self._codebase = other
             self.deploy()
 
-    def setCodebase(self, codebase, moduleName=None, className=None):
+    def setCodebase(self, codebase=None, moduleName=None, className=None):
         if (
-            codebase != self.codebase
+            (codebase is not None and codebase != self.codebase)
             or (moduleName is not None and moduleName != self.service_module_name)
             or (className is not None and className != self.service_class_name)
         ):
@@ -123,7 +123,8 @@ class Service:
                     "Cannot set codebase of locked service '{}'".format(self.name)
                 )
 
-            self._setCodebase(codebase)
+            if codebase is not None:
+                self._setCodebase(codebase)
 
             if moduleName is not None:
                 self.service_module_name = moduleName

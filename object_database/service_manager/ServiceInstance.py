@@ -56,8 +56,8 @@ class Service:
     service_class_name = str
 
     # per service, how many do we use?
-    gbRamUsed = int
-    coresUsed = int
+    gbRamUsed = float
+    coresUsed = float
     validPlacementGroups = TupleOf(str)
     isSingleton = bool
 

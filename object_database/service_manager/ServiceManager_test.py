@@ -925,11 +925,11 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             self.assertTrue(instances[0].codebase is None)
 
         with self.database.transaction():
-            ServiceManager.createOrUpdateServiceWithCodebase(
-                service_schema.Codebase.createFromFiles(getTestServiceModule(2)),
+            ServiceManager.createOrUpdateService(
                 "test_service.service.Service",
                 "HangingService",
                 10,
+                codebase=service_schema.Codebase.createFromFiles(getTestServiceModule(2)),
             )
 
         # this should force a redeploy.
@@ -1115,13 +1115,13 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
         def deploy_helper(codebase_version, expected_version, existing_service=None):
             with self.database.transaction():
                 try:
-                    ServiceManager.createOrUpdateServiceWithCodebase(
-                        service_schema.Codebase.createFromFiles(
-                            getTestServiceModule(codebase_version)
-                        ),
+                    ServiceManager.createOrUpdateService(
                         "test_service.service.Service",
                         serviceName,
-                        targetCount=1,
+                        target_count=1,
+                        codebase=service_schema.Codebase.createFromFiles(
+                            getTestServiceModule(codebase_version)
+                        ),
                     )
                 except Exception:
                     pass

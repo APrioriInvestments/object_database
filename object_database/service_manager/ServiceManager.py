@@ -109,8 +109,20 @@ class ServiceManager(object):
         return False
 
     @staticmethod
+    def inferCodebase(moduleName, extensions=(".py")):
+        # find the root of the codebase
+        module = sys.modules[moduleName]
+
+        root_path = TypedPythonCodebase.rootlevelPathFromModule(module)
+
+        codebase = service_schema.Codebase.createFromRootlevelPath(
+            root_path, extensions=extensions
+        )
+        return codebase
+
+    @staticmethod
     def createOrUpdateService(
-        serviceClass,
+        serviceClassOrName,
         serviceName,
         target_count=None,
         placement=None,
@@ -118,8 +130,24 @@ class ServiceManager(object):
         coresUsed=None,
         gbRamUsed=None,
         inferCodebase=True,
+        codebase=None,
         extensions=(".py"),
     ):
+        if isinstance(serviceClassOrName, str):
+            assert (
+                len(serviceClassOrName.split(".")) > 1
+            ), "serviceClassOrName should be a fully-qualified module.classname"
+            moduleName = ".".join(serviceClassOrName.split(".")[:-1])
+            className = serviceClassOrName.split(".")[-1]
+        else:
+            assert isinstance(serviceClassOrName, type)
+            moduleName = serviceClassOrName.__module__
+            className = serviceClassOrName.__qualname__
+            if gbRamUsed is None:
+                gbRamUsed = serviceClassOrName.gbRamUsed
+            if coresUsed is None:
+                coresUsed = serviceClassOrName.coresUsed
+
         service = service_schema.Service.lookupAny(name=serviceName)
 
         if not service:
@@ -128,23 +156,13 @@ class ServiceManager(object):
                 validPlacementGroups=(placement,) if placement else ("Master",),
             )
 
-        service.service_module_name = serviceClass.__module__
-        service.service_class_name = serviceClass.__qualname__
-
-        if service.service_module_name.startswith("object_database."):
+        if moduleName.startswith("object_database."):
             inferCodebase = False
 
-        if inferCodebase is True:
-            # find the root of the codebase
-            module = sys.modules[serviceClass.__module__]
+        if codebase is None and inferCodebase:
+            codebase = ServiceManager.inferCodebase(moduleName, extensions)
 
-            root_path = TypedPythonCodebase.rootlevelPathFromModule(module)
-
-            tpCodebase = service_schema.Codebase.createFromRootlevelPath(
-                root_path, extensions=extensions
-            )
-
-            service.setCodebase(tpCodebase)
+        service.setCodebase(codebase, moduleName, className)
 
         if target_count is not None:
             service.target_count = target_count
@@ -154,58 +172,12 @@ class ServiceManager(object):
 
         if coresUsed is not None:
             service.coresUsed = coresUsed
-        else:
-            service.coresUsed = serviceClass.coresUsed
 
         if gbRamUsed is not None:
             service.gbRamUsed = gbRamUsed
-        else:
-            service.gbRamUsed = serviceClass.gbRamUsed
-
-        return service
-
-    @staticmethod
-    def createOrUpdateServiceWithCodebase(
-        codebase,
-        className,
-        serviceName,
-        targetCount=None,
-        placement=None,
-        coresUsed=None,
-        gbRamUsed=None,
-        isSingleton=None,
-    ):
-
-        assert (
-            len(className.split(".")) > 1
-        ), "className should be a fully-qualified module.classname"
-
-        service = service_schema.Service.lookupAny(name=serviceName)
-
-        if not service:
-            service = service_schema.Service(
-                name=serviceName,
-                validPlacementGroups=(placement,) if placement is not None else ("Master",),
-            )
-
-        service.setCodebase(
-            codebase, ".".join(className.split(".")[:-1]), className.split(".")[-1]
-        )
 
         if isSingleton is not None:
             service.isSingleton = isSingleton
-
-        if coresUsed is not None:
-            service.coresUsed = coresUsed
-
-        if gbRamUsed is not None:
-            service.gbRamUsed = gbRamUsed
-
-        if targetCount is not None:
-            service.target_count = targetCount
-
-        if placement is not None:
-            service.validPlacementGroups = (placement,)
 
         return service
 

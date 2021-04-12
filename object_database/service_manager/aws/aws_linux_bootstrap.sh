@@ -78,7 +78,7 @@ while true; do
     fi
 
     echo "Running docker image $IMAGE"
-    sudo docker run --privileged --network=host -m $((totalk/1024/1024 - 1))G -v $STORAGE:/storage -v /image_hash:/image_hash $IMAGE \
+    sudo docker run --privileged --network=host --dns=127.0.0.53 -m $((totalk/1024/1024 - 1))G -v $STORAGE:/storage -v /image_hash:/image_hash $IMAGE \
         $(hostname) \
         __db_hostname__ \
         __db_port__ \

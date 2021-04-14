@@ -251,7 +251,6 @@ public:
                         << mMessagesInWriteBuffer.size() << " messages.  "
                         << "SSL_want_write(mSSL) = " << (SSL_want_write(mSSL) ? "true":"false") << ", "
                         << "SSL_want_read(mSSL) = " << (SSL_want_read(mSSL) ? "true":"false") << ", "
-                        << "SSL_has_pending(mSSL) = " << (SSL_has_pending(mSSL) ? "true":"false") << ". "
                         << "sslSocketWriteable: " << (sslSocketWriteable? "true":"false") << ". "
                         << "sslSocketReadable: " << (sslSocketReadable? "true":"false") << ". "
                         << "wakePipeReadable: " << (wakePipeReadable? "true":"false") << ". "

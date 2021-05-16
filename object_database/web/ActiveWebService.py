@@ -278,16 +278,16 @@ class ActiveWebService(ServiceBase):
     def statusPage(self):
         return make_response(jsonify("STATUS: service is up"))
 
-    @login_required
+    #@login_required
     def sendPage(self, path=None):
         self._logger.info("Sending 'page.html'")
         return self.sendContent("page.html")
 
-    @login_required
+    #@login_required
     def mainSocket(self, ws, path):
-        self._logger.info(
-            "ActiveWebService new incoming connection for user %s", current_user.username
-        )
+        #self._logger.info(
+        #    "ActiveWebService new incoming connection for user %s", current_user.username
+        #)
 
         ws.stream.handler.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
 
@@ -302,9 +302,9 @@ class ActiveWebService(ServiceBase):
                 executingInstance=childInstance,
                 path=str(path),
                 queryArgs=dict(request.args.items()),
-                sessionId=request.cookies.get("session"),
-                user=current_user.username,
-                authorized_groups_text=self.authorized_groups_text,
+                sessionId=request.cookies.get("session", ''),
+                user="anon", #current_user.username,
+                authorized_groups_text="", #self.authorized_groups_text,
             )
 
         if not self.db.waitForCondition(lambda: session.listening_port is not None, 5.0):
@@ -440,14 +440,14 @@ class ActiveWebService(ServiceBase):
         finally:
             messageBus.stop()
 
-    @login_required
+    #@login_required
     def echoSocket(self, ws):
         while not ws.closed:
             message = ws.receive()
             if message is not None:
                 ws.send(message)
 
-    @login_required
+    #@login_required
     def sendContent(self, path):
         own_dir = os.path.dirname(__file__)
         return send_from_directory(os.path.join(own_dir, "content"), path)

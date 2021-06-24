@@ -17,7 +17,7 @@ selenium = "*"
 [packages]
 beautifulsoup4 = "*"
 boto3 = "*"
-flask = "*"
+flask = "<2.0"
 flask-cors = "*"
 flask-login = "*"
 flask-sockets = "*"

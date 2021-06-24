@@ -1,7 +1,7 @@
 beautifulsoup4
 boto3
 flaky
-flask
+flask < 2.0
 flask-cors
 flask-login
 flask-sockets

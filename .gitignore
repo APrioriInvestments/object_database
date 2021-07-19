@@ -3,7 +3,7 @@
 *.so
 __pycache__
 build/
-
+dist/
 
 object_database.egg-info
 

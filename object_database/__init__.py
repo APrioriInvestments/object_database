@@ -39,3 +39,6 @@ from object_database.view import (
     MaskView,
 )
 from object_database.inmem_server import InMemServer
+
+
+__version__ = "0.2"

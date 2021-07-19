@@ -67,11 +67,11 @@ ext_modules = [
     )
 ]
 
-INSTALL_REQUIRES = [line.strip() for line in open("install-requires.txt")]
+INSTALL_REQUIRES = [line.strip() for line in open("requirements.txt")]
 
 setuptools.setup(
     name="object_database",
-    version="0.1",
+    version="0.2",
     description="Distributed software transactional memory.",
     author="Braxton Mckee",
     author_email="braxton.mckee@gmail.com",

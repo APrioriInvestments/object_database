@@ -141,8 +141,19 @@ jobs:
     - name: Check pipenv and lint
       timeout-minutes: 2  # Runs in 15 sec
       run: |
-        (pipenv lock --requirements | safety check --stdin) || \
-          (sleep 60; pipenv lock --requirements | safety check --stdin) || \
-          (sleep 60; pipenv lock --requirements | safety check --stdin)
+        pip install --upgrade pip
+        pip install pipenv==2018.11.26  # Newer versions choke on the editable tp dependency
+        mkdir --parents ../typed_python
+
+        pipenv lock --requirements > reqs.txt
+        sed --in-place --expression 's/^-e.*//' reqs.txt
+        pip install --requirement reqs.txt
+
+        # check 'safety' up to three times, in case its
+        # flaking out
+        (cat reqs.txt | safety check --stdin) || \
+          (sleep 60; cat reqs.txt | safety check --stdin) || \
+          (sleep 60; cat reqs.txt | safety check --stdin)
+
         make lint
         make black-check-local

@@ -35,6 +35,6 @@ requests = "*"
 sortedcontainers = "*"
 wtforms = "*"
 llvmlite = "*"
-
 typed_python = {editable=true, path = "./../typed_python"}
 object_database = {editable=true, path = "."}
+safety = "*"

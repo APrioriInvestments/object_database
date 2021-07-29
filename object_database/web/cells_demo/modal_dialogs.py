@@ -75,7 +75,7 @@ class ModalWithUpdateFieldAndCancel(CellsTestPage):
             pageContent.set(modalContent.get())
 
         def cancelClick():
-            pass
+            modalContent.set(pageContent.get())
 
         button = cells.Button("Open Modal", buttonClick)
         textDisplay = cells.Subscribed(lambda: cells.Text(pageContent.get()))

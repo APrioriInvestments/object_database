@@ -1,79 +1,63 @@
-from object_database.web.cells.cells import (
-    # Methods
-    registerDisplay,
-    context,
-    quoteForJs,
-    augmentToBeUnique,
-    sessionState,
-    ensureSubscribedType,
-    ensureSubscribedSchema,
-    wrapCallback,
-    # Classes
-    Cells,
-    Slot,
-    ComputedSlot,
-    SessionState,
-    Cell,
-    Card,
-    CardTitle,
-    Modal,
+from object_database.web.cells.cells import Cells
+from object_database.web.cells.cell import Cell, context
+from object_database.web.cells.main import Main
+from object_database.web.cells.root_cell import RootCell
+from object_database.web.cells.scrollable import Scrollable
+from object_database.web.cells.grid import Grid
+from object_database.web.cells.header_bar import HeaderBar
+from object_database.web.cells.columns import Columns
+from object_database.web.cells.highlighted import Highlighted
+from object_database.web.cells.expands import Expands
+from object_database.web.cells.dropdown import Dropdown
+from object_database.web.cells.async_dropdown import AsyncDropdown
+from object_database.web.cells.container import Container
+from object_database.web.cells.deprecated import LargePendingDownloadDisplay
+from object_database.web.cells.panel import CollapsiblePanel, Panel, SizedPanel
+
+from object_database.web.cells.popover import Popover
+from object_database.web.cells.tabs import Tabs
+from object_database.web.cells.session_state import sessionState, SessionState
+from object_database.web.cells.leaves import (
     Octicon,
     Badge,
-    CollapsiblePanel,
     Text,
-    Panel,
-    Highlighted,
-    Span,
-    Sequence,
-    Columns,
-    LargePendingDownloadDisplay,
-    HeaderBar,
-    Main,
-    _NavTab,
-    Tabs,
-    Dropdown,
-    Container,
-    Scrollable,
-    RootCell,
     Traceback,
     Code,
-    ContextualDisplay,
+    Timestamp,
+    Span,
+)
+from object_database.web.cells.sequence import Sequence, HorizontalSequence
+from object_database.web.cells.subscribed import (
     Subscribed,
     SubscribedSequence,
     HorizontalSubscribedSequence,
     HSubscribedSequence,
     VSubscribedSequence,
-    Popover,
-    Grid,
-    SortWrapper,
-    SingleLineTextBox,
-    SizedPanel,
-    Table,
-    Clickable,
-    Button,
-    ButtonGroup,
-    LoadContentsFromUrl,
-    SubscribeAndRetry,
-    Expands,
-    CodeEditor,
-    Plot,
-    _PlotUpdater,
-    AsyncDropdown,
-    CircleLoader,
-    Timestamp,
-    HorizontalSequence,
-    WSMessageTester,
 )
 
-from object_database.web.cells.views.split_view import SplitView
+from object_database.web.cells.card import Card, CardTitle
+from object_database.web.cells.modal import Modal
+from object_database.web.cells.button import Clickable, Button, ButtonGroup
 
+
+from object_database.web.cells.single_line_text_box import SingleLineTextBox
+from object_database.web.cells.slot import Slot
+from object_database.web.cells.computed_slot import ComputedSlot
+from object_database.web.cells.contextual_display import ContextualDisplay, registerDisplay
+from object_database.web.cells.views.split_view import SplitView
+from object_database.web.cells.code_editor import CodeEditor
+from object_database.web.cells.plot import Plot
+from object_database.web.cells.table import Table
 from object_database.web.cells.views.page_view import PageView
 
 from .non_display.key_action import KeyAction
 
-from object_database.web.cells.util import waitForCellsCondition
-
 from object_database.web.cells.util import (
+    ensureSubscribedType,
+    ensureSubscribedSchema,
+    wrapCallback,
+    SubscribeAndRetry,
+    waitForCellsCondition,
     Flex,
     ShrinkWrap,
     Padding,

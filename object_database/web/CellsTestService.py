@@ -1,4 +1,4 @@
-#   Copyright 2017-2019 object_database Authors
+#   Copyright 2017-2021 object_database Authors
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@ import traceback
 import textwrap
 import urllib
 import sys
+import logging
 
 from inspect import getsourcelines
 from object_database.service_manager.ServiceBase import ServiceBase
@@ -64,15 +65,39 @@ class CellsTestService(ServiceBase):
     coresUsed = 0
 
     @staticmethod
+    def serviceHeaderToggles(serviceObject, instance=None, queryArgs=None):
+        """Return a collection of widgets we want to stick in the top of the service display.
+
+        If None, then we get a raw service display with nothing else."""
+        if queryArgs is not None and queryArgs.get("noHarness"):
+            return None
+
+        return []
+
+    @staticmethod
     def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
         queryArgs = queryArgs or {}
 
         if "category" in queryArgs and "name" in queryArgs:
             page = getPages()[queryArgs["category"]][queryArgs["name"]]
 
-            contentsBuffer = cells.Slot(
-                textwrap.dedent("".join(getsourcelines(page.cell.__func__)[0]))
+            sourcePageContents = textwrap.dedent(
+                "".join(getsourcelines(page.cell.__func__)[0])
             )
+
+            if queryArgs.get("noHarness"):
+                # we've been asked to produce the environment without a code editor
+                # or the rest of the harness page to be rendered.
+                locals = {}
+                exec(sourcePageContents, sys.modules[type(page).__module__].__dict__, locals)
+
+                cell = locals["cell"](page).tagged("demo_root")
+
+                logging.info("Loading demo with tree\n%s", cell.treeToString())
+
+                return cell
+
+            contentsBuffer = cells.Slot(sourcePageContents)
             contentsToEvaluate = cells.Slot(contentsBuffer.getWithoutRegisteringDependency())
 
             def actualDisplay():
@@ -110,15 +135,11 @@ class CellsTestService(ServiceBase):
             def actualDisplay():
                 return cells.Card(cells.Text("nothing to display"), padding=10)
 
-        resultArea = cells.SplitView(
-            [
-                (cells.Subscribed(actualDisplay), 4),
-                (cells.Card(cells.Text(description), padding=2), 0),
-            ],
-            split="horizontal",
-        )
+        resultArea = cells.Subscribed(actualDisplay)
 
-        inputArea = cells.SplitView([(selectionPanel(page), 2), (ed, 9)])
+        inputArea = cells.Card(cells.Text(description), padding=2) + cells.Flex(
+            cells.SplitView([(selectionPanel(page), 2), (ed, 9)])
+        )
 
         return cells.ResizablePanel(resultArea, inputArea, split="horizontal")
 

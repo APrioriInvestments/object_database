@@ -4,13 +4,13 @@
   "description": "",
   "main": "CellHandler.js",
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha --require esm ./tests/ ./components/tests/ ./webcomponents/sheet/tests/",
-    "test-libs": "./node_modules/mocha/bin/mocha --require esm ./tests/",
-    "test-components": "./node_modules/mocha/bin/mocha --require esm ./components/tests/",
-    "build": "webpack && cd ./webcomponents/sheet/ && webpack",
+    "test": "./node_modules/mocha/bin/mocha --require esm ./src/tests/ ./src/components/tests/ ./src/webcomponents/sheet/tests/",
+    "test-libs": "./node_modules/mocha/bin/mocha --require esm ./src/tests/",
+    "test-components": "./node_modules/mocha/bin/mocha --require esm ./src/components/tests/",
+    "build": "webpack && cd ./src/webcomponents/sheet/ && webpack",
     "build:frontend": "webpack",
-    "build:sheet-webcomponent": "cd ./webcomponents/sheet/ && webpack",
-    "frontend": "cd ./webcomponents/sheet/ && webpack && cd ../../ && webpack && python ../../frontends/object_database_webtest.py"
+    "build:sheet-webcomponent": "cd ./src/webcomponents/sheet/ && webpack",
+    "frontend": "cd ./src/webcomponents/sheet/ && webpack && cd ../../ && webpack && python ../../frontends/object_database_webtest.py"
   },
   "author": "",
   "license": "ISC",

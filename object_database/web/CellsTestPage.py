@@ -28,10 +28,10 @@ class CellsTestPage(object):
     def name(self):
         return type(self).__name__
 
-    def querystring(self):
+    def querystring(self, **kwargs):
         """Respond with the querystring representation of the demo"""
         item_name_part = urllib.parse.urlencode(
-            dict(category=self.category(), name=self.name())
+            dict(category=self.category(), name=self.name(), **kwargs)
         )
         return "?{}".format(item_name_part)
 

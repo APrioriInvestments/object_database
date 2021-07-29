@@ -128,7 +128,7 @@ black-check-local:
 
 
 .PHONY: cells-demo
-cells-demo: $(VIRTUAL_ENV)
+cells-demo:
 	. $(VIRTUAL_ENV)/bin/activate; \
 		./object_database/frontends/object_database_webtest.py
 

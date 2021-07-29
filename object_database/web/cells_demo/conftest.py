@@ -9,11 +9,13 @@ https://docs.pytest.org/en/latest/fixture.html
 for a more detailed description of this pattern.
 """
 import pytest
+import datetime
 
 import sys
 import requests
 import tempfile
 import textwrap
+import logging
 
 from time import sleep
 from selenium import webdriver
@@ -54,7 +56,7 @@ TEST_SERVICE = """
 def bootup_server(tmpDirName):
     token = genToken()
     port = 8020
-    loglevel_name = "INFO"
+    loglevel_name = logging.getLevelName(logging.root.level)
 
     server = startServiceManagerProcess(
         tmpDirName, port, token, loglevelName=loglevel_name, logDir=False, verbose=True
@@ -107,10 +109,9 @@ def bootup_server(tmpDirName):
             ),
         )
 
-    print("server is booted")
     try_to_connect = True
     counter = 0
-    print("pinging server")
+
     while try_to_connect:
         counter += 1
         sys.stdout.write(".")
@@ -118,8 +119,8 @@ def bootup_server(tmpDirName):
         try:
             response = requests.get("http://127.0.0.1:8000")
             status_code = response.status_code
-            print("connection successfull")
-            print(status_code)
+            logging.info("connection to ActiveWebService is successful: %s", status_code)
+
             try_to_connect = False
         except ConnectionError:
             sleep(2)
@@ -148,7 +149,7 @@ def bootup_webdriver():
     should work... i unzipped it using the OSX util)
     sudo mv chromedriver /usr/local/bin/chromedriver
     """
-    print("setting up selenium webdriver for Chrome")
+    logging.info("booting selenium webdriver for Chrome")
 
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
@@ -185,41 +186,105 @@ class HeadlessTester:
         # and the webdriver on initialization
         self.tempDir = tempfile.TemporaryDirectory()
         self.server = bootup_server(self.tempDir.name)
-        self.webdriver = bootup_webdriver()
-        self.webdriver.implicitly_wait(5)
+
+        try:
+            self.webdriver = bootup_webdriver()
+            self.webdriver.implicitly_wait(5)
+        except Exception:
+            self.server.terminate()
+            self.server.wait()
+            raise
 
     @property
     def expect(self):
+        self.dumpLogs(True)
         return expected_conditions
 
     @property
     def by(self):
+        self.dumpLogs(True)
         return By
 
-    def dumpLogs(self):
+    def dumpLogs(self, useLogging=False):
         for msg in self.webdriver.get_log("browser"):
-            print("SELENIUM LOG > ", msg)
+            try:
+                messageText = msg["message"]
+                messageText = messageText.replace(
+                    "http://127.0.0.1:8000/content/dist/main.bundle.js", "main.bundle.js"
+                )
+                if useLogging:
+                    if msg["level"] == "INFO":
+                        logger = logging.info
+                    elif msg["level"] == "WARNING":
+                        logger = logging.warning
+                    elif msg["level"] == "ERROR":
+                        logger = logging.error
+                    elif msg["level"] == "DEBUG":
+                        logger = logging.debug
+                    elif msg["level"] == "CRITICAL":
+                        logger = logging.critical
+                    else:
+                        logger = logging.error
+
+                    logger("browser/%s | %s", msg["source"], messageText)
+                else:
+                    if msg["level"] == "INFO":
+                        logLevel = logging.INFO
+                    elif msg["level"] == "WARNING":
+                        logLevel = logging.WARNING
+                    elif msg["level"] == "ERROR":
+                        logLevel = logging.ERROR
+                    elif msg["level"] == "DEBUG":
+                        logLevel = logging.DEBUG
+                    elif msg["level"] == "CRITICAL":
+                        logLevel = logging.CRITICAL
+                    else:
+                        logLevel = logging.ERROR
+
+                    if logging.root.level <= logLevel:
+                        timestampStr = datetime.datetime.fromtimestamp(
+                            msg["timestamp"] / 1000
+                        ).strftime("%Y-%m-%d %H:%M:%S.%f")
+
+                        source = str(msg["source"])
+                        level = logging.getLevelName(logLevel)
+
+                        print(f"[{timestampStr}]  {level}  browser/{source} | {messageText}")
+            except Exception:
+                import traceback
+
+                print("INVALID SELENIUM LOG: ", traceback.format_exc())
 
     @property
     def demo_root_selector(self):
         return '[data-tag="{}"]'.format(self.demo_root_name)
 
     def wait(self, seconds):
-        return WebDriverWait(self.webdriver, seconds)
+        try:
+            self.dumpLogs(True)
+            return WebDriverWait(self.webdriver, seconds)
+        finally:
+            self.dumpLogs(True)
 
     def url_for_demo(self, DemoClass):
         "Respond with the full URL for a given CellsDemo class"
         inst = DemoClass()
-        return "{}/services/CellsTestService{}".format(self.endpoint, inst.querystring())
+        return "{}/services/CellsTestService{}".format(
+            self.endpoint, inst.querystring(noHarness=True)
+        )
 
     def load_demo_page(self, DemoClass):
         """Loads the specified DemoClass of a
         CellsTestPage into the headless browser
         """
-        self.webdriver.get(self.url_for_demo(DemoClass))
-        self.wait(10).until(
-            self.expect.visibility_of_element_located((self.by.CSS_SELECTOR, "body"))
-        )
+        try:
+            self.dumpLogs(True)
+            self.webdriver.get(self.url_for_demo(DemoClass))
+            self.wait(10).until(
+                self.expect.visibility_of_element_located((self.by.CSS_SELECTOR, "body"))
+            )
+        finally:
+            self.dumpLogs(True)
 
     def get_demo_root_for(self, DemoClass):
         """Load the demo page for the specified
@@ -232,13 +297,21 @@ class HeadlessTester:
         return self.get_demo_root()
 
     def find_by_css(self, css_string, many=False):
-        if many:
-            return self.webdriver.find_elements_by_css_selector(css_string)
-        return self.webdriver.find_element_by_css_selector(css_string)
+        try:
+            self.dumpLogs(True)
+            if many:
+                return self.webdriver.find_elements_by_css_selector(css_string)
+            return self.webdriver.find_element_by_css_selector(css_string)
+        finally:
+            self.dumpLogs(True)
 
     def get_demo_root(self):
-        selector = self.demo_root_selector
-        return self.webdriver.find_element_by_css_selector(selector)
+        try:
+            self.dumpLogs(True)
+            selector = self.demo_root_selector
+            return self.webdriver.find_element_by_css_selector(selector)
+        finally:
+            self.dumpLogs(True)
 
     @property
     def window_handles(self):
@@ -286,7 +359,7 @@ def test_webdriver_basic_connect(headless_browser):
 
 def test_server_loads_page(headless_browser):
     headless_browser.webdriver.get(headless_browser.endpoint)
-    print(headless_browser.webdriver.page_source)
+
     query = "#page_root"
     el = headless_browser.find_by_css(query)
     assert el

@@ -495,7 +495,7 @@ class HappyService(ServiceBase):
                         Button(Octicon("terminal"), lambda: None, active=lambda: True),
                         Button(Octicon("graph"), lambda: None, active=lambda: True),
                     ]
-                ).nowrap()
+                )
             )
         )
 

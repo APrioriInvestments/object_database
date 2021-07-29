@@ -358,7 +358,7 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
 
         serviceType = serviceObj.instantiateServiceType()
 
-        serviceToggles = serviceType.serviceHeaderToggles(serviceObj)
+        serviceToggles = serviceType.serviceHeaderToggles(serviceObj, queryArgs=queryArgs)
 
         if len(path) == 2:
             return (

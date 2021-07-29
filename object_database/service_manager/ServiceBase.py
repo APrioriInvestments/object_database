@@ -66,7 +66,10 @@ class ServiceBase:
         )
 
     @staticmethod
-    def serviceHeaderToggles(serviceObject, instance=None):
+    def serviceHeaderToggles(serviceObject, instance=None, queryArgs=None):
+        """Return a collection of widgets we want to stick in the top of the service display.
+
+        If None, then we get a raw service display with nothing else."""
         return []
 
     def registerReactor(self, reactor):

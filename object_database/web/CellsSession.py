@@ -232,9 +232,6 @@ class CellsSession:
                             "Sent a large message packet of %.2f mb", bytesSent / 1024.0 ** 2
                         )
 
-                    # tell the browser to execute the postscripts that its built up
-                    self.writeJsonMessage("postscripts")
-
                     # request an ACK from the browser before sending any more data
                     # otherwise it can get overloaded and crash because it can't
                     # keep up with the data volume
@@ -261,6 +258,8 @@ class CellsSession:
 
     def displayForPathAndQueryArgs(self, path, queryArgs):
         display, toggles = displayAndHeadersForPathAndQueryArgs(path, queryArgs)
+        if toggles is None:
+            return display
         return makeMainView(display, toggles, self.currentUser, self.authorized_groups_text)
 
     def stop(self):

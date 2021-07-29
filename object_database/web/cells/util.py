@@ -13,11 +13,51 @@
 #   limitations under the License.
 
 import time
+from object_database.view import current_transaction
+from object_database.web.cells.computing_cell_context import ComputingCellContext
+from object_database.util import Timer
 
-from object_database.web.cells import Cells
+
+def wrapCallback(callback):
+    """Make a version of callback that will run on the main cells ui thread when invoked.
+
+    This must be called from within a 'cell' or message update.
+    """
+    cells = ComputingCellContext.get().cells
+
+    def realCallback(*args, **kwargs):
+        cells.scheduleCallback(lambda: callback(*args, **kwargs))
+
+    realCallback.__name__ = callback.__name__
+
+    return realCallback
 
 
-def waitForCellsCondition(cells: Cells, condition, timeout=10.0):
+class SubscribeAndRetry(Exception):
+    def __init__(self, callback):
+        super().__init__("SubscribeAndRetry")
+        self.callback = callback
+
+
+def ensureSubscribedType(t, lazy=False):
+    if not current_transaction().db().isSubscribedToType(t):
+        raise SubscribeAndRetry(
+            Timer("Subscribing to type %s%s", t, " lazily" if lazy else "")(
+                lambda db: db.subscribeToType(t, lazySubscription=lazy)
+            )
+        )
+
+
+def ensureSubscribedSchema(t, lazy=False):
+    if not current_transaction().db().isSubscribedToSchema(t):
+        raise SubscribeAndRetry(
+            Timer("Subscribing to schema %s%s", t, " lazily" if lazy else "")(
+                lambda db: db.subscribeToSchema(t, lazySubscription=lazy)
+            )
+        )
+
+
+def waitForCellsCondition(cells, condition, timeout=10.0):
     t0 = time.time()
     while time.time() - t0 < timeout:
         condRes = condition()

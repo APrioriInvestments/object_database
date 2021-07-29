@@ -207,13 +207,26 @@ def test_bigger_sheet_locked_selector(headless_browser):
     assert demo_root
     query_0_0 = '[data-x="0"][data-y="0"]'
     element_0_0 = headless_browser.find_by_css(query_0_0)
+
     query_0_1 = '[data-x="0"][data-y="1"]'
     element_0_1 = headless_browser.find_by_css(query_0_1)
+
     # make sure the element is selected by default
     selector_class = "in-locked-row selector-cursor selector-anchor"
     assert element_0_0.get_attribute("class") == selector_class
+
     # click on another sheet cell and make sure it becomes the selector
     element_0_1.click()
+
+    headless_browser.wait(5).until(
+        headless_browser.expect.presence_of_element_located(
+            (headless_browser.by.CSS_SELECTOR, query_0_1)
+        )
+    )
+
+    # now find it again
+    element_0_1 = headless_browser.find_by_css(query_0_1)
+
     selector_class = "in-locked-column selector-cursor selector-anchor"
     assert element_0_1.get_attribute("class") == selector_class
 

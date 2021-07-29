@@ -74,10 +74,4 @@ class Sheet(Cell):
                     }
                 )
 
-            dataToSend = [{"action": msgFrame["action"], "frames": response_frames}]
-            if self.exportData.get("dataInfo") is None:
-                self.exportData["dataInfo"] = dataToSend
-            else:
-                self.exportData["dataInfo"] += dataToSend
-            self.wasDataUpdated = True
-            self.markDirty()
+            self.scheduleMessage({"action": msgFrame["action"], "frames": response_frames})

@@ -18,14 +18,32 @@ from object_database.web.CellsTestPage import CellsTestPage
 
 class MultiPageTable(CellsTestPage):
     def cell(self):
-        return cells.Table(
-            colFun=lambda: ["Col 1", "Col 2"],
-            rowFun=lambda: list(range(100)),
-            headerFun=lambda x: x,
-            rendererFun=lambda w, field: "hi",
-            maxRowsPerPage=50,
-            sortColumn=1,
-            sortColumnAscending=True,
+        columns = cells.Slot(4)
+        rows = cells.Slot(20)
+        offset = cells.Slot(0)
+
+        def updownSetter(name, slot):
+            return (
+                cells.Subscribed(lambda: f"{name}: {slot.get()}")
+                + cells.Button("Up", lambda: slot.set(slot.get() + 1))
+                + cells.Button("Up10", lambda: slot.set(slot.get() + 10))
+                + cells.Button("Down", lambda: slot.set(slot.get() - 1))
+            )
+
+        return (
+            updownSetter("Rows", rows)
+            >> updownSetter("Columns", columns)
+            >> updownSetter("Offset", offset)
+        ) + cells.Flex(
+            cells.Table(
+                colFun=lambda: [f"Col{i+1}" for i in range(columns.get())],
+                rowFun=lambda: list(range(rows.get())),
+                headerFun=lambda x: x,
+                rendererFun=lambda w, field: f"{field} {w} {offset.get()}",
+                maxRowsPerPage=50,
+                sortColumn="Col1",
+                sortColumnAscending=True,
+            )
         )
 
     def text(self):

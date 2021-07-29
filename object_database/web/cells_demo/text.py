@@ -30,3 +30,56 @@ class EmbeddedColoredText(CellsTestPage):
 
     def text(self):
         return "You should see some colored text in a Card."
+
+
+class TextUpdates(CellsTestPage):
+    def cell(self):
+        counter = cells.Slot(0)
+
+        return cells.Subscribed(lambda: cells.Text(f"Count: {counter.get()}")) + cells.Button(
+            "Update", lambda: counter.set(counter.get() + 1)
+        )
+
+    def text(self):
+        return (
+            "You should see some text and a button that says Update "
+            "that increments the counter"
+        )
+
+
+def test_text_rendering(headless_browser):
+    headless_browser.load_demo_page(BasicText)
+
+    query = '[data-cell-type="Text"]'
+
+    elements = headless_browser.find_by_css(query, many=True)
+    assert len(elements) == 1
+
+    assert elements[0].text == "This is some text"
+
+
+def test_text_replaceable(headless_browser):
+    headless_browser.load_demo_page(TextUpdates)
+
+    query = '[data-cell-type="Text"]'
+
+    elements = headless_browser.find_by_css(query, many=True)
+
+    # should see 'Update' and 'Count: 0'
+    assert sorted([e.text for e in elements]) == ["Count: 0", "Update"]
+
+    buttons_query = '[data-tag="demo_root"] > [data-cell-type="Button"]'
+    buttons = headless_browser.find_by_css(buttons_query, many=True)
+
+    assert len(buttons) == 1
+
+    buttons[0].click()
+
+    def textIsUpdated(*args):
+        elements = headless_browser.find_by_css(query, many=True)
+
+        return sorted([e.text for e in elements]) == ["Count: 1", "Update"]
+
+    headless_browser.wait(2).until(textIsUpdated)
+
+    assert textIsUpdated()

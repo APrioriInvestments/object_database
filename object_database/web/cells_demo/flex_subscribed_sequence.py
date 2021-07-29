@@ -84,3 +84,23 @@ class VertSubscribedSequenceNonFlexNestedFlex(CellsTestPage):
         bottom_button = cells.Button("This does nothing", lambda: None)
         sub_sequence = cells.SubscribedSequence(lambda: x.get(), lambda item: item)
         return cells.Sequence([Flex(top_button + Flex(sub_sequence) + bottom_button)])
+
+
+class SubscribedSequenceInSubscribedSequenceUpdates(CellsTestPage):
+    def text(self):
+        return (
+            "You should see a sequence to which you can add and remove items. The sequence "
+            "should be repeated."
+        )
+
+    def cell(self):
+        x = cells.Slot((0,))
+
+        return (
+            cells.Button("Add Item", lambda: x.set(x.get() + (len(x.get()),)))
+            + cells.Button("Remove Item", lambda: x.set(x.get()[:-1]))
+            + cells.Panel(
+                cells.SubscribedSequence(lambda: x.get(), lambda item: "Item: " + str(item))
+                + cells.SubscribedSequence(lambda: x.get(), lambda item: "Item: " + str(item))
+            )
+        )

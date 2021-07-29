@@ -54,6 +54,16 @@ class Children:
         self.allChildren = []
         self._reverseLookup = {}
 
+    def namedChildIdentities(self):
+        def toIdentities(x):
+            if isinstance(x, dict):
+                return {k: toIdentities(v) for k, v in x.items()}
+            if isinstance(x, list):
+                return [toIdentities(k) for k in x]
+            return x.identity
+
+        return toIdentities(self.namedChildren)
+
     def addChildNamed(self, name, childStructure):
         """Adds a child with the given name.
 

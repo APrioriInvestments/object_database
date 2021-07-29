@@ -70,9 +70,15 @@ class CodeEditorStashedDemo(CellsTestPage):
     def cell(self):
         isShown = cells.Slot(True)
         textContent = cells.Slot("")
+
+        def textToDisplayFunction():
+            return textContent.get()
+
+        def onTextChange(text, selection):
+            textContent.set(text)
+
         editor = cells.CodeEditor(
-            onTextChange=lambda text, selection: textContent.set(text),
-            textToDisplayFunction=lambda: textContent.get(),
+            onTextChange=onTextChange, textToDisplayFunction=textToDisplayFunction
         )
 
         return cells.Button(
@@ -102,13 +108,19 @@ def test_stashed_editor_insert_text(headless_browser):
         '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
     )
     assert code_editor
-    script = 'cellHandler.activeComponents["{}"].editor.setValue("{}")'.format(
+    script = 'cellHandler.activeCells["{}"].editor.setValue("{}")'.format(
         code_editor.get_attribute("data-cell-id"), "Hello World"
     )
     headless_browser.webdriver.execute_script(script)
     editor_query = "{} .ace_scroller".format(headless_browser.demo_root_selector)
     editor_content_area = headless_browser.find_by_css(editor_query)
     assert editor_content_area
+
+    def textIsHelloWorld(*args):
+        return editor_content_area.text == "Hello World"
+
+    headless_browser.wait(5).until(textIsHelloWorld)
+
     assert editor_content_area.text == "Hello World"
 
 
@@ -141,9 +153,16 @@ def test_stashed_reloaded_editor_has_text(headless_browser):
         headless_browser.expect.presence_of_element_located(location)
     )
     editor_content_area_query = "{} .ace_scroller".format(headless_browser.demo_root_selector)
-    editor_content_area = headless_browser.find_by_css(editor_content_area_query)
-    assert editor_content_area
-    assert editor_content_area.text == "Hello World"
+
+    def textIsHelloWorld(*args):
+        editor_content_area = headless_browser.find_by_css(editor_content_area_query)
+        if not editor_content_area:
+            return False
+
+        print("ITS ", editor_content_area.text)
+        return editor_content_area.text == "Hello World"
+
+    headless_browser.wait(5).until(textIsHelloWorld)
 
 
 class CodeEditorInHorizSequence(CellsTestPage):
@@ -483,7 +502,7 @@ class ServerSideSetFirstVisibleRow(CellsTestPage):
         )
 
         return cells.ResizablePanel(
-            cells.WSMessageTester(codeEditor.setFirstVisibleRow, rowNum=10), codeEditor
+            cells.Button("Go!", lambda: codeEditor.setFirstVisibleRow(10)), codeEditor
         )
 
     def text(self):
@@ -499,7 +518,7 @@ def test_set_first_row_serverside(headless_browser):
     first_line = headless_browser.find_by_css(".ace_gutter-active-line")
     assert first_line
     assert first_line.text == "1"
-    toggle_btn = headless_browser.find_by_css('[data-cell-type="WSTesterButton"]')
+    toggle_btn = headless_browser.find_by_css('[data-cell-type="Button"]')
     toggle_btn.click()
 
     def textIsTen(*args):

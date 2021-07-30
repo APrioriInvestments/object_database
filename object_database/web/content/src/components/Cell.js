@@ -13,6 +13,9 @@ const render = null;
 const makeDomElt = (divstyle, props, children) => {
     var res = document.createElement(divstyle);
 
+    // retain the properties so we can get them out later if we need to
+    res.cellsProperties = props;
+
     for (var key in props) {
         if (props.hasOwnProperty(key)) {
             if (typeof(props[key]) === "function") {
@@ -36,18 +39,68 @@ const makeDomElt = (divstyle, props, children) => {
     return res;
 };
 
+// replicate the children and properties in 'sourceNode' into 'destNode'
+const copyNodeInto = (sourceNode, destNode) => {
+    if (sourceNode === destNode) {
+        return;
+    }
+
+    replaceChildren(
+        destNode,
+        sourceNode.children
+    );
+
+    let oldProps = destNode.cellsProperties;
+    let newProps = sourceNode.cellsProperties;
+
+    // set properties on the new node
+    for (var key in newProps) {
+        if (typeof(newProps[key]) === "function") {
+            destNode[key] = newProps[key];
+        } else {
+            destNode.setAttribute(key, newProps[key]);
+        }
+    }
+
+    // remove any unused properties
+    for (var key in oldProps) {
+        if (newProps[key] === undefined) {
+            if (typeof(oldProps[key]) === "function") {
+                delete destNode[key];
+            } else {
+                destNode.removeAttribute(key);
+            }
+        }
+    }
+
+    destNode.cellsProperties = sourceNode.cellsProperties;
+}
+
 const replaceChildren = (domElement, children) => {
     if (domElement.replaceChildren) {
         // when this is available...
         domElement.replaceChildren(...children);
     } else {
-        // go through the children and append them to the element
-        for (var i = 0; i < children.length; i++) {
-            domElement.appendChild(children[i]);
-        }
+        // copy the children into their own array if they're not in a regular array already
+        // because if 'children' is in fact an element's child list, then moving the elements
+        // will modify the list
+        if (!Array.isArray(children)) {
+            let childArray = [];
 
-        while (domElement.childNodes.length > children.length) {
-            domElement.removeChild(domElement.firstChild);
+            for (var i = 0; i < children.length; i++) {
+                childArray.push(children[i]);
+            }
+
+            replaceChildren(domElement, childArray);
+        } else {
+            // go through the children and append them to the element
+            for (var i = 0; i < children.length; i++) {
+                domElement.appendChild(children[i]);
+            }
+
+            while (domElement.childNodes.length > children.length) {
+                domElement.removeChild(domElement.firstChild);
+            }
         }
     }
 };
@@ -77,8 +130,16 @@ class Cell {
         this.addCanonicalTags = this.addCanonicalTags.bind(this);
     }
 
-    static makeDomElt(...args) {
-        return makeDomElt(...args);
+    static copyNodeInto(sourceNode, destNode) {
+        return copyNodeInto(sourceNode, destNode);
+    }
+
+    static makeDomElt(divstyle, props, children) {
+        return makeDomElt(divstyle, props, children);
+    }
+
+    static replaceChildren(domElt, children) {
+        return replaceChildren(domElt, children);
     }
 
     addCanonicalTags(domElt) {
@@ -224,4 +285,5 @@ export {
     render,
     makeDomElt,
     replaceChildren,
+    copyNodeInto,
     Cell as default};

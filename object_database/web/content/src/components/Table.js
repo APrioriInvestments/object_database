@@ -22,12 +22,6 @@ class Table extends ConcreteCell {
         super(props, ...args);
     }
 
-    rebuildDomElement() {
-        let newDomElt = this.build();
-        this.domElement.replaceWith(newDomElt);
-        this.domElement = newDomElt;
-    }
-
     build(){
         return(
             h('table', {
@@ -48,12 +42,6 @@ class TableRow extends ConcreteCell {
         super(props, ...args);
     }
 
-    rebuildDomElement() {
-        let newDomElt = this.build();
-        this.domElement.replaceWith(newDomElt);
-        this.domElement = newDomElt;
-    }
-
     build() {
         return h('tr', {}, this.renderChildrenNamed('cells').map((elt, colIndex) => {
             return (
@@ -66,12 +54,6 @@ class TableRow extends ConcreteCell {
 class TableHeader extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
-    }
-
-    rebuildDomElement() {
-        let newDomElt = this.build();
-        this.domElement.replaceWith(newDomElt);
-        this.domElement = newDomElt;
     }
 
     build() {

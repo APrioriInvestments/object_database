@@ -102,3 +102,21 @@ class HorizPanelDoesWrapSequence(CellsTestPage):
 
     def text(self):
         return "Should see 50 panels horizontally across the screen with wrapping"
+
+
+class PanelSwitchBetweenSequenceAndNonsequence(CellsTestPage):
+    def cell(self):
+        isSequence = cells.Slot(True)
+
+        return cells.Button("toggle", lambda: isSequence.toggle()) + (
+            cells.Panel(
+                cells.Subscribed(
+                    lambda: cells.Text("One thing")
+                    if isSequence.get()
+                    else (cells.Text("Thing 1") + cells.Text("Thing 2"))
+                )
+            )
+        )
+
+    def text(self):
+        return "Should see a button that toggles a panel between one and two lines."

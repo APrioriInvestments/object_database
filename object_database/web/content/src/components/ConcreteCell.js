@@ -7,7 +7,7 @@
    is stable.
  */
 
-import {Cell, makeDomElt} from './Cell';
+import {Cell, copyNodeInto, makeDomElt} from './Cell';
 
 class ConcreteCell extends Cell {
     constructor(props, ...args){
@@ -18,6 +18,7 @@ class ConcreteCell extends Cell {
         this.renderChildNamed = this.renderChildNamed.bind(this);
         this.renderChildArray = this.renderChildArray.bind(this);
 
+        // this should never be set more than once
         this.domElement = null;
 
         // maps from 'child name', which is either the name of the child
@@ -40,7 +41,23 @@ class ConcreteCell extends Cell {
             return;
         }
 
+        function isDescendant(parent, child) {
+             var node = child.parentNode;
+             while (node != null) {
+                 if (node == parent) {
+                     return true;
+                 }
+                 node = node.parentNode;
+             }
+             return false;
+        }
+
         let newChildDomElement = this.renderChildUncached(this.childNameToChild[childName]);
+
+        // insist that our dom element is a parent of this one
+        if (!isDescendant(this.domElement, this.childNameToDomElt[childName])) {
+            throw new Error("Somehow this child is not in our dom!");
+        }
 
         this.childNameToDomElt[childName].replaceWith(
             newChildDomElement
@@ -49,8 +66,24 @@ class ConcreteCell extends Cell {
         this.childNameToDomElt[childName] = newChildDomElement;
     }
 
+    // our 'data' has changed, which may include the set of named children, so we have
+    // to rebuild the domElement. Because our parents actually track exactly what dom element
+    // we return, and its not allowed to become a new one, we have to build and then replace
+    rebuildDomElement() {
+        this.childNameToChild = {};
+        this.childNameToDomElt = {};
+        this.cellIdToChildName = {};
+
+        let newDomElt = this.build();
+
+        copyNodeInto(newDomElt, this.domElement);
+    }
+
     // subclasses should implement this so that it returns
-    // a dom element and uses 'renderChildNamed'.
+    // a dom element and uses 'renderChildNamed' and 'renderChildrenNamed'.
+    // note that when a concrete cell is rebuilt, we don't actually replace the domElement,
+    // but rather, we call 'build' and replace the children and properties of 'domElement'
+    // with what we get out of build.
     build() {
         throw new Error('build not defined for ' + this);
     }

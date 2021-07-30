@@ -495,7 +495,7 @@ class JoinedCodeEditors(CellsTestPage):
 
 
 def test_text_mirrors_correctly(headless_browser):
-    headless_browser.get_demo_root_for(JoinedCodeEditors)
+    headless_browser.load_demo_page(JoinedCodeEditors)
 
     code_editor1 = headless_browser.find_by_css('[data-tag="ed1"]')
 
@@ -506,7 +506,10 @@ def test_text_mirrors_correctly(headless_browser):
     headless_browser.webdriver.execute_script(script)
 
     def textIsHelloWorld(*args):
-        code_editor2 = headless_browser.find_by_css('[data-tag="ed2"] .ace_scroller2')
+        code_editor2 = headless_browser.find_by_css('[data-tag="ed2"] .ace_scroller')
+
+        if not code_editor2:
+            return False
 
         return code_editor2.text == "Hello World"
 

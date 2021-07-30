@@ -9,7 +9,6 @@ class Text extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
         this.style = "color:" + this.props.textColor;
-        this.domElement = null;
     }
 
     build() {

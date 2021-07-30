@@ -11,7 +11,7 @@ class Subscribed extends Cell {
     }
 
     childChanged(node) {
-        this.parent.childChanged();
+        this.parent.childChanged(this);
     }
 
     buildDomElementInner() {

@@ -87,13 +87,6 @@ class CodeEditor(Cell):
         self.textToDisplayFunction = textToDisplayFunction
         self.mouseoverTimeout = mouseoverTimeout
         self.onMouseover = onMouseover
-
-        # All CodeEditors will be
-        # flexed inside of Sequences,
-        # and will cause parent Sequences
-        # to become flex parent
-        self.isFlex = True
-        self.exportData["flexChild"] = True
         self.onFirstRowChange = onFirstRowChange
 
         if firstVisibleRow is not None:

@@ -12,8 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import pytest
-
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
 
@@ -475,6 +473,46 @@ class CodeEditorInSplitViewWithHeader(CellsTestPage):
         return "You should see a code editor and a mirror of its contents."
 
 
+class JoinedCodeEditors(CellsTestPage):
+    def cell(self):
+        contents = cells.Slot("")
+
+        def onTextChange(buffer, selection):
+            if contents.getWithoutRegisteringDependency() != buffer:
+                contents.set(buffer)
+
+        codeEditor1 = cells.CodeEditor(
+            onTextChange=onTextChange, textToDisplayFunction=contents.get
+        ).tagged("ed1")
+        codeEditor2 = cells.CodeEditor(
+            onTextChange=onTextChange, textToDisplayFunction=contents.get
+        ).tagged("ed2")
+
+        return cells.ResizablePanel(codeEditor1, codeEditor2)
+
+    def text(self):
+        return "You should see two code editors that have to show the same text."
+
+
+def test_text_mirrors_correctly(headless_browser):
+    headless_browser.get_demo_root_for(JoinedCodeEditors)
+
+    code_editor1 = headless_browser.find_by_css('[data-tag="ed1"]')
+
+    script = 'cellHandler.activeCells["{}"].editor.setValue("{}")'.format(
+        code_editor1.get_attribute("data-cell-id"), "Hello World"
+    )
+
+    headless_browser.webdriver.execute_script(script)
+
+    def textIsHelloWorld(*args):
+        code_editor2 = headless_browser.find_by_css('[data-tag="ed2"] .ace_scroller2')
+
+        return code_editor2.text == "Hello World"
+
+    headless_browser.wait(5).until(textIsHelloWorld)
+
+
 class ServerSideSetFirstVisibleRow(CellsTestPage):
     def cell(self):
         contents = cells.Slot("")
@@ -509,24 +547,22 @@ class ServerSideSetFirstVisibleRow(CellsTestPage):
         return "By clicking 'Go!' you should see the code editor scroll down."
 
 
-@pytest.mark.skip(reason="fails inexplicably after socket code overhaul")
 def test_set_first_row_serverside(headless_browser):
     # Test that we can find the editor and set the first visible row
     # programmatically from the server side
     demo_root = headless_browser.get_demo_root_for(ServerSideSetFirstVisibleRow)
     assert demo_root
-    first_line = headless_browser.find_by_css(".ace_gutter-active-line")
-    assert first_line
-    assert first_line.text == "1"
+
     toggle_btn = headless_browser.find_by_css('[data-cell-type="Button"]')
     toggle_btn.click()
 
-    def textIsTen(*args):
-        first_line = headless_browser.find_by_css(".ace_gutter-active-line")
-        if not first_line:
+    def gutterLineIsTen(*args):
+        gutterLine = headless_browser.find_by_css(".ace_gutter-active-line")
+        if not gutterLine:
             return False
 
-        return first_line.text == "10"
+        return gutterLine.text == "10"
 
-    headless_browser.wait(10).until(textIsTen)
-    assert textIsTen()
+    headless_browser.wait(10).until(gutterLineIsTen)
+
+    assert gutterLineIsTen()

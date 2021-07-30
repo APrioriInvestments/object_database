@@ -165,21 +165,23 @@ class CodeEditor extends ConcreteCell {
     }
 
     handleMessages(messages) {
-        messages.forEach((dataInfo) => {
-            if (dataInfo.firstVisibleRow) {
-                console.log("CodeEditor updating first visible row to " + dataInfo.firstVisibleRow)
-                let row = parseInt(dataInfo.firstVisibleRow);
+        messages.forEach((message) => {
+            if (message.firstVisibleRow) {
+                console.log("CodeEditor updating first visible row to " + message.firstVisibleRow)
+                let row = parseInt(message.firstVisibleRow);
                 this.editor.resize(true);
                 this.editor.scrollToRow(row - 1)
                 this.editor.gotoLine(row, 0, true);
-            } else if(dataInfo.updateMarkers === true) {
+            } else if (message.updateMarkers === true) {
                 // remove the highlighting
-                this.highlightMarkerDefinitions = dataInfo.markers;
+                this.highlightMarkerDefinitions = message.markers;
                 this._resetMarkers();
-            } else if (dataInfo.selection) {
-                console.log("CodeEditor updating selection to " + dataInfo.selection)
-                this.editor.selection.setSelectionRange(dataInfo.selection);
-            } else if (dataInfo.focusNow) {
+            } else if (message.setTextFromServer) {
+                this.setTextFromServer(message.iteration, message.setTextFromServer);
+            } else if (message.selection) {
+                console.log("CodeEditor updating selection to " + message.selection)
+                this.editor.selection.setSelectionRange(message.selection);
+            } else if (message.focusNow) {
                 this.editor.focus();
             }
         })

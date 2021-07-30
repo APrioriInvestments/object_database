@@ -10,6 +10,10 @@ class Subscribed extends Cell {
         super(props, ...args);
     }
 
+    childChanged(node) {
+        this.parent.childChanged();
+    }
+
     buildDomElementInner() {
         if (this.contentIsEmpty) {
             return null;

@@ -59,7 +59,6 @@ from object_database.web.cells.util import (
     SubscribeAndRetry,
     waitForCellsCondition,
     Flex,
-    ShrinkWrap,
     Padding,
     PaddingRight,
     PaddingLeft,

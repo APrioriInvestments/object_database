@@ -136,7 +136,12 @@ class TableHeader(Cell):
         # a slot that just has this particular column
         def setColFilter(newVal):
             existingValues = dict(self.columnFiltersSlot.get())
-            existingValues[col] = newVal
+
+            if newVal is not None:
+                existingValues[col] = newVal
+            else:
+                existingValues.pop(col, None)
+
             self.columnFiltersSlot.set(tuple(sorted(existingValues.items())))
 
         columnFilterSlot = ComputedSlot(
@@ -230,7 +235,7 @@ def sortedRowsComputedSlot(
                 rows = list(rows[::-1])
 
         if time.time() - t0 > 0.1:
-            logging.info("Spent %.2f seconds evaluating a row list.")
+            logging.info("Spent %.2f seconds evaluating a row list.", time.time() - t0)
 
         return rows
 

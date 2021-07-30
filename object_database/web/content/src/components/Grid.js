@@ -34,7 +34,7 @@ class Grid extends ConcreteCell {
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "Grid",
-                class: "cell table-sm table-striped cell-grid"
+                class: "cell flex-child table-sm table-striped cell-grid"
             }, [
                 h('thead', {}, [
                     h('tr', {}, [topTableHeader, ...this.makeHeaders()])

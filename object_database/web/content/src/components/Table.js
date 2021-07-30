@@ -34,7 +34,7 @@ class Table extends ConcreteCell {
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "Table",
-                class: "cell table-hscroll table-sm table-striped"
+                class: "cell flex-child table-hscroll table-sm table-striped"
             }, [
                 this.renderChildNamed('header'),
                 h('tbody', {}, this.renderChildrenNamed('rows'))

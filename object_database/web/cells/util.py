@@ -89,25 +89,6 @@ class CellDecorator(object):
         return self.name
 
 
-def ShrinkWrap(aCell):
-    """Cell modifier function
-    that marks the cell as shrinkwrapped.
-
-    Parameters
-    ----------
-    aCell: Cell
-        The Cell instance that will be marked
-        as shrinkwrapped (for frontend)
-
-    Returns
-    -------
-    The modified Cell instance
-    """
-    aCell.isShrinkWrapped = True
-    aCell.exportData["shrinkwrap"] = True
-    return aCell
-
-
 def Flex(aCell):
     """Cell modifier function
     that marks the cell as flexed.

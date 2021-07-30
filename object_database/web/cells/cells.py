@@ -221,8 +221,7 @@ class Cells:
     def _cellOutOfScope(self, cell):
         for c in cell.children.allChildren:
             self._cellOutOfScope(c)
-        cell.wasCreated = False
-        cell.wasUpdated = False
+
         self.markToDiscard(cell)
 
         if cell.cells is not None:
@@ -254,9 +253,10 @@ class Cells:
     def markToDiscard(self, cell):
         assert not cell.garbageCollected, (cell, cell.text if isinstance(cell, Text) else "")
 
-        self._nodesToDiscard.add(cell)
-        # TODO: lifecycle attribute; see cell.updateLifecycleState()
-        cell.wasRemoved = True
+        if cell.identity in self._nodesKnownToChannel:
+            self._nodesToDiscard.add(cell)
+
+        self._nodesToBroadcast.discard(cell)
 
         cell.onRemovedFromTree()
 
@@ -290,6 +290,17 @@ class Cells:
         )
 
         for node in self._nodesToBroadcast:
+            # assert that the parent of each child is either in this set, or is known
+            # to the other side of the connection
+            if node.parent is None:
+                assert isinstance(node, RootCell)
+            else:
+                assert (
+                    node.parent in self._nodesToBroadcast
+                    or node.parent.identity in self._nodesKnownToChannel
+                )
+
+        for node in self._nodesToBroadcast:
             if node.identity not in self._nodesKnownToChannel:
                 self._nodesKnownToChannel.add(node.identity)
 
@@ -313,8 +324,6 @@ class Cells:
                     or child in self._nodesToBroadcast
                 )
 
-            node.updateLifecycleState()
-
         # Make the compound message
         # listing all the nodes that
         # will be discarded
@@ -323,17 +332,10 @@ class Cells:
         for node in self._nodesToDiscard:
             if node.cells is not None:
                 assert node.cells == self
+                assert node.identity in self._nodesKnownToChannel
+
                 finalNodesToDiscard.append(node.identity)
                 self._nodesKnownToChannel.discard(node.identity)
-                # TODO: in the future this should integrated into a more
-                # structured server side lifecycle management framework
-                node.updateLifecycleState()
-
-        # We need to reset the wasUpdated
-        # and/or wasCreated properties
-        # on all the _nodesToBroadcast
-        for node in self._nodesToBroadcast:
-            node.updateLifecycleState()
 
         for nodeId, messages in self._pendingOutgoingMessages.items():
             # only send messages for cells that still exist.
@@ -434,12 +436,6 @@ class Cells:
                     try:
                         node.prepare()
                         node.recalculate()
-
-                        if not node.wasCreated:
-                            # if a cell is marked to broadcast it is either new or has
-                            # been updated. Hence, if it's not new here that means it's
-                            # to be updated.
-                            node.wasUpdated = True
                         break
                     except SubscribeAndRetry as e:
                         e.callback(self.db)
@@ -459,8 +455,6 @@ class Cells:
                         # ensure all new children that were garbage collected get marked for
                         # re-use so that we can add them back in.
                         child_cell.prepareForReuse()
-                        # TODO: lifecycle attribute; see cell.updateLifecycleState()
-                        child_cell.wasRemoved = False
 
             except Exception:
                 self._logger.exception("Node %s had exception during recalculation:", node)
@@ -469,8 +463,6 @@ class Cells:
                 node.children["content"] = tracebackCell
 
         self.markToBroadcast(node)
-        nodeToBroadCast = node
-        nodeToBroadCast.wasUpdated = True
 
         newChildren = set(node.children.allChildren)
 

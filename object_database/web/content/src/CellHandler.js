@@ -119,9 +119,14 @@ class CellHandler {
         // getting rid of it
         message.nodesToDiscard.forEach(nodeId => {
             let cell = this.activeCells[nodeId]
-            cell.cellWillUnload();
-            cell.parent = null;
-            this.activeCells[nodeId].parent = null;
+
+            if (cell) {
+                cell.cellWillUnload();
+                cell.parent = null;
+                this.activeCells[nodeId].parent = null;
+            } else {
+                console.error("Node " + nodeId + " can't be discarded because it doesn't exist.");
+            }
         });
 
         // build a map of the parents of any new cells
@@ -168,7 +173,9 @@ class CellHandler {
 
         // remove the unused cells
         message.nodesToDiscard.forEach(nodeId => {
-            delete this.activeCells[nodeId];
+            if (this.activeCells[nodeId]) {
+                delete this.activeCells[nodeId];
+            }
         });
 
         // wire any parents
@@ -193,10 +200,14 @@ class CellHandler {
     }
 
     updateCell(identity, children, data, newUnbuiltCells, cellCreationOrder) {
-        this.activeCells[identity].updateSelf(
-            this.mapChildrenIdentitiesToCells(identity, children, newUnbuiltCells, cellCreationOrder),
-            data
-        );
+        if (this.activeCells[identity]) {
+            this.activeCells[identity].updateSelf(
+                this.mapChildrenIdentitiesToCells(identity, children, newUnbuiltCells, cellCreationOrder),
+                data
+            );
+        } else {
+            console.error("Cell " + identity + " can't be updated because it doesn't exist.");
+        }
     }
 
     mapChildrenIdentitiesToCells(parentId, children, newUnbuiltCells, cellCreationOrder) {

@@ -12,9 +12,6 @@ import {ConcreteCell} from './ConcreteCell';
 class Badge extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
-
-        // Bind Cell methods
-        this.makeInner = this.makeInner.bind(this);
     }
 
     build() {

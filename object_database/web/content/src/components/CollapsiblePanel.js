@@ -27,7 +27,7 @@ class CollapsiblePanel extends ConcreteCell {
         }
         return (
             h('div', {
-                class: "cell collapsible-panel",
+                class: "cell flex-child collapsible-panel",
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "CollapsiblePanel",

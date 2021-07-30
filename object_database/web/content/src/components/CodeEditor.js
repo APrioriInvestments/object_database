@@ -48,7 +48,7 @@ class CodeEditor extends ConcreteCell {
 
         return h('div',
             {
-                class: "cell code-editor",
+                class: "cell code-editor flex-child",
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "CodeEditor",

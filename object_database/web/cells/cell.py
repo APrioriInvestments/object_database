@@ -34,15 +34,6 @@ class Cell:
         self.subscriptions = set()
         self.context = {}
 
-        # lifecycle state attributes
-        # These reflect the current state of the cell and
-        # subsequently used in WS message formatting and pre-processing
-        # NOTE: as of this commit these resetting state on (potentially) reused
-        # cells is handled by self.updateLifecycleState.
-        self.wasCreated = True
-        self.wasUpdated = False
-        self.wasRemoved = False
-
         self._logger = logging.getLogger(__name__)
 
         self._messagesToSendOnInstall = []
@@ -145,31 +136,6 @@ class Cell:
         the decorator to child cells instead.
         """
         return decorator(self)
-
-    def updateLifecycleState(self):
-        """Handles cell lifecycle state.
-
-        Once a cell has been created, updated or deleted and corresponding
-        messages sent to the client, the cell state is updated accordingly.
-        Example, if `cell.wasCreated=True` from that moment forward it is
-        already in the echosystem and so `cell.Created=False`. The 'was'
-        linking verb is used to to reflect that something has been done to the
-        cell (object DB, or client call back side-effect) and now the reset of
-        the system, server and client side, needs to know about it.
-
-        TODO: At the moment this method **needs** to be called after all
-        message sends to the client. In the future, this should be integrated
-        into a general lifecycle management scheme.
-        """
-        if self.wasCreated:
-            self.wasCreated = False
-
-        if self.wasUpdated:
-            self.wasUpdated = False
-
-        # NOTE: self.wasRemoved is set to False for self.prepareForReuse
-        if self.wasRemoved:
-            self.wasRemoved = False
 
     def evaluateWithDependencies(self, fun):
         """Evaluate function within a view and add dependencies for whatever

@@ -14,7 +14,7 @@
 from object_database import Schema, InMemServer
 from object_database.util import genToken, configureLogging
 
-from object_database.web.cells import Button, Cells, Panel, Slot, Subscribed, Text
+from object_database.web.cells import Cells, Slot, Subscribed, Text
 
 
 import logging
@@ -55,33 +55,3 @@ class CellsSubscribedTests(unittest.TestCase):
         self.cells._recalculateCells()
 
         self.assertEqual(sub.children["content"].text, "True")
-
-    def test_basic_subscribed_lifecycle(self):
-        slot = Slot(True)
-        trueContent = Button("Hello", lambda: None)
-        falseContent = Text("False")
-        sub = Subscribed(lambda: trueContent if slot.get() else falseContent)
-        container = Panel(sub)
-        self.cells.withRoot(container)
-        self.cells._recalculateCells()
-
-        self.assertTrue(container.wasCreated)
-        self.assertTrue(sub.wasCreated)
-        self.assertTrue(trueContent.wasCreated)
-
-        trueContent.updateLifecycleState()
-        container.updateLifecycleState()
-        self.cells._root.updateLifecycleState()
-        sub.updateLifecycleState()
-
-        slot.set(False)
-        self.cells._recalculateCells()
-
-        self.assertFalse(container.wasUpdated)
-        self.assertTrue(sub.wasUpdated)
-        self.assertTrue(trueContent.wasRemoved)
-        self.assertTrue(falseContent.wasCreated)
-
-        self.assertFalse(sub.wasCreated)
-        self.assertFalse(trueContent.wasCreated)
-        self.assertFalse(trueContent.wasUpdated)

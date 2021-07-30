@@ -42,7 +42,7 @@ class ResizablePanel extends ConcreteCell {
         let domElt = (
             h('div', {
                 id: this.getElementId(),
-                class: `cell resizable-panel${classString}`,
+                class: `cell flex-child resizable-panel${classString}`,
                 'data-cell-type': 'ResizablePanel',
                 'data-cell-id': this.identity,
             }, [

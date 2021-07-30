@@ -76,59 +76,6 @@ class CellsTests(unittest.TestCase):
     def tearDown(self):
         self.server.stop()
 
-    def test_cells_lifecycle_created(self):
-        basicCell = Cell()
-        # new cell
-        self.assertTrue(basicCell.wasCreated)
-        self.cells.withRoot(basicCell)
-        self.cells.renderMessages()
-        # no longer new cell
-        self.assertFalse(basicCell.wasCreated)
-
-    def test_cells_lifecycle_updated(self):
-        basicCell = Container("TEXT")
-        # new cell not updated
-        self.cells.withRoot(basicCell)
-        self.assertFalse(basicCell.wasUpdated)
-        self.cells.renderMessages()
-        # now update
-        basicCell.setChild("NEW TEXT")
-        self.cells._recalculateCells()
-        self.assertTrue(basicCell.wasUpdated)
-        self.cells.renderMessages()
-        # no longer updated afted message rendered, i.e. sent
-        self.assertFalse(basicCell.wasUpdated)
-
-    def test_cells_lifecycle_not_updated(self):
-        basicCell = Cell()
-        # new cell not updated
-        self.cells.withRoot(basicCell)
-        self.assertFalse(basicCell.wasUpdated)
-        self.cells.renderMessages()
-        # still not udpated
-        self.assertFalse(basicCell.wasUpdated)
-
-    def test_cells_lifecycle_removed(self):
-        basicCell = Cell()
-        # new cell note removed
-        self.cells.withRoot(basicCell)
-        self.assertFalse(basicCell.wasRemoved)
-        # now remove
-        self.cells.markToDiscard(basicCell)
-        self.assertTrue(basicCell.wasRemoved)
-        self.cells.renderMessages()
-        # still not removed
-        self.assertFalse(basicCell.wasRemoved)
-
-    def test_cells_lifecycle_notremoved(self):
-        basicCell = Cell()
-        # new cell not removed
-        self.assertFalse(basicCell.wasRemoved)
-        self.cells.withRoot(basicCell)
-        self.cells.renderMessages()
-        # still not removed
-        self.assertFalse(basicCell.wasRemoved)
-
     def test_cells_recalculation(self):
         pair = [Container("HI"), Container("HI2")]
 
@@ -239,7 +186,11 @@ class CellsTests(unittest.TestCase):
 
         # three 'Span', three 'Text', the Sequence, the Subscribed, and a delete
         # self.assertEqual(len(self.cells.renderMessages()), 9)
-        nodes_created = [node for node in self.cells._nodesToBroadcast if node.wasCreated]
+        nodes_created = [
+            node
+            for node in self.cells._nodesToBroadcast
+            if node.identity not in self.cells._nodesKnownToChannel
+        ]
 
         # We have discarded only one
         self.assertEqual(len(self.cells._nodesToDiscard), 1)

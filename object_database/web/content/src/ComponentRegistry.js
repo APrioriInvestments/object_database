@@ -17,7 +17,6 @@ import {Code} from './components/Code';
 import {CodeEditor} from './components/CodeEditor';
 import {CollapsiblePanel} from './components/CollapsiblePanel';
 import {Columns} from './components/Columns';
-import {Container} from './components/Container';
 import {ContextualDisplay} from './components/ContextualDisplay';
 import {Dropdown} from './components/Dropdown';
 import {Expands} from './components/Expands';
@@ -65,7 +64,6 @@ const ComponentRegistry = {
     CodeEditor,
     CollapsiblePanel,
     Columns,
-    Container,
     ContextualDisplay,
     Dropdown,
     Expands,

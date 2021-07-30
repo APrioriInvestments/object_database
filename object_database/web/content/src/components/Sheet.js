@@ -299,7 +299,7 @@ class Sheet extends ConcreteCell {
     build(){
         let sheetDom = h('ap-sheet', {
             id: this.getElementId(),
-            class: 'cell sheet-cell',
+            class: 'cell sheet-cell flex-child',
             'data-cell-id': this.identity,
             'data-cell-type': 'Sheet',
             'locked-rows': this.props.numLockRows,

@@ -26,7 +26,7 @@ class Scrollable extends ConcreteCell {
         return (
             h('div', {
                 id: this.getElementId(),
-                class: "cell overflow",
+                class: "cell flex-child overflow",
                 style: style,
                 "data-cell-id": this.identity,
                 "data-cell-type": "Scrollable"

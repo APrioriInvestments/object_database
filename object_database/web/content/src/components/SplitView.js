@@ -30,7 +30,7 @@ class SplitView extends ConcreteCell {
         return (
             h('div', {
                 id: this.getElementId(),
-                class: this.makeClasses(),
+                class: "flex-child " + this.makeClasses(),
                 'data-cell-id': this.identity,
                 'data-cell-type': "SplitView"
             }, this.makeChildElements())

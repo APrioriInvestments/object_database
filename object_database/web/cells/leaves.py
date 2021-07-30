@@ -66,10 +66,6 @@ class Text(Cell):
 
 
 class Traceback(Cell):
-    # TODO: It seems like the passed-in traceback
-    # value might not need to be its own Cell, but
-    # rather just some data that is passed to this
-    # cell.
     def __init__(self, traceback):
         super().__init__()
         self.traceback = traceback
@@ -81,9 +77,6 @@ class Traceback(Cell):
 
 
 class Code(Cell):
-    # TODO: It looks like codeContents might not
-    # need to be an actual Cell, but instead just
-    # some data passed to this Cell.
     def __init__(self, codeContents):
         super().__init__()
         self.codeContents = codeContents
@@ -102,7 +95,7 @@ class Timestamp(Cell):
         Parameters:
         ----------
         timestamp: float
-            time from epoch
+            posix timestamp (seconds since jan 1 1970)
         """
         super().__init__()
         assert isinstance(timestamp, (float, int)), (

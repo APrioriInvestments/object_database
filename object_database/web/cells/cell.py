@@ -44,14 +44,18 @@ class Cell:
         # when composing DOM.
         self.exportData = {}
 
+    @classmethod
+    def isBuiltinCell(cls):
+        return True
+
+    def cellJavascriptClassName(self):
+        return self.__class__.__name__
+
     def scheduleMessage(self, message):
         if not self.garbageCollected and self.cells is not None:
             self.cells.markPendingMessage(self, message)
         else:
             self._messagesToSendOnInstall.append(message)
-
-    def cellJavascriptClassName(self):
-        return self.__class__.__name__
 
     def onRemovedFromTree(self):
         """Called when a cell is removed from the tree. This shouldn't update any slots,

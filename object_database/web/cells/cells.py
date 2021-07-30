@@ -38,6 +38,9 @@ class Cells:
         # map: Cell.identity ->  Cell
         self._cells = {}
 
+        # set: type(Cell) that have been sent over the wire
+        self._nonbuiltinCellTypes = set()
+
         # map: Cell.identity -> set(Cell)
         self._cellsKnownChildren = {}
 
@@ -287,6 +290,8 @@ class Cells:
             nodesCreated={},
             # messages: dict from cell-id to []
             messages={},
+            # new cell types: list of [(javascript, css)]
+            dynamicCellTypeDefinitions=[],
         )
 
         for node in self._nodesToBroadcast:
@@ -301,6 +306,13 @@ class Cells:
                 )
 
         for node in self._nodesToBroadcast:
+            if not node.isBuiltinCell():
+                if type(node) not in self._nonbuiltinCellTypes:
+                    self._nonbuiltinCellTypes.add(type(node))
+                    packet["dynamicCellTypeDefinitions"].append(
+                        (type(node).getDefinitionalJavascript(), type(node).getCssRules())
+                    )
+
             if node.identity not in self._nodesKnownToChannel:
                 self._nodesKnownToChannel.add(node.identity)
 

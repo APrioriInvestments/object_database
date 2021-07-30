@@ -5,6 +5,9 @@
  * which only bundles explicitly used
  * Cells during build time.
  */
+
+import {Cell} from './components/Cell';
+import {ConcreteCell} from './components/ConcreteCell';
 import {AsyncDropdown, AsyncDropdownContent} from './components/AsyncDropdown';
 import {Badge} from './components/Badge';
 import {Button} from './components/Button';
@@ -58,6 +61,8 @@ const ComponentRegistry = {
     ButtonGroup,
     Card,
     CardTitle,
+    Cell,
+    ConcreteCell,
     CircleLoader,
     Clickable,
     Code,

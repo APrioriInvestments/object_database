@@ -77,6 +77,10 @@ class Cell {
         this.addCanonicalTags = this.addCanonicalTags.bind(this);
     }
 
+    static makeDomElt(...args) {
+        return makeDomElt(...args);
+    }
+
     addCanonicalTags(domElt) {
         if (domElt) {
             if (this.props.flexChild) {

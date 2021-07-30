@@ -13,6 +13,7 @@ from object_database.web.cells.async_dropdown import AsyncDropdown
 from object_database.web.cells.container import Container
 from object_database.web.cells.deprecated import LargePendingDownloadDisplay
 from object_database.web.cells.panel import CollapsiblePanel, Panel, SizedPanel
+from object_database.web.cells.non_builtin_cell import NonBuiltinCell
 
 from object_database.web.cells.popover import Popover
 from object_database.web.cells.tabs import Tabs

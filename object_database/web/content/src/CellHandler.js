@@ -5,7 +5,8 @@
  * of several varieties that come over
  * a CellSocket instance.
  */
- import {makeDomElt} from './components/Cell';
+import {makeDomElt, Cell} from './components/Cell';
+import {ComponentRegistry} from './ComponentRegistry';
 
 class CellHandler {
     constructor(Cells, socket=null){
@@ -113,8 +114,25 @@ class CellHandler {
             of children and properties. Updated cells _must_ already exist.
         nodesCreated - a dict from cell identity to newly created cells.
             Every such cell must be in the tree somewhere.
+        messages - a dict from cell identity to a list of json objects
+            to be handed to the given named cell
+        dynamicCellTypeDefinitions - a list of [(javascript, css)] to
+            be evaluated to install new cell types
     ****/
     handleFrame(message) {
+        // take each dynamic cell typedef and apply it to our current state
+        // the javascript provided should construct new entries in the
+        // ComponentRegistry, and the CSS definitions will apply to the
+        // entire document.
+        message.dynamicCellTypeDefinitions.forEach(javascriptAndCss => {
+            Function(javascriptAndCss[0])()(ComponentRegistry);
+
+            var styleSheetElement = document.createElement('style');
+            styleSheetElement.type = 'text/css';
+            styleSheetElement.innerHTML = javascriptAndCss[1];
+            document.head.appendChild(styleSheetElement)
+        });
+
         // indicate to each cell that's going out of scope that we're
         // getting rid of it
         message.nodesToDiscard.forEach(nodeId => {

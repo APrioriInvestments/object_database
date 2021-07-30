@@ -587,9 +587,11 @@ class Sheet extends ConcreteCell {
         if (dummyHeader && coordinateHeader && contentDisplay) {
             let coordinateHeaderWidth = coordinateHeader.offsetWidth;
             let dummyHeaderWidth = dummyHeader.offsetWidth;
-            let newWidth = contentDisplay.offsetParent.offsetWidth - coordinateHeaderWidth;
-            contentDisplay.style.maxWidth = `${newWidth}px`;
-            contentDisplay.style.left = `${coordinateHeaderWidth}px`;
+            if (contentDisplay.offsetParent) {
+                let newWidth = contentDisplay.offsetParent.offsetWidth - coordinateHeaderWidth;
+                contentDisplay.style.maxWidth = `${newWidth}px`;
+                contentDisplay.style.left = `${coordinateHeaderWidth}px`;
+            }
         }
     }
 

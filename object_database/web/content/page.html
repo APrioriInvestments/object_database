@@ -3,25 +3,6 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- REMOTE Dependencies (Uncomment block if you want remote) -->
-<!--
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
-      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
-      crossorigin="anonymous">
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ace.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ext-language_tools.js"></script>
-
-<link href='//fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,400italic' rel='stylesheet' type='text/css'>
-<link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css"/>
-
-<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
--->
-
 <!-- LOCAL Dependencies (Uncomment block if you want local) -->
 <script src="/content/dependencies/jquery-3.3.1.min.js"></script>
 <script src="/content/dependencies/popper.min.js"></script>
@@ -29,9 +10,6 @@
 <script src="/content/dependencies/bootstrap.min.js"></script>
 <link rel="stylesheet" href="/content/dependencies/bootstrap.min.css">
 
-<!--
-<script src="/content/dependencies/ace.js"></script>
--->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ace.js"></script>
 <script src="/content/dependencies/ext-language_tools.js"></script>
 
@@ -44,33 +22,18 @@
 
 <script src="/content/dependencies/plotly-latest.min.js"></script>
 
-
-
 <!-- CSS -->
 <link rel="stylesheet" href="/content/app.css">
-<link rel="stylesheet" href="/content/object_database.css"/>
 
 <!-- Any CustomElement Webcomponents -->
 <script src="/content/src/webcomponents/sheet/dist/ap-sheet.bundle.js"></script>
+<link rel="stylesheet" href="/content/ap-sheet.css">
 
 <!-- Webpack Bundle of Application and Dependencies -->
 <script src="/content/dist/main.bundle.js"></script>
 
-<!-- <script src="/content/components/Table2.js"></script> -->
-
+<!-- Necessary to make bootstrap-style popovers function correctly -->
 <script>
-// Now empty in process of implementing Webpack
-
-</script>
-
-<!-- Helper functions; TODO: should likely be moved or integrated elsewhere -->
-
-<script>
-$(function () {
-  $('[data-toggle="tooltip"]').tooltip({
-    template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner large"></div></div>'
-    });
-})
 const getChildProp = function(el, child) {
      return $('.data-' + child, $(el).attr('data-bind')).html();
 };

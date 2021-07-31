@@ -167,7 +167,7 @@ class ActiveWebServiceTest(unittest.TestCase):
 
     def test_web_service_no_auth(self):
         self.configurableSetUp(auth_plugins=[None])
-        url = self.base_url + "/content/object_database.css"
+        url = self.base_url + "/content/app.css"
         client = requests.Session()
 
         res = client.get(url)
@@ -181,7 +181,7 @@ class ActiveWebServiceTest(unittest.TestCase):
 
     def test_web_service_login_and_access(self):
         self.configurableSetUp(auth_plugins=[PermissiveAuthPlugin()])
-        url = self.base_url + "/content/object_database.css"
+        url = self.base_url + "/content/app.css"
         client = requests.Session()
         username = "anonymous"
 
@@ -215,7 +215,7 @@ class ActiveWebServiceTest(unittest.TestCase):
 
     def test_web_service_login_ip(self):
         self.configurableSetUp(auth_plugins=[PermissiveAuthPlugin()])
-        url = self.base_url + "/content/object_database.css"
+        url = self.base_url + "/content/app.css"
         client = requests.Session()
         username = "anonymous"
 

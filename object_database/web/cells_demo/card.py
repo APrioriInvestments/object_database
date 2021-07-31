@@ -32,3 +32,56 @@ class CardWithTitle(CellsTestPage):
 
     def text(self):
         return "You should see a single 'card' with header text."
+
+
+class CardWithFlexChildInSequence(CellsTestPage):
+    def cell(self):
+        return cells.Text("Some text above a card with a resizable panel inside") + cells.Card(
+            cells.ResizablePanel(
+                cells.Highlighted(cells.Text("LeftText")),
+                cells.Highlighted(cells.Text("RightText")),
+            ),
+            header="This is the header text 2",
+            padding=0,
+        )
+
+    def text(self):
+        return "You should see some text above a card that contains a resizable panel."
+
+
+class CardWithPlot(CellsTestPage):
+    def cell(self):
+        return cells.Text("Some text above a card with a resizable panel inside") + cells.Card(
+            cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+        )
+
+    def text(self):
+        return "You should see some text above a card that contains a resizable panel."
+
+
+class CardWithPanelAndPlot(CellsTestPage):
+    def cell(self):
+        return cells.Text("Some text above a card with a resizable panel inside") + cells.Card(
+            cells.Panel(cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {})))
+        )
+
+    def text(self):
+        return "You should see some text above a card that contains a resizable panel."
+
+
+class CardPassesThroughFlexnessChanges(CellsTestPage):
+    def cell(self):
+        isPanel = cells.Slot(True)
+
+        return cells.Button("Toggle between plot and text", isPanel.toggle()) + cells.Card(
+            cells.Subscribed(
+                lambda: (
+                    cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+                    if isPanel.get()
+                    else cells.Text("Not a panel")
+                )
+            )
+        )
+
+    def text(self):
+        return "You should see some text above a card that contains a resizable panel."

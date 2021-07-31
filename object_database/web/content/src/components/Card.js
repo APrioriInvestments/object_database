@@ -22,24 +22,56 @@ class Card extends ConcreteCell {
 
     build(){
         let bodyClass = "card-body";
+
         if(this.props.padding){
             bodyClass = `card-body p-${this.props.padding}`;
         }
+
+        let body = this.makeBody();
+
         let bodyArea = h('div', {
             class: bodyClass
-        }, [this.makeBody()]);
+        }, [body]);
+
         let header = this.makeHeader();
+
         let headerArea = null;
+
         if(header){
             headerArea = h('div', {class: "card-header"}, [header]);
         }
-        return h('div',
+
+        let res = h('div',
             {
                 class: "cell card",
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "Card"
             }, [headerArea, bodyArea]);
+
+        if (body.classList.contains('flex-child')) {
+            res.classList.add('flex-child');
+        }
+
+        return res;
+    }
+
+    recalculateFlexAfterChildChanged() {
+        let body = this.makeBody();
+
+        if (body.classList.contains('flex-child') != this.domElement.classList.contains('flex-child')) {
+            if (body.classList.contains('flex-child')) {
+                this.domElement.classList.add('flex-child');
+            } else {
+                this.domElement.classList.add('flex-child');
+            }
+
+            this.parent.childFlexnessChanged(this);
+        }
+    }
+
+    childFlexnessChanged() {
+        this.recalculateFlexAfterChildChanged();
     }
 
     makeBody(){

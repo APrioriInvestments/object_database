@@ -128,6 +128,7 @@ class Cell {
         this.childChanged = this.childChanged.bind(this);
         this.handleMessages = this.handleMessages.bind(this);
         this.addCanonicalTags = this.addCanonicalTags.bind(this);
+        this.childFlexnessChanged = this.childFlexnessChanged.bind(this);
     }
 
     static copyNodeInto(sourceNode, destNode) {
@@ -193,6 +194,10 @@ class Cell {
     // updating their representation.
     childChanged(child) {
         throw new Error('childChanged not defined for ' + this);
+    }
+
+    childFlexnessChanged(child) {
+        // by default, do nothing
     }
 
     /**

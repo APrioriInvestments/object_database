@@ -474,6 +474,10 @@ th {
     width: 100%;
 }
 
+.cell.card > .card-body {
+    height: 100%;
+}
+
 /* Generic and Utility Classes
  *======================================================*/
 .overflow {

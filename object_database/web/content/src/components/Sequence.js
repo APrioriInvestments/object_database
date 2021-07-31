@@ -54,6 +54,10 @@ class Sequence extends Cell {
         }
     }
 
+    childFlexnessChanged() {
+        this.updateDomElementFlexParentTag();
+    }
+
     childChanged(child) {
         if (this.domElement !== null) {
             // we were explicitly installed

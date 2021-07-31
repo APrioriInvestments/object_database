@@ -17,6 +17,7 @@ class ConcreteCell extends Cell {
         this.build = this.build.bind(this);
         this.renderChildNamed = this.renderChildNamed.bind(this);
         this.renderChildArray = this.renderChildArray.bind(this);
+        this.recalculateFlexAfterChildChanged = this.recalculateFlexAfterChildChanged.bind(this);
 
         // this should never be set more than once
         this.domElement = null;
@@ -55,15 +56,23 @@ class ConcreteCell extends Cell {
         let newChildDomElement = this.renderChildUncached(this.childNameToChild[childName]);
 
         // insist that our dom element is a parent of this one
-        if (!isDescendant(this.domElement, this.childNameToDomElt[childName])) {
-            throw new Error("Somehow this child is not in our dom!");
-        }
+        // we only need to turn this on if we see cases where cells are making multiple
+        // copies of themselves and the replacement mechanism is not working.
+
+        // if (!isDescendant(this.domElement, this.childNameToDomElt[childName])) {
+        //     throw new Error("Somehow this child is not in our dom!");
+        // }
 
         this.childNameToDomElt[childName].replaceWith(
             newChildDomElement
         );
 
         this.childNameToDomElt[childName] = newChildDomElement;
+
+        this.recalculateFlexAfterChildChanged();
+    }
+
+    recalculateFlexAfterChildChanged() {
     }
 
     // our 'data' has changed, which may include the set of named children, so we have

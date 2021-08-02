@@ -16,22 +16,66 @@ class Scrollable extends ConcreteCell {
 
         // Bind Cell methods
         this.makeChild = this.makeChild.bind(this);
+        this.innerScrollDiv = null;
+    }
+
+    _computeFillSpacePreferences() {
+        let sp = this.namedChildren['child'].getFillSpacePreferences();
+
+        return {
+            vertical: this.props.vertical || sp.vertical,
+            horizontal: this.props.horizontal || sp.horizontal
+        }
     }
 
     build(){
-        let style = "";
-        if (this.props.height){
-            style = "height:" + this.props.height;
+        let childClass = "allow-child-to-fill-space";
+
+        if (this.props.vertical && this.props.horizontal) {
+            childClass += " cell-scrollable-body-both";
         }
-        return (
-            h('div', {
+        else if (this.props.vertical) {
+            childClass += " cell-scrollable-body-vertical";
+        }
+        else if (this.props.horizontal) {
+            childClass += " cell-scrollable-body-horizontal";
+        } else {
+            childClass += " cell-scrollable-body"
+        }
+
+        let sp = this.getFillSpacePreferences();
+
+        if (sp.vertical) {
+            childClass += " fill-space-vertical";
+        }
+
+        if (sp.vertical) {
+            childClass += " fill-space-horizontal";
+        }
+
+        this.innerScrollDiv = (
+            h('div', {class: " " + childClass}, [this.makeChild()])
+        );
+
+        return h('div', {
                 id: this.getElementId(),
-                class: "cell flex-child overflow",
-                style: style,
+                class: "cell cell-scrollable allow-child-to-fill-space",
                 "data-cell-id": this.identity,
                 "data-cell-type": "Scrollable"
-            }, [this.makeChild()])
+            }, [this.innerScrollDiv]
         );
+    }
+
+    onOwnSpacePrefsChanged() {
+        this.applySpacePreferencesToClassList(this.domElement);
+        this.applySpacePreferencesToClassList(this.innerScrollDiv);
+    }
+
+    allotedSpaceIsInfinite(child) {
+        return {
+            horizontal: this.props.horizontal,
+            vertical: this.props.vertical
+        };
     }
 
     makeChild(){

@@ -14,7 +14,7 @@
 
 from object_database.web import cells
 from object_database.web.CellsTestPage import CellsTestPage
-from object_database.web.cells.util import Flex
+from object_database.web.cells.flex import Flex
 
 
 class VertSequenceBasicConcat(CellsTestPage):
@@ -118,12 +118,12 @@ class HorizSequenceWithFlex(CellsTestPage):
         middleArea = cells.HorizontalSequence(textItems)
         firstButton = cells.Button("First Button", lambda: None)
         secondButton = cells.Button("Another Button", lambda: None)
-        return firstButton >> Flex(middleArea) >> secondButton
+        return firstButton >> cells.HScrollable(middleArea) >> secondButton
 
     def text(self):
         return (
-            "The vertical sequence should display two shrinkwrapped buttons sandwiching ",
-            "a flexed-out sequence containing a scrollable list of inner buttons",
+            "The vertical sequence should display two shrinkwrapped buttons sandwiching "
+            "a flexed-out sequence containing a scrollable list of inner buttons"
         )
 
 
@@ -136,8 +136,8 @@ class HorizSequenceWithoutFlex(CellsTestPage):
 
     def text(self):
         return (
-            "The vertical sequence should not be a flex container",
-            " and should display all of its contents using as much space as it needs",
+            "The vertical sequence should not be a flex container"
+            " and should display all of its contents using as much space as it needs"
         )
 
 

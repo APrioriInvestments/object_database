@@ -38,7 +38,8 @@ class CellHandler {
         let h = makeDomElt;
 
         let loadingPage = h("div", {}, [
-             h("div", {id: "page_root", 'data-cell-id': 'page_root', 'data-cell-type': 'RootCell'}, [
+             h("div", {id: "page_root", 'data-cell-id': 'page_root', 'class': 'allow-child-to-fill-space',
+                    'data-cell-type': 'RootCell'}, [
                  h("div", {class: 'container-fluid'}, [
                      h("div", {class: "card mt-5"}, [
                          h("div", {class: 'card-body'}, ["Loading..."])
@@ -159,6 +160,8 @@ class CellHandler {
             }
         }
 
+        let rebuildPageRoot = false;
+
         // the first message we get should define the page root
         if (message.nodesCreated['page_root']) {
             if (this.activeCells['page_root']) {
@@ -167,7 +170,7 @@ class CellHandler {
 
             this.createCellFromInitialMessage('page_root', message.nodesCreated, cellCreationOrder);
 
-            this.activeCells['page_root'].rebuildDomElement();
+            rebuildPageRoot = true;
         }
 
         // walk through each 'updated' cell and construct any new
@@ -198,11 +201,15 @@ class CellHandler {
 
         // wire any parents
         for (var cellId in parentIdentities) {
-            this.activeCells[cellId].parent = this.activeCells[parentIdentities[cellId]];
+            this.activeCells[cellId].setParent(this.activeCells[parentIdentities[cellId]]);
         }
 
         for (var updatedNodeId in message.nodesUpdated) {
             this.activeCells[updatedNodeId].rebuildDomElement();
+        }
+
+        if (rebuildPageRoot) {
+            this.activeCells['page_root'].rebuildDomElement();
         }
 
         // notify cells that they now exist

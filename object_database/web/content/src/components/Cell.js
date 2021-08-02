@@ -112,6 +112,10 @@ class Cell {
         this.props = props;
         this.namedChildren = namedChildren;
         this.handler = handler;
+        this._fillSpacePrefs = null;
+
+        // cache for 'allotedSpaceIsInfinite'
+        this._allotedSpaceIsInfinite = null;
 
         // Bind context to methods
         this.toString = this.toString.bind(this);
@@ -128,7 +132,9 @@ class Cell {
         this.childChanged = this.childChanged.bind(this);
         this.handleMessages = this.handleMessages.bind(this);
         this.addCanonicalTags = this.addCanonicalTags.bind(this);
-        this.childFlexnessChanged = this.childFlexnessChanged.bind(this);
+        this.setParent = this.setParent.bind(this);
+        this.childSpacePreferencesChanged = this.childSpacePreferencesChanged.bind(this);
+        this.applySpacePreferencesToClassList = this.applySpacePreferencesToClassList.bind(this);
     }
 
     static copyNodeInto(sourceNode, destNode) {
@@ -143,11 +149,108 @@ class Cell {
         return replaceChildren(domElt, children);
     }
 
+    setParent(parent) {
+        this.parent = parent;
+    }
+
+    // determine whether the space we allot to a given child is infinite
+    // returns {horizontal:, vertical:}. This allows cells to determine how they
+    // should behave if they take up as much space as possible. This is a
+    // cascade-down only property
+    allotedSpaceIsInfinite(child) {
+        if (this.parent) {
+            if (!this._allotedSpaceIsInfinite) {
+                this._allotedSpaceIsInfinite = this.parent.allotedSpaceIsInfinite(this);
+            }
+            return this._allotedSpaceIsInfinite;
+        }
+
+        return {horizontal: false, vertical: false};
+    }
+
+    // return {horizontal:, vertical:} where 'horizontal' indicates that the
+    // cell will take as much space as given horizontally and similarly for
+    // 'vertical'. This should be uncached - the framework will take care of
+    // calling it and stashing it in 'fillSpacePrefs'
+    _computeFillSpacePreferences() {
+        return {horizontal: false, vertical: false};
+    }
+
+    getFillSpacePreferences() {
+        if (!this._fillSpacePrefs) {
+            this._fillSpacePrefs = this._computeFillSpacePreferences();
+        }
+
+        return this._fillSpacePrefs;
+    }
+
+    // apply class tags so we get appropriate fill-space semantics.
+    // a 'fill-space-horizontal' tag means the element should take up as much space
+    // as it can. Similarly for fill-space-vertical.
+    // But when the spaces are infinite, we need to make sure we do something
+    // that makes sense. In this case, we apply aspect ratios.
+    applySpacePreferencesToClassList(domElement) {
+        if (!domElement) {
+            return;
+        }
+
+        let sp = this.getFillSpacePreferences();
+        let spaceIsInfinite = this.parent.allotedSpaceIsInfinite(this);
+
+        if (sp.horizontal && sp.vertical && spaceIsInfinite.horizontal && spaceIsInfinite.vertical) {
+            domElement.classList.add('infinite-cell-in-infinite-space');
+            domElement.classList.remove('fill-space-horizontal');
+            domElement.classList.remove('fill-space-vertical');
+            domElement.classList.remove('infinite-cell-in-fixed-vertical-space');
+            domElement.classList.remove('infinite-cell-in-fixed-horizontal-space');
+        } else {
+            if (sp.horizontal) {
+                if (spaceIsInfinite.horizontal) {
+                    domElement.classList.add('infinite-cell-in-fixed-vertical-space');
+                    domElement.classList.remove('fill-space-horizontal');
+                } else {
+                    domElement.classList.remove('infinite-cell-in-fixed-vertical-space');
+                    domElement.classList.add('fill-space-horizontal');
+                }
+            } else {
+                domElement.classList.remove('infinite-cell-in-fixed-vertical-space');
+                domElement.classList.remove('fill-space-horizontal');
+            }
+
+            if (sp.vertical) {
+                if (spaceIsInfinite.vertical) {
+                    domElement.classList.add('infinite-cell-in-fixed-horizontal-space');
+                    domElement.classList.remove('fill-space-vertical');
+                } else {
+                    domElement.classList.remove('infinite-cell-in-fixed-horizontal-space');
+                    domElement.classList.add('fill-space-vertical');
+                }
+            } else {
+                domElement.classList.remove('infinite-cell-in-fixed-horizontal-space');
+                domElement.classList.remove('fill-space-vertical');
+            }
+        }
+    }
+
+    // called by children to indicate that their 'space preference' has changed
+    // since we called 'buildDomElement' the first time.
+    childSpacePreferencesChanged(child) {
+        let newSpacePreferences = this._computeFillSpacePreferences();
+
+        if (newSpacePreferences.horizontal != this._fillSpacePrefs.horizontal ||
+                newSpacePreferences.vertical != this._fillSpacePrefs.vertical) {
+            this._fillSpacePrefs = newSpacePreferences;
+            this.parent.childSpacePreferencesChanged(this);
+            this.onOwnSpacePrefsChanged();
+        }
+    }
+
+    // update dom when space preferences change. shouldn't cascade
+    // to children
+    onOwnSpacePrefsChanged() {}
+
     addCanonicalTags(domElt) {
         if (domElt) {
-            if (this.props.flexChild) {
-                domElt.classList.add('flex-child');
-            }
             if (this.props._tag) {
                 domElt.setAttribute('data-tag', this.props._tag);
             }
@@ -194,10 +297,6 @@ class Cell {
     // updating their representation.
     childChanged(child) {
         throw new Error('childChanged not defined for ' + this);
-    }
-
-    childFlexnessChanged(child) {
-        // by default, do nothing
     }
 
     /**

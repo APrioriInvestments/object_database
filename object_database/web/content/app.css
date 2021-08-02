@@ -30,6 +30,7 @@ th {
 /* Page Root  and other global-type elements*/
 #page_root {
     height: 100vh;
+    width: 100vw;
 }
 
 .btn { font-size: .9rem; }
@@ -73,10 +74,7 @@ th {
 /* SplitView
  * =====================================================*/
 .split-view {
-    width: 100%;
-    height: 100%;
     display: flex;
-    position: relative;
 }
 
 .split-view-column {
@@ -85,6 +83,28 @@ th {
 
 .split-view-row {
     flex-direction: row;
+}
+
+.cell-scrollable {
+    overflow: hidden;
+}
+
+.cell-scrollable-body-both {
+    overflow: auto;
+    width: 100%;
+    height: 100%;
+}
+
+.cell-scrollable-body-horizontal {
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+}
+
+.cell-scrollable-body-vertical {
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
 }
 
 /* ResizablePanel and Friends
@@ -100,19 +120,15 @@ th {
 }
 
 .resizable-panel-item {
+    overflow: hidden;
     box-sizing: border-box;
     width: 100%;
     height: 100%;
-    /*flex: 1 1 auto;*/
 }
 
 .resizable-panel-handle {
     padding: 0;
     flex: 0 0 auto;
-}
-
-.sequence-vertical > .resizable-panel {
-    display: flex;
 }
 
 .horizontal-panel > .resizable-panel-handle::before {
@@ -179,8 +195,7 @@ th {
 
 /* Expands
  * ============================================================*/
- .expands,
- .sequence-vertical > .expands {
+ .expands {
     position: relative;
     width: 100%;
     display: flex;
@@ -223,97 +238,6 @@ th {
     z-index: 1050;
 }
 
-/* Sequence and HorizontalSequence
- *================================================================*/
-.sequence {
-    display: inline-block;
-    width: 100%;
-}
-
-.sequence-vertical {
-    flex-direction: column;
-    align-items: flex-start;
-}
-
-:not(.flex-parent) > .sequence.flex-parent,
-:not(.flex-child) > .sequence.flex-parent {
-    height: 100%;
-}
-
-.sequence-horizontal > .sequence {
-    width: auto;
-}
-
-.sequence-vertical > * {
-    display: block;
-}
-
-.sequence-horizontal {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    align-content: flex-start;
-}
-
-.sequence-horizontal.overflow {
-    /* We handle this for each type of sequence
-     * separately.
-     */
-    overflow-y: hidden;
-    overflow-x: auto;
-}
-
-
-
-/* Flex Parent and Flex Child (Sequences etc)
- *================================================================*/
-.seq-flex-wrap {
-    flex-wrap: wrap;
-}
-
-.sequence-vertical.flex-parent {
-    display: flex;
-    flex-direction: column;
-}
-
-.sequence-horizontal.flex-parent {
-    display: flex;
-    flex-direction: row;
-}
-
-.sequence-vertical > .flex-child {
-    overflow-y: auto;
-    flex: 1;
-}
-
-.sequence-horizontal > .flex-child {
-    overflow-x: auto;
-    flex: 1;
-}
-
-.sequence-horizontal > .flex-child.seq-flex-wrap {
-    flex-wrap: nowrap;
-}
-
-.shrinkwrapped {
-    flex-grow: 0;
-}
-
-/* Sequence and HorizontalSequence Special Cases
- * ===============================================================*/
-.sequence-vertical > [data-cell-type="Clickable"] {
-    display: block;
-}
-
-:not(.sequence) > .sequence-horizontal {
-    position: relative;
-    height: 100%;
-}
-
-.sequence-vertical > .split-view {
-    display: flex;
-}
-
 /* Highlight
  * ============================================================== */
 .cell-highlighted {
@@ -322,43 +246,11 @@ th {
 
 /* Panel
  * ============================================================== */
-.cell-panel {
-    display: block;
-    position: relative;
-    width: 100%;
-    height: 100%;
-}
 
 .cell-panel-border {
     border: 1px solid rgba(150, 150, 150, 0.3);
     padding: 10px;
     border-radius: 3px;
-}
-
-.cell-panel.flex-child,
-.flex-parent > .cell-panel {
-    width: auto;
-    height: auto;
-}
-
-.cell-panel > .sequence-vertical.flex-parent {
-    height: 100%;
-    overflow-y: auto;
-}
-
-.sequence-horizontal > .cell-panel {
-    height: auto;
-    width: auto;
-}
-
-.sequence-horizontal.flex-parent > .cell.panel {
-    height: 100%;
-    width: auto;
-}
-
-.sequence-vertical.flex-parent > .cell-panel {
-    height: auto;
-    width: 100%;
 }
 
 /* Code
@@ -371,9 +263,6 @@ th {
 /* CodeEditor
  * ===============================================================*/
 .code-editor {
-    position: relative;
-    width: 100%;
-    height: 100%;
 }
 
 .highlight-seethrough {
@@ -397,15 +286,6 @@ th {
     min-height: 100%;
     margin: auto;
     border: 1px solid lightgray;
-}
-
-.sequence-horizontal:not(.flex-parent) > .code-editor {
-    min-width: 300px;
-    flex: 1;
-}
-
-.sequence-vertical > .code-editor.flex-child {
-    width: 100%;
 }
 
 /* PageView
@@ -464,18 +344,44 @@ th {
 
 /* ContextualDisplay
  *======================================================*/
-:not(.sequence) > .contextual-display {
+.contextual-display {
     width: 100%;
     height: 100%;
-}
-/* Bootstrap and related
- *======================================================*/
-.card {
-    width: 100%;
 }
 
-.cell.card > .card-body {
-    height: 100%;
+
+/*************** CARD *************/
+
+.cells-card {
+  display: inline-flex;
+  display: -ms-flexbox;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  word-wrap: break-word;
+  background-color: #fff;
+  background-clip: border-box;
+  border: 1px solid rgba(0, 0, 0, 0.125);
+  border-radius: 0.25rem;
+}
+
+.cells-card.fill-space-horizontal {
+    display: flex;
+}
+
+.cells-card-body {
+  -ms-flex: 1 1 auto;
+  flex: 1 1 auto;
+  padding: 1.25rem;
+}
+
+.cells-card-header {
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 0;
+  background-color: rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
 }
 
 /* Generic and Utility Classes

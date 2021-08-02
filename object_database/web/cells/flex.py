@@ -13,19 +13,20 @@
 #   limitations under the License.
 
 
-from object_database.web.cells.container import Container
+from object_database.web.cells.cell import Cell
 
 
-class Scrollable(Container):
-    def __init__(self, child=None, vertical=True, horizontal=True):
-        super().__init__(child)
-        self.exportData["vertical"] = vertical
-        self.exportData["horizontal"] = horizontal
+class Flex(Cell):
+    """Flex Cell
 
+    This cell acts as a generic spacefilling container within the context of
+    a sequence.
+    """
 
-def VScrollable(child):
-    return Scrollable(child, vertical=True, horizontal=False)
+    def __init__(self, content):
+        super().__init__()
 
+        self.content = Cell.makeCell(content)
 
-def HScrollable(child):
-    return Scrollable(child, vertical=False, horizontal=True)
+    def recalculate(self):
+        self.children["content"] = Cell.makeCell(self.content)

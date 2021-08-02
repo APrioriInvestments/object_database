@@ -2,14 +2,15 @@ from object_database.web.cells.cells import Cells
 from object_database.web.cells.cell import Cell, context
 from object_database.web.cells.main import Main
 from object_database.web.cells.root_cell import RootCell
-from object_database.web.cells.scrollable import Scrollable
+from object_database.web.cells.scrollable import Scrollable, VScrollable, HScrollable
+from object_database.web.cells.flex import Flex
 from object_database.web.cells.grid import Grid
 from object_database.web.cells.header_bar import HeaderBar
 from object_database.web.cells.columns import Columns
 from object_database.web.cells.highlighted import Highlighted
 from object_database.web.cells.expands import Expands
 from object_database.web.cells.dropdown import Dropdown
-from object_database.web.cells.async_dropdown import AsyncDropdown
+from object_database.web.cells.async_dropdown import AsyncDropdown, CircleLoader
 from object_database.web.cells.container import Container
 from object_database.web.cells.deprecated import LargePendingDownloadDisplay
 from object_database.web.cells.panel import CollapsiblePanel, Panel, SizedPanel
@@ -59,7 +60,6 @@ from object_database.web.cells.util import (
     wrapCallback,
     SubscribeAndRetry,
     waitForCellsCondition,
-    Flex,
     Padding,
     PaddingRight,
     PaddingLeft,

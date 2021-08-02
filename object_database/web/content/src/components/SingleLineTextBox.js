@@ -13,6 +13,10 @@ class SingleLineTextBox extends ConcreteCell {
         this.changeHandler = this.changeHandler.bind(this);
     }
 
+    _computeFillSpacePreferences() {
+        return {horizontal: true, vertical: false};
+    }
+
     build(){
         let attrs = {
                 class: "cell",

@@ -18,60 +18,86 @@ class Card extends ConcreteCell {
         // Bind Cell methods
         this.makeBody = this.makeBody.bind(this);
         this.makeHeader = this.makeHeader.bind(this);
+
+        this.bodyElement = null;
+        this.headerElement = null;
     }
 
     build(){
-        let bodyClass = "card-body";
+        let bodyClass = "cells-card-body allow-child-to-fill-space";
 
-        if(this.props.padding){
-            bodyClass = `card-body p-${this.props.padding}`;
+        let sp = this._computeFillSpacePreferences();
+
+        if( this.props.padding) {
+            bodyClass += ` p-${this.props.padding}`;
+        }
+
+        if (sp.horizontal) {
+            bodyClass += ' fill-space-horizontal';
+        }
+
+        if (sp.vertical) {
+            bodyClass += ' fill-space-vertical';
         }
 
         let body = this.makeBody();
 
-        let bodyArea = h('div', {
+        this.bodyElement = h('div', {
             class: bodyClass
         }, [body]);
 
         let header = this.makeHeader();
 
-        let headerArea = null;
+        this.headerElement = null;
 
-        if(header){
-            headerArea = h('div', {class: "card-header"}, [header]);
+        let headerClass = "cells-card-header";
+
+        if (sp.horizontal) {
+            headerClass += " fill-space-horizontal";
+        }
+
+        if (header) {
+            this.headerElement = h('div', {class: headerClass}, [header]);
         }
 
         let res = h('div',
             {
-                class: "cell card",
+                class: "cell cells-card sequence-vertical",
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "Card"
-            }, [headerArea, bodyArea]);
-
-        if (body.classList.contains('flex-child')) {
-            res.classList.add('flex-child');
-        }
+            },
+            [this.headerElement, this.bodyElement]
+        );
 
         return res;
     }
 
-    recalculateFlexAfterChildChanged() {
-        let body = this.makeBody();
+    onOwnSpacePrefsChanged() {
+        this.applySpacePreferencesToClassList(this.domElement);
+        this.applySpacePreferencesToClassList(this.bodyElement);
 
-        if (body.classList.contains('flex-child') != this.domElement.classList.contains('flex-child')) {
-            if (body.classList.contains('flex-child')) {
-                this.domElement.classList.add('flex-child');
+        let sp = this.getFillSpacePreferences();
+
+        if (this.headerElement) {
+            if (sp.horizontal) {
+                this.headerElement.classList.add('fill-space-horizontal');
             } else {
-                this.domElement.classList.add('flex-child');
+                this.headerElement.classList.remove('fill-space-horizontal');
             }
-
-            this.parent.childFlexnessChanged(this);
         }
     }
 
-    childFlexnessChanged() {
-        this.recalculateFlexAfterChildChanged();
+    allotedSpaceIsInfinite(child) {
+        if (child !== this.namedChildren['body']) {
+            return {horizontal: false, vertical: false};
+        }
+
+        return this.parent.allotedSpaceIsInfinite(this);
+    }
+
+    _computeFillSpacePreferences() {
+        return this.namedChildren['body'].getFillSpacePreferences();
     }
 
     makeBody(){

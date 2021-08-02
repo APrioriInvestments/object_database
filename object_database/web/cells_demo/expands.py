@@ -27,7 +27,6 @@ class ExpanderTree(CellsTestPage):
             isSelectedSlot = cells.ComputedSlot(isSelected)
 
             def onClick():
-                print("clicked", path)
                 sessionState.selectedPath = path
 
             def inner():

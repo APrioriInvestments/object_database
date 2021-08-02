@@ -48,7 +48,7 @@ class CodeEditor extends ConcreteCell {
 
         return h('div',
             {
-                class: "cell code-editor flex-child",
+                class: "cell code-editor",
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "CodeEditor",
@@ -56,6 +56,10 @@ class CodeEditor extends ConcreteCell {
             },
             [actualEditorDiv]
         );
+    }
+
+    _computeFillSpacePreferences() {
+        return {horizontal: true, vertical: true};
     }
 
     handleMouseover(e){
@@ -99,6 +103,9 @@ class CodeEditor extends ConcreteCell {
 
         try {
             console.log("setting up editor");
+            if (this.props.initialText) {
+                console.log("initial editor text has " + this.props.initialText.length);
+            }
             // Note: Ace doens't handle 'mouseleave' events so this listener is
             // bound directly to the code-editor DOM element, see .build() and
             // handleMouseleave() below
@@ -225,7 +232,8 @@ class CodeEditor extends ConcreteCell {
         window.setTimeout(() => {
             if (Date.now() - this.editor.last_edit_millis >= this.SERVER_UPDATE_DELAY_MS) {
                 //save our current state to the remote buffer
-                console.log("Updating server state for CodeEditor(" + this.identity + ")");
+                console.log("Updating server state for CodeEditor(" + this.identity
+                     + "). TextLength is " + this.editor.getValue().length);
 
                 this.editor.current_iteration += 1;
                 this.editor.last_edit_millis = Date.now();

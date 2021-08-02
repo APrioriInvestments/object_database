@@ -72,3 +72,20 @@ def test_linktext_displays(headless_browser):
     assert len(headless_browser.window_handles) == 2
     headless_browser.switch_to_window(headless_browser.window_handles[1])
     assert headless_browser.current_url == "https://www.google.com/"
+
+
+class ClickableOverFlex(CellsTestPage):
+    def cell(self):
+        slot = cells.Slot(0)
+
+        return cells.Clickable(
+            cells.Highlighted(
+                cells.Flex(
+                    cells.Subscribed(lambda: f"You've clicked on this text {slot.get()} times")
+                )
+            ),
+            lambda: slot.set(slot.get() + 1),
+        )
+
+    def text(self):
+        return "You should see a clickable with highlighted text under it."

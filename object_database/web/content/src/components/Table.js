@@ -22,13 +22,17 @@ class Table extends ConcreteCell {
         super(props, ...args);
     }
 
+    _computeFillSpacePreferences() {
+        return {horizontal: true, vertical: true};
+    }
+
     build(){
         return(
             h('table', {
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "Table",
-                class: "cell flex-child table-hscroll table-sm table-striped"
+                class: "cell table-hscroll table-sm table-striped"
             }, [
                 this.renderChildNamed('header'),
                 h('tbody', {}, this.renderChildrenNamed('rows'))

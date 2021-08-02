@@ -89,25 +89,6 @@ class CellDecorator(object):
         return self.name
 
 
-def Flex(aCell):
-    """Cell modifier function
-    that marks the cell as flexed.
-
-    Parameters
-    ----------
-    aCell: Cell
-        The Cell instance that will be marked
-        as flexed (for frontend)
-
-    Returns
-    -------
-    The modified Cell instance
-    """
-    aCell.isFlex = True
-    aCell.exportData["flexChild"] = True
-    return aCell
-
-
 def CustomInset(aCell, kind="padding", top=None, right=None, bottom=None, left=None):
     """Cell modifier function that sets
     insets across varying dimensions of

@@ -26,8 +26,6 @@ class Cell:
         self.contents = ""  # some contents containing a local node def
         self.shouldDisplay = True  # Whether or not this is a cell that will be displayed
         self.isRoot = False
-        self.isShrinkWrapped = False  # If will be shrinkwrapped inside flex parent
-        self.isFlex = False  # If True, then we are 'Flex'
         self._identity = None  # None, or a string
         self._tag = None
         self.garbageCollected = False

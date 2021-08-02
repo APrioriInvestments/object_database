@@ -29,6 +29,10 @@ class SizedPanel extends ConcreteCell {
         }, [this.renderChildNamed('content')]);
     }
 
+    allotedSpaceIsInfinite(child) {
+        return {horizontal: false, vertical: false};
+    }
+
     getClasses(){
         if (this.props.applyBorder) {
             return "cell cell-panel cell-panel-border";

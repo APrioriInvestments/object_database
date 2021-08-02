@@ -75,26 +75,33 @@ class Plot extends Cell {
         }
     }
 
+    _computeFillSpacePreferences() {
+        return {horizontal: true, vertical: true};
+    }
+
     buildDomElement() {
         if (this.domElement !== null) {
             return this.domElement;
         }
 
-        this.plotDiv = h('div', {style: 'position:absolute'});
+        this.plotDiv = h('div');
         this.errorDiv = h('div', {style: 'display:none'});
+
+        let classText = "cell";
 
         this.domElement = (
             h('div', {
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "Plot",
-                class: "cell flex-child",
-                style: 'height:100%;width:100%'
+                class: classText
             }, [
                 this.plotDiv,
                 this.errorDiv,
             ])
         );
+
+        this.applySpacePreferencesToClassList(this.domElement)
 
         return this.addCanonicalTags(this.domElement);
     }

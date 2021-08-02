@@ -23,17 +23,17 @@ class PressCtrlT(CellsTestPage):
         lastKeystroke = cells.Slot()
         subCell = cells.Subscribed(lambda: lastKeystroke.get())
         card = cells.Card(
-            subCell, cells.Text("Press ctrlKey+t to update timestamp from browser")
+            subCell, cells.Text("Press altKey+t to update timestamp from browser")
         )
 
         return cells.Sequence(
             [
                 card,
                 cells.KeyAction(
-                    "ctrlKey+t", lambda x: lastKeystroke.set(str(datetime.datetime.now()))
+                    "altKey+t", lambda x: lastKeystroke.set(str(datetime.datetime.now()))
                 ),
             ]
         )
 
     def text(self):
-        return "Should print the current timestamp when pushing ctrl+t"
+        return "Should print the current timestamp when pushing alt+t"

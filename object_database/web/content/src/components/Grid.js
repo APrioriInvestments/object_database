@@ -24,6 +24,10 @@ class Grid extends ConcreteCell {
         this.makeRows = this.makeRows.bind(this);
     }
 
+    _computeFillSpacePreferences() {
+        return {horizontal: true, vertical: true};
+    }
+
     build(){
         let topTableHeader = null;
         if(this.props.hasTopHeader){
@@ -34,7 +38,7 @@ class Grid extends ConcreteCell {
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "Grid",
-                class: "cell flex-child table-sm table-striped cell-grid"
+                class: "cell table-sm table-striped cell-grid"
             }, [
                 h('thead', {}, [
                     h('tr', {}, [topTableHeader, ...this.makeHeaders()])

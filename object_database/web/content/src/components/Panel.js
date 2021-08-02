@@ -27,11 +27,21 @@ class Panel extends ConcreteCell {
         }, [this.renderChildNamed('content')]);
     }
 
+    _computeFillSpacePreferences() {
+        return this.namedChildren['content'].getFillSpacePreferences();
+    }
+
+    allotedSpaceIsInfinite(child) {
+        return this.parent.allotedSpaceIsInfinite(this);
+    }
+
     getClasses(){
+        let res = 'cell allow-child-to-fill-space cell-panel';
+
         if (this.props.applyBorder) {
-            return "cell cell-panel cell-panel-border";
+            return res + " cell-panel-border";
         } else {
-            return "cell cell-panel";
+            return res;
         }
     }
 }

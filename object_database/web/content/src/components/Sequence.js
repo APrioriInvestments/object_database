@@ -11,9 +11,7 @@ class Sequence extends Cell {
         // Bind context to methods
         this.makeClasses = this.makeClass.bind(this);
         this.makeElements = this.makeElements.bind(this);
-
-        this.updateDomElementFlexParentTag = this.updateDomElementFlexParentTag.bind(this);
-        this.anyDomChildrenAreFlex = this.anyDomChildrenAreFlex.bind(this);
+        this.updateSpacePreferenceCalculation = this.updateSpacePreferenceCalculation.bind(this);
 
         // populated if we are the root of this sequence and have been built
         this.domElement = null;
@@ -25,37 +23,87 @@ class Sequence extends Cell {
     rebuildDomElement() {
         if (this.domElement) {
             replaceChildren(this.domElement, this.makeElements());
-            this.updateDomElementFlexParentTag();
+            this.updateSpacePreferenceCalculation();
         } else {
             this.domChildren = this.makeElements();
             this.parent.childChanged(this);
         }
     }
 
-    anyDomChildrenAreFlex() {
-        var children = this.domElement.children;
+    _computeFillSpacePreferences() {
+        var children = this.namedChildren['elements'];
+
+        let horiz = false;
+        let vert = false;
 
         for (var i = 0; i < children.length; i++) {
-            if (children[i].classList.contains('flex-child')) {
-                return true;
-            }
+            let sp = children[i].getFillSpacePreferences();
+
+            horiz |= sp.horizontal;
+            vert |= sp.vertical;
         }
 
-        return false;
+        return {horizontal: horiz, vertical: vert};
     }
 
-    updateDomElementFlexParentTag() {
-        if (this.anyDomChildrenAreFlex()) {
-            this.domElement.classList.add('flex-parent')
+    makeClass() {
+        let classes = [
+            "cell",
+            "sequence",
+            "sequence-" + this.props.orientation
+        ];
+
+        let sp = this.getFillSpacePreferences();
+
+        if (sp.horizontal) {
+            classes.push('fill-space-horizontal');
+        }
+
+        if (sp.vertical) {
+            classes.push('fill-space-vertical');
+        }
+
+        if (this.props.margin) {
+            classes.push(`child-margin-${this.props.margin}`);
+        }
+
+        if(this.props.wrap) {
+            classes.push('seq-flex-wrap');
+        }
+
+        return classes.join(" ");
+    }
+
+    onOwnSpacePrefsChanged() {
+        let sp = this.getFillSpacePreferences();
+
+        let isFlex = (
+            this.orientation == 'horizontal' && sp.horizontal
+            || this.orientation == 'vertical' && sp.vertical
+        );
+
+        if (isFlex) {
+            this.domElement.classList.add('fill-space-' + this.props.orientation);
         } else {
-            if (this.domElement.classList.contains('flex-parent')) {
-                this.domElement.classList.remove('flex-parent');
-            }
+            this.domElement.classList.remove('fill-space-' + this.props.orientation);
         }
     }
 
-    childFlexnessChanged() {
-        this.updateDomElementFlexParentTag();
+    // called by children to indicate that their 'space preference' has changed
+    // since we called 'buildDomElement' the first time.
+    childSpacePreferencesChanged(child) {
+        this.updateSpacePreferenceCalculation();
+    }
+
+    updateSpacePreferenceCalculation() {
+        let newSpacePreferences = this._computeFillSpacePreferences();
+
+        if (newSpacePreferences.horizontal != this._fillSpacePrefs.horizontal ||
+                newSpacePreferences.vertical != this._fillSpacePrefs.vertical) {
+            this._fillSpacePrefs = newSpacePreferences;
+            this.parent.childSpacePreferencesChanged(this);
+            this.onOwnSpacePrefsChanged();
+        }
     }
 
     childChanged(child) {
@@ -65,10 +113,9 @@ class Sequence extends Cell {
             // get a list of our children
             let children = this.makeElements();
 
-            // if any of our children is a flex-child, then we are a flex-parent
-            // update our dom element
             replaceChildren(this.domElement, children);
-            this.updateDomElementFlexParentTag();
+
+            this.updateSpacePreferenceCalculation();
         } else if (this.domChildren !== null) {
             // we're folded into a parent
             this.domChildren = null;
@@ -92,7 +139,7 @@ class Sequence extends Cell {
                 "data-cell-type": "Sequence"
             }, this.makeElements());
 
-            this.updateDomElementFlexParentTag();
+            this.updateSpacePreferenceCalculation();
         }
 
         return this.domElement;
@@ -128,32 +175,6 @@ class Sequence extends Cell {
         });
 
         return result;
-    }
-    makeClass() {
-        let classes = [
-            "cell",
-            "sequence"
-        ];
-
-        if (this.props.orientation == 'horizontal') {
-            classes.push("sequence-horizontal");
-        } else {
-            classes.push("sequence-vertical");
-        }
-
-        if (this.props.flexChild) {
-            classes.push("flex-child");
-        }
-
-        if (this.props.margin){
-            classes.push(`child-margin-${this.props.margin}`);
-        }
-
-        if(this.props.wrap){
-            classes.push('seq-flex-wrap');
-        }
-
-        return classes.join(" ");
     }
 }
 

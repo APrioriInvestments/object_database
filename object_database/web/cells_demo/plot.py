@@ -14,7 +14,7 @@
 
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
-from object_database.web.cells.util import Flex
+from object_database.web.cells.flex import Flex
 import random
 
 

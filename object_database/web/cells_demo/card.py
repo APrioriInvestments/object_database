@@ -24,6 +24,14 @@ class SingleCard(CellsTestPage):
         return "You should see a single 'card' with some text in it."
 
 
+class SingleCardWithHeader(CellsTestPage):
+    def cell(self):
+        return cells.Card("This is a card", padding=2, header="HI")
+
+    def text(self):
+        return "You should see a single 'card' with some text in it."
+
+
 class CardWithTitle(CellsTestPage):
     def cell(self):
         return cells.Card(
@@ -38,8 +46,8 @@ class CardWithFlexChildInSequence(CellsTestPage):
     def cell(self):
         return cells.Text("Some text above a card with a resizable panel inside") + cells.Card(
             cells.ResizablePanel(
-                cells.Highlighted(cells.Text("LeftText")),
-                cells.Highlighted(cells.Text("RightText")),
+                cells.Highlighted(cells.Flex(cells.Text("LeftText"))),
+                cells.Highlighted(cells.Flex(cells.Text("RightText"))),
             ),
             header="This is the header text 2",
             padding=0,
@@ -51,12 +59,31 @@ class CardWithFlexChildInSequence(CellsTestPage):
 
 class CardWithPlot(CellsTestPage):
     def cell(self):
-        return cells.Text("Some text above a card with a resizable panel inside") + cells.Card(
-            cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+        return cells.Text("Some text above a card with a plot inside") + cells.Card(
+            cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {})), header="Header text"
         )
 
     def text(self):
-        return "You should see some text above a card that contains a resizable panel."
+        return (
+            "You should see some text above a card that contains"
+            " a plot which should fill the available space."
+        )
+
+
+class CardWithPlotInSubscribed(CellsTestPage):
+    def cell(self):
+        return cells.Text("Some text above a card with a resizable panel inside") + cells.Card(
+            cells.Subscribed(
+                lambda: cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+            ),
+            header="Header text",
+        )
+
+    def text(self):
+        return (
+            "You should see some text above a card that contains"
+            " a plot which should fill the available space."
+        )
 
 
 class CardWithPanelAndPlot(CellsTestPage):
@@ -66,22 +93,22 @@ class CardWithPanelAndPlot(CellsTestPage):
         )
 
     def text(self):
-        return "You should see some text above a card that contains a resizable panel."
+        return "You should see some text above a card that contains a panel."
 
 
 class CardPassesThroughFlexnessChanges(CellsTestPage):
     def cell(self):
         isPanel = cells.Slot(True)
 
-        return cells.Button("Toggle between plot and text", isPanel.toggle()) + cells.Card(
+        return cells.Button("Toggle between plot and text", isPanel.toggle) + cells.Card(
             cells.Subscribed(
                 lambda: (
                     cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
                     if isPanel.get()
-                    else cells.Text("Not a panel")
+                    else cells.Card("ACard", header="Header")
                 )
             )
         )
 
     def text(self):
-        return "You should see some text above a card that contains a resizable panel."
+        return "You should be able to toggle between a button and a card"

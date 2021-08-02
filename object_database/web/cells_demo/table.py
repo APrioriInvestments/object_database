@@ -34,7 +34,7 @@ class MultiPageTable(CellsTestPage):
             updownSetter("Rows", rows)
             >> updownSetter("Columns", columns)
             >> updownSetter("Offset", offset)
-        ) + cells.Flex(
+        ) + cells.Scrollable(
             cells.Table(
                 colFun=lambda: [f"Col{i+1}" for i in range(columns.get())],
                 rowFun=lambda: list(range(rows.get())),

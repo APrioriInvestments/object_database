@@ -46,6 +46,7 @@ import {Tabs} from './components/Tabs';
 import {Text} from './components/Text';
 import {Traceback} from './components/Traceback';
 import {_NavTab} from './components/_NavTab';
+import {Flex} from './components/Flex';
 import {Grid} from './components/Grid';
 import {Sheet} from './components/Sheet';
 import {Plot} from './components/Plot';
@@ -54,6 +55,7 @@ import {SplitView} from './components/SplitView';
 import {PageView} from './components/PageView';
 
 const ComponentRegistry = {
+    _NavTab,
     AsyncDropdown,
     AsyncDropdownContent,
     Badge,
@@ -62,47 +64,47 @@ const ComponentRegistry = {
     Card,
     CardTitle,
     Cell,
-    ConcreteCell,
     CircleLoader,
     Clickable,
     Code,
     CodeEditor,
     CollapsiblePanel,
     Columns,
+    ConcreteCell,
     ContextualDisplay,
     Dropdown,
     Expands,
+    Flex,
+    Grid,
     HeaderBar,
+    Highlighted,
     KeyAction,
     LargePendingDownloadDisplay,
     Main,
     Modal,
     Octicon,
     Padding,
-    Panel,
-    Highlighted,
     PageView,
+    Panel,
+    Plot,
     Popover,
     ResizablePanel,
     RootCell,
-    Sequence,
     Scrollable,
+    Sequence,
+    Sheet,
     SingleLineTextBox,
-    Span,
-    Subscribed,
     SizedPanel,
+    Span,
+    SplitView,
+    Subscribed,
     Table,
-    TableRow,
     TableHeader,
+    TableRow,
     Tabs,
     Text,
-    Traceback,
-    _NavTab,
-    Grid,
-    Sheet,
-    Plot,
     Timestamp,
-    SplitView,
+    Traceback,
 };
 
 export {ComponentRegistry, ComponentRegistry as default};

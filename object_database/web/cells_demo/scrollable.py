@@ -57,3 +57,118 @@ class multiScrollable(CellsTestPage):
 
     def text(self):
         return "You should see some scrollable content."
+
+
+class CodeEditorNextToScrollable(CellsTestPage):
+    def cell(self):
+        contents = cells.Slot("Text\n" * 100)
+
+        def onTextChange(content, selection):
+            contents.set(content)
+
+        return cells.HorizontalSequence(
+            [
+                cells.CodeEditor(
+                    onTextChange=onTextChange, textToDisplayFunction=contents.get
+                ),
+                cells.Panel(cells.Scrollable(cells.Code(cells.Subscribed(contents.get)))),
+            ]
+        )
+
+    def text(self):
+        return (
+            "Should see a CodeEditor and its content "
+            "next to it. If you have to much content, it should scroll."
+        )
+
+
+class ScrollableWithSeveralPlots(CellsTestPage):
+    def cell(self):
+        return cells.Scrollable(
+            (
+                cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+                >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+                >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+            )
+            + (
+                cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+                >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+                >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+            )
+            + (
+                cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+                >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+                >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+            )
+        )
+
+    def text(self):
+        return "Should see four plots that can be scrolled over, arranged" " in a square."
+
+
+class ScrollableHWithSeveralPlots(CellsTestPage):
+    def cell(self):
+        return cells.HScrollable(
+            cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+            >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+            >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+            >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+            >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+        )
+
+    def text(self):
+        return "Should see several plots stacked horizontally."
+
+
+class ScrollableVWithSeveralPlots(CellsTestPage):
+    def cell(self):
+        return cells.VScrollable(
+            cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+            + cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+            + cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+            + cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+            + cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+        )
+
+    def text(self):
+        return "Should see several plots stacked horizontally."
+
+
+class ScrollableWithSeveralCodeEditors(CellsTestPage):
+    def cell(self):
+        return cells.Scrollable(
+            (cells.CodeEditor() >> cells.CodeEditor() >> cells.CodeEditor())
+            + (cells.CodeEditor() >> cells.CodeEditor() >> cells.CodeEditor())
+            + (cells.CodeEditor() >> cells.CodeEditor() >> cells.CodeEditor())
+        )
+
+    def text(self):
+        return "Should see four plots that can be scrolled over, arranged" " in a square."
+
+
+class ScrollableHWithSeveralCodeEditors(CellsTestPage):
+    def cell(self):
+        return cells.HScrollable(
+            cells.CodeEditor()
+            >> cells.CodeEditor()
+            >> cells.CodeEditor()
+            >> cells.CodeEditor()
+            >> cells.CodeEditor()
+        )
+
+    def text(self):
+        return "Should see several plots stacked horizontally."
+
+
+class ScrollableVWithSeveralCodeEditors(CellsTestPage):
+    def cell(self):
+        return cells.VScrollable(
+            cells.CodeEditor()
+            + cells.CodeEditor()
+            + cells.CodeEditor()
+            + cells.CodeEditor()
+            + cells.CodeEditor()
+        )
+
+    def text(self):
+        return "Should see several plots stacked horizontally."

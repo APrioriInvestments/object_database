@@ -36,8 +36,12 @@ class Highlighted extends ConcreteCell {
         );
     }
 
+    _computeFillSpacePreferences() {
+        return this.namedChildren['content'].getFillSpacePreferences();
+    }
+
     getClasses(){
-        let classes = ["cell", "cell-highlighted"];
+        let classes = ["cell", "cell-highlighted", "allow-child-to-fill-space"];
         return classes.join(" ");
     }
 }

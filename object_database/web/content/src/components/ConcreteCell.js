@@ -17,7 +17,6 @@ class ConcreteCell extends Cell {
         this.build = this.build.bind(this);
         this.renderChildNamed = this.renderChildNamed.bind(this);
         this.renderChildArray = this.renderChildArray.bind(this);
-        this.recalculateFlexAfterChildChanged = this.recalculateFlexAfterChildChanged.bind(this);
 
         // this should never be set more than once
         this.domElement = null;
@@ -69,10 +68,7 @@ class ConcreteCell extends Cell {
 
         this.childNameToDomElt[childName] = newChildDomElement;
 
-        this.recalculateFlexAfterChildChanged();
-    }
-
-    recalculateFlexAfterChildChanged() {
+        this.childSpacePreferencesChanged(child);
     }
 
     // our 'data' has changed, which may include the set of named children, so we have
@@ -102,6 +98,8 @@ class ConcreteCell extends Cell {
             this.domElement = this.build();
         }
 
+        this.applySpacePreferencesToClassList(this.domElement);
+
         return this.domElement;
     }
 
@@ -113,6 +111,10 @@ class ConcreteCell extends Cell {
         }
 
         return this.renderChildArray(child, "");
+    }
+
+    onOwnSpacePrefsChanged() {
+        this.applySpacePreferencesToClassList(this.domElement);
     }
 
     renderChildArray(childOrArray, suffix) {

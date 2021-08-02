@@ -28,7 +28,7 @@ class Tabs extends ConcreteCell {
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "Tabs",
-                class: "container-fluid flex-child mb-3"
+                class: "container-fluid mb-3"
             }, [
                 h('ul', {class: "nav nav-tabs", role: "tablist"}, this.makeHeaders()),
                 h('div', {class: "tab-content"}, [

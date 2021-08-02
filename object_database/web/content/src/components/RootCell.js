@@ -19,7 +19,8 @@ class RootCell extends Cell {
             makeDomElt('div', {
                 id: this.identity,
                 "data-cell-id": this.identity,
-                "data-cell-type": "RootCell"
+                "data-cell-type": "RootCell",
+                "class": "allow-child-to-fill-space"
             }, [this.namedChildren['child'].buildDomElement()])
         );
     }

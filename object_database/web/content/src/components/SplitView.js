@@ -26,11 +26,15 @@ class SplitView extends ConcreteCell {
         this.makeChildElements = this.makeChildElements.bind(this);
     }
 
+    _computeFillSpacePreferences() {
+        return {horizontal: true, vertical: true}
+    }
+
     build(){
         return (
             h('div', {
                 id: this.getElementId(),
-                class: "flex-child " + this.makeClasses(),
+                class: this.makeClasses(),
                 'data-cell-id': this.identity,
                 'data-cell-type': "SplitView"
             }, this.makeChildElements())
@@ -51,18 +55,14 @@ class SplitView extends ConcreteCell {
 
     makeChildStyle(index){
         let proportion = this.props.proportions[index];
-        if(typeof(proportion) == 'string'){
-            return `width:${proportion};`;
-        } else {
-            return `flex: ${proportion}`;
-        }
+        return `flex: ${proportion}`;
     }
 
     makeChildElements(){
         return this.renderChildrenNamed('elements').map((child, idx) => {
             return h('div', {
                 style: this.makeChildStyle(idx),
-                class: "split-view-area overflow"
+                class: "split-view-area allow-child-to-fill-space"
             }, [child]);
         });
     }

@@ -96,6 +96,10 @@ class Sheet extends ConcreteCell {
         this.tearDownEvents();
     }
 
+    _computeFillSpacePreferences() {
+        return {horizontal: true, vertical: true}
+    }
+
     setupEvents(){
         let myElement = this.domElement;
         this.keyBindings = [
@@ -299,7 +303,7 @@ class Sheet extends ConcreteCell {
     build(){
         let sheetDom = h('ap-sheet', {
             id: this.getElementId(),
-            class: 'cell sheet-cell flex-child',
+            class: 'cell sheet-cell',
             'data-cell-id': this.identity,
             'data-cell-type': 'Sheet',
             'locked-rows': this.props.numLockRows,

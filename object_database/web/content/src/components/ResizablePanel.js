@@ -32,6 +32,10 @@ class ResizablePanel extends ConcreteCell {
         this.addSplitTo = this.addSplitTo.bind(this);
     }
 
+    _computeFillSpacePreferences() {
+        return {horizontal: true, vertical: true}
+    }
+
     build(){
         let classString = "";
         if(this.props.split == 'vertical'){
@@ -42,7 +46,7 @@ class ResizablePanel extends ConcreteCell {
         let domElt = (
             h('div', {
                 id: this.getElementId(),
-                class: `cell flex-child resizable-panel${classString}`,
+                class: `cell resizable-panel${classString}`,
                 'data-cell-type': 'ResizablePanel',
                 'data-cell-id': this.identity,
             }, [
@@ -60,7 +64,7 @@ class ResizablePanel extends ConcreteCell {
         let inner = this.renderChildNamed('first');
         return (
             h('div', {
-                class: 'resizable-panel-item overflow',
+                class: 'resizable-panel-item allow-child-to-fill-space',
                 'data-resizable-panel-item-id': `panel-item-${this.identity}`
             }, [inner])
         );
@@ -72,7 +76,7 @@ class ResizablePanel extends ConcreteCell {
         // the resize splitter. See the .afterCreate().
         return (
             h('div', {
-                class: 'resizable-panel-item overflow',
+                class: 'resizable-panel-item allow-child-to-fill-space',
                 'data-resizable-panel-item-id': `panel-item-${this.identity}`
             }, [inner])
         );

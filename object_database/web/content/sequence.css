@@ -1,0 +1,58 @@
+/**
+ * Everything around sequences, flex, and fill-space.
+ **/
+
+
+.sequence {
+    display: flex;
+}
+
+.sequence-vertical {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.sequence-horizontal {
+    flex-direction: row;
+    align-items: baseline;
+}
+
+.sequence-vertical > .fill-space-vertical {
+    flex: 1;
+}
+
+.sequence-horizontal > .fill-space-horizontal {
+    flex: 1;
+}
+
+.sequence-vertical > .fill-space-horizontal {
+    width: 100%;
+}
+
+.sequence-horizontal > .fill-space-vertical {
+    height: 100%;
+}
+
+.allow-child-to-fill-space > .fill-space-vertical {
+    height: 100%;
+}
+
+.allow-child-to-fill-space > .fill-space-horizontal {
+    width: 100%;
+}
+
+.infinite-cell-in-infinite-space {
+    height: 450px;
+    width: 600px;
+    flex-shrink: 0;
+}
+
+.infinite-cell-in-fixed-vertical-space {
+    width: 600px;
+    flex-shrink: 0;
+}
+
+.infinite-cell-in-fixed-horizontal-space {
+    height: 450px;
+    flex-shrink: 0;
+}

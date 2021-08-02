@@ -111,7 +111,7 @@ class ResizePanelWithButtons(CellsTestPage):
             else:
                 return cells.Panel(cells.Span("Nothing to see here"))
 
-        return toggles() + cells.Flex(
+        return toggles() + (
             cells.Subscribed(
                 lambda: cells.ResizablePanel(
                     cells.Subscribed(firstDisplay),

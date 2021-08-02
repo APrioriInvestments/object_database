@@ -22,6 +22,14 @@ class Subscribed extends Cell {
         }
     }
 
+    _computeFillSpacePreferences() {
+        if (this.contentIsEmpty) {
+            return {horizontal: false, vertical: false};
+        }
+
+        return this.namedChildren['content'].getFillSpacePreferences();
+    }
+
     buildDomSequenceChildren(horizontal) {
         if (this.contentIsEmpty) {
             return []

@@ -24,13 +24,13 @@ class Clickable extends ConcreteCell {
         return(
             h('div', {
                 id: this.getElementId(),
-                class: "cell clickable",
+                class: "cell clickable allow-child-to-fill-space",
                 "data-cell-id": this.identity,
                 "data-cell-type": "Clickable",
                 onclick: this.onClick,
                 style: this.getStyle()
             }, [
-                h('div', {}, [this.makeContent()])
+                this.makeContent()
             ]
             )
         );
@@ -42,6 +42,10 @@ class Clickable extends ConcreteCell {
         } else {
             return "";
         }
+    }
+
+    _computeFillSpacePreferences() {
+        return this.namedChildren['content'].getFillSpacePreferences();
     }
 
     makeContent(){

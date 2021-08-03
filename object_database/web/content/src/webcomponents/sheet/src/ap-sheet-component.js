@@ -76,8 +76,8 @@ class APSheet extends HTMLElement {
         // the assigned attributes to the element
         this.numColumns = cleanParseInt(this.getAttribute('columns')) || 0;
         this.numRows = cleanParseInt(this.getAttribute('rows')) || 0;
-        this.numLockedRows = cleanParseInt(this.getAttribute('locked-rows')) || 0;
-        this.numLockedColumns = cleanParseInt(this.getAttribute('locked-columns')) || 0;
+        this.numLockedRows = Math.min(this.numRows, cleanParseInt(this.getAttribute('locked-rows')) || 0);
+        this.numLockedColumns = Math.min(this.numColumns, cleanParseInt(this.getAttribute('locked-columns')) || 0);
 
         // Initialize the primary frame
         this.resizePrimaryFrame(
@@ -167,7 +167,7 @@ class APSheet extends HTMLElement {
 
     /* Attribute Update Methods */
     attributeChangedCallback(name, oldVal, newVal){
-        if(this.isConnected){
+        if (this.isConnected){
             switch(name){
             case 'rows':
                 this.updateRows(oldVal, newVal);

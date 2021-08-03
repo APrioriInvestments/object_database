@@ -43,6 +43,7 @@ class Sheet extends ConcreteCell {
         this.resizeHeaderDisplay = this.resizeHeaderDisplay.bind(this);
         this.setupEvents = this.setupEvents.bind(this);
         this.setupResize = this.setupResize.bind(this);
+        this.setupInitialAttributes = this.setupInitialAttributes.bind(this);
         this.resize = this.resize.bind(this);
         this._calculateSize = this._calculateSize.bind(this);
         this.tearDownEvents = this.tearDownEvents.bind(this);
@@ -89,7 +90,22 @@ class Sheet extends ConcreteCell {
 
     onFirstInstalled(){
         this.setupEvents();
+        this.setupInitialAttributes();
         this.setupResize();
+    }
+
+    setupInitialAttributes() {
+        this.domElement.setAttribute('rows', 1);
+        this.domElement.setAttribute('columns', 1);
+        this.domElement.setAttribute('locked-rows', 0);
+        this.domElement.setAttribute('locked-columns', 0);
+
+        this.domElement.setAttribute('total-columns', this.props.totalColumns);
+        this.domElement.setAttribute('total-rows', this.props.totalRows);
+
+        // subtract 4 pixels because each cell has 2 pixels of stuff around it
+        this.domElement.setAttribute('row-height', this.props.rowHeight - 4);
+        this.domElement.setAttribute('col-width', this.props.colWidth - 4);
     }
 
     cellWillUnload(){
@@ -317,18 +333,6 @@ class Sheet extends ConcreteCell {
             'onmouseenter': this.onMouseEnter,
             'onwheel': this.onMouseWheel
         }, []);
-
-        sheetDom.setAttribute('rows', 1);
-        sheetDom.setAttribute('columns', 1);
-        sheetDom.setAttribute('locked-rows', 0);
-        sheetDom.setAttribute('locked-columns', 0);
-
-        sheetDom.setAttribute('total-columns', this.props.totalColumns);
-        sheetDom.setAttribute('total-rows', this.props.totalRows);
-
-        // subtract 4 pixels because each cell has 2 pixels of stuff around it
-        sheetDom.setAttribute('row-height', this.props.rowHeight - 4);
-        sheetDom.setAttribute('col-width', this.props.colWidth - 4);
 
         sheetDom.addEventListener('sheet-needs-data', this.onSheetNeedsData);
 
@@ -591,6 +595,7 @@ class Sheet extends ConcreteCell {
         if (dummyHeader && coordinateHeader && contentDisplay) {
             let coordinateHeaderWidth = coordinateHeader.offsetWidth;
             let dummyHeaderWidth = dummyHeader.offsetWidth;
+
             if (contentDisplay.offsetParent) {
                 let newWidth = contentDisplay.offsetParent.offsetWidth - coordinateHeaderWidth;
                 contentDisplay.style.maxWidth = `${newWidth}px`;

@@ -9,7 +9,7 @@
 
 .sequence-vertical {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
 }
 
 .sequence-horizontal {

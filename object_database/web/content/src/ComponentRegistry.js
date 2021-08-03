@@ -20,7 +20,6 @@ import {Code} from './components/Code';
 import {CodeEditor} from './components/CodeEditor';
 import {CollapsiblePanel} from './components/CollapsiblePanel';
 import {Columns} from './components/Columns';
-import {ContextualDisplay} from './components/ContextualDisplay';
 import {Dropdown} from './components/Dropdown';
 import {Expands} from './components/Expands';
 import {HeaderBar} from './components/HeaderBar';
@@ -71,7 +70,6 @@ const ComponentRegistry = {
     CollapsiblePanel,
     Columns,
     ConcreteCell,
-    ContextualDisplay,
     Dropdown,
     Expands,
     Flex,

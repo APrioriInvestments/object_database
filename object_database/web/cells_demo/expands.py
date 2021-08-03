@@ -58,7 +58,13 @@ class ExpanderTree(CellsTestPage):
 
             return cells.Subscribed(body)
 
-        return cells.Panel(expander(()))
+        return cells.ResizablePanel(
+            cells.Panel(cells.Flex(expander(())) + cells.Text("At the bottom")),
+            cells.Text("On the right"),
+        )
 
     def text(self):
-        return "You should see an exandable tree. click a node to select it."
+        return (
+            "You should see an exandable tree. click a node to select it. "
+            "The dots should align on the right and move with the panel divider."
+        )

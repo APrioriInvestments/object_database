@@ -13,54 +13,55 @@
 #   limitations under the License.
 
 
-from object_database.web.cells.cell import Cell
+from object_database.web.cells.subscribed import Subscribed
 from object_database.web.cells.leaves import Traceback
+from object_database.web.cells.computing_cell_context import ComputingCellContext
 
 
-class ContextualDisplay(Cell):
+# map from type -> [(ContextMatcher, displayFun)]
+# contains all the registered cell handlers.
+_typeToDisplay = {}
+
+
+class ContextMatcher:
+    """Checks if a cell matches a context dict."""
+
+    def __init__(self, contextDict):
+        """Initialize a context matcher."""
+        self.contextDict = contextDict
+
+    def matchesCell(self, cell):
+        for key, value in self.contextDict.items():
+            ctx = cell.getContext(key)
+            if callable(value):
+                if not value(ctx):
+                    return False
+            else:
+                if ctx != value:
+                    return False
+        return True
+
+
+def ContextualDisplay(value):
     """Display an arbitrary python object by checking registered display handlers"""
 
-    # map from type -> [(ContextMatcher, displayFun)]
-    _typeToDisplay = {}
+    def computeDisplay():
+        currentCell = ComputingCellContext.get()
 
-    class ContextMatcher:
-        """Checks if a cell matches a context dict."""
+        if not currentCell:
+            return None
 
-        def __init__(self, contextDict):
-            """Initialize a context matcher."""
-            self.contextDict = contextDict
+        if type(value) in _typeToDisplay:
+            for context, dispFun in _typeToDisplay[type(value)]:
+                if context.matchesCell(currentCell):
+                    return dispFun(value)
 
-        def matchesCell(self, cell):
-            for key, value in self.contextDict.items():
-                ctx = cell.getContext(key)
-                if callable(value):
-                    if not value(ctx):
-                        return False
-                else:
-                    if ctx != value:
-                        return False
-            return True
+        if hasattr(value, "cellDisplay"):
+            return value.cellDisplay()
 
-    def __init__(self, obj):
-        super().__init__()
-        self.obj = obj
+        return Traceback(f"Invalid object of type {type(value)}")
 
-    def getChild(self):
-        if type(self.obj) in ContextualDisplay._typeToDisplay:
-            for context, dispFun in ContextualDisplay._typeToDisplay[type(self.obj)]:
-                if context.matchesCell(self):
-                    return dispFun(self.obj)
-
-        if hasattr(self.obj, "cellDisplay"):
-            return self.obj.cellDisplay()
-
-        return Traceback(f"Invalid object of type {type(self.obj)}")
-
-    def recalculate(self):
-        with self.view():
-            childCell = self.getChild()
-            self.children["child"] = childCell
-            self.exportData["objectType"] = str(type(self.obj))
+    return Subscribed(computeDisplay)
 
 
 def registerDisplay(type, **context):
@@ -83,9 +84,7 @@ def registerDisplay(type, **context):
     """
 
     def registrar(displayFunc):
-        ContextualDisplay._typeToDisplay.setdefault(type, []).append(
-            (ContextualDisplay.ContextMatcher(context), displayFunc)
-        )
+        _typeToDisplay.setdefault(type, []).append((ContextMatcher(context), displayFunc))
 
         return displayFunc
 

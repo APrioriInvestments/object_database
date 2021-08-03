@@ -53,3 +53,65 @@ def test_can_actually_load_page(headless_browser):
     query = "#page_root"
     el = headless_browser.find_by_css(query)
     assert el
+
+
+class ButtonWithCentersInside(CellsTestPage):
+    def cell(self):
+        return (
+            cells.Button(
+                cells.HCenter("HCenter"),
+                lambda: None,
+                small=True,
+                active=True,
+                style="primary",
+            )
+            + cells.Button(
+                cells.VCenter("VCenter"),
+                lambda: None,
+                small=True,
+                active=True,
+                style="primary",
+            )
+            + cells.Button(
+                cells.Center("Center"), lambda: None, small=True, active=True, style="primary"
+            )
+        )
+
+    def text(self):
+        return (
+            "You should see three buttons. One filling horizontal space. One filling vertical."
+            " One filling both. The styling should cover the button."
+        )
+
+
+class ButtonWithCentersOutside(CellsTestPage):
+    def cell(self):
+        return (
+            cells.Highlighted(
+                cells.HCenter(
+                    cells.Button(
+                        "HCenter", lambda: None, small=True, active=True, style="primary"
+                    )
+                )
+            )
+            + cells.Highlighted(
+                cells.VCenter(
+                    cells.Button(
+                        "VCenter", lambda: None, small=True, active=True, style="primary"
+                    )
+                )
+            )
+            + cells.Highlighted(
+                cells.Center(
+                    cells.Button(
+                        "Center", lambda: None, small=True, active=True, style="primary"
+                    )
+                )
+            )
+        )
+
+    def text(self):
+        return (
+            "You should see three buttons. One filling horizontal space. One filling vertical."
+            " One filling both. The styling should cover the button."
+        )

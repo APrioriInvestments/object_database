@@ -46,6 +46,7 @@ import {Text} from './components/Text';
 import {Traceback} from './components/Traceback';
 import {_NavTab} from './components/_NavTab';
 import {Flex} from './components/Flex';
+import {FillSpace} from './components/FillSpace';
 import {Grid} from './components/Grid';
 import {Sheet} from './components/Sheet';
 import {Plot} from './components/Plot';
@@ -73,6 +74,7 @@ const ComponentRegistry = {
     Dropdown,
     Expands,
     Flex,
+    FillSpace,
     Grid,
     HeaderBar,
     Highlighted,

@@ -17,16 +17,38 @@ class Button extends ConcreteCell {
         // Bind context to methods
         this.onClick = this.onClick.bind(this);
         this._getHTMLClasses = this._getHTMLClasses.bind(this);
+
+        this.buttonDiv = null;
+    }
+
+    _computeFillSpacePreferences() {
+        return this.namedChildren['content'].getFillSpacePreferences();
     }
 
     build() {
-        return h('button', {
+        this.buttonDiv = h('button', {
             id: this.getElementId(),
             "data-cell-id": this.identity,
             "data-cell-type": "Button",
             class: this._getHTMLClasses(),
             onclick: this.onClick
         }, [this.renderChildNamed('content')]);
+
+        let res = h(
+            'div',
+            {'class': 'allow-child-to-fill-space'},
+            [this.buttonDiv]
+        );
+
+        this.applySpacePreferencesToClassList(this.buttonDiv);
+        this.applySpacePreferencesToClassList(res);
+
+        return res;
+    }
+
+    onOwnSpacePrefsChanged() {
+        this.applySpacePreferencesToClassList(this.domElement);
+        this.applySpacePreferencesToClassList(this.buttonDiv);
     }
 
     onClick() {

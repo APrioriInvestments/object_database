@@ -8,7 +8,12 @@ import {ConcreteCell} from './ConcreteCell';
 class Text extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
-        this.style = "color:" + this.props.textColor;
+
+        this.style = "display:inline-block";
+
+        if (this.props.textColor) {
+            this.style += ";color:" + this.props.textColor;
+        }
     }
 
     build() {

@@ -39,15 +39,55 @@ class FillSpace(Cell):
 
 
 def HCenter(cell):
-    """Make a cell take up horizontal space, and center the cell within it."""
+    """Take up horizontal space, and center the cell within it."""
     return FillSpace(cell, "center", None)
 
 
 def VCenter(cell):
-    """Make a cell take up vertical space, and center the cell within it."""
+    """Take up vertical space, and center the cell within it."""
     return FillSpace(cell, None, "center")
 
 
 def Center(cell):
-    """Make a cell take up horizontal and vertical space, and center the cell within it."""
+    """Take up horizontal and vertical space, and center the cell within it."""
     return FillSpace(cell, "center", "center")
+
+
+def Left(cell):
+    """Take up horizontal space, and place the cell on the left side of it."""
+    return FillSpace(cell, "left", None)
+
+
+def Right(cell):
+    """Take up horizontal space, and place the cell on the right side of it."""
+    return FillSpace(cell, "right", None)
+
+
+def Top(cell):
+    """Take up vertical space, and place the cell at the top of it."""
+    return FillSpace(cell, None, "top")
+
+
+def Bottom(cell):
+    """Take up vertical space, and place the cell at the bottom of it."""
+    return FillSpace(cell, None, "bottom")
+
+
+def TopLeft(cell):
+    """Take up vertical and horizontal space, and place the cell at the top left of it."""
+    return FillSpace(cell, "left", "top")
+
+
+def TopRight(cell):
+    """Take up vertical and horizontal space, and place the cell at the top right of it."""
+    return FillSpace(cell, "right", "top")
+
+
+def BottomLeft(cell):
+    """Take up vertical and horizontal space, and place the cell at the bottom left of it."""
+    return FillSpace(cell, "left", "bottom")
+
+
+def BottomRight(cell):
+    """Take up vertical and horizontal space, and place the cell at the bottom right of it."""
+    return FillSpace(cell, "right", "bottom")

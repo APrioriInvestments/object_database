@@ -2,47 +2,19 @@
  * Highlighted Cell Cell
  */
 
-import {makeDomElt as h} from './Cell';
-import {ConcreteCell} from './ConcreteCell';
+import {StylingCell} from './StylingCell';
 
-/**
- * About Replacements
- * ------------------
- * This Cell has one regular replacement:
- * `content`
- */
-
-/**
- * About Named Children
- * --------------------
- * `content` (single) - The cell inside of the highlight
- */
-class Highlighted extends ConcreteCell {
+class Highlighted extends StylingCell {
     constructor(props, ...args){
         super(props, ...args);
-
-        // Bind Cell methods
-        this.getClasses = this.getClasses.bind(this);
     }
 
-    build(){
-        return(
-            h('div', {
-                id: this.getElementId(),
-                "data-cell-id": this.identity,
-                "data-cell-type": "Highlighted",
-                class: this.getClasses()
-            }, [this.renderChildNamed('content')])
-        );
+    getStyle() {
+        return "";
     }
 
-    _computeFillSpacePreferences() {
-        return this.namedChildren['content'].getFillSpacePreferences();
-    }
-
-    getClasses(){
-        let classes = ["cell", "cell-highlighted", "allow-child-to-fill-space"];
-        return classes.join(" ");
+    getClass(){
+        return "cell-highlighted";
     }
 }
 

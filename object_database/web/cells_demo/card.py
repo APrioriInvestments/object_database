@@ -72,7 +72,7 @@ class CardWithPlot(CellsTestPage):
 
 class CardWithPlotInSubscribed(CellsTestPage):
     def cell(self):
-        return cells.Text("Some text above a card with a resizable panel inside") + cells.Card(
+        return cells.Text("Some text above a card with a panel inside") + cells.Card(
             cells.Subscribed(
                 lambda: cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
             ),
@@ -88,7 +88,7 @@ class CardWithPlotInSubscribed(CellsTestPage):
 
 class CardWithPanelAndPlot(CellsTestPage):
     def cell(self):
-        return cells.Text("Some text above a card with a resizable panel inside") + cells.Card(
+        return cells.Text("Some text above a card with a panel inside") + cells.Card(
             cells.Panel(cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {})))
         )
 

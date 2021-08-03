@@ -122,3 +122,21 @@ class ResizePanelWithButtons(CellsTestPage):
                 else cells.Subscribed(toggledSecondAndThird)
             )
         )
+
+
+class TwoResizablePanelsStacked(CellsTestPage):
+    def text(self):
+        return "Should see two ResizablePanels, one on top of the other."
+
+    def cell(self):
+        return cells.ResizablePanel("A", "B") + cells.ResizablePanel("A2", "B2")
+
+
+class FourResizablePanelsGridded(CellsTestPage):
+    def text(self):
+        return "Should see four ResizablePanels in a square"
+
+    def cell(self):
+        return (cells.ResizablePanel("A11", "B11") >> cells.ResizablePanel("A12", "B12")) + (
+            cells.ResizablePanel("A21", "B21") >> cells.ResizablePanel("A22", "B22")
+        )

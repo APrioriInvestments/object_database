@@ -112,7 +112,6 @@ class Cell {
         this.props = props;
         this.namedChildren = namedChildren;
         this.handler = handler;
-        this._fillSpacePrefs = null;
 
         // cache for 'allotedSpaceIsInfinite'
         this._allotedSpaceIsInfinite = null;
@@ -168,22 +167,6 @@ class Cell {
         return {horizontal: false, vertical: false};
     }
 
-    // return {horizontal:, vertical:} where 'horizontal' indicates that the
-    // cell will take as much space as given horizontally and similarly for
-    // 'vertical'. This should be uncached - the framework will take care of
-    // calling it and stashing it in 'fillSpacePrefs'
-    _computeFillSpacePreferences() {
-        return {horizontal: false, vertical: false};
-    }
-
-    getFillSpacePreferences() {
-        if (!this._fillSpacePrefs) {
-            this._fillSpacePrefs = this._computeFillSpacePreferences();
-        }
-
-        return this._fillSpacePrefs;
-    }
-
     // apply class tags so we get appropriate fill-space semantics.
     // a 'fill-space-horizontal' tag means the element should take up as much space
     // as it can. Similarly for fill-space-vertical.
@@ -195,7 +178,10 @@ class Cell {
         }
 
         let sp = this.getFillSpacePreferences();
-        let spaceIsInfinite = this.parent.allotedSpaceIsInfinite(this);
+
+        let spaceIsInfinite = (
+            this.parent ? this.parent.allotedSpaceIsInfinite(this) : {horizontal:false, vertical:false}
+        );
 
         if (sp.horizontal && sp.vertical && spaceIsInfinite.horizontal && spaceIsInfinite.vertical) {
             domElement.classList.add('infinite-cell-in-infinite-space');
@@ -232,17 +218,22 @@ class Cell {
         }
     }
 
-    // called by children to indicate that their 'space preference' has changed
-    // since we called 'buildDomElement' the first time.
-    childSpacePreferencesChanged(child) {
-        let newSpacePreferences = this._computeFillSpacePreferences();
+    // return {horizontal:, vertical:} where 'horizontal' indicates that the
+    // cell will take as much space as given horizontally and similarly for
+    // 'vertical'. This should be uncached.
+    _computeFillSpacePreferences() {
+        return {horizontal: false, vertical: false};
+    }
 
-        if (newSpacePreferences.horizontal != this._fillSpacePrefs.horizontal ||
-                newSpacePreferences.vertical != this._fillSpacePrefs.vertical) {
-            this._fillSpacePrefs = newSpacePreferences;
-            this.parent.childSpacePreferencesChanged(this);
-            this.onOwnSpacePrefsChanged();
-        }
+    // get our current fill space preferences. This may be cached
+    getFillSpacePreferences() {
+        throw new Error("Cell " + this + " doesn't have getFillSpacePreferences defined");
+    }
+
+    // called by children to indicate that their 'space preference' has changed
+    // since we called 'buildDomElement' the first time. This should trigger an update.
+    childSpacePreferencesChanged(child) {
+        throw new Error("Cell " + this + " doesn't have childSpacePreferencesChanged defined");
     }
 
     // update dom when space preferences change. shouldn't cascade

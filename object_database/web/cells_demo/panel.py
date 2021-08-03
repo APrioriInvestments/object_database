@@ -120,3 +120,61 @@ class PanelSwitchBetweenSequenceAndNonsequence(CellsTestPage):
 
     def text(self):
         return "Should see a button that toggles a panel between one and two lines."
+
+
+class PanelAndNestedFlexWithSwitching(CellsTestPage):
+    def cell(self):
+        isSequence = cells.Slot(False)
+
+        return cells.Button("toggle", lambda: isSequence.toggle()) + (
+            cells.ResizablePanel(
+                cells.Panel(
+                    cells.Text("Some Text")
+                    + cells.Flex(
+                        cells.Subscribed(
+                            lambda: cells.Panel(
+                                cells.Subscribed(
+                                    lambda: cells.CodeEditor() if isSequence.get() else None
+                                )
+                            )
+                        )
+                    )
+                ),
+                cells.Panel(
+                    cells.Text("Some Text")
+                    + cells.Flex(
+                        cells.Subscribed(
+                            lambda: cells.Panel(
+                                cells.Subscribed(
+                                    lambda: cells.Plot(
+                                        lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {})
+                                    )
+                                    if isSequence.get()
+                                    else None
+                                )
+                            )
+                        )
+                    )
+                ),
+            )
+        )
+
+    def text(self):
+        return "Should see a button that toggles a panel between one and two lines."
+
+
+def test_panel_and_nested_flex_handle_changed_child_size_correctly(headless_browser):
+    # Test that we can find the editor and set the first visible row
+    # programmatically from the server side
+    demo_root = headless_browser.get_demo_root_for(PanelAndNestedFlexWithSwitching)
+    assert demo_root
+
+    toggle_btn = headless_browser.find_by_css('[data-cell-type="Button"]')
+    toggle_btn.click()
+
+    def codeEditorHasSize(*args):
+        code_editor = headless_browser.find_by_css('[data-cell-type="CodeEditor"]')
+
+        return code_editor.size["height"] > 10
+
+    headless_browser.wait(5).until(codeEditorHasSize)

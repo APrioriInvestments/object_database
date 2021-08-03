@@ -30,6 +30,15 @@ class Subscribed extends Cell {
         return this.namedChildren['content'].getFillSpacePreferences();
     }
 
+    // this is uncached
+    getFillSpacePreferences() {
+        return this._computeFillSpacePreferences();
+    }
+
+    childSpacePreferencesChanged(child) {
+        this.parent.childSpacePreferencesChanged(child);
+    }
+
     buildDomSequenceChildren(horizontal) {
         if (this.contentIsEmpty) {
             return []

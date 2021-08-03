@@ -2,7 +2,7 @@
  * Plot Cell Cell
  */
 
-import {Cell} from './Cell';
+import {ConcreteCell} from './ConcreteCell';
 import {makeDomElt as h} from './Cell';
 
 /**
@@ -11,7 +11,7 @@ import {makeDomElt as h} from './Cell';
  * `chartUpdater` (single) - The Updater cell
  * `error` (single) - An error cell, if present
  */
-class Plot extends Cell {
+class Plot extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
 
@@ -32,7 +32,6 @@ class Plot extends Cell {
         this.plotDivIsActive = false;
         this.plotDiv = null;
         this.errorDiv = null;
-        this.domElement = null;
 
         this.lastWidth = -1
         this.lastHeight = -1
@@ -79,17 +78,13 @@ class Plot extends Cell {
         return {horizontal: true, vertical: true};
     }
 
-    buildDomElement() {
-        if (this.domElement !== null) {
-            return this.domElement;
-        }
-
+    build() {
         this.plotDiv = h('div', {style: 'position:absolute'});
         this.errorDiv = h('div', {style: 'display:none;position:absolute'});
 
         let classText = "cell";
 
-        this.domElement = (
+        let res = (
             h('div', {
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
@@ -101,9 +96,9 @@ class Plot extends Cell {
             ])
         );
 
-        this.applySpacePreferencesToClassList(this.domElement)
+        this.applySpacePreferencesToClassList(res)
 
-        return this.addCanonicalTags(this.domElement);
+        return res;
     }
 
     onFirstInstalled() {

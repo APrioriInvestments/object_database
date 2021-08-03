@@ -18,6 +18,9 @@ class Sequence extends Cell {
 
         // an array of dom children if we have a parent who has been calculated
         this.domChildren = null;
+
+        // cache for space preferences
+        this._fillSpacePrefs = null;
     }
 
     rebuildDomElement() {
@@ -75,17 +78,8 @@ class Sequence extends Cell {
     }
 
     onOwnSpacePrefsChanged() {
-        let sp = this.getFillSpacePreferences();
-
-        let isFlex = (
-            this.orientation == 'horizontal' && sp.horizontal
-            || this.orientation == 'vertical' && sp.vertical
-        );
-
-        if (isFlex) {
-            this.domElement.classList.add('fill-space-' + this.props.orientation);
-        } else {
-            this.domElement.classList.remove('fill-space-' + this.props.orientation);
+        if (this.domElement) {
+            this.applySpacePreferencesToClassList(this.domElement);
         }
     }
 
@@ -104,6 +98,14 @@ class Sequence extends Cell {
             this.parent.childSpacePreferencesChanged(this);
             this.onOwnSpacePrefsChanged();
         }
+    }
+
+    getFillSpacePreferences() {
+        if (!this._fillSpacePrefs) {
+            this._fillSpacePrefs = this._computeFillSpacePreferences();
+        }
+
+        return this._fillSpacePrefs;
     }
 
     childChanged(child) {

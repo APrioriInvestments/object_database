@@ -21,6 +21,10 @@ class ConcreteCell extends Cell {
         // this should never be set more than once
         this.domElement = null;
 
+        // cache our fill space preferences, so that it doesnt
+        // jam the tree when we go up and down
+        this._fillSpacePrefs = null;
+
         // maps from 'child name', which is either the name of the child
         // or (name + "#" + i) where 'i' is the index of the child in a
         // named child list. This lets us update children when they recompute
@@ -81,6 +85,8 @@ class ConcreteCell extends Cell {
 
         let newDomElt = this.build();
 
+        this.applySpacePreferencesToClassList(newDomElt);
+
         copyNodeInto(newDomElt, this.domElement);
     }
 
@@ -115,6 +121,34 @@ class ConcreteCell extends Cell {
 
     onOwnSpacePrefsChanged() {
         this.applySpacePreferencesToClassList(this.domElement);
+    }
+
+    // recompute our space preferences and send up the tree
+    childSpacePreferencesChanged(child) {
+        let newSpacePreferences = this._computeFillSpacePreferences();
+
+        if (newSpacePreferences.horizontal != this._fillSpacePrefs.horizontal ||
+                newSpacePreferences.vertical != this._fillSpacePrefs.vertical) {
+
+            console.log(
+                "Cell " + this + "(" + this.identity + ") changed prefs from "
+                + JSON.stringify(this._fillSpacePrefs)
+                + " to " + JSON.stringify(newSpacePreferences)
+            )
+
+            this._fillSpacePrefs = newSpacePreferences;
+            this.parent.childSpacePreferencesChanged(this);
+            this.onOwnSpacePrefsChanged();
+        }
+    }
+
+    // check our cache
+    getFillSpacePreferences() {
+        if (!this._fillSpacePrefs) {
+            this._fillSpacePrefs = this._computeFillSpacePreferences();
+        }
+
+        return this._fillSpacePrefs;
     }
 
     renderChildArray(childOrArray, suffix) {

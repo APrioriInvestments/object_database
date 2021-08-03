@@ -94,7 +94,7 @@ class TableHeader(Cell):
                 lambda: self.curPageSlot.set(min(self.curPageSlot.get() + 1, totalPages - 1)),
             )
 
-        return pageCell >> leftCell >> rightCell
+        return Card(pageCell >> Padding() >> leftCell >> rightCell, padding=1)
 
     def recalculate(self):
         with self.view() as v:

@@ -23,6 +23,10 @@ class HeaderBar extends ConcreteCell {
         this.makeCenter = this.makeCenter.bind(this);
     }
 
+    _computeFillSpacePreferences() {
+        return {horizontal: true, vertical: false};
+    }
+
     build(){
         return (
             h('div', {

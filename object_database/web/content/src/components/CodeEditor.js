@@ -54,7 +54,7 @@ class CodeEditor extends ConcreteCell {
                 "data-cell-type": "CodeEditor",
                 key: this
             },
-            [actualEditorDiv]
+            [h('div', {'class': 'code-editor-scroll-region'}, [actualEditorDiv])]
         );
     }
 

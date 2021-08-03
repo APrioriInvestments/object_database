@@ -84,8 +84,8 @@ class Plot extends Cell {
             return this.domElement;
         }
 
-        this.plotDiv = h('div');
-        this.errorDiv = h('div', {style: 'display:none'});
+        this.plotDiv = h('div', {style: 'position:absolute'});
+        this.errorDiv = h('div', {style: 'display:none;position:absolute'});
 
         let classText = "cell";
 
@@ -419,7 +419,7 @@ class Plot extends Cell {
             }
         });
 
-        observer.observe(this.plotDiv.parentNode);
+        observer.observe(this.domElement);
     }
 }
 

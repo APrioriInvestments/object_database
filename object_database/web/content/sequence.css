@@ -18,11 +18,11 @@
 }
 
 .sequence-vertical > .fill-space-vertical {
-    flex: 1;
+    flex: 1 1;
 }
 
 .sequence-horizontal > .fill-space-horizontal {
-    flex: 1;
+    flex: 1 1;
 }
 
 .sequence-vertical > .fill-space-horizontal {
@@ -35,10 +35,12 @@
 
 .allow-child-to-fill-space > .fill-space-vertical {
     height: 100%;
+    max-height: 100%;
 }
 
 .allow-child-to-fill-space > .fill-space-horizontal {
     width: 100%;
+    max-width: 100%;
 }
 
 .infinite-cell-in-infinite-space {

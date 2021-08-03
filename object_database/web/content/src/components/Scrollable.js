@@ -59,7 +59,7 @@ class Scrollable extends ConcreteCell {
 
         return h('div', {
                 id: this.getElementId(),
-                class: "cell cell-scrollable allow-child-to-fill-space",
+                class: "cell cell-scrollable-parent",
                 "data-cell-id": this.identity,
                 "data-cell-type": "Scrollable"
             }, [this.innerScrollDiv]

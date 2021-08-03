@@ -14,26 +14,24 @@ import {ConcreteCell} from './ConcreteCell';
 class Main extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
-
-        // Bind Cell methods
-        this.makeChild = this.makeChild.bind(this);
     }
 
     build(){
         return (
-            h('main', {
+            h('div', {
                 id: this.getElementId(),
                 class: "py-md-2",
                 "data-cell-id": this.identity,
-                "data-cell-type": "Main"
+                "data-cell-type": "Main",
+                'class': 'allow-child-to-fill-space'
             }, [
-                    this.makeChild()
+                this.renderChildNamed('child')
             ])
         );
     }
 
-    makeChild(){
-        return this.renderChildNamed('child');
+    _computeFillSpacePreferences() {
+        return {horizontal: true, vertical: true};
     }
 }
 

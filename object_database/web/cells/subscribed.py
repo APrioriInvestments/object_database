@@ -180,10 +180,7 @@ class SubscribedSequence(Cell):
         -------
         A Cell instance
         """
-        itemCell = Cell.makeCell(self.rendererFun(item))
-        wrapperCell = Subscribed(lambda: itemCell)
-        wrapperCell.isFlex = itemCell.isFlex
-        return wrapperCell
+        return Cell.makeCell(self.rendererFun(item))
 
     def recalculate(self):
         with self.view() as v:

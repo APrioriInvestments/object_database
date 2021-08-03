@@ -2,46 +2,34 @@
  * RootCell Cell Cell
  */
 
-import {Cell, replaceChildren, makeDomElt} from './Cell';
+import {makeDomElt as h} from './Cell';
+import {ConcreteCell} from './ConcreteCell';
 
 /**
  * About Named Children
  * --------------------
  * `child` (single) - The child cell this container contains
  */
-class RootCell extends Cell {
+class RootCell extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
+
+        this.domElement = document.getElementById("page_root");
     }
 
-    buildDomElementInner() {
+    _computeFillSpacePreferences() {
+        return {horizontal: true, vertical: false};
+    }
+
+    build() {
         return (
-            makeDomElt('div', {
+            h('div', {
                 id: this.identity,
                 "data-cell-id": this.identity,
                 "data-cell-type": "RootCell",
                 "class": "allow-child-to-fill-space"
-            }, [this.namedChildren['child'].buildDomElement()])
+            }, [this.renderChildNamed('child')])
         );
-    }
-
-    rebuildDomElement() {
-        // we changed. rebuild ourselves
-        var dom = this.getDOMElement();
-
-        var childDom = this.namedChildren['child'].buildDomElement();
-
-        replaceChildren(dom, [childDom]);
-    }
-
-    childChanged() {
-        this.rebuildDomElement();
-    }
-
-    getDOMElement(){
-        // Override default behavior, since
-        // id is always "root_cell"
-        return document.getElementById(this.identity);
     }
 }
 

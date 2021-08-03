@@ -137,7 +137,7 @@ class CellsTestService(ServiceBase):
 
         resultArea = cells.Subscribed(actualDisplay)
 
-        inputArea = cells.Card(cells.Text(description), padding=2) + cells.Flex(
+        inputArea = cells.Card(cells.Text(description), padding=2) + (
             cells.SplitView([(selectionPanel(page), 3), (ed, 6)])
         )
 
@@ -178,7 +178,5 @@ def selectionPanel(page):
     header = cells.HorizontalSequence([reloadInput, filterBox])
 
     return cells.VScrollable(
-        cells.Sequence(
-            [header, cells.Subscribed(lambda: cells.Flex(cells.Sequence(getAvailableCells())))]
-        )
+        cells.Sequence([header, cells.Subscribed(lambda: cells.Sequence(getAvailableCells()))])
     )

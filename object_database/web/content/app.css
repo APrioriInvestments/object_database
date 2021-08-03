@@ -2,11 +2,6 @@
  * Application Wide Stylesheet for ActiveWebService
  **/
 
-/* Global Styling Variables */
-:root {
-    --page-view-header-height: 75px;
-}
-
 /* do we need this? */
 .large.tooltip-inner {
     max-width: 350px;
@@ -85,25 +80,57 @@ th {
     flex-direction: row;
 }
 
-.cell-scrollable {
+.split-view-area {
     overflow: hidden;
+}
+
+.cell-scrollable-parent {
+    overflow: hidden;
+
+    /* give the parent a relative position so that we can
+    give an absolute offset to the child.*/
+    position: relative;
 }
 
 .cell-scrollable-body-both {
     overflow: auto;
+
+    /* place this body on top of the parent, but don't allow
+    child size to bleed out */
+    position: absolute;
+    top: 0;
+    bottom: 0;
+
     width: 100%;
     height: 100%;
 }
 
 .cell-scrollable-body-horizontal {
+    /* place this body on top of the parent, but don't allow
+    child size to bleed out */
+    position: absolute;
+    top: 0;
+    bottom: 0;
+
     overflow-x: auto;
     overflow-y: hidden;
+
     width: 100%;
+    height: 100%;
 }
 
 .cell-scrollable-body-vertical {
+
+    /* place this body on top of the parent, but don't allow
+    child size to bleed out */
+    position: absolute;
+    top: 0;
+    bottom: 0;
+
     overflow-y: auto;
     overflow-x: hidden;
+
+    width: 100%;
     height: 100%;
 }
 
@@ -263,6 +290,26 @@ th {
 /* CodeEditor
  * ===============================================================*/
 .code-editor {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.code-editor-inner {
+    height: 100%;
+}
+
+.code-editor-scroll-region {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+
+    overflow: auto;
+
+    margin: auto;
+    border: 1px solid lightgray;
 }
 
 .highlight-seethrough {
@@ -281,47 +328,12 @@ th {
     background-color: #bbffbb!important;
 }
 
-.code-editor-inner {
-    width: 100%;
-    min-height: 100%;
-    margin: auto;
-    border: 1px solid lightgray;
-}
-
-/* PageView
- *================================================================*/
-.page-view {
-    display: inline-flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
-}
-
-.page-view > header {
-    height: var(--page-view-header-height);
-    display: block;
-    width: 100%;
-    position: relative;
-}
-
-.page-view > main {
-    height: calc(100% - var(--page-view-header-height));
-}
-
-.page-view-header {
-
-}
-
-.page-view-footer {
-
-}
 
 /* HeaderBar
  * =====================================================*/
  .header-bar {
     display: flex;
     align-items: baseline;
-    height: 100%;
     align-items: center;
  }
 

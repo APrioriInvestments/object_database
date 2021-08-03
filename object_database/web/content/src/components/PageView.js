@@ -24,12 +24,16 @@ class PageView extends ConcreteCell {
         this.makeFooter = this.makeFooter.bind(this);
     }
 
+    _computeFillSpacePreferences() {
+        return {horizontal: true, vertical: true};
+    }
+
     build(){
         return h('div', {
             id: this.getElementId(),
             'data-cell-id': this.identity,
             'data-cell-type': "PageView",
-            class: 'cell page-view'
+            class: 'cell page-view sequence sequence-vertical fill-space-vertical fill-space-horizontal'
         }, [
             this.makeHeader(),
             this.makeMain(),
@@ -39,9 +43,10 @@ class PageView extends ConcreteCell {
 
     makeHeader(){
         let headerContent = this.renderChildNamed('header');
+
         if(headerContent){
-            return h('header', {
-                class: 'page-view-header'
+            return h('div', {
+                class: 'page-view-header fill-space-horizontal allow-child-to-fill-space'
             }, [headerContent]);
         } else {
             return null;
@@ -49,14 +54,18 @@ class PageView extends ConcreteCell {
     }
 
     makeMain(){
-        return this.renderChildNamed('main');
+        let bodyContent = this.renderChildNamed('main');
+
+        return h('div', {
+            class: 'page-view-body fill-space-vertical fill-space-horizontal allow-child-to-fill-space'
+        }, [bodyContent])
     }
 
     makeFooter(){
         let footerContent = this.renderChildNamed('footer');
         if(footerContent){
-            return h('footer', {
-                class: 'page-view-footer'
+            return h('div', {
+                class: 'page-view-footer fill-space-horizontal allow-child-to-fill-space'
             }, [footerContent]);
         } else {
             return null;

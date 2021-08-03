@@ -33,7 +33,7 @@ class Popover extends ConcreteCell {
         // it.
         let query = `[data-cell-target="${this.identity}"].popover`;
         let found = document.querySelector(query);
-        console.log(found);
+
         if(found){
             $(found).popover('hide');
         }

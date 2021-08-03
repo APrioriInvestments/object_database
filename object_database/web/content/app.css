@@ -274,6 +274,10 @@ th {
 /* Panel
  * ============================================================== */
 
+.cell-panel {
+    overflow: hidden;
+}
+
 .cell-panel-border {
     border: 1px solid rgba(150, 150, 150, 0.3);
     padding: 10px;
@@ -354,19 +358,13 @@ th {
     flex: 5;
 }
 
-/* ContextualDisplay
- *======================================================*/
-.contextual-display {
-    width: 100%;
-    height: 100%;
-}
-
 
 /*************** CARD *************/
 
 .cells-card {
   display: inline-flex;
   display: -ms-flexbox;
+  overflow: hidden;
   -ms-flex-direction: column;
   flex-direction: column;
   align-items: flex-start;

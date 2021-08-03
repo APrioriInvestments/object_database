@@ -20,24 +20,38 @@ import {ConcreteCell} from './ConcreteCell';
 class Table extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
+
+        this.tableDiv = null;
     }
 
     _computeFillSpacePreferences() {
-        return {horizontal: true, vertical: true};
+        return {horizontal: this.props.fillWidth, vertical: this.props.fillHeight};
     }
 
     build(){
-        return(
-            h('table', {
-                id: this.getElementId(),
-                "data-cell-id": this.identity,
-                "data-cell-type": "Table",
-                class: "cell table-hscroll table-sm table-striped"
-            }, [
-                this.renderChildNamed('header'),
-                h('tbody', {}, this.renderChildrenNamed('rows'))
-            ])
-        );
+        this.tableDiv = h('table', {
+            "class": "cell table-hscroll table-sm table-striped"
+        }, [
+            this.renderChildNamed('header'),
+            h('tbody', {}, this.renderChildrenNamed('rows'))
+        ]);
+
+        let res = h('div', {
+            id: this.getElementId(),
+            "data-cell-id": this.identity,
+            "data-cell-type": "Table",
+            "class": "allow-child-to-fill-space"
+        }, [this.tableDiv]);
+
+        this.applySpacePreferencesToClassList(this.tableDiv);
+        this.applySpacePreferencesToClassList(res);
+
+        return res;
+    }
+
+    onOwnSpacePrefsChanged() {
+        this.applySpacePreferencesToClassList(this.domElement);
+        this.applySpacePreferencesToClassList(this.tableDiv);
     }
 }
 

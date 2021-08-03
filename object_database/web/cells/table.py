@@ -254,6 +254,8 @@ class Table(Cell):
         maxRowsPerPage=20,
         sortColumn=None,
         sortColumnAscending=True,
+        fillWidth=False,
+        fillHeight=False,
     ):
         """
         Args:
@@ -274,6 +276,9 @@ class Table(Cell):
 
         self.rowKeys = []
         self.rowDict = {}
+
+        self.fillWidth = fillWidth
+        self.fillHeight = fillHeight
 
         self.maxRowsPerPage = maxRowsPerPage
 
@@ -307,6 +312,9 @@ class Table(Cell):
             self.sortedRowsSlot,
             self.maxRowsPerPage,
         )
+
+        self.exportData["fillWidth"] = fillWidth
+        self.exportData["fillHeight"] = fillHeight
 
     def prepareForReuse(self):
         if not self.garbageCollected:

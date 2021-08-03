@@ -50,6 +50,10 @@ const copyNodeInto = (sourceNode, destNode) => {
         sourceNode.children
     );
 
+    // we muck with 'class' all over the place, so use what's
+    // actually on the DOM for that
+    sourceNode.cellsProperties.class = sourceNode.getAttribute('class');
+
     let oldProps = destNode.cellsProperties;
     let newProps = sourceNode.cellsProperties;
 

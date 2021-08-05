@@ -131,3 +131,22 @@ class InSubscribedSequence(CellsTestPage):
 
     def text(self):
         pass
+
+
+class PlotResizeInPanel(CellsTestPage):
+    def cell(self):
+        return cells.ResizablePanel(
+            cells.Text("hi"),
+            cells.Panel(
+                cells.Card("ACard")
+                + cells.Flex(
+                    cells.Card(
+                        cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {})),
+                        header="APlot",
+                    )
+                )
+            ),
+        )
+
+    def text(self):
+        pass

@@ -52,55 +52,6 @@ class Panel(Cell):
         self.children["content"] = Cell.makeCell(self.content)
 
 
-class SizedPanel(Cell):
-    """SizedPanel Cell
-
-    This cell is exactly like a Panel, except
-    that it takes explicit width and height
-    values (in pixels)
-
-    Properties
-    ----------
-    content: Cell
-        A child cell that will be displayed within
-        the bordered Panel area.
-    width: int
-        The width of the Panel, in pixels
-    height: int
-        The height of the Panel, in pixels
-    """
-
-    def __init__(self, content, width=100, height=100, border=True):
-        """
-        Parameters
-        ----------
-        content: Cell
-            A child cell that will be displyed
-            within the bordered Panel area.
-            Will be set on instance as `content`
-            property.
-        width: int
-            The desired width of the panel, in pixels
-        height: int
-            The desired height of the panel, in pixels
-        border: bool
-            If True, produce a border and padding. Otherwise, just use this as a grouping
-            element in the display.
-        """
-        super().__init__()
-
-        self.content = Cell.makeCell(content)
-        self.width = width
-        self.height = height
-        self.applyBorder = border
-
-    def recalculate(self):
-        self.exportData["applyBorder"] = self.applyBorder
-        self.exportData["width"] = self.width
-        self.exportData["height"] = self.height
-        self.children["content"] = Cell.makeCell(self.content)
-
-
 class CollapsiblePanel(Cell):
     def __init__(self, panel, content, isExpanded):
         super().__init__()

@@ -39,7 +39,7 @@ import {Scrollable} from './components/Scrollable';
 import {SingleLineTextBox} from './components/SingleLineTextBox';
 import {Span} from './components/Span';
 import {Subscribed} from './components/Subscribed';
-import {SizedPanel} from './components/SizedPanel';
+import {Sized} from './components/Sized';
 import {Table, TableRow, TableHeader} from './components/Table';
 import {Tabs} from './components/Tabs';
 import {Text} from './components/Text';
@@ -94,7 +94,7 @@ const ComponentRegistry = {
     Sequence,
     Sheet,
     SingleLineTextBox,
-    SizedPanel,
+    Sized,
     Span,
     SplitView,
     Subscribed,

@@ -27,11 +27,12 @@ from object_database.web.cells.dropdown import Dropdown
 from object_database.web.cells.async_dropdown import AsyncDropdown, CircleLoader
 from object_database.web.cells.container import Container
 from object_database.web.cells.deprecated import LargePendingDownloadDisplay
-from object_database.web.cells.panel import CollapsiblePanel, Panel, SizedPanel
+from object_database.web.cells.panel import CollapsiblePanel, Panel
 from object_database.web.cells.non_builtin_cell import NonBuiltinCell
 
 from object_database.web.cells.popover import Popover
 from object_database.web.cells.tabs import Tabs
+from object_database.web.cells.sized import Sized
 from object_database.web.cells.session_state import sessionState, SessionState
 from object_database.web.cells.leaves import (
     Octicon,

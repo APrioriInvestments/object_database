@@ -386,7 +386,7 @@ class BasicNewSheetInPanel(CellsTestPage):
         return "You should see a bigger sheet, but inside a Panel"
 
 
-class SheetInSmallSizedPanel(CellsTestPage):
+class SheetInSizedPanel(CellsTestPage):
     def cell(self):
         num_columns = 300
         num_rows = 10000
@@ -409,7 +409,7 @@ class SheetInSmallSizedPanel(CellsTestPage):
                 rows.append(r)
             return rows
 
-        return cells.SizedPanel(
+        return cells.Sized(
             cells.Sheet(
                 rowFun,
                 colWidth=80,

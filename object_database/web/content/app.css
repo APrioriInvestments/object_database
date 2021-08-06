@@ -28,6 +28,23 @@ th {
     width: 100vw;
 }
 
+.page-view-body-holder {
+    width:100%;
+    position:relative;
+    flex:1;
+    overflow: hidden;
+}
+
+.page-view-header {
+    width:100%;
+    overflow: hidden;
+}
+
+.page-view-footer {
+    width:100%;
+    overflow: hidden;
+}
+
 .btn { font-size: .9rem; }
 
 .btn-xs {
@@ -406,7 +423,7 @@ th {
     position:absolute;
     top:0;
     left:0;
-    height:100vh; 
+    height:100vh;
     width:100vw;
 }
 

@@ -56,9 +56,12 @@ class PageView extends ConcreteCell {
     makeMain(){
         let bodyContent = this.renderChildNamed('main');
 
-        return h('div', {
-            class: 'page-view-body fill-space-vertical fill-space-horizontal allow-child-to-fill-space'
-        }, [bodyContent])
+        return h('div', {'class': 'page-view-body-holder'}, [
+            h('div', {
+                style: 'position:absolute;left:0;top:0;height:100%;width:100%',
+                class: 'page-view-body fill-space-vertical fill-space-horizontal allow-child-to-fill-space'
+            }, [bodyContent])
+        ]);
     }
 
     makeFooter(){

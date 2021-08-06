@@ -53,14 +53,69 @@ class ExpanderTree(CellsTestPage):
                     closed=cells.Subscribed(inner),
                     open=cells.Subscribed(inner)
                     + expander(path + (0,))
-                    + expander(path + (1,)),
+                    + expander(path + (1,))
+                    + expander(path + (2,))
+                    + expander(path + (3,))
+                    + expander(path + (4,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,))
+                    + expander(path + (5,)),
                 )
 
             return cells.Subscribed(body)
 
-        return cells.ResizablePanel(
-            cells.Panel(cells.Flex(expander(())) + cells.Text("At the bottom")),
-            cells.Text("On the right"),
+        return cells.PageView(
+            cells.ResizablePanel(
+                cells.Panel(
+                    cells.VScrollable(expander(()))
+                    + cells.Button("At the bottom", lambda: None)
+                ),
+                cells.ResizablePanel(
+                    cells.Panel(cells.Top(cells.Text("On the right"))),
+                    cells.Panel(cells.Top(cells.Text("On the right2"))),
+                ),
+            ),
+            header=cells.Text("THIS IS SOME TEXT AT TOP"),
+            footer=cells.Text("THIS IS SOME TEXT AT BOTTOM"),
         )
 
     def text(self):

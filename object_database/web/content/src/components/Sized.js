@@ -21,7 +21,7 @@ class Sized extends ConcreteCell {
     build() {
         let res = h('div', {
             id: this.getElementId(),
-            class: "allow-child-to-fill-space",
+            class: "allow-child-to-fill-space overflow-hidden",
             style: this.getStyle()
         }, [this.renderChildNamed('content')]);
 

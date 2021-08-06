@@ -17,6 +17,68 @@ from object_database.web.CellsTestPage import CellsTestPage
 from time import sleep
 
 
+class DropdownGoesAway(CellsTestPage):
+    def cell(self):
+        slot = cells.Slot(0)
+
+        return cells.KeyAction(
+            "altKey+t", lambda x: slot.set(slot.get() + 1)
+        ) + (
+            cells.Subscribed(lambda: 
+                cells.Dropdown(
+                    "You picked " + str(slot.get()), 
+                    [i for i in range(100)],
+                    lambda i: slot.set(i)
+                )
+            )
+        )
+
+    def text(self):
+        return (
+            "You should see a dropdown. Opening it and pressing 'alt-t' should "
+            "make it go away. It shouldn't get orphaned."
+        )
+
+
+class DropdownWithManyItems(CellsTestPage):
+    def cell(self):
+        slot = cells.Slot(0)
+
+        return cells.Subscribed(lambda: 
+            (
+                cells.Dropdown(
+                    "You picked " + str(slot.get()), 
+                    [i for i in range(100)],
+                    lambda i: slot.set(i)
+                ) >>
+                cells.TopRight(
+                    cells.Dropdown(
+                        "You picked " + str(slot.get()), 
+                        [i for i in range(100)],
+                        lambda i: slot.set(i)
+                    )
+                )
+            ) + (
+                cells.Dropdown(
+                    "You picked " + str(slot.get()), 
+                    [i for i in range(100)],
+                    lambda i: slot.set(i)
+                ) >>
+                cells.BottomRight(
+                    cells.Dropdown(
+                        "You picked " + str(slot.get()), 
+                        [i for i in range(100)],
+                        lambda i: slot.set(i)
+                    )
+                )
+            )
+
+        )
+
+    def text(self):
+        return "You should see a dropdown with 100 items"
+
+
 class BasicAsyncDropdown(CellsTestPage):
     def cell(self):
         return cells.AsyncDropdown("Click Me", lambda: cells.Text("Result"))

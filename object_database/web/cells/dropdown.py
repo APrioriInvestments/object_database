@@ -17,7 +17,7 @@ from object_database.web.cells.cell import Cell
 
 
 class Dropdown(Cell):
-    def __init__(self, title, headersAndLambdas, singleLambda=None, rightSide=False):
+    def __init__(self, title, headersAndLambdas, singleLambda=None):
         """
         Initialize a Dropdown menu.
 

@@ -66,3 +66,16 @@ class BasicSizedVerticalStacked(CellsTestPage):
 
     def text(self):
         return "You should see three 'Hellos' in increasing sized, vertically centered."
+
+
+class SizedOverflowIsSet(CellsTestPage):
+    def cell(self):
+        return cells.Highlighted(
+            cells.Sized(cells.Center(cells.Text("Hello" * 1000)), height=150, width=150)
+        )
+
+    def text(self):
+        return (
+            "You should see a 150x150 box of cells where the text does not overflow the "
+            "highlight."
+        )

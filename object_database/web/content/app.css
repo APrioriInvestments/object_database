@@ -394,10 +394,51 @@ th {
   border-bottom: 1px solid rgba(0, 0, 0, 0.125);
 }
 
+/* dropdowns */
+
+.cell-dropdown-item {
+    padding: .25rem 1.25rem;
+    display: block;
+    width: 100%;
+}
+
+.cell-dropdown-backdrop {
+    position:absolute;
+    top:0;
+    left:0;
+    height:100vh; 
+    width:100vw;
+}
+
+.cell-dropdown-backdrop:focus {
+    border: 0;
+    outline-width: 0
+}
+
+.cell-dropdown-item:hover {
+    background-color: rgba(0,0,0,.15);
+}
+
+.cell-open-dropdown-menu {
+    min-width: 200px;
+    padding: .5rem 0;
+    margin: .25rem 0 0;
+    background-color: rgba(255,255,255,1);
+    border:1px solid rgba(0,0,0,.15);
+    max-height: 50vh;
+    max-width: 50vw;
+    overflow: auto;
+    border-radius: .25rem;
+}
+
 /* Generic and Utility Classes
  *======================================================*/
 .overflow {
     overflow: auto;
+}
+
+.overflow-hidden {
+    overflow: hidden;
 }
 
 .child-margin-1 > * {

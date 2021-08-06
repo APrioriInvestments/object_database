@@ -21,8 +21,11 @@ class Dropdown extends ConcreteCell {
         this.makeTitle = this.makeTitle.bind(this);
         this.makeItems = this.makeItems.bind(this);
         this.clearVisibleDropdown = this.clearVisibleDropdown.bind(this);
+        this.computeDropdownStyleFromTogglePosition = this.computeDropdownStyleFromTogglePosition.bind(this);
 
         this.visibleDropdownMenu = null;
+        this.openDropdownMenu = null;
+
         this.dropdownClicked = this.dropdownClicked.bind(this);
         this.onKeyDown = this.onKeyDown.bind(this);
     }
@@ -38,7 +41,10 @@ class Dropdown extends ConcreteCell {
     clearVisibleDropdown() {
         if (this.visibleDropdownMenu) {
             this.visibleDropdownMenu.remove();
+
             this.visibleDropdownMenu = null;
+            this.openDropdownMenu = null;
+            this.dropdownBackdrop = null;
         }
     }
 
@@ -46,17 +52,14 @@ class Dropdown extends ConcreteCell {
         this.clearVisibleDropdown();
     }
 
-    dropdownClicked() {
-        this.clearVisibleDropdown();
-
-        // open the dropdown
+    computeDropdownStyleFromTogglePosition() {
         let curBoundingRect = this.dropdownToggle.getBoundingClientRect();
         let totalBoundingRect = document.body.getBoundingClientRect();
 
         let styles = [];
 
         styles.push('position: absolute');
-        
+
         if (curBoundingRect.right > totalBoundingRect.width * .66) {
             styles.push(`right:${totalBoundingRect.right - curBoundingRect.right}px`);
         } else {
@@ -82,35 +85,57 @@ class Dropdown extends ConcreteCell {
             styles.push(`max-height:${maxHeight}px`);
         }
 
+        return styles.join(";");
+    }
+
+    dropdownClicked() {
+        this.clearVisibleDropdown();
+
+        // open the dropdown
+        let style = this.computeDropdownStyleFromTogglePosition();
+
         this.dropdownBackdrop = h('div', {
             'class': 'cell-dropdown-backdrop',
             onclick: this.clearVisibleDropdown,
         });
 
         this.dropdownBackdrop.addEventListener(
-            'keydown', 
-            this.onKeyDown, 
+            'keydown',
+            this.onKeyDown,
             {'capture': true}
         );
 
         this.dropdownBackdrop.setAttribute('tabindex', 0);
 
+        this.openDropdownMenu = h('div', {
+            'class': 'cell-open-dropdown-menu',
+            'style': style
+            },
+            this.makeItems()
+        );
+
         this.visibleDropdownMenu = h('div',
             {},
             [
                 this.dropdownBackdrop,
-                h('div', {
-                    'class': 'cell-open-dropdown-menu',
-                    'style': styles.join(';')
-                    }, 
-                    this.makeItems()
-                ),
+                this.openDropdownMenu,
             ]
         );
 
         document.body.appendChild(this.visibleDropdownMenu);
 
         this.dropdownBackdrop.focus();
+
+
+        // install a resize observer to update our position if we change while the menu is open
+        let observer = new ResizeObserver(entries => {
+            if (this.openDropdownMenu) {
+                this.openDropdownMenu.setAttribute('style', this.computeDropdownStyleFromTogglePosition())
+            }
+        });
+
+        observer.observe(this.domElement);
+        observer.observe(this.dropdownBackdrop);
     }
 
     build(){

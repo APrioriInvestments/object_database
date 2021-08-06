@@ -27,7 +27,7 @@ class RootCell extends ConcreteCell {
                 id: this.identity,
                 "data-cell-id": this.identity,
                 "data-cell-type": "RootCell",
-                "class": "allow-child-to-fill-space"
+                "class": "root-cell allow-child-to-fill-space"
             }, [this.renderChildNamed('child')])
         );
     }

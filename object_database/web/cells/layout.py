@@ -58,9 +58,19 @@ def Left(cell):
     return FillSpace(cell, "left", None)
 
 
+def LeftCenter(cell):
+    """Take up horizontal and vertical space, and place the cell on the left center of it."""
+    return FillSpace(cell, "left", "center")
+
+
 def Right(cell):
     """Take up horizontal space, and place the cell on the right side of it."""
     return FillSpace(cell, "right", None)
+
+
+def RightCenter(cell):
+    """Take up horizontal and vertical space, and place the cell on the right center of it."""
+    return FillSpace(cell, "right", "center")
 
 
 def Top(cell):
@@ -78,6 +88,11 @@ def TopLeft(cell):
     return FillSpace(cell, "left", "top")
 
 
+def TopCenter(cell):
+    """Take up vertical and horizontal space, and place the cell at the top center of it."""
+    return FillSpace(cell, "center", "top")
+
+
 def TopRight(cell):
     """Take up vertical and horizontal space, and place the cell at the top right of it."""
     return FillSpace(cell, "right", "top")
@@ -86,6 +101,11 @@ def TopRight(cell):
 def BottomLeft(cell):
     """Take up vertical and horizontal space, and place the cell at the bottom left of it."""
     return FillSpace(cell, "left", "bottom")
+
+
+def BottomCenter(cell):
+    """Take up vertical and horizontal space, and place the cell at the bottom center of it."""
+    return FillSpace(cell, "center", "bottom")
 
 
 def BottomRight(cell):

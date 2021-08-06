@@ -13,29 +13,34 @@ import {ConcreteCell} from './ConcreteCell';
  * `dropdownItems` (array) - An array of cells that are
  *      the items in the dropdown
  */
-class Dropdown extends ConcreteCell {
+class DropdownBase extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
 
         // Bind context to methods
-        this.makeTitle = this.makeTitle.bind(this);
-        this.makeItems = this.makeItems.bind(this);
+        this.makeOpenDropdownMenu = this.makeOpenDropdownMenu.bind(this);
         this.clearVisibleDropdown = this.clearVisibleDropdown.bind(this);
         this.computeDropdownStyleFromTogglePosition = this.computeDropdownStyleFromTogglePosition.bind(this);
 
+        // subclasses should populate this with the thing that we want to hang the
+        // floating menu on
+        this.dropdownToggle = null;
+
+        // the parent div containing the dropdown menu
         this.visibleDropdownMenu = null;
+
+        // the child div containing the actual menu itself
         this.openDropdownMenu = null;
+
+        // the div that floats behind the dropdown to catch extra clicks.
+        this.dropdownBackdrop = null;
 
         this.dropdownClicked = this.dropdownClicked.bind(this);
         this.onKeyDown = this.onKeyDown.bind(this);
     }
 
     onKeyDown(event) {
-        if (event.which == 27) {
-            this.clearVisibleDropdown();
-            event.preventDefault();
-            event.stopPropagation();
-        }
+        // subclasses can override to collect keystrokes
     }
 
     clearVisibleDropdown() {
@@ -54,7 +59,7 @@ class Dropdown extends ConcreteCell {
 
     computeDropdownStyleFromTogglePosition() {
         let curBoundingRect = this.dropdownToggle.getBoundingClientRect();
-        let totalBoundingRect = document.body.getBoundingClientRect();
+        let totalBoundingRect = document.getElementById("page_root").getBoundingClientRect();
 
         let styles = [];
 
@@ -66,15 +71,18 @@ class Dropdown extends ConcreteCell {
             styles.push(`left:${curBoundingRect.left}px`);
         }
 
+        let isOpenAbove = false;
+
         if (curBoundingRect.top > totalBoundingRect.height * .66) {
+            // place the floating div above us
             styles.push(`bottom:${totalBoundingRect.bottom - curBoundingRect.top}px`);
 
             let maxHeight = Math.min(
-                (totalBoundingRect.height - curBoundingRect.top) - 10,
+                curBoundingRect.top - 10,
                 totalBoundingRect.height / 2
             );
             styles.push(`max-height:${maxHeight}px`);
-
+            isOpenAbove = true;
         } else {
             styles.push(`top:${curBoundingRect.bottom}px`);
 
@@ -85,14 +93,14 @@ class Dropdown extends ConcreteCell {
             styles.push(`max-height:${maxHeight}px`);
         }
 
-        return styles.join(";");
+        return {style: styles.join(";"), isOpenAbove: isOpenAbove}
     }
 
     dropdownClicked() {
         this.clearVisibleDropdown();
 
         // open the dropdown
-        let style = this.computeDropdownStyleFromTogglePosition();
+        let styleAndOpenAbove = this.computeDropdownStyleFromTogglePosition();
 
         this.dropdownBackdrop = h('div', {
             'class': 'cell-dropdown-backdrop',
@@ -107,12 +115,7 @@ class Dropdown extends ConcreteCell {
 
         this.dropdownBackdrop.setAttribute('tabindex', 0);
 
-        this.openDropdownMenu = h('div', {
-            'class': 'cell-open-dropdown-menu',
-            'style': style
-            },
-            this.makeItems()
-        );
+        this.openDropdownMenu = this.makeOpenDropdownMenu(styleAndOpenAbove);
 
         this.visibleDropdownMenu = h('div',
             {},
@@ -126,16 +129,44 @@ class Dropdown extends ConcreteCell {
 
         this.dropdownBackdrop.focus();
 
-
         // install a resize observer to update our position if we change while the menu is open
         let observer = new ResizeObserver(entries => {
             if (this.openDropdownMenu) {
-                this.openDropdownMenu.setAttribute('style', this.computeDropdownStyleFromTogglePosition())
+                let styleAndOpenAbove = this.computeDropdownStyleFromTogglePosition();
+
+                this.openDropdownMenu.setAttribute('style', styleAndOpenAbove.style);
             }
         });
 
         observer.observe(this.domElement);
         observer.observe(this.dropdownBackdrop);
+    }
+}
+
+
+class Dropdown extends DropdownBase {
+    constructor(props, ...args){
+        super(props, ...args);
+    }
+
+    onKeyDown(event) {
+        if (event.which == 27) {
+            this.clearVisibleDropdown();
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }
+
+    handleMessages(messages) {
+        messages.forEach(msg => {
+            if (msg.action == 'redirect') {
+                if (msg.target) {
+                    window.open(msg.url, msg.target);
+                } else {
+                    window.location.href = msg.url;
+                }
+            }
+        });
     }
 
     build(){
@@ -156,34 +187,20 @@ class Dropdown extends ConcreteCell {
                 class: "cell cell-dropdown dropdown btn-group",
             }, [
                 h('a', {class: "btn btn-xs btn-outline-secondary"}, [
-                    this.makeTitle()
+                    this.renderChildNamed('title')
                 ]),
                 this.dropdownToggle
             ])
         );
     }
 
-    handleMessages(messages) {
-        messages.forEach(msg => {
-            if (msg.action == 'redirect') {
-                if (msg.target) {
-                    window.open(msg.url, msg.target);
-                } else {
-                    window.location.href = msg.url;
-                }
-            }
-        });
-    }
+    makeOpenDropdownMenu(styleAndOpenAbove) {
+        let items = [];
 
-    makeTitle(){
-        return this.renderChildNamed('title');
-    }
-
-    makeItems(){
         if (this.namedChildren.dropdownItems) {
             let renderedItems = this.renderChildrenNamed('dropdownItems');
 
-            return renderedItems.map((itemDom, idx) => {
+            items = renderedItems.map((itemDom, idx) => {
                 let clickHandler = (event) => {
                     this.sendMessage({event: 'menu', ix: idx});
                     this.clearVisibleDropdown();
@@ -195,10 +212,16 @@ class Dropdown extends ConcreteCell {
                     onclick: clickHandler
                 }, [itemDom]);
             });
-        } else {
-            return [];
         }
+
+        return h('div', {
+            'class': 'cell-open-dropdown-menu',
+            'style': styleAndOpenAbove.style
+            },
+            items
+        );
     }
+
 }
 
-export {Dropdown, Dropdown as default};
+export {Dropdown, DropdownBase, Dropdown as default};

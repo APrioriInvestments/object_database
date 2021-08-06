@@ -10,11 +10,15 @@ from object_database.web.cells.layout import (
     Center,
     Top,
     Left,
+    LeftCenter,
     Bottom,
     Right,
+    RightCenter,
     TopLeft,
+    TopCenter,
     TopRight,
     BottomLeft,
+    BottomCenter,
     BottomRight,
 )
 from object_database.web.cells.flex import Flex

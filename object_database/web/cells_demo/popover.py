@@ -132,3 +132,27 @@ def test_dynamic_click_and_delay(headless_browser):
     headless_browser.wait(6).until(
         headless_browser.expect.invisibility_of_element_located(pop_content_location)
     )
+
+
+class NinePopovers(CellsTestPage):
+    def cell(self):
+        return (
+            (
+                cells.TopLeft(cells.Popover("summary", "title", "detailed content"))
+                >> cells.TopCenter(cells.Popover("summary", "title", "detailed content"))
+                >> cells.TopRight(cells.Popover("summary", "title", "detailed content"))
+            )
+            + (
+                cells.LeftCenter(cells.Popover("summary", "title", "detailed content"))
+                >> cells.Center(cells.Popover("summary", "title", "detailed content"))
+                >> cells.RightCenter(cells.Popover("summary", "title", "detailed content"))
+            )
+            + (
+                cells.BottomLeft(cells.Popover("summary", "title", "detailed content"))
+                >> cells.BottomCenter(cells.Popover("summary", "title", "detailed content"))
+                >> cells.BottomRight(cells.Popover("summary", "title", "detailed content"))
+            )
+        )
+
+    def text(self):
+        return "you should see four popovers whose popouts show up in the right place."

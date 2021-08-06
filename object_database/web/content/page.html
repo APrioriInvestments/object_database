@@ -33,22 +33,6 @@
 <!-- Webpack Bundle of Application and Dependencies -->
 <script src="/content/dist/main.bundle.js"></script>
 
-<!-- Necessary to make bootstrap-style popovers function correctly -->
-<script>
-const getChildProp = function(el, child) {
-     return $('.data-' + child, $(el).attr('data-bind')).html();
-};
-
-$('[data-poload]').on('show.bs.dropdown', function (arg) {
-  var target = arg.currentTarget;
-
-  var ref=$(target).attr("data-poload");
-  var tgt=$($(target).attr("data-poload-target"))[0];
-
-  $(tgt).load(ref)
-})
-
-</script>
 </head>
 
 <!-- END OF SCRIPTS -->

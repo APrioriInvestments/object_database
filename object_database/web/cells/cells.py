@@ -453,9 +453,6 @@ class Cells:
                         e.callback(self.db)
 
                 for child_cell in node.children.allChildren:
-                    # TODO: We are going to have to update this
-                    # to deal with namedChildren structures (as opposed
-                    # to plain children dicts) in the near future.
                     if not isinstance(child_cell, Cell):
                         childname = node.children.findNameFor(child_cell)
                         raise Exception(

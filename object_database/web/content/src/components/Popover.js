@@ -25,10 +25,20 @@ class Popover extends DropdownBase {
                 class: "btn btn-xs",
                 onclick: this.dropdownClicked
             },
-            [this.renderChildNamed('content')]
+            [
+                this.renderChildNamed('content')
+            ]
         );
 
         return this.dropdownToggle;
+    }
+
+    onDropdownOpened() {
+        this.sendMessage({open_state: true});
+    }
+
+    onDropdownClosed() {
+        this.sendMessage({open_state: false});
     }
 
     makeOpenDropdownMenu(styleAndOpenAbove) {

@@ -156,3 +156,22 @@ class NinePopovers(CellsTestPage):
 
     def text(self):
         return "you should see four popovers whose popouts show up in the right place."
+
+
+class ManyPopovers(CellsTestPage):
+    def cell(self):
+        return cells.SubscribedSequence(
+            lambda: list(range(1000)),
+            lambda i: cells.Left(
+                cells.Popover(
+                    f"popover {i}",
+                    f"title {i}",
+                    cells.SubscribedSequence(
+                        lambda: list(range(1000)), lambda j: cells.Text(j)
+                    ),
+                )
+            ),
+        )
+
+    def text(self):
+        return "a thousand popovers with a thousand things inside."

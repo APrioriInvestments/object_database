@@ -37,6 +37,17 @@ class DropdownBase extends ConcreteCell {
 
         this.dropdownClicked = this.dropdownClicked.bind(this);
         this.onKeyDown = this.onKeyDown.bind(this);
+
+        this.onDropdownClosed = this.onDropdownClosed.bind(this);
+        this.onDropdownOpened = this.onDropdownOpened.bind(this);
+    }
+
+    onDropdownOpened() {
+
+    }
+
+    onDropdownClosed() {
+
     }
 
     onKeyDown(event) {
@@ -50,6 +61,8 @@ class DropdownBase extends ConcreteCell {
             this.visibleDropdownMenu = null;
             this.openDropdownMenu = null;
             this.dropdownBackdrop = null;
+
+            this.onDropdownClosed();
         }
     }
 
@@ -64,6 +77,7 @@ class DropdownBase extends ConcreteCell {
         let styles = [];
 
         styles.push('position: absolute');
+        styles.push('z-index: 10');
 
         if (curBoundingRect.right > totalBoundingRect.width * .66) {
             styles.push(`right:${totalBoundingRect.right - curBoundingRect.right}px`);
@@ -98,6 +112,7 @@ class DropdownBase extends ConcreteCell {
 
     dropdownClicked() {
         this.clearVisibleDropdown();
+        this.onDropdownOpened();
 
         // open the dropdown
         let styleAndOpenAbove = this.computeDropdownStyleFromTogglePosition();

@@ -14,6 +14,8 @@
 
 
 from object_database.web.cells.cell import Cell
+from object_database.web.cells.slot import Slot
+from object_database.web.cells.subscribed import Subscribed
 
 
 class Popover(Cell):
@@ -21,16 +23,25 @@ class Popover(Cell):
         super().__init__()
 
         self.width = width
-        contentCell = Cell.makeCell(contents)
-        detailCell = Cell.makeCell(detail)
-        titleCell = Cell.makeCell(title)
-        self.children.addFromDict(
-            {"content": contentCell, "detail": detailCell, "title": titleCell}
+        self.isOpen = Slot(False)
+
+        self.contentCell = Cell.makeCell(contents)
+        self.detailCell = Subscribed(
+            lambda: Cell.makeCell(detail) if self.isOpen.get() else None
+        )
+        self.titleCell = Subscribed(
+            lambda: Cell.makeCell(title) if self.isOpen.get() else None
         )
 
-    def recalculate(self):
+        self.children["content"] = self.contentCell
+        self.children["detail"] = self.detailCell
+        self.children["title"] = self.titleCell
+
         self.exportData["width"] = self.width
 
     def sortsAs(self):
-        if self.children.hasChildNamed("title"):
-            return self.children["title"].sortAs()
+        return self.contentCell.sortAs()
+
+    def onMessage(self, msgFrame):
+        if "open_state" in msgFrame:
+            self.isOpen.set(msgFrame["open_state"])

@@ -63,7 +63,6 @@ class Button(Clickable):
     def recalculate(self):
         super().recalculate()
 
-        # temporary js WS refactoring data
         self.exportData["small"] = bool(self.small)
         self.exportData["active"] = bool(self.active)
         self.exportData["style"] = self.style

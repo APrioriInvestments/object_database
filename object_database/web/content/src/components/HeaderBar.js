@@ -90,7 +90,7 @@ class HeaderBar extends ConcreteCell {
     makeElements(position){
         return this.renderChildrenNamed(`${position}Items`).map(element => {
             return (
-                h('span', {class: "flex-item px-3"}, [element])
+                h('span', {class: "flex-item header-bar-span"}, [element])
             );
         });
     }

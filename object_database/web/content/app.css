@@ -13,6 +13,7 @@
 body {
     font-family: "Source Sans Pro";
     font-size: .9rem;
+    margin: 0;
 }
 
 td {
@@ -46,15 +47,6 @@ th {
     overflow: hidden;
 }
 
-.btn { font-size: .9rem; }
-
-.btn-xs {
-    padding-top: 0;
-    padding-bottom: 0;
-    padding-left: 6px;
-    padding-right: 6px;
-}
-
 .table-sm {
     padding: 0;
     border: 1;
@@ -64,11 +56,10 @@ th {
     padding: 0;
     border: 1;
 }
-
 
 /* Clickable and Button
- * (Note that most of Button styling is from Bootstrap first)
  * =====================================================*/
+
 [data-cell-type="Clickable"] {
     display: inline-block;
 }
@@ -376,6 +367,14 @@ th {
     flex: 5;
 }
 
+.btn-xs {
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+
 
 /*************** CARD *************/
 
@@ -438,6 +437,7 @@ th {
 }
 
 .cell-open-popover {
+    z-index: 2;
     min-width: 200px;
     overflow: hidden;
     margin: 0;
@@ -512,6 +512,7 @@ th {
 }
 
 .cell-open-dropdown-menu {
+    z-index: 2;
     min-width: 200px;
     padding: .5rem 0;
     margin: .25rem 0 0;
@@ -521,6 +522,10 @@ th {
     max-width: 50vw;
     overflow: auto;
     border-radius: .25rem;
+}
+
+.header-bar-span {
+    padding-left: 1rem!important
 }
 
 /* Generic and Utility Classes

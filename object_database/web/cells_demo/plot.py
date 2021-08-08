@@ -36,7 +36,7 @@ class BasicPlot(CellsTestPage):
 
         button = cells.Button("Increment", updateData)
 
-        return button >> Flex(cells.Plot(getData))
+        return button >> cells.Plot(getData)
 
     def text(self):
         return (

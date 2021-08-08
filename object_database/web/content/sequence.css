@@ -14,7 +14,7 @@
 
 .sequence-horizontal {
     flex-direction: row;
-    align-items: baseline;
+    align-items: stretch;
 }
 
 .sequence-vertical > .fill-space-vertical {

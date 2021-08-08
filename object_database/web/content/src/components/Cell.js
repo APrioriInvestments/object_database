@@ -132,6 +132,7 @@ class Cell {
         this.buildDomSequenceChildren = this.buildDomSequenceChildren.bind(this);
         this.onFirstInstalled = this.onFirstInstalled.bind(this);
         this.rebuildDomElement = this.rebuildDomElement.bind(this);
+        this.requestPacket = this.requestPacket.bind(this);
         this.childChanged = this.childChanged.bind(this);
         this.handleMessages = this.handleMessages.bind(this);
         this.addCanonicalTags = this.addCanonicalTags.bind(this);
@@ -341,6 +342,40 @@ class Cell {
         if (this.handler) {
             this.handler.sendMessageFor(message, this.identity);
         }
+    }
+
+    /**
+     * Request a 'packet' on an out-of-band http request from the server.
+     *
+     * This is faster than using the websocket for large data streams because
+     * we don't have to use the congestion control mechanism built into the
+     * websocket.
+     *
+     * Args:
+     *    packetId - an integer packet id
+     *    callback - a function of (packetId, responseText)
+     *    onFailure - a function of (packetId, errorText, errorCode)
+     **/
+    requestPacket(packetId, callback, onFailure) {
+        // make an AJAX query for the plot's data packet
+        let httpRequest = new XMLHttpRequest();
+
+        httpRequest.onreadystatechange = () => {
+            if (httpRequest.readyState == XMLHttpRequest.DONE) {   // XMLHttpRequest.DONE == 4
+                if (httpRequest.status == 200) {
+                    callback(packetId, httpRequest.responseText)
+                }
+                else {
+                    console.error("Packet " + packetId + " failed: " + httpRequest.responseText)
+                    if (onFailure) {
+                        onFailure(packetId, httpRequest.status, httpRequest.responseText);
+                    }
+                }
+            }
+        };
+
+        httpRequest.open("GET", "/packet?packetId=" + packetId, true);
+        httpRequest.send();
     }
 
     // called before we remove a cell

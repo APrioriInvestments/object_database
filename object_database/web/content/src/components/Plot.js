@@ -25,8 +25,10 @@ class Plot extends ConcreteCell {
         this.installResizeObserver = this.installResizeObserver.bind(this);
         this.updatePlotState = this.updatePlotState.bind(this);
         this.updatePlotTraces = this.updatePlotTraces.bind(this);
+        this.onPlotDataReceived = this.onPlotDataReceived.bind(this);
 
         this.lastUpdateTimestamp = 0;
+        this.lastUpdatePacketId = -1;
         this.lastUpdateData = {};
 
         this.plotDivIsActive = false;
@@ -102,7 +104,7 @@ class Plot extends ConcreteCell {
     }
 
     onFirstInstalled() {
-        this.updatePlotState(true);
+        this.updatePlotState();
         this.installResizeObserver();
     }
 
@@ -114,7 +116,7 @@ class Plot extends ConcreteCell {
     }
 
     rebuildDomElement() {
-        this.updatePlotState(false);
+        this.updatePlotState();
     }
 
     // cause the plotDiv to become a plotly.Plot
@@ -204,7 +206,7 @@ class Plot extends ConcreteCell {
         }
     }
 
-    updatePlotState(immediately) {
+    updatePlotState() {
         if (this.props.error) {
             this.setErrorMessage(this.props.error);
         } else {
@@ -217,42 +219,32 @@ class Plot extends ConcreteCell {
             this.errorDiv.replaceWith(newErrorDiv);
             this.errorDiv = newErrorDiv;
 
-            // update the plot div itself
-            this.lastUpdateData = this.props.plotData
-            this.lastUpdateTimestamp = Date.now()
-
-            if (immediately) {
-                this.updatePlotTraces();
-            } else {
-                var UPDATE_DELAY_MS = 100;
-
-                window.setTimeout(() => {
-                    // don't do anything if the plot div no longer is on the screen
-                    if (!this.plotDivIsActive) {
-                        return;
-                    }
-
-                    if (this.plotDiv.lastRelayoutingTimestamp !== undefined) {
-                        if (Date.now() - this.plotDiv.lastRelayoutingTimestamp < 75) {
-                            //the user just scrolled.
-                            window.setTimeout(() => { this.runUpdate(this.plotDiv)}, 75);
-                            return
-                        }
-                    }
-                    if (Date.now() - this.lastUpdateTimestamp >= UPDATE_DELAY_MS) {
-                        this.updatePlotTraces();
-                    }
-                }, UPDATE_DELAY_MS)
+            // check if we've already received this packet
+            if (this.lastUpdatePacketId >= this.props.packetId) {
+                return;
             }
+
+            this.requestPacket(this.props.packetId, this.onPlotDataReceived, null);
         }
+    }
+
+    onPlotDataReceived(packetId, responseData) {
+        if (this.lastUpdatePacketId >= packetId) {
+            return;
+        }
+
+        this.lastUpdateData = JSON.parse(responseData);
+        this.lastUpdatePacketId = packetId;
+        this.lastUpdateTimestamp = Date.now()
+
+        // update the plot div itself
+        this.updatePlotTraces();
     }
 
     updatePlotTraces() {
         try {
-            var traces = this.lastUpdateData[0]
-            var layout = this.lastUpdateData[1]
-
-            traces = this.recursivelyUnpackNumpyArrays(traces);
+            var traces = this.recursivelyUnpackNumpyArrays(this.lastUpdateData[0]);
+            var layout = this.lastUpdateData[1];
 
             traces.map((trace) => {
                 if (trace.timestamp !== undefined) {

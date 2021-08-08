@@ -353,7 +353,6 @@ th {
  * =====================================================*/
  .header-bar {
     display: flex;
-    align-items: baseline;
     align-items: center;
  }
 

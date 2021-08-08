@@ -94,6 +94,12 @@ class Cells:
         # cell identity to list of json messages to process in each cell object
         self._pendingOutgoingMessages = {}
 
+        # the next packetId we'll return
+        self._packetId = 0
+
+        # map from packetId to the callback that produces the packet data
+        self._packetCallbacks = {}
+
     def cleanupCells(self):
         """Walk down the tree calling 'onRemovedFromTree' so that our cells can GC any
         outstanding threads or downloaders they have sitting around."""
@@ -438,6 +444,33 @@ class Cells:
 
         if orphanedCount:
             logging.info("GC'd %s ComputedSlot objects", orphanedCount)
+
+    def getPacketId(self, packetCallback):
+        """Return an integer 'packet' id for a callback.
+
+        This lets us register a callback that can produce a larger bundle of
+        data that we can send to the browser over http (instead of the websocket)
+        which is faster and which can happen out-of-band.
+
+        Args:
+            packetCallback - a function that accepts a packetId and
+                returns a 'bytes' object  that will be the response
+
+        Returns:
+            a 'packet id' we can use to identify the packet.
+        """
+        packetId = self._packetId
+
+        self._packetId += 1
+        self._packetCallbacks[packetId] = packetCallback
+
+        return packetId
+
+    def getPacketContents(self, packetId):
+        if packetId in self._packetCallbacks:
+            return self._packetCallbacks.pop(packetId)(packetId)
+        else:
+            return None
 
     def _recalculateSingleCell(self, node):
         origChildren = self._cellsKnownChildren.get(node.identity, set())

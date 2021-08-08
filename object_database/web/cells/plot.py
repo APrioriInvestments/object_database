@@ -40,17 +40,34 @@ class Plot(Cell):
 
         self.plotDataGenerator = plotDataGenerator
         self.curXYRanges = xySlot or Slot(None)
+        self.plotData = None
 
     def recalculate(self):
         error, plotData = self.calculateErrorAndPlotData()
 
-        if error != self.exportData.get("error") or plotData != self.exportData.get(
-            "plotData"
-        ):
+        if error == self.exportData.get("error") and plotData == self.plotData:
+            return
+
+        if error != self.exportData.get("error") or plotData != self.plotData:
             self.markDirty()
 
         self.exportData["error"] = error
-        self.exportData["plotData"] = plotData
+        self.exportData["packetId"] = self.cells.getPacketId(self.getPacketData)
+
+        print("Packet is ", self.exportData["packetId"])
+
+        self.plotData = plotData
+
+    def getPacketData(self, packetId):
+        """Return the data for 'packetId'
+
+        Because we may fire off several packets in a row, and we only retain data
+        for one of them, we return None for any packet that's not the most recent.
+        """
+        if self.exportData["packetId"] == packetId:
+            return json.dumps(self.plotData)
+
+        return None
 
     def calculateErrorAndPlotData(self):
         with self.view() as v:

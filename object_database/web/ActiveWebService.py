@@ -27,6 +27,7 @@ import socket
 import gevent
 import gevent.fileobject
 
+from object_database.view import revisionConflictRetry
 from object_database.util import genToken, validateLogLevel
 from object_database import ServiceBase, service_schema
 from object_database.message_bus import MessageBus
@@ -78,6 +79,12 @@ class GeventPipe:
 
         self.netChange += 1
         os.write(self.write_fd, b"\n")
+
+
+class WebServiceError(Exception):
+    def __init__(self, message, status_code=404):
+        self.message = message
+        self.status_code = status_code
 
 
 MAX_PROCESS_MEMORY_HARD_LIMIT = 8 * 1024 ** 3
@@ -270,10 +277,19 @@ class ActiveWebService(ServiceBase):
         self.app.add_url_rule(
             "/content/<path:path>", endpoint=None, view_func=self.sendContent
         )
+        self.app.add_url_rule("/packet", endpoint=None, view_func=self.sendPacket)
         self.app.add_url_rule("/services", endpoint=None, view_func=self.sendPage)
         self.app.add_url_rule("/services/<path:path>", endpoint=None, view_func=self.sendPage)
         self.app.add_url_rule("/status", view_func=self.statusPage)
         self.sockets.add_url_rule("/socket/<path:path>", None, self.mainSocket)
+
+        self.app.errorhandler(WebServiceError)(self.handleWebServiceError)
+
+    @staticmethod
+    def handleWebServiceError(error):
+        response = jsonify({"message": error.message})
+        response.status_code = error.status_code
+        return response
 
     def statusPage(self):
         return make_response(jsonify("STATUS: service is up"))
@@ -284,7 +300,95 @@ class ActiveWebService(ServiceBase):
         return self.sendContent("page.html")
 
     @login_required
+    def sendPacket(self):
+        queryArgs = dict(request.args.items())
+
+        session = request.cookies.get("session")
+
+        try:
+            packetId = int(queryArgs.get("packetId"))
+        except Exception:
+            raise WebServiceError("PacketId must be an integer")
+
+        with self.db.view():
+            sessionObj = active_webservice_schema.Session.lookupAny(sessionId=session)
+
+            port = sessionObj.listening_port
+
+        self._logger.info("ActiveWebService initializing packet handler for %s", sessionObj)
+
+        responseQueue = queue.Queue()
+
+        def onEvent(event):
+            if event.matches.IncomingMessage:
+                responseQueue.put(event.message)
+
+            if (
+                event.matches.OutgoingConnectionFailed
+                or event.matches.OutgoingConnectionClosed
+            ):
+                responseQueue.put(DISCONNECT)
+
+        # connect to the other service
+        messageBus = MessageBus(
+            busIdentity="packet_bus_" + str(packetId) + "_" + str(session),
+            endpoint=None,
+            inMessageType=str,
+            outMessageType=str,
+            onEvent=onEvent,
+            authToken=self.runtimeConfig.authToken,
+        )
+
+        messageBus.start()
+
+        try:
+            connId = messageBus.connect(("localhost", port))
+
+            messageBus.sendMessage(
+                connId, '{"msg": "getPacket", "packet": ' + str(packetId) + "}"
+            )
+
+            try:
+                result = responseQueue.get(timeout=20)
+            except queue.Empty:
+                return "No packet response", 400
+
+            if result is DISCONNECT:
+                logging.error(
+                    "ActiveWebService failed to send packetId=%s because it was not "
+                    "able to connect to the running process.",
+                    packetId,
+                )
+                raise WebServiceError("Failed to connect to running active webservice")
+
+            # open a new connection
+            logging.info(
+                "ActiveWebService sending packetId=%s of size %s bytes to %s",
+                packetId,
+                len(result),
+                sessionObj,
+            )
+            return result
+        except WebServiceError:
+            raise
+        except Exception as e:
+            logging.exception(
+                "ActiveWebService failed to send packet %s to %s", packetId, sessionObj
+            )
+            raise WebServiceError("Failed to get packet: " + str(e))
+        finally:
+            messageBus.stop()
+
+    @revisionConflictRetry
+    def clearSessionsFor(self, sessionId):
+        with self.db.transaction():
+            for s in active_webservice_schema.Session.lookupAll(sessionId=sessionId):
+                s.delete()
+
+    @login_required
     def mainSocket(self, ws, path):
+        self.clearSessionsFor(request.cookies.get("session"))
+
         self._logger.info(
             "ActiveWebService new incoming connection for user %s", current_user.username
         )
@@ -306,6 +410,8 @@ class ActiveWebService(ServiceBase):
                 user=current_user.username,
                 authorized_groups_text=self.authorized_groups_text,
             )
+
+            self._logger.info("ActiveWebService starting session %s", session)
 
         if not self.db.waitForCondition(lambda: session.listening_port is not None, 5.0):
             # the session couldn't connect. just close it an exit.
@@ -343,6 +449,9 @@ class ActiveWebService(ServiceBase):
         messageBus.start()
 
         connId = messageBus.connect(("localhost", otherPort))
+
+        # indicate we're the primary websocket connection
+        messageBus.sendMessage(connId, '{"msg": "primaryWebsocket"}')
 
         def readThread():
             while not ws.closed:
@@ -386,15 +495,21 @@ class ActiveWebService(ServiceBase):
         inMessage = queue.Queue()
         connectionQueue = queue.Queue()
 
+        totalConnections = [0]
+
         def onEvent(event):
             if event.matches.NewIncomingConnection:
                 connectionQueue.put(event.connectionId)
+                totalConnections[0] += 1
 
             if event.matches.IncomingMessage:
-                inMessage.put(event.message)
+                inMessage.put((event.message, event.connectionId))
 
             if event.matches.IncomingConnectionClosed:
-                session.stop()
+                totalConnections[0] -= 1
+
+                if not totalConnections[0]:
+                    session.stop()
 
         messageBus = MessageBus(
             busIdentity="bus",
@@ -412,11 +527,13 @@ class ActiveWebService(ServiceBase):
                 session.listening_port = messageBus.listeningEndpoint.port
 
             try:
-                conn = connectionQueue.get(timeout=10.0)
+                connectionQueue.get(timeout=10.0)
             except queue.Empty:
                 self._logger.error(
                     "ActiveWebService single session booted but never got a connection"
                 )
+
+            self._logger.info("Child proc for session %s got an incoming connection", session)
 
             with self.db.view():
                 path = session.path.split("/")
@@ -428,7 +545,7 @@ class ActiveWebService(ServiceBase):
             session = CellsSession(
                 self.db,
                 inMessage,
-                lambda msg: messageBus.sendMessage(conn, msg),
+                lambda connId, msg: messageBus.sendMessage(connId, msg),
                 path,
                 queryArgs,
                 sessionId,
@@ -438,6 +555,7 @@ class ActiveWebService(ServiceBase):
 
             session.run()
         finally:
+            self._logger.info("Child proc for session %s terminating", session)
             messageBus.stop()
 
     @login_required

@@ -65,7 +65,7 @@ class Session:
     # data about the incoming request
     path = str
     queryArgs = ConstDict(str, str)
-    sessionId = str
+    sessionId = Indexed(str)
     user = str
     authorized_groups_text = str
 

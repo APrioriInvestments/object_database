@@ -49,9 +49,29 @@ class CellsSession:
         currentUser,
         authorized_groups_text,
     ):
+        """Initialize a CellsSession:
+
+        Args:
+            db - an odb connection
+            inboundMessageQueue - a queue containing (msg, connId) instances,
+                where 'msg' is a string containing a websocket message and
+                connId is the connection that sent us the data.
+
+                There is one connId which represents the incoming socket connection.
+            sendMessage - a function of (connId, msg) to send a str message to 'connId'
+            path - the actual path we were loaded with
+            queryArgs - the queryArgs we were loaded with
+            sessionId - the session cookie
+            currentUser - name of the currently authenticated user
+            authorized_groups_text - a string description of who can log in.
+        """
         self.inboundMessageQueue = inboundMessageQueue
         self._logger = logging.getLogger(__name__)
         self.sendMessage = sendMessage
+
+        self.primaryConnId = None
+        self.primaryConnIdSet = threading.Event()
+
         self.db = db
         self.path = path
         self.queryArgs = queryArgs
@@ -97,7 +117,7 @@ class CellsSession:
 
     def readThreadLoop(self):
         while not self.shouldStop.is_set():
-            msg = self.inboundMessageQueue.get()
+            msg, connId = self.inboundMessageQueue.get()
 
             if msg is DISCONNECT:
                 self.largeMessageAck.put(DISCONNECT)
@@ -106,14 +126,26 @@ class CellsSession:
             try:
                 jsonMsg = json.loads(msg)
 
-                if "ACK" in jsonMsg:
-                    self.largeMessageAck.put(jsonMsg["ACK"])
+                if isinstance(jsonMsg, dict) and jsonMsg.get("msg") == "primaryWebsocket":
+                    self.primaryConnId = connId
+                    self.primaryConnIdSet.set()
+
+                elif isinstance(jsonMsg, dict) and jsonMsg.get("msg") == "getPacket":
+                    self.sendPacketTo(connId, jsonMsg.get("packet"))
                 else:
-                    self.cells.scheduleCallback(self.makeMessageCallback(jsonMsg))
+                    if "ACK" in jsonMsg:
+                        self.largeMessageAck.put(jsonMsg["ACK"])
+                    else:
+                        self.cells.scheduleCallback(self.makeMessageCallback(jsonMsg))
             except Exception:
                 self._logger.exception("Exception in inbound message:")
 
         self.largeMessageAck.put(DISCONNECT)
+
+    def sendPacketTo(self, connId, packetId):
+        packetContents = self.cells.getPacketContents(packetId)
+
+        self.sendMessage(connId, packetContents)
 
     def writeJsonMessage(self, message):
         """Send a message over the websocket.
@@ -142,10 +174,10 @@ class CellsSession:
                 "Sending large message of %s bytes over %s frames", len(msg), len(frames)
             )
 
-        self.sendMessage(json.dumps(len(frames)))
+        self.sendMessage(self.primaryConnId, json.dumps(len(frames)))
 
         for index, frame in enumerate(frames):
-            self.sendMessage(frame)
+            self.sendMessage(self.primaryConnId, frame)
 
             # block until we get the ack for FRAMES_PER_ACK frames ago. That
             # way we always have FRAMES_PER_ACK frames in the buffer.
@@ -214,9 +246,15 @@ class CellsSession:
         self.readThread.start()
 
         try:
+            # don't execute until we know which channel is the main websocket.
+            self.primaryConnIdSet.wait()
+            if self.primaryConnId is None:
+                return
+
             while not self.shouldStop.is_set():
                 t0 = time.time()
                 messages = self.cells.renderMessages()
+
                 self.lastDumpTimeSpentCalculating += time.time() - t0
 
                 if messages:
@@ -251,7 +289,7 @@ class CellsSession:
 
         finally:
             self.shouldStop.set()
-            self.inboundMessageQueue.put(DISCONNECT)
+            self.inboundMessageQueue.put((DISCONNECT, None))
 
             self.readThread.join()
             self.cells.cleanupCells()
@@ -264,5 +302,6 @@ class CellsSession:
 
     def stop(self):
         self.shouldStop.set()
-        self.inboundMessageQueue.put(DISCONNECT)
+        self.primaryConnIdSet.set()
+        self.inboundMessageQueue.put((DISCONNECT, None))
         self.largeMessageAck.put(DISCONNECT)

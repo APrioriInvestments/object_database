@@ -209,6 +209,14 @@ class Dropdown extends DropdownBase {
         );
     }
 
+    onDropdownOpened() {
+        this.dropdownToggle.classList.add('active');
+    }
+
+    onDropdownClosed() {
+        this.dropdownToggle.classList.remove('active');
+    }
+
     makeOpenDropdownMenu(styleAndOpenAbove) {
         let items = [];
 

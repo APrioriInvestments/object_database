@@ -28,7 +28,7 @@ from object_database.web.cells.columns import Columns
 from object_database.web.cells.highlighted import Highlighted
 from object_database.web.cells.expands import Expands
 from object_database.web.cells.dropdown import Dropdown
-from object_database.web.cells.async_dropdown import AsyncDropdown, CircleLoader
+from object_database.web.cells.dropdown_drawer import DropdownDrawer, CircleLoader
 from object_database.web.cells.container import Container
 from object_database.web.cells.deprecated import LargePendingDownloadDisplay
 from object_database.web.cells.panel import CollapsiblePanel, Panel

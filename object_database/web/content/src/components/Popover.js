@@ -23,6 +23,7 @@ class Popover extends DropdownBase {
         this.dropdownToggle = h('div',
             {
                 class: "btn btn-xs",
+                "data-cell-type": 'Popover',
                 onclick: this.dropdownClicked
             },
             [

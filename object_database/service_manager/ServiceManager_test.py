@@ -45,7 +45,6 @@ from object_database.web.cells import (
     Flex,
     ensureSubscribedType,
     Expands,
-    AsyncDropdown,
     ButtonGroup,
     Octicon,
     SplitView,
@@ -374,22 +373,6 @@ class GraphDisplayService(ServiceBase):
             ],
             {"title": "a feigenbaum diagram", "xaxis": {"title": "the x axis"}},
         )
-
-
-class DropdownTestService(ServiceBase):
-    def initialize(self):
-        pass
-
-    @staticmethod
-    def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
-        return Card(
-            AsyncDropdown("Dropdown", DropdownTestService.delayAndDisplay, Text("LOADING..."))
-        )
-
-    @staticmethod
-    def delayAndDisplay():
-        time.sleep(1)
-        return Text("NOW WE HAVE LOADED")
 
 
 bigGrid = Schema("core.test.biggrid")

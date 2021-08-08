@@ -8,7 +8,7 @@
 
 import {Cell} from './components/Cell';
 import {ConcreteCell} from './components/ConcreteCell';
-import {AsyncDropdown, AsyncDropdownContent} from './components/AsyncDropdown';
+import {DropdownDrawer} from './components/DropdownDrawer';
 import {Badge} from './components/Badge';
 import {Button} from './components/Button';
 import {ButtonGroup} from './components/ButtonGroup';
@@ -56,8 +56,7 @@ import {PageView} from './components/PageView';
 
 const ComponentRegistry = {
     _NavTab,
-    AsyncDropdown,
-    AsyncDropdownContent,
+    DropdownDrawer,
     Badge,
     Button,
     ButtonGroup,

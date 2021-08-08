@@ -521,6 +521,18 @@ th {
     border-radius: .25rem;
 }
 
+.cell-open-dropdown-drawer {
+    min-width: 200px;
+    padding: .5rem;
+    margin: .25rem 0 0;
+    background-color: rgba(255,255,255,1);
+    border:1px solid rgba(0,0,0,.15);
+    max-height: 50vh;
+    max-width: 50vw;
+    overflow: auto;
+    border-radius: .25rem;
+}
+
 .header-bar-span {
     padding-left: 1rem!important
 }

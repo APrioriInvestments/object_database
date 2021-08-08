@@ -42,7 +42,7 @@ def test_some_buttons_display(headless_browser):
     assert demo_root
 
     # Root should have 4 children that are each buttons
-    buttons_query = '[data-tag="demo_root"] > [data-cell-type="Button"]'
+    buttons_query = '[data-cell-type="Button"]'
     buttons = headless_browser.find_by_css(buttons_query, many=True)
     assert len(buttons) == 4
 

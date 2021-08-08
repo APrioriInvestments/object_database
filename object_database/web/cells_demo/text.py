@@ -68,7 +68,7 @@ def test_text_replaceable(headless_browser):
     # should see 'Update' and 'Count: 0'
     assert sorted([e.text for e in elements]) == ["Count: 0", "Update"]
 
-    buttons_query = '[data-tag="demo_root"] > [data-cell-type="Button"]'
+    buttons_query = '[data-cell-type="Button"]'
     buttons = headless_browser.find_by_css(buttons_query, many=True)
 
     assert len(buttons) == 1

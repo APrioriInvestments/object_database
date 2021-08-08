@@ -41,10 +41,9 @@ def test_basic_code_editor_hidden(headless_browser):
 
 def test_basic_code_editor_shown(headless_browser):
     # Click the button, then see if the CodeEditor shows
-    button = headless_browser.find_by_css(
-        '{} > [data-cell-type="Button"]'.format(headless_browser.demo_root_selector)
-    )
-    query = '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
+    headless_browser.load_demo_page(CodeEditorDemo)
+    button = headless_browser.find_by_css('[data-cell-type="Button"]')
+    query = '[data-cell-type="CodeEditor"]'
     location = (headless_browser.by.CSS_SELECTOR, query)
     button.click()
     headless_browser.wait(5).until(
@@ -55,10 +54,8 @@ def test_basic_code_editor_shown(headless_browser):
 def test_basic_code_editor_hidden_again(headless_browser):
     # Now ensure that a second click hides the
     # CodeEditor
-    button = headless_browser.find_by_css(
-        '{} > [data-cell-type="Button"]'.format(headless_browser.demo_root_selector)
-    )
-    query = '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
+    button = headless_browser.find_by_css('[data-cell-type="Button"]')
+    query = '[data-cell-type="CodeEditor"]'
     location = (headless_browser.by.CSS_SELECTOR, query)
     button.click()
     headless_browser.wait(5).until(
@@ -96,15 +93,13 @@ def test_stashed_editor_insert_text(headless_browser):
     # Test that we can find the editor and add text to it.
     demo_root = headless_browser.get_demo_root_for(CodeEditorStashedDemo)
     assert demo_root
-    code_editor = headless_browser.find_by_css(
-        '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
-    )
+    code_editor = headless_browser.find_by_css('[data-cell-type="CodeEditor"]')
     assert code_editor
     script = 'cellHandler.activeCells["{}"].editor.setValue("{}")'.format(
         code_editor.get_attribute("data-cell-id"), "Hello World"
     )
     headless_browser.webdriver.execute_script(script)
-    editor_query = "{} .ace_scroller".format(headless_browser.demo_root_selector)
+    editor_query = ".ace_scroller"
     editor_content_area = headless_browser.find_by_css(editor_query)
     assert editor_content_area
 
@@ -120,10 +115,8 @@ def test_stashed_hides_code_editor(headless_browser):
     demo_root = headless_browser.get_demo_root_for(CodeEditorStashedDemo)
     assert demo_root
 
-    toggle_btn = headless_browser.find_by_css(
-        '{} > [data-cell-type="Button"]'.format(headless_browser.demo_root_selector)
-    )
-    query = '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
+    toggle_btn = headless_browser.find_by_css('[data-cell-type="Button"]')
+    query = '[data-cell-type="CodeEditor"]'
     location = (headless_browser.by.CSS_SELECTOR, query)
     toggle_btn.click()
     headless_browser.wait(5).until(
@@ -137,12 +130,10 @@ def test_stashed_reloaded_editor_has_text(headless_browser):
     demo_root = headless_browser.get_demo_root_for(CodeEditorStashedDemo)
     assert demo_root
 
-    query = '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
+    query = '[data-cell-type="CodeEditor"]'
     location = (headless_browser.by.CSS_SELECTOR, query)
 
-    code_editor = headless_browser.find_by_css(
-        '{} [data-cell-type="CodeEditor"]'.format(headless_browser.demo_root_selector)
-    )
+    code_editor = headless_browser.find_by_css('[data-cell-type="CodeEditor"]')
 
     # wait for the editor to show up
     headless_browser.wait(15).until(
@@ -172,9 +163,7 @@ def test_stashed_reloaded_editor_has_text(headless_browser):
     time.sleep(1.0)
 
     # hit the button
-    toggle_btn = headless_browser.find_by_css(
-        '{} > [data-cell-type="Button"]'.format(headless_browser.demo_root_selector)
-    )
+    toggle_btn = headless_browser.find_by_css('[data-cell-type="Button"]')
     toggle_btn.click()
 
     # wait for the editor to go away

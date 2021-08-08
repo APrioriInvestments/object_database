@@ -36,7 +36,7 @@ class Button extends ConcreteCell {
 
         let res = h(
             'div',
-            {'class': 'allow-child-to-fill-space'},
+            {'class': 'allow-child-to-fill-space button-holder'},
             [this.buttonDiv]
         );
 

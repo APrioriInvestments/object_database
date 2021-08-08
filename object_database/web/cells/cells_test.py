@@ -13,7 +13,6 @@
 #   limitations under the License.
 
 from object_database.web.cells import (
-    AsyncDropdown,
     Cell,
     Cells,
     Subscribed,
@@ -400,30 +399,6 @@ class CellsTests(unittest.TestCase):
         self.assertTrue(self.cells.findChildrenByTag("large display 1"))
         self.assertTrue(self.cells.findChildrenByTag("sized display 2"))
         self.assertTrue(self.cells.findChildrenByTag("display 3"))
-
-    def test_async_dropdown_changes(self):
-        # Ensure that AsyncDropdown shows
-        # the loading child first, then the
-        # rendered child after changing the
-        # open state.
-        changedCell = Text("Changed")
-
-        def handler():
-            return changedCell
-
-        dropdown = AsyncDropdown("Untitled", handler)
-        dropdown.contentCell.loadingCell = Text("INITIAL")
-        self.cells.withRoot(dropdown)
-        self.cells.renderMessages()
-
-        # Initial
-        self.assertTrue(dropdown in self.cells)
-        self.assertTrue(dropdown.contentCell.loadingCell in self.cells)
-
-        # Changed
-        dropdown.slot.set(True)
-        self.cells.renderMessages()
-        self.assertTrue(changedCell in self.cells)
 
 
 class CellsUtilTests(unittest.TestCase):

@@ -97,13 +97,12 @@ class ModalWithUpdateFieldAndCancel(CellsTestPage):
 
 def test_basic_modal(headless_browser):
     headless_browser.load_demo_page(BasicModal)
-    root_selector = "{}".format(headless_browser.demo_root_selector)
 
-    button_query = root_selector + ' [data-cell-type="Button"]'
+    button_query = '[data-cell-type="Button"]'
     button = headless_browser.find_by_css(button_query)
 
     # The modal is initially hidden
-    modal_query = root_selector + ' [data-cell-type="Modal"]'
+    modal_query = '[data-cell-type="Modal"]'
     modal = headless_browser.find_by_css(modal_query)
     assert modal.is_displayed() is False
 
@@ -140,20 +139,19 @@ def test_modal_with_update_field(headless_browser):
     - click on the modal button to hide the modal and update the card text
     """
     headless_browser.load_demo_page(ModalWithUpdateField)
-    root_selector = "{}".format(headless_browser.demo_root_selector)
     slot_text = "Some Text"
 
-    button_query = root_selector + ' [data-cell-type="Button"]'
+    button_query = '[data-cell-type="Button"]'
     button = headless_browser.find_by_css(button_query)
     assert button.text == "Open Modal"
 
     # The modal is initially hidden
-    modal_query = root_selector + ' [data-cell-type="Modal"]'
+    modal_query = '[data-cell-type="Modal"]'
     modal = headless_browser.find_by_css(modal_query)
     assert modal.is_displayed() is False
 
     # Read the text on the card
-    text_query = button_query + ' + [data-cell-type="Text"]'  # + means get sibling
+    text_query = '.button-holder + [data-cell-type="Text"]'  # + means get sibling
     text = headless_browser.find_by_css(text_query)
     assert text.text == slot_text
 
@@ -207,18 +205,17 @@ def test_modal_with_cancel_and_update_buttons(headless_browser):
         - clicking on the Update button makes the modal dissapear and updates the card
     """
     headless_browser.load_demo_page(ModalWithUpdateFieldAndCancel)
-    root_selector = "{}".format(headless_browser.demo_root_selector)
     initial_text = "Some Text"
     slot_text = initial_text
 
-    button_query = root_selector + ' [data-cell-type="Button"]'
+    button_query = '[data-cell-type="Button"]'
     # The modal is initially hidden
-    modal_query = root_selector + ' [data-cell-type="Modal"]'
+    modal_query = '[data-cell-type="Modal"]'
     modal = headless_browser.find_by_css(modal_query)
     assert modal.is_displayed() is False
 
     # Read the text on the card
-    text_query = button_query + ' + [data-cell-type="Text"]'  # + means get sibling
+    text_query = '.button-holder + [data-cell-type="Text"]'  # + means get sibling
     text = headless_browser.find_by_css(text_query)
     assert text.text == slot_text
 

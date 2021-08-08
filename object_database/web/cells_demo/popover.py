@@ -31,7 +31,7 @@ class SimplePopover(CellsTestPage):
 
 def test_popover_toggle_exists(headless_browser):
     headless_browser.load_demo_page(SimplePopover)
-    query = '{} [data-toggle="popover"]'.format(headless_browser.demo_root_selector)
+    query = '[data-cell-type="Popover"]'
     toggler = headless_browser.find_by_css(query)
     assert toggler
 
@@ -39,37 +39,31 @@ def test_popover_toggle_exists(headless_browser):
 def test_popover_show_on_click(headless_browser):
     # Test that the popover content
     # shows on click
-    button = headless_browser.find_by_css(
-        '{} [data-toggle="popover"]'.format(headless_browser.demo_root_selector)
-    )
+    headless_browser.load_demo_page(SimplePopover)
+
+    button = headless_browser.find_by_css('[data-cell-type="Popover"]')
+
     assert button
-    content_location = (headless_browser.by.CSS_SELECTOR, ".popover")
+    content_location = (headless_browser.by.CSS_SELECTOR, ".cell-open-popover")
     button.click()
     headless_browser.wait(1).until(
         headless_browser.expect.visibility_of_element_located(content_location)
     )
 
-
-def test_popover_not_hide_on_content_click(headless_browser):
-    # Test that the popover -- now showing -- does not
-    # hide when clicking in the content area
-    content = headless_browser.find_by_css(".popover")
+    # now if we click the content, it should stay open
+    content = headless_browser.find_by_css(".cell-open-popover")
     assert content
     content.click()
-    content_location = (headless_browser.by.CSS_SELECTOR, ".popover")
+
+    content_location = (headless_browser.by.CSS_SELECTOR, ".cell-open-popover")
     headless_browser.wait(1)
     headless_browser.expect.visibility_of_element_located(content_location)
 
+    # now click the backdrop - it should go away
+    backdrop = headless_browser.find_by_css(".cell-dropdown-backdrop")
+    backdrop.click()
 
-def test_popover_hides_on_toggle(headless_browser):
-    # Test that the popover content hides
-    # when the button is clicked
-    button = headless_browser.find_by_css(
-        '{} [data-toggle="popover"]'.format(headless_browser.demo_root_selector)
-    )
-    assert button
-    button.click()
-    content_location = (headless_browser.by.CSS_SELECTOR, ".popover")
+    content_location = (headless_browser.by.CSS_SELECTOR, ".cell-open-popover")
     headless_browser.wait(1).until(
         headless_browser.expect.invisibility_of_element_located(content_location)
     )
@@ -108,20 +102,18 @@ class DelayedRemoval(CellsTestPage):
 
 def test_dynamic_popover_exists(headless_browser):
     headless_browser.load_demo_page(DelayedRemoval)
-    query = '{} [data-toggle="popover"]'.format(headless_browser.demo_root_selector)
+    query = '[data-cell-type="Popover"]'
     toggler = headless_browser.find_by_css(query)
     assert toggler
 
 
 def test_dynamic_click_and_delay(headless_browser):
+    headless_browser.load_demo_page(DelayedRemoval)
+
     # Find both the popover anchor and the button
-    popover_link = headless_browser.find_by_css(
-        '{} [data-cell-type="Popover"] > a'.format(headless_browser.demo_root_selector)
-    )
+    popover_link = headless_browser.find_by_css('[data-cell-type="Popover"]')
     assert popover_link
-    button = headless_browser.find_by_css(
-        '{} [data-cell-type="Button"]'.format(headless_browser.demo_root_selector)
-    )
+    button = headless_browser.find_by_css('[data-cell-type="Button"]')
     assert button
 
     # Now ensure that after the timer (3 seconds)

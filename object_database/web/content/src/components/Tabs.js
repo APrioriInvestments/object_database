@@ -22,6 +22,10 @@ class Tabs extends ConcreteCell {
         this.makeDisplay = this.makeDisplay.bind(this);
     }
 
+    _computeFillSpacePreferences() {
+        return {horizontal: true, vertical: true}
+    }
+
     build(){
         return (
             h('div', {
@@ -32,7 +36,7 @@ class Tabs extends ConcreteCell {
             }, [
                 h('ul', {class: "nav nav-tabs", role: "tablist"}, this.makeHeaders()),
                 h('div', {class: "tab-content"}, [
-                    h('div', {class: "tab-pane fade show active", role: "tabpanel"}, [
+                    h('div', {class: "tab-pane fade show active allow-child-to-fill-space", role: "tabpanel"}, [
                         this.makeDisplay()
                     ])
                 ])

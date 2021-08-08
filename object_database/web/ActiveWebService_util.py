@@ -122,6 +122,8 @@ def hostsTable():
         headerFun=lambda x: x,
         rendererFun=lambda s, field: Subscribed(lambda: hostsTableDataPrep(s, field)),
         maxRowsPerPage=50,
+        fillWidth=True,
+        fillHeight=True,
     )
     return hosts
 
@@ -181,6 +183,8 @@ def servicesTable():
             lambda: servicesTableDataPrep(s, field, serviceCounts)
         ),
         maxRowsPerPage=50,
+        fillWidth=True,
+        fillHeight=True,
     )
     return table
 

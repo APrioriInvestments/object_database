@@ -147,17 +147,24 @@ th {
  * =====================================================*/
 .resizable-panel {
     display: flex;
-    width: 100%;
-    height: 100%;
 }
 
 .resizable-panel.vertical-panel {
     flex-direction: column
 }
 
+.resizable-panel-holder {
+    position: relative;
+    top: 0;
+    left: 0;
+}
+
 .resizable-panel-item {
     overflow: hidden;
     box-sizing: border-box;
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
 }
@@ -397,10 +404,28 @@ th {
     display: flex;
 }
 
+.p-0 {
+    padding: 0!important
+}
+.p-1 {
+    padding: .25rem!important
+}
+.p-2 {
+    padding: .50rem!important
+}
+.p-3 {
+    padding: .75rem!important
+}
+.p-4 {
+    padding: 1.0rem!important
+}
+.p-5 {
+    padding: 1.25rem!important
+}
+
 .cells-card-body {
   -ms-flex: 1 1 auto;
   flex: 1 1 auto;
-  padding: 1.25rem;
 }
 
 .cells-card-header {

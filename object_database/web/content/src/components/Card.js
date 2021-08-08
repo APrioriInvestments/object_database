@@ -28,8 +28,10 @@ class Card extends ConcreteCell {
 
         let sp = this._computeFillSpacePreferences();
 
-        if( this.props.padding) {
+        if (this.props.padding) {
             bodyClass += ` p-${this.props.padding}`;
+        } else {
+            bodyClass += ` p-2`;
         }
 
         if (sp.horizontal) {

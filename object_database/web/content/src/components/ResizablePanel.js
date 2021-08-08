@@ -46,7 +46,7 @@ class ResizablePanel extends ConcreteCell {
         let domElt = (
             h('div', {
                 id: this.getElementId(),
-                class: `cell resizable-panel${classString}`,
+                class: `cell resizable-panel${classString} fill-space-horizontal fill-space-vertical`,
                 'data-cell-type': 'ResizablePanel',
                 'data-cell-id': this.identity,
             }, [
@@ -64,9 +64,13 @@ class ResizablePanel extends ConcreteCell {
         let inner = this.renderChildNamed('first');
         return (
             h('div', {
-                class: 'resizable-panel-item allow-child-to-fill-space',
+                'class': 'resizable-panel-holder',
                 'data-resizable-panel-item-id': `panel-item-${this.identity}`
-            }, [inner])
+            }, [
+                h('div', {
+                    class: 'resizable-panel-item allow-child-to-fill-space',
+                }, [inner])
+            ])
         );
     }
 
@@ -76,9 +80,13 @@ class ResizablePanel extends ConcreteCell {
         // the resize splitter. See the .afterCreate().
         return (
             h('div', {
-                class: 'resizable-panel-item allow-child-to-fill-space',
-                'data-resizable-panel-item-id': `panel-item-${this.identity}`
-            }, [inner])
+                'data-resizable-panel-item-id': `panel-item-${this.identity}`,
+                'class': 'resizable-panel-holder',
+            }, [
+                h('div', {
+                    class: 'resizable-panel-item allow-child-to-fill-space',
+                }, [inner])
+            ])
         );
     }
 

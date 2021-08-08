@@ -29,8 +29,18 @@ class Table extends ConcreteCell {
     }
 
     build(){
+        let tableStyle = [];
+
+        if (this.props.fillWidth) {
+            tableStyle.push('overflow-x:auto');
+        }
+
+        if (this.props.fillHeight) {
+            tableStyle.push('overflow-y:auto');
+        }
+
         this.tableDiv = h('table', {
-            "class": "cell table-hscroll table-sm table-striped"
+            "class": "cell table-sm table-striped",
         }, [
             this.renderChildNamed('header'),
             h('tbody', {}, this.renderChildrenNamed('rows'))
@@ -40,11 +50,14 @@ class Table extends ConcreteCell {
             id: this.getElementId(),
             "data-cell-id": this.identity,
             "data-cell-type": "Table",
-            "class": "allow-child-to-fill-space"
-        }, [this.tableDiv]);
+            "class": "allow-child-to-fill-space",
+            "style": tableStyle.join(';')
+        }, [
+            this.tableDiv
+        ]);
 
-        this.applySpacePreferencesToClassList(this.tableDiv);
         this.applySpacePreferencesToClassList(res);
+        this.applySpacePreferencesToClassList(this.tableDiv);
 
         return res;
     }
@@ -82,7 +95,7 @@ class TableHeader extends ConcreteCell {
             this.renderChildrenNamed('cells').map((elt, colIndex) => {
                 return h(
                     'th',
-                    {style: 'vertical-align-top'},
+                    {style: 'vertical-align:top;position:sticky; top:0; left:0;z-index:1'},
                     [elt]
                 );
             })

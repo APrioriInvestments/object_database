@@ -21,14 +21,12 @@ class DropdownGoesAway(CellsTestPage):
     def cell(self):
         slot = cells.Slot(0)
 
-        return cells.KeyAction(
-            "altKey+t", lambda x: slot.set(slot.get() + 1)
-        ) + (
-            cells.Subscribed(lambda: 
-                cells.Dropdown(
-                    "You picked " + str(slot.get()), 
+        return cells.KeyAction("altKey+t", lambda x: slot.set(slot.get() + 1)) + (
+            cells.Subscribed(
+                lambda: cells.Dropdown(
+                    "You picked " + str(slot.get()),
                     [i for i in range(100)],
-                    lambda i: slot.set(i)
+                    lambda i: slot.set(i),
                 )
             )
         )
@@ -44,35 +42,35 @@ class DropdownWithManyItems(CellsTestPage):
     def cell(self):
         slot = cells.Slot(0)
 
-        return cells.Subscribed(lambda: 
-            (
+        return cells.Subscribed(
+            lambda: (
                 cells.Dropdown(
-                    "You picked " + str(slot.get()), 
+                    "You picked " + str(slot.get()),
                     [i for i in range(100)],
-                    lambda i: slot.set(i)
-                ) >>
-                cells.TopRight(
-                    cells.Dropdown(
-                        "You picked " + str(slot.get()), 
-                        [i for i in range(100)],
-                        lambda i: slot.set(i)
-                    )
+                    lambda i: slot.set(i),
                 )
-            ) + (
-                cells.Dropdown(
-                    "You picked " + str(slot.get()), 
-                    [i for i in range(100)],
-                    lambda i: slot.set(i)
-                ) >>
-                cells.BottomRight(
+                >> cells.TopRight(
                     cells.Dropdown(
-                        "You picked " + str(slot.get()), 
+                        "You picked " + str(slot.get()),
                         [i for i in range(100)],
-                        lambda i: slot.set(i)
+                        lambda i: slot.set(i),
                     )
                 )
             )
-
+            + (
+                cells.Dropdown(
+                    "You picked " + str(slot.get()),
+                    [i for i in range(100)],
+                    lambda i: slot.set(i),
+                )
+                >> cells.BottomRight(
+                    cells.Dropdown(
+                        "You picked " + str(slot.get()),
+                        [i for i in range(100)],
+                        lambda i: slot.set(i),
+                    )
+                )
+            )
         )
 
     def text(self):

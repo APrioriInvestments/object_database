@@ -18,9 +18,7 @@ from object_database.web.CellsTestPage import CellsTestPage
 
 class BasicSized(CellsTestPage):
     def cell(self):
-        return cells.Highlighted(
-            cells.Sized(cells.Text("Hello"), width=150, height=150)
-        )
+        return cells.Highlighted(cells.Sized(cells.Text("Hello"), width=150, height=150))
 
     def text(self):
         return "You should see a 150x150 Highlighted thing"
@@ -40,9 +38,7 @@ class BasicSizedVCentered(CellsTestPage):
     def cell(self):
         return cells.Highlighted(
             cells.Sized(cells.VCenter(cells.Text("Hello")), height=150)
-        ) + cells.Highlighted(
-            cells.Sized(cells.Center(cells.Text("Hello")), height=150)
-        )
+        ) + cells.Highlighted(cells.Sized(cells.Center(cells.Text("Hello")), height=150))
 
     def text(self):
         return (
@@ -54,13 +50,11 @@ class BasicSizedVCentered(CellsTestPage):
 
 class BasicSizedVerticalStacked(CellsTestPage):
     def cell(self):
-        return cells.Highlighted(
-            cells.Sized(cells.VCenter(cells.Text("Hello")), height=150)
-        ) >> cells.Highlighted(
-            cells.Sized(cells.VCenter(cells.Text("Hello")), height=200)
-        ) >> cells.Flex(
-            cells.Highlighted(
-                cells.Sized(cells.Center(cells.Text("Hello")), height=250)
+        return (
+            cells.Highlighted(cells.Sized(cells.VCenter(cells.Text("Hello")), height=150))
+            >> cells.Highlighted(cells.Sized(cells.VCenter(cells.Text("Hello")), height=200))
+            >> cells.Flex(
+                cells.Highlighted(cells.Sized(cells.Center(cells.Text("Hello")), height=250))
             )
         )
 

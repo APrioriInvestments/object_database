@@ -333,8 +333,8 @@ class ActiveWebService(ServiceBase):
         messageBus = MessageBus(
             busIdentity="packet_bus_" + str(packetId) + "_" + str(session),
             endpoint=None,
-            inMessageType=str,
-            outMessageType=str,
+            inMessageType=OneOf(str, bytes),
+            outMessageType=OneOf(str, bytes),
             onEvent=onEvent,
             authToken=self.runtimeConfig.authToken,
         )
@@ -368,7 +368,19 @@ class ActiveWebService(ServiceBase):
                 len(result),
                 sessionObj,
             )
-            return result
+
+            if isinstance(result, bytes):
+                self._logger.info("Packet has type bytes")
+                response = make_response(result)
+                response.headers.set("Content-Type", "application/octet-stream")
+            elif isinstance(result, str):
+                self._logger.info("Packet has type str")
+                response = make_response(result.encode("utf-8"))
+                response.headers.set("Content-Type", "application/json")
+            else:
+                raise WebServiceError(f"Invalid packet content of type {type(result)}")
+
+            return response
         except WebServiceError:
             raise
         except Exception as e:
@@ -441,8 +453,8 @@ class ActiveWebService(ServiceBase):
         messageBus = MessageBus(
             busIdentity="bus_" + str(session._identity),
             endpoint=None,
-            inMessageType=str,
-            outMessageType=str,
+            inMessageType=OneOf(str, bytes),
+            outMessageType=OneOf(str, bytes),
             onEvent=onEvent,
             authToken=self.runtimeConfig.authToken,
         )
@@ -514,8 +526,8 @@ class ActiveWebService(ServiceBase):
         messageBus = MessageBus(
             busIdentity="bus",
             endpoint=("localhost", 0),
-            inMessageType=str,
-            outMessageType=str,
+            inMessageType=OneOf(str, bytes),
+            outMessageType=OneOf(str, bytes),
             onEvent=onEvent,
             authToken=self.runtimeConfig.authToken,
         )

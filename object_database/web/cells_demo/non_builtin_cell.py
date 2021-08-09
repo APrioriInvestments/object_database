@@ -82,3 +82,59 @@ def test_nonbuiltin_cells(headless_browser):
     attrs = somePinkStuff.get_attribute("class")
 
     assert "pink-cell" in attrs
+
+
+class NonBuiltinPacketCellDemo(CellsTestPage):
+    def cell(self):
+        import textwrap
+
+        class SendAPacket(cells.NonBuiltinCell):
+            def __init__(self, subcell):
+                super().__init__()
+
+            def recalculate(self):
+                self.exportData["packetId"] = self.cells.getPacketId(
+                    lambda packetId: b"SOME BYTES"
+                )
+
+            @classmethod
+            def getDefinitionalJavascript(cls):
+                return textwrap.dedent(
+                    """return (CellRegistry) => {
+                        let ConcreteCell = CellRegistry['ConcreteCell'];
+                        let Cell = CellRegistry['Cell'];
+
+                        const SendAPacket = class extends CellRegistry['ConcreteCell'] {
+                            constructor(props, ...args) {
+                                super(props, ... args);
+                            }
+                            build() {
+                                if (this.props.packetId) {
+                                    this.requestPacket(this.props.packetId,
+                                        (packetId, response) => {
+                                            console.log(response);
+                                        }
+                                    )
+                                }
+
+                                return Cell.makeDomElt(
+                                    'div',
+                                    {class: 'pink-cell'},
+                                    [this.renderChildNamed('child')]
+                                );
+                            }
+                        }
+
+                        CellRegistry.SendAPacket = SendAPacket;
+                    }
+                    """
+                )
+
+            @classmethod
+            def getCssRules(cls):
+                return ""
+
+        return SendAPacket("some pink text")
+
+    def text(self):
+        return "You should see some text in pink."

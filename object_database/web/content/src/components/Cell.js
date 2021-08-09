@@ -360,10 +360,19 @@ class Cell {
         // make an AJAX query for the plot's data packet
         let httpRequest = new XMLHttpRequest();
 
+        httpRequest.responseType = 'arraybuffer';
+
         httpRequest.onreadystatechange = () => {
-            if (httpRequest.readyState == XMLHttpRequest.DONE) {   // XMLHttpRequest.DONE == 4
+            if (httpRequest.readyState == XMLHttpRequest.DONE) {
                 if (httpRequest.status == 200) {
-                    callback(packetId, httpRequest.responseText)
+                    if (httpRequest.getResponseHeader('Content-Type') == "application/octet-stream") {
+                        callback(packetId, httpRequest.response)
+                    } else {
+                        let decoder = new TextDecoder("utf-8");
+                        let decodedString = decoder.decode(httpRequest.response);
+
+                        callback(packetId, decodedString);
+                    }
                 }
                 else {
                     console.error("Packet " + packetId + " failed: " + httpRequest.responseText)

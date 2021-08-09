@@ -95,7 +95,7 @@ class Cells:
         self._pendingOutgoingMessages = {}
 
         # the next packetId we'll return
-        self._packetId = 0
+        self._packetId = 1
 
         # map from packetId to the callback that produces the packet data
         self._packetCallbacks = {}

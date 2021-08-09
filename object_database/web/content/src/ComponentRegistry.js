@@ -52,6 +52,7 @@ import {FillSpace} from './components/FillSpace';
 import {Grid} from './components/Grid';
 import {Sheet} from './components/Sheet';
 import {Plot} from './components/Plot';
+import {WebglPlot} from './components/WebglPlot';
 import {Timestamp} from './components/Timestamp';
 import {SplitView} from './components/SplitView';
 import {PageView} from './components/PageView';
@@ -108,6 +109,7 @@ const ComponentRegistry = {
     Text,
     Timestamp,
     Traceback,
+    WebglPlot
 };
 
 export {ComponentRegistry, ComponentRegistry as default};

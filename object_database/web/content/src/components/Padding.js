@@ -16,7 +16,7 @@ class Padding extends ConcreteCell {
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "Padding",
-                class: "px-2"
+                class: "horizontal-padding"
             }, [" "])
         );
     }

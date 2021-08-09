@@ -41,6 +41,7 @@ class Table extends ConcreteCell {
 
         this.tableDiv = h('table', {
             "class": "cell table-sm table-striped",
+            "style": "height:auto"
         }, [
             this.renderChildNamed('header'),
             h('tbody', {}, this.renderChildrenNamed('rows'))
@@ -95,7 +96,7 @@ class TableHeader extends ConcreteCell {
             this.renderChildrenNamed('cells').map((elt, colIndex) => {
                 return h(
                     'th',
-                    {style: 'vertical-align:top;position:sticky; top:0; left:0;z-index:1'},
+                    {style: 'vertical-align:top;position:sticky; top:0; left:0;z-index:1;background-color:white'},
                     [elt]
                 );
             })

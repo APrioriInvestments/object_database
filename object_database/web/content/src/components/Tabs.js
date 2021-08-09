@@ -32,11 +32,13 @@ class Tabs extends ConcreteCell {
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "Tabs",
-                class: "container-fluid mb-3"
+                class: "sequence sequence-vertical"
             }, [
                 h('ul', {class: "nav nav-tabs", role: "tablist"}, this.makeHeaders()),
-                h('div', {class: "tab-content"}, [
-                    h('div', {class: "tab-pane fade show active allow-child-to-fill-space", role: "tabpanel"}, [
+                h('div', {class: "tab-content fill-space-vertical", style: 'position:relative; top:0;left:0'}, [
+                    h('div', {class: "tab-pane fade show active allow-child-to-fill-space",
+                            role: "tabpanel",
+                            style: 'height:100%;width:100%;position:absolute;top:0;left:0'}, [
                         this.makeDisplay()
                     ])
                 ])

@@ -77,7 +77,7 @@ class TableHeader(Cell):
 
             pageCell = SingleLineTextBox(curPageAsStr, pattern="[0-9]+", width=40)
 
-        pageCell = pageCell >> Text(f"of {totalPages}")
+        pageCell = pageCell >> Padding() >> Text(f"of {totalPages}")
 
         if self.curPageSlot.get() == 0:
             leftCell = Octicon("triangle-left", color="lightgray")

@@ -423,6 +423,10 @@ th {
     padding: 1.25rem!important
 }
 
+.horizontal-padding {
+    padding: 0 .1rem;
+}
+
 .cells-card-body {
   -ms-flex: 1 1 auto;
   flex: 1 1 auto;

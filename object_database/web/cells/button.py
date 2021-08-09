@@ -46,6 +46,7 @@ class Clickable(Cell):
 
     def onMessage(self, msgFrame):
         redirectValue = self.onClick()
+        self.parent.childHadUserAction(self, self)
 
         if isinstance(redirectValue, str):
             self.scheduleMessage(

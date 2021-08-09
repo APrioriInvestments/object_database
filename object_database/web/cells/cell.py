@@ -42,6 +42,16 @@ class Cell:
         # when composing DOM.
         self.exportData = {}
 
+    def childHadUserAction(self, directChild, deepChild):
+        """Called if one of our children had a user-interface action like a button click.
+
+        Args:
+            directChild - our immediate child below which this happened
+            deepChild - the actual leaf child who did this.
+        """
+        if self.parent:
+            self.parent.childHadUserAction(self, deepChild)
+
     @classmethod
     def isBuiltinCell(cls):
         return True

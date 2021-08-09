@@ -37,6 +37,8 @@ from object_database.web.cells.non_builtin_cell import NonBuiltinCell
 from object_database.web.cells.popover import Popover
 from object_database.web.cells.tabs import Tabs
 from object_database.web.cells.sized import Sized
+from object_database.web.cells.context_menu import ContextMenu
+from object_database.web.cells.menu_item import MenuItem
 from object_database.web.cells.session_state import sessionState, SessionState
 from object_database.web.cells.leaves import (
     Octicon,

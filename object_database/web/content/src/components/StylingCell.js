@@ -22,7 +22,7 @@ class StylingCell extends ConcreteCell {
     build() {
         this.innerDiv = h('div', {
             id: this.getElementId(),
-            class: this.getClass(),
+            class: this.getClass() + " allow-child-to-fill-space",
             style: 'display:inline-block;' + this.getStyle()
         }, [this.renderChildNamed('content')]);
 

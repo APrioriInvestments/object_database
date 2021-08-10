@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typed_python import ListOf, Float32, Entrypoint
+from typed_python import ListOf, Float32
 
 from object_database.web.cells.cell import Cell
 from object_database.web.cells.subscribed import SubscribeAndRetry
@@ -75,22 +75,3 @@ class WebglPlot(Cell):
             return self.plotData
 
         return None
-
-    @staticmethod
-    def testData(count):
-        @Entrypoint
-        def makeSomeData(ct):
-            res = ListOf(Float32)()
-            for i in range(0, ct, 2):
-                res.append(i / ct)
-                res.append(1.0)
-
-                res.append(0.0)
-                res.append(0.0)
-
-                res.append((i + 1) / ct)
-                res.append(1.0)
-
-            return res
-
-        return makeSomeData(count)

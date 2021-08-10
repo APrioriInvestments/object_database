@@ -12,8 +12,20 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import math
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
+from typed_python import ListOf, Float32, Entrypoint
+
+
+@Entrypoint
+def generateData(ct):
+    res = ListOf(Float32)()
+    for i in range(0, ct + 1):
+        res.append(i / ct)
+        res.append(math.sin(i / ct ** 0.5))
+
+    return res
 
 
 class BasicWebglPlot(CellsTestPage):
@@ -21,7 +33,7 @@ class BasicWebglPlot(CellsTestPage):
         s = cells.Slot(2)
 
         def getData():
-            return cells.WebglPlot.testData(s.get())
+            return ListOf(float)(generateData(s.get()))
 
         return cells.Button(
             cells.Subscribed(lambda: f"Currently {s.get()}"), lambda: s.set(s.get() * 2)

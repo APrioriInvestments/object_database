@@ -76,8 +76,7 @@ class ResizablePanel extends ConcreteCell {
 
     makeSecondChild(){
         let inner = this.renderChildNamed('second');
-        // Our panel items must be uniquely identifiable in order to properly insert
-        // the resize splitter. See the .afterCreate().
+
         return (
             h('div', {
                 'data-resizable-panel-item-id': `panel-item-${this.identity}`,

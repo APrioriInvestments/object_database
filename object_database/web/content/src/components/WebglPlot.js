@@ -3,6 +3,8 @@
  */
 
 import {ConcreteCell} from './ConcreteCell';
+import {LineFigure} from './LineFigure';
+import {GlRenderer} from './GlRenderer';
 import {makeDomElt as h} from './Cell';
 
 class DragHelper {
@@ -44,406 +46,167 @@ class DragHelper {
 }
 
 
-class LineFigure {
-    constructor(xys, lineWidth=1.0, color=null) {
-        this.xys = xys;
+class Packets {
+    constructor(requestPacketFun, onAllPacketsLoaded, onPacketLoadFailed) {
+        this.requestPacketFun = requestPacketFun;
+        this.onAllPacketsLoaded = onAllPacketsLoaded;
+        this.onPacketLoadFailed = onPacketLoadFailed;
 
-        if (!(xys instanceof Float32Array)) {
-            throw new Error("xys must be a Float32Array");
-        }
+        this.error = null;
 
-        if (typeof(lineWidth) != 'number' && !(lineWidth instanceof Float32Array)) {
-            throw new Error("lineWidth must be a float or a Float32Array");
-        }
+        this.packetIdToData = {};
+        this.touchedPacketsIds = {};
+        this.requestedPacketIds = {};
+        this.unreceivedPackets = 0;
 
-        if (!color) {
-            this.color = new Float32Array([1.0, 1.0, 1.0, 1.0]);
-        } else {
-            if (!(color instanceof Float32Array)) {
-                throw new Error("color must be a Float32Array");
+        this.walkAndRequest = this.walkAndRequest.bind(this);
+        this.resetTouchedPackets = this.resetTouchedPackets.bind(this);
+        this.eraseUntouched = this.eraseUntouched.bind(this);
+        this.requestPacketId = this.requestPacketId.bind(this);
+
+        this.onPacket = this.onPacket.bind(this);
+        this.onFailure = this.onFailure.bind(this);
+
+        this.decode = this.decode.bind(this);
+        this.decodeNumberOrFloats = this.decodeNumberOrFloats.bind(this);
+        this.decodeFloats = this.decodeFloats.bind(this);
+        this.decodeColors = this.decodeColors.bind(this);
+    }
+
+    resetTouchedPackets() {
+        this.touchedPacketsIds = {};
+    }
+
+    // get rid of packets we've seen and return whether all mentioned packets are
+    // loaded
+    eraseUntouched() {
+        let toRemove = [];
+        for (var packetId in this.packetIdToData) {
+            if (!this.touchedPacketsIds[packetId]) {
+                toRemove.push(packetId);
             }
-
-            if (color.length != 4 && color.length != this.xys.length * 2) {
-                throw new Error("color must have either 4 elements, or 4 elements per point");
-            }
-
-            this.color = color;
         }
 
-        if (lineWidth instanceof Float32Array) {
-            if (this.xys.length != lineWidth.length * 2) {
-                throw new Error("lineWidth and xys must have the same total number of points");
+        toRemove.forEach(packetId => {
+            console.info("Packet " + packetId + " no longer used.");
+
+            delete this.packetIdToData[packetId];
+
+            if (this.requestedPacketIds[packetId]) {
+                delete this.requestedPacketIds[packetId];
             }
+        });
 
-            this.lineWidth = lineWidth;
-        } else {
-            this.lineWidth = new Float32Array(new ArrayBuffer(4 * this.xys.length));
-
-            for (let i = 0; i < this.xys.length; i++) {
-                this.lineWidth[i] = lineWidth;
+        for (var packetId in this.touchedPacketsIds) {
+            if (!this.packetIdToData[packetId]) {
+                return false;
             }
         }
 
-        this.triangleBuffer = null;
-        this.directionBuffer = null;
-        this.lineWidthBuffer = null;
-        this.colorBuffer = null;
-        this.pointCount = null;
-
-        this._buildBuffers = this._buildBuffers.bind(this);
+        return true;
     }
 
-    _buildBuffers(renderer) {
-        if (this.triangleBuffer) {
-            renderer.gl.deleteBuffer(this.triangleBuffer);
-            this.triangleBuffer = null;
-        }
+    requestPacketId(packetId) {
+        this.touchedPacketsIds[packetId] = true;
 
-        if (this.directionBuffer) {
-            renderer.gl.deleteBuffer(this.directionBuffer);
-            this.directionBuffer = null;
-        }
-
-        if (this.colorBuffer) {
-            renderer.gl.deleteBuffer(this.colorBuffer);
-            this.colorBuffer = null;
-        }
-
-        if (this.lineWidthBuffer) {
-            renderer.gl.deleteBuffer(this.lineWidthBuffer);
-            this.lineWidthBuffer = null;
-        }
-
-        let segmentCount = this.xys.length / 2;
-        let pointCount = segmentCount * 4;
-
-        let outTriangles = new Float32Array(new ArrayBuffer(4 * pointCount * 3));
-        let outDirection = new Float32Array(new ArrayBuffer(4 * pointCount * 2));
-        let outColors = new Float32Array(new ArrayBuffer(4 * pointCount * 4));
-        let outLineWidth = new Float32Array(new ArrayBuffer(4 * pointCount));
-
-        let curPoint = 0;
-
-        let colorStride = 4;
-        if (this.color.length == 4) {
-            colorStride = 0;
-        }
-
-        for (let segmentIx = 0; segmentIx < segmentCount; segmentIx += 1) {
-            let x0 = this.xys[segmentIx * 2 + 0];
-            let y0 = this.xys[segmentIx * 2 + 1];
-
-            let x1 = this.xys[segmentIx * 2 + 2];
-            let y1 = this.xys[segmentIx * 2 + 3];
-
-            // write the lower left point
-            outTriangles[curPoint * 3 + 0] = x0;
-            outTriangles[curPoint * 3 + 1] = y0;
-            outTriangles[curPoint * 3 + 2] = -1.0;
-            outDirection[curPoint * 2 + 0] = x1 - x0;
-            outDirection[curPoint * 2 + 1] = y1 - y0;
-            outLineWidth[curPoint] = this.lineWidth[segmentIx];
-            outColors[curPoint * 4 + 0] = this.color[segmentIx * colorStride + 0];
-            outColors[curPoint * 4 + 1] = this.color[segmentIx * colorStride + 1];
-            outColors[curPoint * 4 + 2] = this.color[segmentIx * colorStride + 2];
-            outColors[curPoint * 4 + 3] = this.color[segmentIx * colorStride + 3];
-            curPoint += 1;
-
-            // upper left point
-            outTriangles[curPoint * 3 + 0] = x0;
-            outTriangles[curPoint * 3 + 1] = y0;
-            outTriangles[curPoint * 3 + 2] = 1.0;
-            outDirection[curPoint * 2 + 0] = x1 - x0;
-            outDirection[curPoint * 2 + 1] = y1 - y0;
-            outLineWidth[curPoint] = this.lineWidth[segmentIx];
-            outColors[curPoint * 4 + 0] = this.color[segmentIx * colorStride + 0];
-            outColors[curPoint * 4 + 1] = this.color[segmentIx * colorStride + 1];
-            outColors[curPoint * 4 + 2] = this.color[segmentIx * colorStride + 2];
-            outColors[curPoint * 4 + 3] = this.color[segmentIx * colorStride + 3];
-            curPoint += 1;
-
-            // write the lower right point
-            outTriangles[curPoint * 3 + 0] = x1;
-            outTriangles[curPoint * 3 + 1] = y1;
-            outTriangles[curPoint * 3 + 2] = -1.0;
-            outDirection[curPoint * 2 + 0] = x1 - x0;
-            outDirection[curPoint * 2 + 1] = y1 - y0;
-            outLineWidth[curPoint] = this.lineWidth[segmentIx + 1];
-            outColors[curPoint * 4 + 0] = this.color[(segmentIx + 1) * colorStride + 0];
-            outColors[curPoint * 4 + 1] = this.color[(segmentIx + 1) * colorStride + 1];
-            outColors[curPoint * 4 + 2] = this.color[(segmentIx + 1) * colorStride + 2];
-            outColors[curPoint * 4 + 3] = this.color[(segmentIx + 1) * colorStride + 3];
-            curPoint += 1;
-
-            // write the upper right point
-            outTriangles[curPoint * 3 + 0] = x1;
-            outTriangles[curPoint * 3 + 1] = y1;
-            outTriangles[curPoint * 3 + 2] = 1.0;
-            outDirection[curPoint * 2 + 0] = x1 - x0;
-            outDirection[curPoint * 2 + 1] = y1 - y0;
-            outLineWidth[curPoint] = this.lineWidth[segmentIx + 1];
-            outColors[curPoint * 4 + 0] = this.color[(segmentIx + 1) * colorStride + 0];
-            outColors[curPoint * 4 + 1] = this.color[(segmentIx + 1) * colorStride + 1];
-            outColors[curPoint * 4 + 2] = this.color[(segmentIx + 1) * colorStride + 2];
-            outColors[curPoint * 4 + 3] = this.color[(segmentIx + 1) * colorStride + 3];
-            curPoint += 1;
-        }
-
-        // // rgbs are all the same
-        // for (let i = 0; i < curPoint; i++) {
-        //     outColors[i * 4 + 0] = .1;
-        //     outColors[i * 4 + 1] = .7;
-        //     outColors[i * 4 + 2] = .2;
-        // }
-
-        if (curPoint != pointCount) {
-            console.error("POINT COUNT WRONG")
-            throw new Error("Triangles didn't add up");
-        }
-
-        let gl = renderer.gl;
-
-        this.triangleBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.triangleBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, outTriangles, gl.STATIC_DRAW);
-
-        this.directionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.directionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, outDirection, gl.STATIC_DRAW);
-
-        this.lineWidthBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.lineWidthBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, outLineWidth, gl.STATIC_DRAW);
-
-        this.colorBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, outColors, gl.STATIC_DRAW);
-
-        this.pointCount = pointCount;
-    }
-
-    clear(renderer) {
-        let gl = renderer.gl;
-
-        if (this.colorBuffer) {
-            gl.deleteBuffer(this.colorBuffer);
-            this.colorBuffer = null;
-        }
-
-        if (this.triangleBuffer) {
-            gl.deleteBuffer(this.triangleBuffer);
-            this.triangleBuffer = null;
-        }
-
-        if (this.lineWidthBuffer) {
-            gl.deleteBuffer(this.lineWidthBuffer);
-            this.lineWidthBuffer = null;
-        }
-
-        if (this.directionBuffer) {
-            gl.deleteBuffer(this.directionBuffer);
-            this.directionBuffer = null;
-        }
-    }
-
-    drawSelf(renderer) {
-        if (!this.triangleBuffer) {
-            let t0 = Date.now();
-            this._buildBuffers(renderer);
-            console.log("Took " + (Date.now() - t0) + " to build our triangles.")
-        }
-
-        renderer.drawTriangles(
-            this.triangleBuffer,
-            this.directionBuffer,
-            this.lineWidthBuffer,
-            this.colorBuffer,
-            this.pointCount
-        );
-    }
-}
-
-
-class GlRenderer {
-    constructor(canvas) {
-        this.canvas = canvas;
-        this.gl = this.canvas.getContext("webgl", {antialias: true});
-
-        this.program = this.buildShaderProgram(this.gl);
-
-        // where in object coordinates the current draw rect is
-        this.screenPosition = [0.0, 0.0];
-        this.screenSize = [1.0, 1.0];
-
-        this.scrollPixels = this.scrollPixels.bind(this);
-        this.zoom = this.zoom.bind(this);
-        this.buildShaderProgram = this.buildShaderProgram.bind(this);
-        this.compileShader = this.compileShader.bind(this);
-        this.clearViewport = this.clearViewport.bind(this);
-        this.drawTriangles = this.drawTriangles.bind(this);
-    }
-
-    buildShaderProgram(gl) {
-        let program = gl.createProgram();
-
-        let vertexShader = this.compileShader(gl, gl.VERTEX_SHADER, GlRenderer.vertexShader);
-        let fragmentShader = this.compileShader(gl, gl.FRAGMENT_SHADER, GlRenderer.fragmentShader);
-
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
-        gl.linkProgram(program);
-
-        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-            console.error("Error linking shader program:");
-            console.error(gl.getProgramInfoLog(program));
-        }
-
-        return program;
-    }
-
-    compileShader(gl, type, code) {
-        let shader = gl.createShader(type);
-
-        gl.shaderSource(shader, code);
-        gl.compileShader(shader);
-
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            console.error(`Error compiling ${type === gl.VERTEX_SHADER ? "vertex" : "fragment"} shader:`);
-            console.error(gl.getShaderInfoLog(shader));
-        }
-
-        return shader;
-    }
-
-    zoom(xScreenFrac, yScreenFrac, zoomFrac) {
-        this.screenPosition[0] += xScreenFrac * this.screenSize[0] * (1 - zoomFrac);
-        this.screenPosition[1] += yScreenFrac * this.screenSize[1] * (1 - zoomFrac);
-        this.screenSize[0] *= zoomFrac;
-        this.screenSize[1] *= zoomFrac;
-    }
-
-    scrollPixels(xScreenFrac, yScreenFrac) {
-        this.screenPosition[0] += xScreenFrac * this.screenSize[0];
-        this.screenPosition[1] += yScreenFrac * this.screenSize[1];
-    }
-
-    clearViewport() {
-        let gl = this.gl;
-
-        gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    }
-
-    drawTriangles(vertexBuffer, directionBuffer, lineWidthBuffer, colorBuffer, pointCount) {
-        if (!vertexBuffer) {
+        if (this.packetIdToData[packetId] !== undefined) {
             return;
         }
 
-        let gl = this.gl;
+        if (this.requestedPacketIds[packetId]) {
+            return;
+        }
 
-        let currentScale = this.screenSize;
+        console.log("Requesting packet " + packetId);
 
-        gl.useProgram(this.program);
+        this.requestedPacketIds[packetId] = true;
+        this.unreceivedPackets += 1;
 
-        let uScreenSize = gl.getUniformLocation(this.program, "uScreenSize");
-        let uScreenPixelSize = gl.getUniformLocation(this.program, "uScreenPixelSize");
-        let uGlobalColor = gl.getUniformLocation(this.program, "uGlobalColor");
-        let uScreenPosition = gl.getUniformLocation(this.program, "uScreenPosition");
+        this.requestPacketFun(packetId, this.onPacket, this.onFailure);
+    }
 
-        gl.uniform2fv(uScreenSize, currentScale);
-        gl.uniform4fv(uGlobalColor, [0.1, 0.7, 0.2, 1.0]);
+    onPacket(packetId, response) {
+        if (!this.requestedPacketIds[packetId]) {
+            return;
+        }
 
-        let aVertexColor = gl.getAttribLocation(this.program, "aVertexColor");
-        let aVertexPosition = gl.getAttribLocation(this.program, "aVertexPosition");
-        let aDirection = gl.getAttribLocation(this.program, "aDirection");
-        let aLineWidth = gl.getAttribLocation(this.program, "aLineWidth");
+        this.packetIdToData[packetId] = response;
+        delete this.requestedPacketIds[packetId];
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-        gl.enableVertexAttribArray(aVertexPosition);
-        gl.vertexAttribPointer(
-            aVertexPosition,
-            3,
-            gl.FLOAT, false, 0, 0
-        );
+        this.unreceivedPackets -= 1;
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, directionBuffer);
-        gl.enableVertexAttribArray(aDirection);
-        gl.vertexAttribPointer(
-            aDirection,
-            2,
-            gl.FLOAT, false, 0, 0
-        );
+        if (this.unreceivedPackets == 0) {
+            this.onAllPacketsLoaded();
+        }
+    }
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, lineWidthBuffer);
-        gl.enableVertexAttribArray(aLineWidth);
-        gl.vertexAttribPointer(
-            aLineWidth,
-            1,
-            gl.FLOAT, false, 0, 0
-        );
+    onFailure(packetId, status, errorText) {
+        console.error("Loading " + packetId + " failed: " + errorText);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-        gl.enableVertexAttribArray(aVertexColor);
-        gl.vertexAttribPointer(
-            aVertexColor,
-            4,
-            gl.FLOAT, false, 0, 0
-        );
+        this.error = errorText;
+        this.onPacketLoadFailed(errorText);
+    }
 
-        gl.uniform2fv(uScreenPixelSize, [1.0 / this.canvas.width, 1.0 / this.canvas.height]);
-        gl.uniform2fv(uScreenPosition, this.screenPosition);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, pointCount);
+    walkAndRequest(jsonRepresentation) {
+        if (!jsonRepresentation) {
+            return;
+        }
+
+        if (Array.isArray(jsonRepresentation)) {
+            jsonRepresentation.forEach(this.walkAndRequest);
+            return;
+        }
+
+        if (typeof(jsonRepresentation) == 'object') {
+            if (jsonRepresentation.packetId) {
+                this.requestPacketId(jsonRepresentation.packetId);
+            } else {
+                for (var key in jsonRepresentation) {
+                    this.walkAndRequest(jsonRepresentation[key]);
+                }
+            }
+        }
+    }
+
+    decodeNumberOrFloats(jsonRepresentation) {
+        if (typeof(jsonRepresentation) == 'number') {
+            return jsonRepresentation;
+        }
+
+        return new Float32Array(this.packetIdToData[jsonRepresentation.packetId]);
+    }
+
+    decodeFloats(jsonRepresentation) {
+        return new Float32Array(this.packetIdToData[jsonRepresentation.packetId]);
+    }
+
+    decodeColors(jsonRepresentation) {
+        if (Array.isArray(jsonRepresentation)) {
+            if (jsonRepresentation.length != 4) {
+                throw new Error("Bad color encoded");
+            }
+
+            return new Float32Array(jsonRepresentation);
+        }
+
+        let array = new UInt8Array(this.packetIdToData[jsonRepresentation.packetId]);
+        let floats = new Float32Array(new ArrayBuffer(4 * array.length));
+
+        for (let i = 0; i < array.length; i++) {
+            floats[i] = array[i] / 255.0;
+        }
+
+        return new Float32Array(this.packetIdToData[jsonRepresentation.packetId]);
+    }
+
+    decode(jsonRepresentation) {
+        if (jsonRepresentation.packetId) {
+            return this.packetIdToData[jsonRepresentation.packetId];
+        }
+
+        return jsonRepresentation;
     }
 }
-
-GlRenderer.fragmentShader = `
-  #ifdef GL_ES
-    precision highp float;
-  #endif
-
-  uniform vec4 uGlobalColor;
-
-  varying lowp vec4 vColor;
-
-  void main() {
-    gl_FragColor += vColor;
-  }
-`
-
-GlRenderer.vertexShader = `
-  attribute float aLineWidth;
-  attribute vec3 aVertexPosition;
-  attribute vec2 aDirection;
-  attribute vec4 aVertexColor;
-
-  uniform vec2 uScreenSize;
-  uniform vec2 uScreenPosition;
-  uniform vec2 uScreenPixelSize;
-
-  varying lowp vec4 vColor;
-
-  void main() {
-    vec2 directionPx = aDirection / uScreenPixelSize;
-
-    vec3 normal = vec3(-directionPx.y, directionPx.x, 0.0000001);
-
-    normal = normalize(normal) * aLineWidth;
-
-    normal.xy *= uScreenPixelSize;
-
-    vec2 rotatedPosition = vec2(
-      (aVertexPosition.x - uScreenPosition.x) / uScreenSize.x * 2.0 - 1.0 + (aVertexPosition.z * normal.x),
-      (aVertexPosition.y - uScreenPosition.y) / uScreenSize.y * 2.0 - 1.0 + (aVertexPosition.z * normal.y)
-    );
-
-    gl_Position = vec4(rotatedPosition, 0.0, 1.0);
-    vColor = aVertexColor;
-  }
-`
-
 
 
 class WebglPlot extends ConcreteCell {
@@ -465,8 +228,16 @@ class WebglPlot extends ConcreteCell {
 
         this.animationFrameRequested = false;
         this.requestAnimationFrame = this.requestAnimationFrame.bind(this);
+        this.onPacketLoadFailed = this.onPacketLoadFailed.bind(this);
+        this.lineFigureFromJson = this.lineFigureFromJson.bind(this);
 
-        this.lines = null;
+        this.packets = new Packets(
+            this.requestPacket,
+            this.loadPacketIfNecessary,
+            this.onPacketLoadFailed
+        );
+
+        this.figures = [];
     }
 
     requestAnimationFrame() {
@@ -483,12 +254,16 @@ class WebglPlot extends ConcreteCell {
         })
     }
 
+    onPacketLoadFailed(error) {
+        console.error("TODO: set the screen to an error display");
+    }
+
     drawScene() {
         this.renderer.clearViewport()
 
-        if (this.lines) {
-            this.lines.drawSelf(this.renderer)
-        }
+        this.figures.forEach(figure => {
+            figure.drawSelf(this.renderer)
+        })
     }
 
     _computeFillSpacePreferences() {
@@ -504,14 +279,6 @@ class WebglPlot extends ConcreteCell {
         let yFrac = (rect.height - (e.pageY - rect.top)) / rect.height;
 
         this.renderer.zoom(xFrac, yFrac, Math.exp(e.deltaY / 100))
-
-        let x = xFrac * this.renderer.screenSize[0] + this.renderer.screenPosition[0];
-        let y = yFrac * this.renderer.screenSize[1] + this.renderer.screenPosition[1];
-
-        this.lines2 = new LineFigure(
-            new Float32Array([x - 0.001, y - 0.001, x + 0.001, y + 0.001]),
-            10
-        )
 
         this.requestAnimationFrame();
     }
@@ -559,11 +326,43 @@ class WebglPlot extends ConcreteCell {
     }
 
     loadPacketIfNecessary() {
-        if (this.props.packetId && this.props.packetId > this.requestedPacketId) {
-            this.requestPacket(this.props.packetId, this.onPlotDataReceived, null);
-            this.requestedPacketId = this.props.packetId;
-            this.packetRequestedAt = Date.now();
+        // this.props.plotData is a structure with {packetId: int} inside in various places
+        // we need to walk the json and find out if we have any packets we have yet to request
+        // and clear out any ones that are not represented here
+        this.packets.resetTouchedPackets();
+        this.packets.walkAndRequest(this.props.plotData);
+
+        if (this.packets.eraseUntouched()) {
+            // we can rebuild our plot now
+            this.figures = [];
+
+            if (this.props.plotData) {
+                this.props.plotData.figures.forEach(figureJson => {
+                    if (figureJson.type == 'LineFigure') {
+                        this.figures.push(
+                            this.lineFigureFromJson(figureJson)
+                        );
+                    }
+                });
+            }
+
+            this.requestAnimationFrame();
         }
+    }
+
+    lineFigureFromJson(figureJson) {
+        let xs = this.packets.decodeFloats(figureJson.x);
+        let ys = this.packets.decodeFloats(figureJson.y);
+
+        let lineWidth = this.packets.decodeNumberOrFloats(figureJson.lineWidth);
+        let color = this.packets.decodeColors(figureJson.color);
+
+        return new LineFigure(
+            xs,
+            ys,
+            lineWidth,
+            color
+        );
     }
 
     onPlotDataReceived(packetId, plotData) {
@@ -576,7 +375,8 @@ class WebglPlot extends ConcreteCell {
 
         this.loadedPacketId = packetId;
         this.lines = new LineFigure(
-            new Float32Array(plotData)
+            new Float32Array(plotData),
+            this.props.lineWidth
         );
 
         this.requestAnimationFrame();

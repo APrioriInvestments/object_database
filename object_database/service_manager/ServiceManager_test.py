@@ -437,6 +437,8 @@ happy = Schema("core.test.happy")
 class Happy:
     i = int
 
+    timesClicked = int
+
     def display(self, queryParams=None):
         ensureSubscribedType(Happy)
         return Card("Happy %s. " % self.i + str(queryParams))
@@ -448,8 +450,19 @@ class HappyService(ServiceBase):
 
     @staticmethod
     def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
+        ensureSubscribedType(Happy)
+
         if instance:
             return instance.display(queryArgs)
+
+        def happyDisplay(h):
+            return Subscribed(
+                lambda: Button(
+                    f"I am {h._identity} clicked me {h.timesClicked} times",
+                    lambda: setattr(h, "timesClicked", h.timesClicked + 1),
+                )
+                >> Button(Octicon("x"), lambda: h.delete())
+            )
 
         return (
             Card(
@@ -464,11 +477,11 @@ class HappyService(ServiceBase):
                     Subscribed(lambda: HappyService.serviceDisplay(serviceObject)),
                 )
             )
-            + Button("go to google", "http://google.com/")
+            + Button("add a happy", lambda: Happy(i=101))
             + Flex(
                 SubscribedSequence(
-                    lambda: Happy.lookupAll(),
-                    lambda h: Button("go to the happy", serviceObject.urlForObject(h, x=10)),
+                    lambda: sorted(Happy.lookupAll(), key=lambda h: h.timesClicked),
+                    happyDisplay,
                 )
             )
             + Subscribed(

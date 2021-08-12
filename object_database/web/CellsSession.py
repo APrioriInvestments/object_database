@@ -145,7 +145,11 @@ class CellsSession:
     def sendPacketTo(self, connId, packetId):
         packetContents = self.cells.getPacketContents(packetId)
 
-        self.sendMessage(connId, packetContents)
+        if not isinstance(packetContents, (bytes, str)):
+            logging.error("Packet %s has no data", packetId)
+            self.sendMessage(connId, b"")
+        else:
+            self.sendMessage(connId, packetContents)
 
     def writeJsonMessage(self, message):
         """Send a message over the websocket.

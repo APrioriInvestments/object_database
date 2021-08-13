@@ -237,7 +237,7 @@ class Axis:
         scale=1.0,
         color=createColor((0, 0, 0, 1)),
         zeroColor=createColor((0, 0, 0, 1)),
-        ticklineColor=createColor((0, 0, 0, 0.05)),
+        ticklineColor=createColor((0, 0, 0, 0.1)),
         allowExpand=True,
         label=None,
     ):
@@ -245,7 +245,7 @@ class Axis:
 
         If 'isLogscale', the resulting value is then exponentiated.
 
-        If 'isTimestmp', the resulting value is considered a posix timestamp and displayed
+        If 'isTimestamp', the resulting value is considered a posix timestamp and displayed
         in NYC time.
 
         Space describes the number of pixels we want available to show the axis. If zero, then
@@ -260,7 +260,7 @@ class Axis:
 
         self.space = space
         self.color = color
-        self.isTimestmp = isTimestamp
+        self.isTimestamp = isTimestamp
         self.isLogscale = isLogscale
         self.offset = offset
         self.scale = scale
@@ -276,7 +276,7 @@ class Axis:
             "zeroColor": packets.encode(self.zeroColor),
             "ticklineColor": packets.encode(self.ticklineColor),
             "space": self.space,
-            "isTimestmp": self.isTimestmp,
+            "isTimestamp": self.isTimestamp,
             "isLogscale": self.isLogscale,
             "offset": self.offset,
             "scale": self.scale,

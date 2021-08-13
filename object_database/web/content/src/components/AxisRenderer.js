@@ -1,4 +1,5 @@
 import {makeDomElt as h} from './Cell';
+import * as moment from 'moment';
 
 class AxisRenderer {
     constructor(which, axisDiv, legendDiv, plotData, glRenderer, knownTopAxisSize) {
@@ -18,6 +19,10 @@ class AxisRenderer {
         this.largerTickSize = this.largerTickSize.bind(this);
         this.formatNumber = this.formatNumber.bind(this);
         this.colorToString = this.colorToString.bind(this);
+
+        this.pickTickSizeFor = this.pickTickSizeFor.bind(this);
+        this.nextTick = this.nextTick.bind(this);
+        this.isZeroTick = this.isZeroTick.bind(this);
     }
 
     render() {
@@ -42,6 +47,206 @@ class AxisRenderer {
 
     colorToString(color) {
         return "rgba(" + color[0] * 255 + "," + color[1] * 255 + "," + color[2] * 255 + "," + color[3] + ")";
+    }
+
+    pickTickSizeFor(low, high, pixels, minWidth, maxWidth) {
+        if (this.axisData.isTimestamp) {
+            // make larger because otherwise we don't have enough space
+            minWidth *= 2;
+            maxWidth *= 2;
+
+            // first see, approximately how many years is it
+            let years = (high - low) / (86400 * 365.25);
+
+            let pixelsPerYear = (pixels / years);
+
+            if (pixelsPerYear < minWidth) {
+                years = 1;
+
+                while (pixelsPerYear * years < minWidth) {
+                    if (years == 1) {
+                        years = 2;
+                    } else if (years == 2) {
+                        years = 5;
+                    } else if (years == 5) {
+                        years = 10;
+                    } else {
+                        years = years * 2;
+                    }
+                }
+
+                return {'years': years}
+            }
+
+            if (pixelsPerYear < maxWidth) {
+                return {'years': 1}
+            }
+
+            let months = (high - low) / (86400 * 30.5);
+            let pixelsPerMonth = (pixels / months);
+
+            if (pixelsPerMonth * 6 < maxWidth) {
+                return {'months': 6}
+            }
+
+            if (pixelsPerMonth * 2 < maxWidth) {
+                return {'months': 2}
+            }
+
+            if (pixelsPerMonth < maxWidth) {
+                return {'months': 1}
+            }
+
+            let days = (high - low) / (86400);
+            let pixelsPerDay = (pixels / days);
+
+            if (pixelsPerDay * 20 < maxWidth) {
+                return {'days': 20}
+            }
+            if (pixelsPerDay * 10 < maxWidth) {
+                return {'days': 10}
+            }
+            if (pixelsPerDay * 5 < maxWidth) {
+                return {'days': 5}
+            }
+            if (pixelsPerDay * 2 < maxWidth) {
+                return {'days': 2}
+            }
+            if (pixelsPerDay < maxWidth) {
+                return {'days': 1}
+            }
+
+            let hours = (high - low) / 3600;
+            let pixelsPerHour = (pixels / hours);
+
+            if (pixelsPerHour * 12 < maxWidth) {
+                return {'hours': 12}
+            }
+            if (pixelsPerHour * 6 < maxWidth) {
+                return {'hours': 6}
+            }
+            if (pixelsPerHour * 2 < maxWidth) {
+                return {'hours': 2}
+            }
+            if (pixelsPerHour < maxWidth) {
+                return {'hours': 1}
+            }
+
+            let minutes = (high - low) / 60;
+            let pixelsPerMinute = (pixels / minutes);
+
+            if (pixelsPerMinute * 30 < maxWidth) {
+                return {'minutes': 30}
+            }
+            if (pixelsPerMinute * 15 < maxWidth) {
+                return {'minutes': 15}
+            }
+            if (pixelsPerMinute * 5 < maxWidth) {
+                return {'minutes': 5}
+            }
+            if (pixelsPerMinute * 2 < maxWidth) {
+                return {'minutes': 2}
+            }
+            if (pixelsPerMinute < maxWidth) {
+                return {'minutes': 1}
+            }
+
+            let seconds = (high - low);
+            let pixelsPerSecond = (pixels / seconds);
+
+            if (pixelsPerSecond * 30 < maxWidth) {
+                return {'seconds': 30}
+            }
+            if (pixelsPerSecond * 15 < maxWidth) {
+                return {'seconds': 15}
+            }
+            if (pixelsPerSecond * 5 < maxWidth) {
+                return {'seconds': 5}
+            }
+            if (pixelsPerSecond * 2 < maxWidth) {
+                return {'seconds': 2}
+            }
+            if (pixelsPerSecond < maxWidth) {
+                return {'seconds': 1}
+            }
+
+            // otherwise, just use normal logic since we're on seconds
+        }
+
+        let tickWidthPx = pixels;
+        let tickSize = high - low;
+
+        while (tickWidthPx > maxWidth || tickWidthPx < minWidth) {
+            let newTickSize = tickWidthPx > maxWidth ? this.smallerTickSize(tickSize) : this.largerTickSize(tickSize);
+            tickWidthPx *= newTickSize / tickSize;
+            tickSize = newTickSize;
+        }
+
+        if (this.axisData.isTimestamp) {
+            return Math.max(tickSize, 0.001);
+        }
+
+        return Math.max(tickSize, 1e-9);
+    }
+
+    nextTick(pos, tickSize) {
+        if (typeof(tickSize) == 'number') {
+            let res = Math.ceil(pos / tickSize + 0.00001) * tickSize;
+
+            return res;
+        } else {
+            let ts = moment.unix(pos);
+            let ts2 = null;
+
+            if (tickSize.years) {
+                let years = ts.diff(moment({year: 1970}), 'years')
+                years = Math.ceil(years / tickSize.years + 0.001) * tickSize.years;
+
+                ts2 = moment({year: 1970}).add(years, 'years');
+            }
+            else if (tickSize.months) {
+                let months = ts.diff(moment({year: 1970}), 'months')
+                months = Math.ceil(months / tickSize.months + 0.001) * tickSize.months;
+
+                ts2 = moment({year: 1970}).add(months, 'months');
+            }
+            else if (tickSize.days) {
+                let days = ts.diff(moment({year: 1970}), 'days')
+                days = Math.ceil(days / tickSize.days + 0.001) * tickSize.days;
+
+                ts2 = moment({year: 1970}).add(days, 'days');
+            }
+            else if (tickSize.hours) {
+                let hours = ts.diff(moment({year: 1970}), 'hours')
+                hours = Math.ceil(hours / tickSize.hours + 0.001) * tickSize.hours;
+
+                ts2 = moment({year: 1970}).add(hours, 'hours');
+            }
+            else if (tickSize.minutes) {
+                let minutes = ts.diff(moment({year: 1970}), 'minutes')
+                minutes = Math.ceil(minutes / tickSize.minutes + 0.001) * tickSize.minutes;
+
+                ts2 = moment({year: 1970}).add(minutes, 'minutes');
+            }
+            else if (tickSize.seconds) {
+                let seconds = ts.diff(moment({year: 1970}), 'seconds')
+                seconds = Math.ceil(seconds / tickSize.seconds + 0.001) * tickSize.seconds;
+
+                ts2 = moment({year: 1970}).add(seconds, 'seconds');
+            } else {
+                throw new Error('Bad tickSize');
+            }
+
+            return ts2.unix();
+        }
+    }
+
+    isZeroTick(pos, tickSize) {
+        if (this.axisData.isTimestamp) {
+            return false;
+        }
+
+        return Math.round(pos / tickSize) == 0.0;
     }
 
     renderVerticalAxis(isFar) {
@@ -75,17 +280,10 @@ class AxisRenderer {
 
         // determine the tick width we want to show - we want to show gridmarks between
         // 100 and 250 pixels on values at a 10, 20, 50, or 100
-        let tickWidthPx = plotHeightPx;
-        let tickSize = y1 - y0;
-
-        while (tickWidthPx > 126 || tickWidthPx < 49) {
-            let newTickSize = tickWidthPx > 126 ? this.smallerTickSize(tickSize) : this.largerTickSize(tickSize);
-            tickWidthPx *= newTickSize / tickSize;
-            tickSize = newTickSize;
-        }
+        let tickSize = this.pickTickSizeFor(y0, y1, plotHeightPx, 49, 126);
 
         // draw tickmarks
-        let y0Tick = Math.ceil(y0 / tickSize) * tickSize;
+        let y0Tick = this.nextTick(y0, tickSize);
 
         let ct = 0;
 
@@ -94,8 +292,8 @@ class AxisRenderer {
 
         while (y0Tick < y1) {
             ct += 1;
-            if (ct > 100) {
-                throw new Error("Somehow, we added 100 ticks?");
+            if (ct > 10000) {
+                throw new Error("Somehow, we added 10000 ticks? TickSize is " + tickSize);
             }
 
             let pxPosition = plotHeightPx * (y0Tick - y0) / (y1 - y0);
@@ -106,7 +304,7 @@ class AxisRenderer {
                 )
                 + 'px;width:' + plotWidthPx + 'px;bottom:' + pxPosition + "px;"
                 + 'background-color:' + this.colorToString(
-                    Math.round(y0Tick / tickSize) == 0.0 ? this.axisData.zeroColor : this.axisData.ticklineColor
+                    this.isZeroTick(y0Tick, tickSize) ? this.axisData.zeroColor : this.axisData.ticklineColor
                 )
             }, []);
 
@@ -114,18 +312,18 @@ class AxisRenderer {
             lineDivs.push(lineDiv);
 
             let labelDiv = h('div', {style:
-                    'position:absolute;bottom:' + pxPosition + "px;"
+                    'white-space:nowrap;position:absolute;bottom:' + pxPosition + "px;"
                     + (
                         isFar ?
                           "transform:translate(0%,50%);"
                         : "left:" + (axisLabelAreaWidth - 5) + "px;transform:translate(-100%,50%);"
                     )
-            }, [this.formatNumber(Math.round(y0Tick / tickSize) * tickSize, tickSize)]);
+            }, [this.formatNumber(y0Tick, tickSize)]);
 
             this.axisDiv.appendChild(labelDiv);
             labelDivs.push(labelDiv);
 
-            y0Tick += tickSize;
+            y0Tick = this.nextTick(y0Tick, tickSize);
         }
 
         if (this.axisData.allowExpand) {
@@ -175,17 +373,10 @@ class AxisRenderer {
 
         // determine the tick width we want to show - we want to show gridmarks between
         // 100 and 250 pixels on values at a 10, 20, 50, or 100
-        let tickWidthPx = plotWidthPx;
-        let tickSize = x1 - x0;
-
-        while (tickWidthPx > 251 || tickWidthPx < 99) {
-            let newTickSize = tickWidthPx > 251 ? this.smallerTickSize(tickSize) : this.largerTickSize(tickSize);
-            tickWidthPx *= newTickSize / tickSize;
-            tickSize = newTickSize;
-        }
+        let tickSize = this.pickTickSizeFor(x0, x1, plotWidthPx, 99, 251);
 
         // draw tickmarks
-        let x0Tick = Math.ceil(x0 / tickSize) * tickSize;
+        let x0Tick = this.nextTick(x0, tickSize);
 
         let ct = 0;
 
@@ -194,8 +385,8 @@ class AxisRenderer {
 
         while (x0Tick < x1) {
             ct += 1;
-            if (ct > 100) {
-                throw new Error("Somehow, we added 100 ticks?");
+            if (ct > 10000) {
+                throw new Error("Somehow, we added 10000 ticks? tickSize is " + JSON.stringify(tickSize));
             }
 
             let pxPosition = plotWidthPx * (x0Tick - x0) / (x1 - x0);
@@ -207,7 +398,7 @@ class AxisRenderer {
                     )
                     + 'px;height:' + plotHeightPx + 'px;left:' + pxPosition + "px;"
                     + 'background-color:' + this.colorToString(
-                        Math.round(x0Tick / tickSize) == 0.0 ? this.axisData.zeroColor : this.axisData.ticklineColor
+                        this.isZeroTick(x0Tick, tickSize) ? this.axisData.zeroColor : this.axisData.ticklineColor
                     )
             }, [])
 
@@ -215,18 +406,18 @@ class AxisRenderer {
             lineDivs.push(lineDiv);
 
             let labelDiv = h('div', {style:
-                'position:absolute;left:' + pxPosition + "px;"
+                'white-space:nowrap;position:absolute;left:' + pxPosition + "px;"
                 + (
                     isFar ?
                       "top: 0px; transform:translate(-50%,0%);"
                     : "top:" + this.axisData.space + "px;transform:translate(-50%,-100%);"
                 )
-            }, [this.formatNumber(Math.round(x0Tick / tickSize) * tickSize, tickSize)]);
+            }, [this.formatNumber(x0Tick, tickSize)]);
 
             this.axisDiv.appendChild(labelDiv);
             labelDivs.push(labelDiv);
 
-            x0Tick += tickSize;
+            x0Tick = this.nextTick(x0Tick, tickSize);
         }
 
         if (this.axisData.allowExpand) {
@@ -264,8 +455,26 @@ class AxisRenderer {
     }
 
     formatNumber(number, tickSize) {
-        let digits = Math.max(0, -Math.floor(Math.log10(tickSize)))
-        return number.toFixed(digits);
+        if (this.axisData.isTimestamp) {
+            let ts = moment.unix(number);
+            if (tickSize.years) {
+                return ts.format('YYYY');
+            }
+            if (tickSize.months) {
+                return ts.format('YYYY-MM');
+            }
+            if (tickSize.days) {
+                return ts.format('YYYY-MM-DD');
+            }
+            if (tickSize.hours || tickSize.minutes || tickSize.seconds) {
+                return ts.format('YYYY-MM-DD HH:mm:ss');
+            }
+
+            return ts.format('YYYY-MM-DD HH:mm:ss') + "." + ts.milliseconds().toString().padStart(3, '0')
+        } else {
+            let digits = Math.max(0, -Math.floor(Math.log10(tickSize)))
+            return number.toFixed(digits);
+        }
     }
 
     smallerTickSize(tickSize) {

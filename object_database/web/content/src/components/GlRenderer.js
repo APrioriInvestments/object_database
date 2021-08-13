@@ -203,12 +203,10 @@ GlRenderer.vertexShader = `
   void main() {
     vColor = aVertexColor;
 
-    vec2 directionPx = aDirection / uScreenPixelSize;
-    vec2 otherDirectionPx = aOtherDirection / uScreenPixelSize;
+    vec2 directionPx = aDirection / uScreenSize / uScreenPixelSize;
+    vec2 otherDirectionPx = aOtherDirection / uScreenSize / uScreenPixelSize;
 
-    vec2 normal = vec2(-directionPx.y, directionPx.x);
-
-    normal = normalize(normal);
+    vec2 normal = normalize(vec2(-directionPx.y, directionPx.x));
 
     // figure out the avg direction of the two line segments
     vec2 avgDirection = normalize(normalize(directionPx) + normalize(otherDirectionPx));

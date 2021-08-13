@@ -2,6 +2,7 @@
  * Plot Cell Cell
  */
 
+import {AxisRenderer} from './AxisRenderer';
 import {ConcreteCell} from './ConcreteCell';
 import {LineFigure} from './LineFigure';
 import {GlRenderer} from './GlRenderer';
@@ -24,10 +25,10 @@ class DragHelper {
 
     onMouseMove(e) {
         let curPt = [e.pageX, e.pageY];
-        this.lastPoint = curPt;
 
         if (e.buttons) {
             this.callback("move", this.initialPoint, this.lastPoint, curPt);
+            this.lastPoint = curPt;
         } else {
             this.callback("end", this.initialPoint, this.lastPoint, curPt);
             this.teardown();
@@ -239,6 +240,7 @@ class WebglPlot extends ConcreteCell {
         this.requestAnimationFrame = this.requestAnimationFrame.bind(this);
         this.onPacketLoadFailed = this.onPacketLoadFailed.bind(this);
         this.lineFigureFromJson = this.lineFigureFromJson.bind(this);
+        this.renderAxes = this.renderAxes.bind(this);
 
         this.renderedDefaultViewport = null;
 
@@ -265,6 +267,26 @@ class WebglPlot extends ConcreteCell {
         })
     }
 
+    renderAxes() {
+        if (!this.props.plotData) {
+            [this.leftAxis, this.topAxis, this.bottomAxis, this.rightAxis].forEach(
+                axis => {
+                    axis.style.width = "0px";
+                    axis.style.height = "0px";
+                }
+            );
+        } else {
+            // do him first so we know how big he is
+            new AxisRenderer('top', this.topAxis, this.topAxisLegend, this.props.plotData, this.renderer, 0).render();
+            new AxisRenderer('bottom', this.bottomAxis, this.bottomAxisLegend, this.props.plotData, this.renderer, 0).render();
+
+            // because of how the dom is structured, the left/right axes need to know how far to offset themselves.
+            let ht = this.topAxis.clientHeight + this.topAxisLegend.clientHeight;
+            new AxisRenderer('left', this.leftAxis, this.leftAxisLegend, this.props.plotData, this.renderer, ht).render();
+            new AxisRenderer('right', this.rightAxis, this.rightAxisLegend, this.props.plotData, this.renderer, ht).render();
+        }
+    }
+
     onPacketLoadFailed(error) {
         console.error("TODO: set the screen to an error display");
     }
@@ -273,6 +295,8 @@ class WebglPlot extends ConcreteCell {
         if (!this.props.plotData) {
             return;
         }
+
+        this.renderAxes();
 
         let arraysEqual = (x, y) => {
             if (!x && !y) {
@@ -299,14 +323,13 @@ class WebglPlot extends ConcreteCell {
             this.renderedDefaultViewport = this.props.plotData.defaultViewport;
         }
 
+        this.renderer.clearViewport()
+
         if (this.props.plotData.backgroundColor) {
-            this.renderer.clearViewport(
-                this.props.plotData.backgroundColor
-            )
+            let c = this.props.plotData.backgroundColor;
+            this.backgroundColorDiv.style.backgroundColor = `rgba(${c[0]*255},${c[1]*255},${c[2]*255},${c[3]})`
         } else {
-            this.renderer.clearViewport(
-                [0.0, 0.0, 0.0, 1.0]
-            )
+            this.backgroundColorDiv.style.backgroundColor = null;
         }
 
         this.figures.forEach(figure => {
@@ -437,13 +460,63 @@ class WebglPlot extends ConcreteCell {
     build() {
         this.canvas = h(
             'canvas', {
-                style: 'width:100%;height:100%',
+                style: 'width:100%;height:100%;position:absolute;top:0;left:0',
                 onmousedown: this.onMouseDown,
                 onwheel: this.onWheel,
                 ondblclick: this.onDoubleclick
             },
             ["Error: no WEBGL available"]
         );
+
+        this.canvasHolder = h(
+            'div',
+            {'style': 'width:100%;flex:1;z-index:0;position:relative;top:0;left:0'},
+            [this.canvas]
+        );
+
+        this.leftAxisLegend = h('div', {style:'height:100%'}, []);
+        this.rightAxisLegend = h('div', {style:'height:100%'}, []);
+        this.topAxisLegend = h('div', {style:'width:100%'}, []);
+        this.bottomAxisLegend = h('div', {style:'width:100%'}, []);
+
+        this.leftAxis = h('div', {style:'z-index:1;width:0px;height:100%;position:relative;top:0;left:0;'}, []);
+        this.rightAxis = h('div', {style:'z-index:1;width:0px;height:100%;position:relative;top:0;left:0;'}, []);
+        this.topAxis = h('div', {style:'z-index:1;width:100%;height:0px;position:relative;top:0;left:0;'}, []);
+        this.bottomAxis = h('div', {style:'z-index:1;width:100%;height:0px;position:relative;top:0;left:0;'}, []);
+
+        this.leftAxisLegendHolder = h('div', {style:'height:100%;flex:0'}, [this.leftAxisLegend]);
+        this.leftAxisHolder = h('div', {style:'height:100%;flex:0'}, [this.leftAxis]);
+
+        this.rightAxisLegendHolder = h('div', {style:'height:100%;flex:0'}, [this.rightAxisLegend]);
+        this.rightAxisHolder = h('div', {style:'height:100%;flex:0'}, [this.rightAxis]);
+
+        this.topAxisLegendHolder = h('div', {style:'width:100%;flex:0'}, [this.topAxisLegend]);
+        this.topAxisHolder = h('div', {style:'width:100%;flex:0'}, [this.topAxis]);
+
+        this.bottomAxisLegendHolder = h('div', {style:'width:100%;flex:0'}, [this.bottomAxisLegend]);
+        this.bottomAxisHolder = h('div', {style:'width:100%;flex:0'}, [this.bottomAxis]);
+
+        this.canvasAndUDAxesHolder = h('div',
+            {'style': 'flex:1;display:flex;flex-direction:column;width:100%'},
+            [
+                this.topAxisLegendHolder,
+                this.topAxisHolder,
+                this.canvasHolder,
+                this.bottomAxisHolder,
+                this.bottomAxisLegendHolder
+            ]
+        )
+
+        this.canvasAndLRAxesHolder = h('div',
+            {'style': 'overflow:hidden;display:flex;flex-direction:row;width:100%;height:100%'},
+            [
+                this.leftAxisLegendHolder,
+                this.leftAxisHolder,
+                this.canvasAndUDAxesHolder,
+                this.rightAxisHolder,
+                this.rightAxisLegendHolder
+            ]
+        )
 
         this.dragDiv = h(
             'div', {
@@ -452,9 +525,11 @@ class WebglPlot extends ConcreteCell {
             }, []
         );
 
+        this.backgroundColorDiv = h('div', {'style': 'position:absolute;top:0;left:0;width:100%;height:100%'}, []);
+
         this.loadPacketIfNecessary();
 
-        return h('div', {}, [this.canvas, this.dragDiv]);
+        return h('div', {'style':'position:relative;top:0;left:0'}, [this.backgroundColorDiv, this.canvasAndLRAxesHolder, this.dragDiv]);
     }
 
     rebuildDomElement() {
@@ -545,7 +620,7 @@ class WebglPlot extends ConcreteCell {
             this.drawScene();
         });
 
-        observer.observe(this.domElement);
+        observer.observe(this.canvasHolder);
     }
 
     onFirstInstalled() {

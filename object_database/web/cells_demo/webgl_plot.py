@@ -53,12 +53,18 @@ class BasicWebglPlot(CellsTestPage):
 class WebglBackgroundColor(CellsTestPage):
     def cell(self):
         def getData():
-            return Plot.create(
-                [0.0, 0.5, 1.0],
-                [0.0, 0.5, 0.0],
-                lineWidth=30,
-                color=(0.0, 1.0, 1.0, 1.0),
-                backgroundColor=(0.0, 0.0, 0.0, 0.0),
+            return (
+                Plot.create(
+                    [0.0, 0.5, 1.0],
+                    [0.0, 0.5, 0.0],
+                    lineWidth=30,
+                    color=(0.0, 1.0, 1.0, 1.0),
+                    backgroundColor=(0.0, 0.0, 0.0, 0.0),
+                )
+                .withBottomAxis(label="bottom")
+                .withLeftAxis(label="top")
+                .withTopAxis(label="right")
+                .withRightAxis(label="left")
             )
 
         return cells.WebglPlot(getData)

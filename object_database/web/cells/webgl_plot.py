@@ -225,8 +225,92 @@ class LineFigure(Figure):
         return LineFigure(ListOf(Float32)(x), ListOf(Float32)(y), lineWidth, color)
 
 
+class Axis:
+    """A method for labeling points in an axis."""
+
+    def __init__(
+        self,
+        space=0.0,
+        isTimestamp=False,
+        isLogscale=False,
+        offset=0.0,
+        scale=1.0,
+        color=createColor((0, 0, 0, 1)),
+        zeroColor=createColor((0, 0, 0, 1)),
+        ticklineColor=createColor((0, 0, 0, 0.05)),
+        allowExpand=True,
+        label=None,
+    ):
+        """Each point in the space 'x' gets mapped to 'x * scale + offset' to produce a label.
+
+        If 'isLogscale', the resulting value is then exponentiated.
+
+        If 'isTimestmp', the resulting value is considered a posix timestamp and displayed
+        in NYC time.
+
+        Space describes the number of pixels we want available to show the axis. If zero, then
+        we don't show an axis.
+
+        color - the color of the axis and text display.
+        zeroColor - the color of the 'zero' line to draw
+        ticklineColor - the color of the tickline to draw across
+        """
+        if label is not None:
+            assert isinstance(label, str)
+
+        self.space = space
+        self.color = color
+        self.isTimestmp = isTimestamp
+        self.isLogscale = isLogscale
+        self.offset = offset
+        self.scale = scale
+        self.color = createColor(color)
+        self.zeroColor = createColor(zeroColor)
+        self.ticklineColor = createColor(ticklineColor)
+        self.allowExpand = allowExpand
+        self.label = label
+
+    def encode(self, packets):
+        return {
+            "color": packets.encode(self.color),
+            "zeroColor": packets.encode(self.zeroColor),
+            "ticklineColor": packets.encode(self.ticklineColor),
+            "space": self.space,
+            "isTimestmp": self.isTimestmp,
+            "isLogscale": self.isLogscale,
+            "offset": self.offset,
+            "scale": self.scale,
+            "allowExpand": self.allowExpand,
+            "label": self.label,
+        }
+
+
+class Axes:
+    def __init__(self, top=None, left=None, bottom=None, right=None):
+        self.top = top
+        self.left = left
+        self.bottom = bottom
+        self.right = right
+
+    def encode(self, packets):
+        return {
+            "top": self.top.encode(packets) if self.top is not None else None,
+            "bottom": self.bottom.encode(packets) if self.bottom is not None else None,
+            "left": self.left.encode(packets) if self.left is not None else None,
+            "right": self.right.encode(packets) if self.right is not None else None,
+        }
+
+    def __add__(self, other):
+        return Axes(
+            other.top or self.top,
+            other.left or self.left,
+            other.bottom or self.bottom,
+            other.right or self.right,
+        )
+
+
 class Plot:
-    def __init__(self, figures, backgroundColor=None, defaultViewport=None):
+    def __init__(self, figures, backgroundColor=None, defaultViewport=None, axes=None):
         """Create a plot:
 
         Args:
@@ -251,19 +335,62 @@ class Plot:
         self.backgroundColor = backgroundColor
         self.defaultViewport = defaultViewport
 
+        if axes is not None:
+            assert isinstance(axes, Axes)
+        else:
+            axes = Axes()
+
+        self.axes = axes
+
     def encode(self, packets):
         return {
             "figures": [packets.encode(f) for f in self.figures],
             "backgroundColor": packets.encode(self.backgroundColor),
             "defaultViewport": packets.encode(self.defaultViewport),
+            "axes": packets.encode(self.axes),
         }
 
     @staticmethod
-    def create(x, y, lineWidth=1.0, color=None, backgroundColor=None, defaultViewport=None):
+    def create(
+        x, y, lineWidth=1.0, color=None, backgroundColor=None, defaultViewport=None, axes=None
+    ):
         return Plot(
             [LineFigure.create(x=x, y=y, lineWidth=lineWidth, color=color)],
             backgroundColor=createColor(backgroundColor),
             defaultViewport=defaultViewport,
+            axes=axes,
+        )
+
+    def withLeftAxis(self, **kwargs):
+        return Plot(
+            self.figures,
+            self.backgroundColor,
+            self.defaultViewport,
+            self.axes + Axes(left=Axis(**kwargs)),
+        )
+
+    def withBottomAxis(self, **kwargs):
+        return Plot(
+            self.figures,
+            self.backgroundColor,
+            self.defaultViewport,
+            self.axes + Axes(bottom=Axis(**kwargs)),
+        )
+
+    def withTopAxis(self, **kwargs):
+        return Plot(
+            self.figures,
+            self.backgroundColor,
+            self.defaultViewport,
+            self.axes + Axes(top=Axis(**kwargs)),
+        )
+
+    def withRightAxis(self, **kwargs):
+        return Plot(
+            self.figures,
+            self.backgroundColor,
+            self.defaultViewport,
+            self.axes + Axes(right=Axis(**kwargs)),
         )
 
     def __add__(self, other):
@@ -271,7 +398,10 @@ class Plot:
             return NotImplemented
 
         return Plot(
-            self.figures + other.figures, other.backgroundColor or self.backgroundColor
+            self.figures + other.figures,
+            other.backgroundColor or self.backgroundColor,
+            other.defaultViewport or self.defaultViewport,
+            other.axes + self.axes,
         )
 
 

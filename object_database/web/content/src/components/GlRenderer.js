@@ -85,11 +85,11 @@ class GlRenderer {
     }
 
 
-    clearViewport(clearColor) {
+    clearViewport() {
         let gl = this.gl;
 
         gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-        gl.clearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+        gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);

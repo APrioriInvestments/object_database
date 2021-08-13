@@ -5,6 +5,7 @@
 import {AxisRenderer} from './AxisRenderer';
 import {ConcreteCell} from './ConcreteCell';
 import {LineFigure} from './LineFigure';
+import {TrianglesFigure} from './TrianglesFigure';
 import {GlRenderer} from './GlRenderer';
 import {makeDomElt as h} from './Cell';
 
@@ -224,7 +225,6 @@ class WebglPlot extends ConcreteCell {
 
         this.installResizeObserver = this.installResizeObserver.bind(this);
         this.loadPacketIfNecessary = this.loadPacketIfNecessary.bind(this);
-        this.onPlotDataReceived = this.onPlotDataReceived.bind(this);
         this.drawScene = this.drawScene.bind(this);
 
         this.requestedPacketId = 0;
@@ -241,6 +241,7 @@ class WebglPlot extends ConcreteCell {
         this.onPacketLoadFailed = this.onPacketLoadFailed.bind(this);
         this.lineFigureFromJson = this.lineFigureFromJson.bind(this);
         this.renderAxes = this.renderAxes.bind(this);
+        this.renderLegend = this.renderLegend.bind(this);
 
         this.renderedDefaultViewport = null;
 
@@ -265,6 +266,66 @@ class WebglPlot extends ConcreteCell {
 
             this.drawScene();
         })
+    }
+
+    renderLegend() {
+        while (this.legendHolderDiv.childNodes.length) {
+            this.legendHolderDiv.removeChild(this.legendHolderDiv.firstChild);
+        }
+
+        if (!this.props.plotData.legend) {
+            return
+        }
+        let styles = [];
+        let legend = this.props.plotData.legend;
+
+        if (legend.position[0] < .5) {
+            styles.push("left:" + (legend.position[0] * 100.0) + "%")
+        } else {
+            styles.push("right:" + ((1.0-legend.position[0]) * 100.0) + "%")
+        }
+
+        if (legend.position[1] < .5) {
+            styles.push("bottom:" + (legend.position[1] * 100.0) + "%")
+        } else {
+            styles.push("top:" + ((1.0-legend.position[1]) * 100.0) + "%")
+        }
+        styles.push('position:absolute')
+
+        let rows = [];
+
+        for (let i = 0; i < legend.seriesNames.length; i++) {
+            let c = legend.colors[i];
+
+            rows.push(
+                h('tr', {}, [
+                    h('td', 
+                        {}, 
+                        [
+                            h('div', {
+                            'class': 'plot-legend-color', 
+                            'style': 'background-color:' +  
+                                `rgba(${c[0]*255},${c[1]*255},${c[2]*255},${c[3]})`
+                            }, 
+                            []
+                            )
+                        ]
+                    ),
+                    h('td', {'class': 'plot-legend-label'}, [
+                        legend.seriesNames[i]
+                    ]),
+                ])
+            )
+        }
+
+        this.legendHolderDiv.appendChild(
+            h('div', {'style': 
+                styles.join(';'),
+                'class': 'plot-legend'
+            }, [
+                h('table', {}, rows)
+            ])
+        )
     }
 
     renderAxes() {
@@ -297,6 +358,7 @@ class WebglPlot extends ConcreteCell {
         }
 
         this.renderAxes();
+        this.renderLegend();
 
         let arraysEqual = (x, y) => {
             if (!x && !y) {
@@ -525,11 +587,20 @@ class WebglPlot extends ConcreteCell {
             }, []
         );
 
+        this.legendHolderDiv = h(
+            'div', {'style': 'width:calc(100.0% - 20px);height:calc(100.0% - 20px);top:10px;left:10px;position:absolute;'}, []
+        )
+
         this.backgroundColorDiv = h('div', {'style': 'position:absolute;top:0;left:0;width:100%;height:100%'}, []);
 
         this.loadPacketIfNecessary();
 
-        return h('div', {'style':'position:relative;top:0;left:0'}, [this.backgroundColorDiv, this.canvasAndLRAxesHolder, this.dragDiv]);
+        return h('div', {'style':'position:relative;top:0;left:0'}, [
+            this.backgroundColorDiv, 
+            this.canvasAndLRAxesHolder, 
+            this.dragDiv,
+            this.legendHolderDiv
+        ]);
     }
 
     rebuildDomElement() {
@@ -554,6 +625,11 @@ class WebglPlot extends ConcreteCell {
                             this.lineFigureFromJson(figureJson)
                         );
                     }
+                    if (figureJson.type == 'TrianglesFigure') {
+                        this.figures.push(
+                            this.triangleFigureFromJson(figureJson)
+                        );
+                    }
                 });
             }
 
@@ -576,21 +652,16 @@ class WebglPlot extends ConcreteCell {
         );
     }
 
-    onPlotDataReceived(packetId, plotData) {
-        if (this.loadedPacketId >= packetId) {
-            return;
-        }
+    triangleFigureFromJson(figureJson) {
+        let xs = this.packets.decodeFloats(figureJson.x);
+        let ys = this.packets.decodeFloats(figureJson.y);
+        let color = this.packets.decodeColors(figureJson.color);
 
-        console.log("Packet " + packetId + " received in "
-            + (Date.now() - this.packetRequestedAt) + " milliseconds.");
-
-        this.loadedPacketId = packetId;
-        this.lines = new LineFigure(
-            new Float32Array(plotData),
-            this.props.lineWidth
+        return new TrianglesFigure(
+            xs,
+            ys,
+            color
         );
-
-        this.requestAnimationFrame();
     }
 
     cellWillUnload() {

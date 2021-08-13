@@ -245,7 +245,7 @@ class LineFigure {
             }
         }
 
-        renderer.drawTriangles(
+        renderer.drawLines(
             this.triangleBuffer,
             this.directionBuffer,
             this.otherDirectionBuffer,

@@ -92,3 +92,20 @@ class WebglTimestampDisplay(CellsTestPage):
 
     def text(self):
         return "you should see a graphic you can scroll around on"
+
+
+class WebglLegend(CellsTestPage):
+    def cell(self):
+        def getData():
+            return Plot.create(
+                [x * 86400 for x in range(1000)],
+                [math.sin(x / 20.0) for x in range(1000)],
+                lineWidth=10,
+                color=(0.0, 0.0, 0.0, 1.0),
+                backgroundColor=(0.0, 0.0, 0.0, 0.0),
+            ).withLegend((1.0, 1.0), ["A", "B"], ["red", "blue"])
+
+        return cells.WebglPlot(getData)
+
+    def text(self):
+        return "you should see a graphic you can scroll around on"

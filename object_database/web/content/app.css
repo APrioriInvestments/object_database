@@ -57,6 +57,21 @@ th {
     border: 1;
 }
 
+.plot-legend {
+    background-color: white;
+    border: 1px solid black;
+    max-width: 33%;
+    max-height: 33%;
+    overflow: auto;
+    padding: 8px;
+}
+
+.plot-legend-color {
+    width: 10px;
+    height: 10px;
+    margin-right: 10px;
+}
+
 .plot-zoom-handle {
     background-color: rgba(0,140,255,0.6);
     border: 1px solid rgba(0,160,255,0.9);

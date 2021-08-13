@@ -136,7 +136,19 @@ def createRectangle(rect):
     raise Exception(f"Can't make a rectangle out of {rect}")
 
 
+colorTable = dict(
+    red=Color(red=255, alpha=255),
+    green=Color(green=255, alpha=255),
+    blue=Color(blue=255, alpha=255),
+    white=Color(red=255, green=255, blue=255, alpha=255),
+    black=Color(red=0, green=0, blue=0, alpha=255),
+)
+
+
 def createColor(color):
+    if isinstance(color, str):
+        return colorTable[color]
+
     if isinstance(color, Color):
         return color
 
@@ -177,6 +189,40 @@ def maxOf(values):
             maxValue = v
 
     return maxValue
+
+
+class TrianglesFigure(Figure):
+    def __init__(self, xs, ys, colors):
+        assert isinstance(xs, ListOf(Float32)), type(xs)
+        assert isinstance(ys, ListOf(Float32)), type(ys)
+        assert isinstance(colors, ListOf(Color)), type(colors)
+
+        assert len(xs) == len(ys)
+        assert len(xs) == len(colors)
+        assert len(xs) % 3 == 0
+        
+        self.xs = xs
+        self.ys = ys
+        self.colors = colors
+
+    def extent(self):
+        if not self.xs:
+            return Rectangle()
+
+        return Rectangle(
+            left=minOf(self.xs),
+            bottom=minOf(self.ys),
+            right=maxOf(self.xs),
+            top=maxOf(self.ys),
+        )
+
+    def encode(self, packets):
+        return {
+            "type": "TrianglesFigure",
+            "x": packets.encode(self.xs),
+            "y": packets.encode(self.ys),
+            "color": packets.encode(self.colors),
+        }
 
 
 class LineFigure(Figure):
@@ -309,8 +355,39 @@ class Axes:
         )
 
 
+class Legend:
+    def __init__(self, position, seriesNames, colors):
+        self.position = position
+        self.seriesNames = seriesNames
+        self.colors = [createColor(c) for c in colors]
+
+        assert isinstance(position, tuple)
+        assert len(position) == 2
+        assert isinstance(position[0], (float, int))
+        assert isinstance(position[1], (float, int))
+
+        for a in seriesNames:
+            assert isinstance(a, str)
+
+        assert len(self.seriesNames) == len(self.colors)
+
+    def __add__(self, other):
+        return Legend(
+            other.position, self.seriesNames + other.seriesNames, self.colors + other.colors
+        )
+
+    def encode(self, packets):
+        return {
+            "position": self.position,
+            "seriesNames": self.seriesNames,
+            "colors": [packets.encode(c) for c in self.colors],
+        }
+
+
 class Plot:
-    def __init__(self, figures, backgroundColor=None, defaultViewport=None, axes=None):
+    def __init__(
+        self, figures, backgroundColor=None, defaultViewport=None, axes=None, legend=None
+    ):
         """Create a plot:
 
         Args:
@@ -340,7 +417,11 @@ class Plot:
         else:
             axes = Axes()
 
+        if legend is not None:
+            assert isinstance(legend, Legend)
+
         self.axes = axes
+        self.legend = legend
 
     def encode(self, packets):
         return {
@@ -348,6 +429,7 @@ class Plot:
             "backgroundColor": packets.encode(self.backgroundColor),
             "defaultViewport": packets.encode(self.defaultViewport),
             "axes": packets.encode(self.axes),
+            "legend": packets.encode(self.legend),
         }
 
     @staticmethod
@@ -367,6 +449,7 @@ class Plot:
             self.backgroundColor,
             self.defaultViewport,
             self.axes + Axes(left=Axis(**kwargs)),
+            self.legend,
         )
 
     def withBottomAxis(self, **kwargs):
@@ -375,6 +458,7 @@ class Plot:
             self.backgroundColor,
             self.defaultViewport,
             self.axes + Axes(bottom=Axis(**kwargs)),
+            self.legend,
         )
 
     def withTopAxis(self, **kwargs):
@@ -383,6 +467,7 @@ class Plot:
             self.backgroundColor,
             self.defaultViewport,
             self.axes + Axes(top=Axis(**kwargs)),
+            self.legend,
         )
 
     def withRightAxis(self, **kwargs):
@@ -391,6 +476,16 @@ class Plot:
             self.backgroundColor,
             self.defaultViewport,
             self.axes + Axes(right=Axis(**kwargs)),
+            self.legend,
+        )
+
+    def withLegend(self, position, seriesNames, colors):
+        return Plot(
+            self.figures,
+            self.backgroundColor,
+            self.defaultViewport,
+            self.axes,
+            Legend(position, seriesNames, colors),
         )
 
     def __add__(self, other):
@@ -402,6 +497,7 @@ class Plot:
             other.backgroundColor or self.backgroundColor,
             other.defaultViewport or self.defaultViewport,
             other.axes + self.axes,
+            other.legend + self.legend,
         )
 
 

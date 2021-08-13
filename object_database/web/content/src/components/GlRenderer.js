@@ -1,11 +1,107 @@
+const linesShader = {
+    fragmentShader: `
+  #ifdef GL_ES
+    precision highp float;
+  #endif
 
+  varying lowp vec4 vColor;
+
+  void main() {
+    gl_FragColor += vColor;
+  }
+`
+
+    vertexShader: `
+  attribute vec3 aVertexPosition;
+  attribute vec4 aVertexColor;
+
+  uniform vec2 uScreenSize;
+  uniform vec2 uScreenPosition;
+  uniform vec2 uScreenPixelSize;
+
+  varying lowp vec4 vColor;
+
+  void main() {
+    vColor = aVertexColor;
+
+    vec2 rotatedPosition = vec2(
+      (aVertexPosition.x - uScreenPosition.x) / uScreenSize.x * 2.0 - 1.0,
+      (aVertexPosition.y - uScreenPosition.y) / uScreenSize.y * 2.0 - 1.0
+    );
+
+    gl_Position = vec4(rotatedPosition, 0.0, 1.0);
+  }
+`
+}
+
+const triangleShader = {
+    fragmentShader: `
+  #ifdef GL_ES
+    precision highp float;
+  #endif
+
+  varying lowp vec4 vColor;
+
+  void main() {
+    gl_FragColor += vColor;
+  }
+`
+
+    vertexShader: `
+  attribute float aLineWidth;
+  attribute float aLinePos;
+  attribute vec3 aVertexPosition;
+  attribute vec2 aDirection;
+  attribute vec2 aOtherDirection;
+  attribute vec4 aVertexColor;
+
+  uniform vec2 uScreenSize;
+  uniform vec2 uScreenPosition;
+  uniform vec2 uScreenPixelSize;
+
+  varying lowp vec4 vColor;
+
+  void main() {
+    vColor = aVertexColor;
+
+    vec2 directionPx = aDirection / uScreenSize / uScreenPixelSize;
+    vec2 otherDirectionPx = aOtherDirection / uScreenSize / uScreenPixelSize;
+
+    vec2 normal = normalize(vec2(-directionPx.y, directionPx.x));
+
+    // figure out the avg direction of the two line segments
+    vec2 avgDirection = normalize(normalize(directionPx) + normalize(otherDirectionPx));
+    vec2 normedDirection = normalize(directionPx);
+
+    vec2 offset = normal * aVertexPosition.z * aLineWidth;
+
+    float projAmount = - dot(offset, avgDirection) / dot(normedDirection, avgDirection);
+
+    if (aLinePos < .5) {
+        projAmount = max(projAmount, 0.0);
+    } else {
+        projAmount = min(projAmount, 0.0);
+    }
+
+    offset += projAmount * normedDirection;
+
+    vec2 rotatedPosition = vec2(
+      (aVertexPosition.x - uScreenPosition.x) / uScreenSize.x * 2.0 - 1.0 + offset.x * uScreenPixelSize.x,
+      (aVertexPosition.y - uScreenPosition.y) / uScreenSize.y * 2.0 - 1.0 + offset.y * uScreenPixelSize.y
+    );
+
+    gl_Position = vec4(rotatedPosition, 0.0, 1.0);
+  }
+`    
+}
 
 class GlRenderer {
     constructor(canvas) {
         this.canvas = canvas;
         this.gl = this.canvas.getContext("webgl", {antialias: true});
 
-        this.program = this.buildShaderProgram(this.gl);
+        this.linesProgram = this.buildShaderProgram(this.gl, linesShader);
+        this.triangleProgram = this.buildShaderProgram(this.gl, trianglesShader);
 
         // where in object coordinates the current draw rect is
         this.screenPosition = [0.0, 0.0];
@@ -16,14 +112,15 @@ class GlRenderer {
         this.buildShaderProgram = this.buildShaderProgram.bind(this);
         this.compileShader = this.compileShader.bind(this);
         this.clearViewport = this.clearViewport.bind(this);
+        this.drawLines = this.drawLines.bind(this);
         this.drawTriangles = this.drawTriangles.bind(this);
     }
 
-    buildShaderProgram(gl) {
+    buildShaderProgram(gl, shaderCode) {
         let program = gl.createProgram();
 
-        let vertexShader = this.compileShader(gl, gl.VERTEX_SHADER, GlRenderer.vertexShader);
-        let fragmentShader = this.compileShader(gl, gl.FRAGMENT_SHADER, GlRenderer.fragmentShader);
+        let vertexShader = this.compileShader(gl, gl.VERTEX_SHADER, shaderCode.vertexShader);
+        let fragmentShader = this.compileShader(gl, gl.FRAGMENT_SHADER, shaderCode.fragmentShader);
 
         gl.attachShader(program, vertexShader);
         gl.attachShader(program, fragmentShader);
@@ -95,7 +192,7 @@ class GlRenderer {
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     }
 
-    drawTriangles(vertexBuffer, directionBuffer, otherDirectionBuffer, linePosBuffer, lineWidthBuffer, colorBuffer, pointCount) {
+    drawTriangles(vertexBuffer, colorBuffer, pointCount) {
         if (!vertexBuffer) {
             return;
         }
@@ -104,20 +201,66 @@ class GlRenderer {
 
         let currentScale = this.screenSize;
 
-        gl.useProgram(this.program);
+        let program = this.triangleProgram;
 
-        let uScreenSize = gl.getUniformLocation(this.program, "uScreenSize");
-        let uScreenPixelSize = gl.getUniformLocation(this.program, "uScreenPixelSize");
-        let uScreenPosition = gl.getUniformLocation(this.program, "uScreenPosition");
+        gl.useProgram(program);
+
+        let uScreenSize = gl.getUniformLocation(program, "uScreenSize");
+        let uScreenPixelSize = gl.getUniformLocation(program, "uScreenPixelSize");
+        let uScreenPosition = gl.getUniformLocation(program, "uScreenPosition");
 
         gl.uniform2fv(uScreenSize, currentScale);
 
-        let aVertexColor = gl.getAttribLocation(this.program, "aVertexColor");
-        let aVertexPosition = gl.getAttribLocation(this.program, "aVertexPosition");
-        let aDirection = gl.getAttribLocation(this.program, "aDirection");
-        let aOtherDirection = gl.getAttribLocation(this.program, "aOtherDirection");
-        let aLineWidth = gl.getAttribLocation(this.program, "aLineWidth");
-        let aLinePos = gl.getAttribLocation(this.program, "aLinePos");
+        let aVertexColor = gl.getAttribLocation(program, "aVertexColor");
+        let aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+        gl.enableVertexAttribArray(aVertexPosition);
+        gl.vertexAttribPointer(
+            aVertexPosition,
+            3,
+            gl.FLOAT, false, 0, 0
+        );
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.enableVertexAttribArray(aVertexColor);
+        gl.vertexAttribPointer(
+            aVertexColor,
+            4,
+            gl.FLOAT, false, 0, 0
+        );
+
+        gl.uniform2fv(uScreenPixelSize, [1.0 / this.canvas.width, 1.0 / this.canvas.height]);
+        gl.uniform2fv(uScreenPosition, this.screenPosition);
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, pointCount);
+    }
+
+    drawLines(vertexBuffer, directionBuffer, otherDirectionBuffer, linePosBuffer, lineWidthBuffer, colorBuffer, pointCount) {
+        if (!vertexBuffer) {
+            return;
+        }
+
+        let gl = this.gl;
+
+        let currentScale = this.screenSize;
+
+        let program = this.linesProgram;
+
+        gl.useProgram(program);
+
+        let uScreenSize = gl.getUniformLocation(program, "uScreenSize");
+        let uScreenPixelSize = gl.getUniformLocation(program, "uScreenPixelSize");
+        let uScreenPosition = gl.getUniformLocation(program, "uScreenPosition");
+
+        gl.uniform2fv(uScreenSize, currentScale);
+
+        let aVertexColor = gl.getAttribLocation(program, "aVertexColor");
+        let aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+        let aDirection = gl.getAttribLocation(program, "aDirection");
+        let aOtherDirection = gl.getAttribLocation(program, "aOtherDirection");
+        let aLineWidth = gl.getAttribLocation(program, "aLineWidth");
+        let aLinePos = gl.getAttribLocation(program, "aLinePos");
 
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         gl.enableVertexAttribArray(aVertexPosition);
@@ -174,63 +317,5 @@ class GlRenderer {
     }
 }
 
-GlRenderer.fragmentShader = `
-  #ifdef GL_ES
-    precision highp float;
-  #endif
-
-  varying lowp vec4 vColor;
-
-  void main() {
-    gl_FragColor += vColor;
-  }
-`
-
-GlRenderer.vertexShader = `
-  attribute float aLineWidth;
-  attribute float aLinePos;
-  attribute vec3 aVertexPosition;
-  attribute vec2 aDirection;
-  attribute vec2 aOtherDirection;
-  attribute vec4 aVertexColor;
-
-  uniform vec2 uScreenSize;
-  uniform vec2 uScreenPosition;
-  uniform vec2 uScreenPixelSize;
-
-  varying lowp vec4 vColor;
-
-  void main() {
-    vColor = aVertexColor;
-
-    vec2 directionPx = aDirection / uScreenSize / uScreenPixelSize;
-    vec2 otherDirectionPx = aOtherDirection / uScreenSize / uScreenPixelSize;
-
-    vec2 normal = normalize(vec2(-directionPx.y, directionPx.x));
-
-    // figure out the avg direction of the two line segments
-    vec2 avgDirection = normalize(normalize(directionPx) + normalize(otherDirectionPx));
-    vec2 normedDirection = normalize(directionPx);
-
-    vec2 offset = normal * aVertexPosition.z * aLineWidth;
-
-    float projAmount = - dot(offset, avgDirection) / dot(normedDirection, avgDirection);
-
-    if (aLinePos < .5) {
-        projAmount = max(projAmount, 0.0);
-    } else {
-        projAmount = min(projAmount, 0.0);
-    }
-
-    offset += projAmount * normedDirection;
-
-    vec2 rotatedPosition = vec2(
-      (aVertexPosition.x - uScreenPosition.x) / uScreenSize.x * 2.0 - 1.0 + offset.x * uScreenPixelSize.x,
-      (aVertexPosition.y - uScreenPosition.y) / uScreenSize.y * 2.0 - 1.0 + offset.y * uScreenPixelSize.y
-    );
-
-    gl_Position = vec4(rotatedPosition, 0.0, 1.0);
-  }
-`
 
 export {GlRenderer};

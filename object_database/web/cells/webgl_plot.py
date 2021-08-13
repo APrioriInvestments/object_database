@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typed_python import ListOf, Float32, NamedTuple, UInt8
+from typed_python import ListOf, Float32, NamedTuple, UInt8, Entrypoint
 
 from object_database.web.cells.cell import Cell
 from object_database.web.cells.subscribed import SubscribeAndRetry
@@ -26,6 +26,24 @@ class Figure:
 
 
 Color = NamedTuple(red=UInt8, green=UInt8, blue=UInt8, alpha=UInt8)
+
+
+class Rectangle(NamedTuple(left=float, bottom=float, right=float, top=float)):
+    def union(self, other):
+        return Rectangle(
+            left=min(self.left, other.left),
+            bottom=min(self.bottom, other.bottom),
+            top=max(self.top, other.top),
+            right=max(self.right, other.right),
+        )
+
+    def intersection(self, other):
+        return Rectangle(
+            left=max(self.left, other.left),
+            bottom=max(self.bottom, other.bottom),
+            top=min(self.top, other.top),
+            right=min(self.right, other.right),
+        )
 
 
 class Packets:
@@ -99,10 +117,66 @@ class Packets:
                 float(data.alpha) / 255.0,
             ]
 
+        if isinstance(data, Rectangle):
+            return [float(data.left), float(data.bottom), float(data.right), float(data.top)]
+
         if isinstance(data, (bytes, ListOf(Float32), ListOf(Color))):
             return {"packetId": self.getPacketId(data)}
 
         return data.encode(self)
+
+
+def createRectangle(rect):
+    if isinstance(rect, Rectangle):
+        return rect
+
+    if isinstance(rect, (tuple, list, ListOf)) and len(rect) == 4:
+        return Rectangle(left=rect[0], bottom=rect[1], right=rect[2], top=rect[3])
+
+    raise Exception(f"Can't make a rectangle out of {rect}")
+
+
+def createColor(color):
+    if isinstance(color, Color):
+        return color
+
+    if isinstance(color, (tuple, list, ListOf)) and len(color) == 4:
+        return Color(
+            red=color[0] * 255.0,
+            green=color[1] * 255.0,
+            blue=color[2] * 255.0,
+            alpha=color[3] * 255.0,
+        )
+
+    raise Exception(f"Can't make a color out of {color}")
+
+
+@Entrypoint
+def minOf(values):
+    if not values:
+        return None
+
+    minValue = values[0]
+
+    for v in values:
+        if v < minValue:
+            minValue = v
+
+    return minValue
+
+
+@Entrypoint
+def maxOf(values):
+    if not values:
+        return None
+
+    maxValue = values[0]
+
+    for v in values:
+        if v > maxValue:
+            maxValue = v
+
+    return maxValue
 
 
 class LineFigure(Figure):
@@ -116,6 +190,17 @@ class LineFigure(Figure):
         self.ys = ys
         self.lineWidths = lineWidths
         self.colors = colors
+
+    def extent(self):
+        if not self.xs:
+            return Rectangle()
+
+        return Rectangle(
+            left=minOf(self.xs),
+            bottom=minOf(self.ys),
+            right=maxOf(self.xs),
+            top=maxOf(self.ys),
+        )
 
     def encode(self, packets):
         return {
@@ -132,15 +217,8 @@ class LineFigure(Figure):
             lineWidth = ListOf(Float32)(lineWidth)
 
         if color is not None:
-            if isinstance(color, (tuple, list, ListOf)) and len(color) == 4:
-                color = Color(
-                    red=color[0] * 255.0,
-                    green=color[1] * 255.0,
-                    blue=color[2] * 255.0,
-                    alpha=color[3] * 255.0,
-                )
-            else:
-                assert isinstance(color, ListOf(Color))
+            if not isinstance(color, ListOf(Color)):
+                color = createColor(color)
         else:
             color = Color(blue=255, alpha=255)
 
@@ -148,26 +226,45 @@ class LineFigure(Figure):
 
 
 class Plot:
-    def __init__(self, figures, backgroundColor=None):
+    def __init__(self, figures, backgroundColor=None, defaultViewport=None):
         """Create a plot:
 
         Args:
             figures - a list of Figure objects
-            backgroundColor - None or a tuple (red, green, blue, alpha) for the color of the
-                plot canvas
+            backgroundColor - None or a Color/color tuple
+            defaultViewport - None, or a Rect/rect tuple indicating where the plot will
+                be centered by default. If None, then we'll ask each figure for an "extent".
         """
         self.figures = figures
+        assert isinstance(backgroundColor, Color) or backgroundColor is None
+
+        if defaultViewport is None:
+            if not figures:
+                defaultViewport = Rectangle()
+            else:
+                defaultViewport = figures[0].extent()
+                for f in figures[1:]:
+                    defaultViewport = defaultViewport.union(f.extent())
+        else:
+            defaultViewport = createRectangle(defaultViewport)
+
         self.backgroundColor = backgroundColor
+        self.defaultViewport = defaultViewport
 
     def encode(self, packets):
         return {
             "figures": [packets.encode(f) for f in self.figures],
             "backgroundColor": packets.encode(self.backgroundColor),
+            "defaultViewport": packets.encode(self.defaultViewport),
         }
 
     @staticmethod
-    def create(x, y, lineWidth=1.0, color=None):
-        return Plot([LineFigure.create(x=x, y=y, lineWidth=lineWidth, color=color)])
+    def create(x, y, lineWidth=1.0, color=None, backgroundColor=None, defaultViewport=None):
+        return Plot(
+            [LineFigure.create(x=x, y=y, lineWidth=lineWidth, color=color)],
+            backgroundColor=createColor(backgroundColor),
+            defaultViewport=defaultViewport,
+        )
 
     def __add__(self, other):
         if not isinstance(other, Plot):

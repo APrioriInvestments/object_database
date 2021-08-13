@@ -15,21 +15,27 @@ class DragHelper {
         this.onMouseMove = this.onMouseMove.bind(this);
         this.onMouseUp = this.onMouseUp.bind(this);
 
-        this.initialPoint = [startEvent.screenX, startEvent.screenY];
-        this.lastPoint = [startEvent.screenX, startEvent.screenY];
+        this.initialPoint = [startEvent.pageX, startEvent.pageY];
+        this.lastPoint = [startEvent.pageX, startEvent.pageY];
 
         window.addEventListener('mousemove', this.onMouseMove);
         window.addEventListener('mouseup', this.onMouseUp);
     }
 
     onMouseMove(e) {
-        let curPt = [e.screenX, e.screenY];
-        this.callback("move", this.initialPoint, this.lastPoint, curPt);
+        let curPt = [e.pageX, e.pageY];
         this.lastPoint = curPt;
+
+        if (e.buttons) {
+            this.callback("move", this.initialPoint, this.lastPoint, curPt);
+        } else {
+            this.callback("end", this.initialPoint, this.lastPoint, curPt);
+            this.teardown();
+        }
     }
 
     onMouseUp(e) {
-        let curPt = [e.screenX, e.screenY];
+        let curPt = [e.pageX, e.pageY];
         this.callback("end", this.initialPoint, this.lastPoint, curPt);
         this.teardown();
     }
@@ -38,6 +44,8 @@ class DragHelper {
         if (this.isTornDown) {
             return;
         }
+
+        this.callback("teardown");
 
         this.isTornDown = true;
         window.removeEventListener('mousemove', this.onMouseMove)
@@ -223,6 +231,7 @@ class WebglPlot extends ConcreteCell {
 
         this.onMouseDown = this.onMouseDown.bind(this);
         this.onWheel = this.onWheel.bind(this);
+        this.onDoubleclick = this.onDoubleclick.bind(this);
 
         this.currentDragHelper = null;
 
@@ -230,6 +239,8 @@ class WebglPlot extends ConcreteCell {
         this.requestAnimationFrame = this.requestAnimationFrame.bind(this);
         this.onPacketLoadFailed = this.onPacketLoadFailed.bind(this);
         this.lineFigureFromJson = this.lineFigureFromJson.bind(this);
+
+        this.renderedDefaultViewport = null;
 
         this.packets = new Packets(
             this.requestPacket,
@@ -259,7 +270,44 @@ class WebglPlot extends ConcreteCell {
     }
 
     drawScene() {
-        this.renderer.clearViewport()
+        if (!this.props.plotData) {
+            return;
+        }
+
+        let arraysEqual = (x, y) => {
+            if (!x && !y) {
+                return true;
+            }
+            if (!x || !y) {
+                return false;
+            }
+
+            if (x.length != y.length) {
+                return false;
+            }
+
+            for (let i = 0; i < x.length; i++) {
+                if (x[i] != y[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        if (!arraysEqual(this.props.plotData.defaultViewport, this.renderedDefaultViewport)) {
+            this.renderer.scrollToRectangle(this.props.plotData.defaultViewport);
+            this.renderedDefaultViewport = this.props.plotData.defaultViewport;
+        }
+
+        if (this.props.plotData.backgroundColor) {
+            this.renderer.clearViewport(
+                this.props.plotData.backgroundColor
+            )
+        } else {
+            this.renderer.clearViewport(
+                [0.0, 0.0, 0.0, 1.0]
+            )
+        }
 
         this.figures.forEach(figure => {
             figure.drawSelf(this.renderer)
@@ -283,6 +331,13 @@ class WebglPlot extends ConcreteCell {
         this.requestAnimationFrame();
     }
 
+    onDoubleclick(e) {
+        if (this.renderedDefaultViewport) {
+            this.renderer.scrollToRectangle(this.renderedDefaultViewport);
+            this.requestAnimationFrame();
+        }
+    }
+
     onMouseDown(e) {
         e.preventDefault();
 
@@ -290,20 +345,93 @@ class WebglPlot extends ConcreteCell {
             this.currentDragHelper.teardown();
         }
 
-        this.currentDragHelper = new DragHelper(e,
-            (event, startPoint, lastPoint,  curPoint) => {
-                this.renderer.scrollPixels(
-                    -(curPoint[0] - lastPoint[0]) / this.canvas.width,
-                    (curPoint[1] - lastPoint[1]) / this.canvas.height
-                );
+        if (e.ctrlKey) {
+            // we are panning
+            this.currentDragHelper = new DragHelper(e,
+                (event, startPoint, lastPoint,  curPoint) => {
+                    if (event == "teardown") {
+                        return;
+                    }
 
-                this.requestAnimationFrame();
+                    this.renderer.scrollPixels(
+                        -(curPoint[0] - lastPoint[0]) / this.canvas.width,
+                        (curPoint[1] - lastPoint[1]) / this.canvas.height
+                    );
 
-                if (event == 'end') {
-                    this.currentDragHelper = null;
+                    this.requestAnimationFrame();
+
+                    if (event == 'end') {
+                        this.currentDragHelper = null;
+                    }
                 }
-            }
-        )
+            );
+        } else {
+            // we are selecting a zoom region
+            let hasMoved = false;
+
+            this.currentDragHelper = new DragHelper(e,
+                (event, startPoint, lastPoint,  curPoint) => {
+                    if (event == "teardown") {
+                        this.currentDragHelper = null;
+                        return;
+                    }
+
+                    let curRect = this.canvas.getBoundingClientRect();
+
+                    if (Math.abs(startPoint[0] - curPoint[0]) + Math.abs(startPoint[1] - curPoint[1]) > 10) {
+                        hasMoved = true;
+                    }
+
+                    if (!hasMoved) {
+                        return;
+                    }
+
+                    if (event == "teardown" || event == "end") {
+                        this.dragDiv.setAttribute("style", "height:0px; width: 0px; display: none");
+
+                        if (event == "end") {
+                            let x0 = startPoint[0] - curRect.left;
+                            let y0 = this.canvas.height - (startPoint[1] - curRect.top);
+
+                            let x1 = curPoint[0] - curRect.left;
+                            let y1 = this.canvas.height - (curPoint[1] - curRect.top);
+
+                            this.renderer.zoomRect(
+                                x0 / this.canvas.width,
+                                y0 / this.canvas.height,
+                                x1 / this.canvas.width,
+                                y1 / this.canvas.height
+                            )
+
+                            this.requestAnimationFrame();
+                        }
+                    } else {
+                        let [x0, y0] = startPoint;
+                        let [x1, y1] = curPoint;
+
+                        if (x0 > x1) {
+                            [x0, x1] = [x1, x0];
+                        }
+                        if (y0 > y1) {
+                            [y0, y1] = [y1, y0];
+                        }
+
+                        x0 -= curRect.left;
+                        y0 -= curRect.top;
+                        x1 -= curRect.left;
+                        y1 -= curRect.top;
+
+                        this.dragDiv.setAttribute("style",
+                            "height:" + (y1 - y0) + "px;" +
+                            "width:" + (x1 - x0) + "px;" +
+                            "left:" + x0 + "px;" +
+                            "top:" + y0 + "px;" +
+                            "position:absolute;"
+                        )
+                    }
+                }
+            );
+        }
     }
 
     build() {
@@ -312,13 +440,21 @@ class WebglPlot extends ConcreteCell {
                 style: 'width:100%;height:100%',
                 onmousedown: this.onMouseDown,
                 onwheel: this.onWheel,
+                ondblclick: this.onDoubleclick
             },
             ["Error: no WEBGL available"]
         );
 
+        this.dragDiv = h(
+            'div', {
+                style: 'width:0px;height:0px;display:none',
+                class: "plot-zoom-handle"
+            }, []
+        );
+
         this.loadPacketIfNecessary();
 
-        return h('div', {}, [this.canvas]);
+        return h('div', {}, [this.canvas, this.dragDiv]);
     }
 
     rebuildDomElement() {

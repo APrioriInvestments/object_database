@@ -57,6 +57,11 @@ th {
     border: 1;
 }
 
+.plot-zoom-handle {
+    background-color: rgba(0,140,255,0.6);
+    border: 1px solid rgba(0,160,255,0.9);
+}
+
 /* Clickable and Button
  * =====================================================*/
 

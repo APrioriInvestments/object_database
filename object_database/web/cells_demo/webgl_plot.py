@@ -44,4 +44,24 @@ class BasicWebglPlot(CellsTestPage):
         ) >> cells.WebglPlot(getData)
 
     def text(self):
-        return "you should see a graphic you can change"
+        return (
+            "you should see a graphic you can scroll around on. "
+            "Pressing the button should change it"
+        )
+
+
+class WebglBackgroundColor(CellsTestPage):
+    def cell(self):
+        def getData():
+            return Plot.create(
+                [0.0, 0.5, 1.0],
+                [0.0, 0.5, 0.0],
+                lineWidth=30,
+                color=(0.0, 1.0, 1.0, 1.0),
+                backgroundColor=(0.0, 0.0, 0.0, 0.0),
+            )
+
+        return cells.WebglPlot(getData)
+
+    def text(self):
+        return "you should see a graphic you can scroll around on"

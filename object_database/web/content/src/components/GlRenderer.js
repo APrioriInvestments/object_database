@@ -58,16 +58,38 @@ class GlRenderer {
         this.screenSize[1] *= zoomFrac;
     }
 
+    zoomRect(x0ScreenFrac, y0ScreenFrac, x1ScreenFrac, y1ScreenFrac) {
+        if (y0ScreenFrac > y1ScreenFrac) {
+            [y0ScreenFrac, y1ScreenFrac] = [y1ScreenFrac, y0ScreenFrac];
+        }
+
+        if (x0ScreenFrac > x1ScreenFrac) {
+            [x0ScreenFrac, x1ScreenFrac] = [x1ScreenFrac, x0ScreenFrac];
+        }
+
+        this.screenPosition[0] += x0ScreenFrac * this.screenSize[0];
+        this.screenPosition[1] += y0ScreenFrac * this.screenSize[1];
+
+        this.screenSize[0] *= Math.max(0.001, x1ScreenFrac - x0ScreenFrac);
+        this.screenSize[1] *= Math.max(0.001, y1ScreenFrac - y0ScreenFrac);
+    }
+
     scrollPixels(xScreenFrac, yScreenFrac) {
         this.screenPosition[0] += xScreenFrac * this.screenSize[0];
         this.screenPosition[1] += yScreenFrac * this.screenSize[1];
     }
 
-    clearViewport() {
+    scrollToRectangle(viewRect) {
+        this.screenPosition = [viewRect[0], viewRect[1]];
+        this.screenSize = [viewRect[2] - viewRect[0], viewRect[3] - viewRect[1]];
+    }
+
+
+    clearViewport(clearColor) {
         let gl = this.gl;
 
         gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);

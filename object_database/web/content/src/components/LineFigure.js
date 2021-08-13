@@ -240,7 +240,9 @@ class LineFigure {
         if (!this.triangleBuffer) {
             let t0 = Date.now();
             this._buildBuffers(renderer);
-            console.log("Took " + (Date.now() - t0) + " to build our triangles.")
+            if (Date.now() - t0 > 100) {
+                console.warn("Took " + (Date.now() - t0) + " to build our triangles.")
+            }
         }
 
         renderer.drawTriangles(

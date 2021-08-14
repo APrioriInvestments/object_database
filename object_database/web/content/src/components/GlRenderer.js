@@ -1,5 +1,5 @@
-const linesShader = {
-    fragmentShader: `
+const trianglesShader = {
+fragmentShader: `
   #ifdef GL_ES
     precision highp float;
   #endif
@@ -9,9 +9,8 @@ const linesShader = {
   void main() {
     gl_FragColor += vColor;
   }
-`
-
-    vertexShader: `
+`,
+vertexShader: `
   attribute vec3 aVertexPosition;
   attribute vec4 aVertexColor;
 
@@ -34,8 +33,8 @@ const linesShader = {
 `
 }
 
-const triangleShader = {
-    fragmentShader: `
+const linesShader = {
+fragmentShader: `
   #ifdef GL_ES
     precision highp float;
   #endif
@@ -45,9 +44,8 @@ const triangleShader = {
   void main() {
     gl_FragColor += vColor;
   }
-`
-
-    vertexShader: `
+`,
+vertexShader: `
   attribute float aLineWidth;
   attribute float aLinePos;
   attribute vec3 aVertexPosition;
@@ -92,7 +90,7 @@ const triangleShader = {
 
     gl_Position = vec4(rotatedPosition, 0.0, 1.0);
   }
-`    
+`
 }
 
 class GlRenderer {
@@ -101,7 +99,7 @@ class GlRenderer {
         this.gl = this.canvas.getContext("webgl", {antialias: true});
 
         this.linesProgram = this.buildShaderProgram(this.gl, linesShader);
-        this.triangleProgram = this.buildShaderProgram(this.gl, trianglesShader);
+        this.trianglesProgram = this.buildShaderProgram(this.gl, trianglesShader);
 
         // where in object coordinates the current draw rect is
         this.screenPosition = [0.0, 0.0];
@@ -201,7 +199,7 @@ class GlRenderer {
 
         let currentScale = this.screenSize;
 
-        let program = this.triangleProgram;
+        let program = this.trianglesProgram;
 
         gl.useProgram(program);
 
@@ -218,7 +216,7 @@ class GlRenderer {
         gl.enableVertexAttribArray(aVertexPosition);
         gl.vertexAttribPointer(
             aVertexPosition,
-            3,
+            2,
             gl.FLOAT, false, 0, 0
         );
 
@@ -233,7 +231,7 @@ class GlRenderer {
         gl.uniform2fv(uScreenPixelSize, [1.0 / this.canvas.width, 1.0 / this.canvas.height]);
         gl.uniform2fv(uScreenPosition, this.screenPosition);
 
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, pointCount);
+        gl.drawArrays(gl.TRIANGLES, 0, pointCount * 3);
     }
 
     drawLines(vertexBuffer, directionBuffer, otherDirectionBuffer, linePosBuffer, lineWidthBuffer, colorBuffer, pointCount) {

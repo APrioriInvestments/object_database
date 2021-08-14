@@ -199,14 +199,14 @@ class Packets {
             return new Float32Array(jsonRepresentation);
         }
 
-        let array = new UInt8Array(this.packetIdToData[jsonRepresentation.packetId]);
+        let array = new Uint8Array(this.packetIdToData[jsonRepresentation.packetId]);
         let floats = new Float32Array(new ArrayBuffer(4 * array.length));
 
         for (let i = 0; i < array.length; i++) {
             floats[i] = array[i] / 255.0;
         }
 
-        return new Float32Array(this.packetIdToData[jsonRepresentation.packetId]);
+        return floats;
     }
 
     decode(jsonRepresentation) {
@@ -299,14 +299,14 @@ class WebglPlot extends ConcreteCell {
 
             rows.push(
                 h('tr', {}, [
-                    h('td', 
-                        {}, 
+                    h('td',
+                        {},
                         [
                             h('div', {
-                            'class': 'plot-legend-color', 
-                            'style': 'background-color:' +  
+                            'class': 'plot-legend-color',
+                            'style': 'background-color:' +
                                 `rgba(${c[0]*255},${c[1]*255},${c[2]*255},${c[3]})`
-                            }, 
+                            },
                             []
                             )
                         ]
@@ -319,7 +319,7 @@ class WebglPlot extends ConcreteCell {
         }
 
         this.legendHolderDiv.appendChild(
-            h('div', {'style': 
+            h('div', {'style':
                 styles.join(';'),
                 'class': 'plot-legend'
             }, [
@@ -588,7 +588,7 @@ class WebglPlot extends ConcreteCell {
         );
 
         this.legendHolderDiv = h(
-            'div', {'style': 'width:calc(100.0% - 20px);height:calc(100.0% - 20px);top:10px;left:10px;position:absolute;'}, []
+            'div', {'style': 'width:calc(100.0% - 20px);height:calc(100.0% - 20px);top:10px;left:10px;position:absolute;pointer-events: none;'}, []
         )
 
         this.backgroundColorDiv = h('div', {'style': 'position:absolute;top:0;left:0;width:100%;height:100%'}, []);
@@ -596,8 +596,8 @@ class WebglPlot extends ConcreteCell {
         this.loadPacketIfNecessary();
 
         return h('div', {'style':'position:relative;top:0;left:0'}, [
-            this.backgroundColorDiv, 
-            this.canvasAndLRAxesHolder, 
+            this.backgroundColorDiv,
+            this.canvasAndLRAxesHolder,
             this.dragDiv,
             this.legendHolderDiv
         ]);

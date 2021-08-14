@@ -198,9 +198,9 @@ class TrianglesFigure(Figure):
         assert isinstance(colors, ListOf(Color)), type(colors)
 
         assert len(xs) == len(ys)
-        assert len(xs) == len(colors)
         assert len(xs) % 3 == 0
-        
+        assert len(xs) == len(colors), (len(xs), len(colors))
+
         self.xs = xs
         self.ys = ys
         self.colors = colors
@@ -215,6 +215,16 @@ class TrianglesFigure(Figure):
             right=maxOf(self.xs),
             top=maxOf(self.ys),
         )
+
+    @staticmethod
+    def create(x, y, color=None):
+        if color is None:
+            color = ListOf(Color)([Color(blue=255, alpha=255) for _ in range(len(x))])
+
+        if not isinstance(color, ListOf(Color)):
+            color = ListOf(Color)([createColor(x) for x in color])
+
+        return TrianglesFigure(ListOf(Float32)(x), ListOf(Float32)(y), color)
 
     def encode(self, packets):
         return {
@@ -371,7 +381,19 @@ class Legend:
 
         assert len(self.seriesNames) == len(self.colors)
 
+    def __radd__(self, other):
+        if other is None:
+            return self
+
+        return other + self
+
     def __add__(self, other):
+        if other is None:
+            return self
+
+        if not isinstance(other, Legend):
+            return NotImplemented
+
         return Legend(
             other.position, self.seriesNames + other.seriesNames, self.colors + other.colors
         )
@@ -386,7 +408,7 @@ class Legend:
 
 class Plot:
     def __init__(
-        self, figures, backgroundColor=None, defaultViewport=None, axes=None, legend=None
+        self, figures=None, backgroundColor=None, defaultViewport=None, axes=None, legend=None
     ):
         """Create a plot:
 
@@ -396,17 +418,11 @@ class Plot:
             defaultViewport - None, or a Rect/rect tuple indicating where the plot will
                 be centered by default. If None, then we'll ask each figure for an "extent".
         """
-        self.figures = figures
+        self.figures = figures or []
+
         assert isinstance(backgroundColor, Color) or backgroundColor is None
 
-        if defaultViewport is None:
-            if not figures:
-                defaultViewport = Rectangle()
-            else:
-                defaultViewport = figures[0].extent()
-                for f in figures[1:]:
-                    defaultViewport = defaultViewport.union(f.extent())
-        else:
+        if defaultViewport is not None:
             defaultViewport = createRectangle(defaultViewport)
 
         self.backgroundColor = backgroundColor
@@ -427,10 +443,22 @@ class Plot:
         return {
             "figures": [packets.encode(f) for f in self.figures],
             "backgroundColor": packets.encode(self.backgroundColor),
-            "defaultViewport": packets.encode(self.defaultViewport),
+            "defaultViewport": packets.encode(self.getViewport()),
             "axes": packets.encode(self.axes),
             "legend": packets.encode(self.legend),
         }
+
+    def getViewport(self):
+        if self.defaultViewport is not None:
+            return self.defaultViewport
+
+        if not self.figures:
+            return Rectangle()
+
+        defaultViewport = self.figures[0].extent()
+        for f in self.figures[1:]:
+            defaultViewport = defaultViewport.union(f.extent())
+        return defaultViewport
 
     @staticmethod
     def create(
@@ -442,6 +470,18 @@ class Plot:
             defaultViewport=defaultViewport,
             axes=axes,
         )
+
+    def withTriangles(self, x, y, color):
+        return self + Plot([TrianglesFigure.create(x, y, color)])
+
+    def withLines(self, x, y, lineWidth=1.0, color=None):
+        return self + Plot([LineFigure.create(x=x, y=y, lineWidth=lineWidth, color=color)])
+
+    def withBackgroundColor(self, backgroundColor):
+        return self + Plot(backgroundColor=createColor(backgroundColor))
+
+    def withViewport(self, defaultViewport):
+        return self + Plot(defaultViewport=defaultViewport)
 
     def withLeftAxis(self, **kwargs):
         return Plot(
@@ -497,7 +537,7 @@ class Plot:
             other.backgroundColor or self.backgroundColor,
             other.defaultViewport or self.defaultViewport,
             other.axes + self.axes,
-            other.legend + self.legend,
+            other.legend + self.legend if other.legend else self.legend,
         )
 
 

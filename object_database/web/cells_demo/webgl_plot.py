@@ -109,3 +109,18 @@ class WebglLegend(CellsTestPage):
 
     def text(self):
         return "you should see a graphic you can scroll around on"
+
+
+class WebglLinesAndTriangles(CellsTestPage):
+    def cell(self):
+        def getData():
+            return (
+                Plot()
+                .withTriangles([0.0, 0.6, 0.3], [0.0, 0.0, 0.5], ["red", "blue", "red"])
+                .withLines([0.0, 0.5], [0.0, 0.5])
+            )
+
+        return cells.WebglPlot(getData)
+
+    def text(self):
+        return "you should see a graphic you can scroll around on"

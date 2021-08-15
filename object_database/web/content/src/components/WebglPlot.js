@@ -4,6 +4,7 @@
 
 import {AxisRenderer} from './AxisRenderer';
 import {ConcreteCell} from './ConcreteCell';
+import {TextFigure} from './TextFigure';
 import {LineFigure} from './LineFigure';
 import {TrianglesFigure} from './TrianglesFigure';
 import {GlRenderer} from './GlRenderer';
@@ -385,6 +386,10 @@ class WebglPlot extends ConcreteCell {
             this.renderedDefaultViewport = this.props.plotData.defaultViewport;
         }
 
+        while (this.textLayer.childNodes.length) {
+            this.textLayer.removeChild(this.textLayer.firstChild);
+        }
+
         this.renderer.clearViewport()
 
         if (this.props.plotData.backgroundColor) {
@@ -591,6 +596,10 @@ class WebglPlot extends ConcreteCell {
             'div', {'style': 'width:calc(100.0% - 20px);height:calc(100.0% - 20px);top:10px;left:10px;position:absolute;pointer-events: none;'}, []
         )
 
+        this.textLayer = h(
+            'div', {'style': 'width:100%;height:100%;top:0;left:0;position:absolute;pointer-events: none;'}, []
+        )
+
         this.backgroundColorDiv = h('div', {'style': 'position:absolute;top:0;left:0;width:100%;height:100%'}, []);
 
         this.loadPacketIfNecessary();
@@ -598,6 +607,7 @@ class WebglPlot extends ConcreteCell {
         return h('div', {'style':'position:relative;top:0;left:0'}, [
             this.backgroundColorDiv,
             this.canvasAndLRAxesHolder,
+            this.textLayer,
             this.dragDiv,
             this.legendHolderDiv
         ]);
@@ -630,11 +640,38 @@ class WebglPlot extends ConcreteCell {
                             this.triangleFigureFromJson(figureJson)
                         );
                     }
+                    if (figureJson.type == 'TextFigure') {
+                        this.figures.push(
+                            this.textFigureFromJson(figureJson)
+                        );
+                    }
                 });
             }
 
             this.requestAnimationFrame();
         }
+    }
+
+    textFigureFromJson(figureJson) {
+        let xs = this.packets.decodeFloats(figureJson.x);
+        let ys = this.packets.decodeFloats(figureJson.y);
+
+        let label = figureJson.label;
+        let offsets = this.packets.decodeFloats(figureJson.offsets);
+        let fractionPositions = this.packets.decodeFloats(figureJson.fractionPositions);
+        let sizes = this.packets.decodeFloats(figureJson.sizes);
+        let color = this.packets.decodeColors(figureJson.colors);
+
+        return new TextFigure(
+            xs,
+            ys,
+            label,
+            color,
+            offsets,
+            fractionPositions,
+            sizes,
+            this.textLayer
+        );
     }
 
     lineFigureFromJson(figureJson) {

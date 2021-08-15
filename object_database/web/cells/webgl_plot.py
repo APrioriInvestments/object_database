@@ -45,6 +45,20 @@ class Rectangle(NamedTuple(left=float, bottom=float, right=float, top=float)):
             right=min(self.right, other.right),
         )
 
+    def width(self):
+        return self.right - self.left
+
+    def height(self):
+        return self.top - self.bottom
+
+    def expandByFrac(self, frac):
+        return Rectangle(
+            left=self.left - frac * self.width(),
+            right=self.right + frac * self.width(),
+            top=self.top + frac * self.height(),
+            bottom=self.bottom - frac * self.height(),
+        )
+
 
 class Packets:
     """Keep track of what data belongs to which packets.
@@ -123,6 +137,9 @@ class Packets:
         if isinstance(data, (bytes, ListOf(Float32), ListOf(Color))):
             return {"packetId": self.getPacketId(data)}
 
+        if isinstance(data, ListOf(str)):
+            return list(data)
+
         return data.encode(self)
 
 
@@ -189,6 +206,99 @@ def maxOf(values):
             maxValue = v
 
     return maxValue
+
+
+class TextFigure(Figure):
+    def __init__(self, xs, ys, labels, colors, fractionPositions, offsets, sizes):
+        assert isinstance(xs, ListOf(Float32)), type(xs)
+        assert isinstance(ys, ListOf(Float32)), type(ys)
+        assert isinstance(labels, ListOf(str)), type(labels)
+        assert isinstance(fractionPositions, ListOf(Float32)), type(fractionPositions)
+        assert isinstance(offsets, ListOf(Float32)), type(offsets)
+        assert isinstance(sizes, ListOf(Float32)), type(sizes)
+        assert isinstance(colors, ListOf(Color)), type(colors)
+
+        assert len(xs) == len(ys)
+        assert len(xs) == len(labels)
+        assert len(xs) * 2 == len(fractionPositions)
+        assert len(xs) * 2 == len(offsets)
+        assert len(xs) == len(sizes)
+        assert len(xs) == len(colors), (len(xs), len(colors))
+
+        self.xs = xs
+        self.ys = ys
+        self.offsets = offsets
+        self.fractionPositions = fractionPositions
+        self.labels = labels
+        self.sizes = sizes
+        self.colors = colors
+
+    def extent(self):
+        if not self.xs:
+            return Rectangle()
+
+        return Rectangle(
+            left=minOf(self.xs),
+            bottom=minOf(self.ys),
+            right=maxOf(self.xs),
+            top=maxOf(self.ys),
+        )
+
+    @staticmethod
+    def create(xs, ys, labels, colors, fractionPositions, offsets, sizes):
+        assert len(xs) == len(ys)
+        xs = ListOf(Float32)(xs)
+        ys = ListOf(Float32)(ys)
+        labels = ListOf(str)(labels)
+
+        if colors is None:
+            colors = ListOf(Color)([Color(blue=255, alpha=255) for _ in range(len(xs))])
+
+        if not isinstance(colors, ListOf(Color)):
+            colors = ListOf(Color)([createColor(x) for x in colors])
+
+        if fractionPositions is None:
+            fractionPositions = ListOf(Float32)([0.5, 1.0] * len(xs))
+        else:
+            outFracPos = ListOf(Float32)()
+            for i in fractionPositions:
+                if isinstance(i, tuple):
+                    outFracPos.append(i[0])
+                    outFracPos.append(i[1])
+                else:
+                    outFracPos.append(i)
+            fractionPositions = outFracPos
+
+        if offsets is None:
+            offsets = ListOf(Float32)([0.0, 0.0] * len(xs))
+        else:
+            outOffsets = ListOf(Float32)()
+            for i in offsets:
+                if isinstance(i, tuple):
+                    outOffsets.append(i[0])
+                    outOffsets.append(i[1])
+                else:
+                    outOffsets.append(i)
+            offsets = outOffsets
+
+        if sizes is None:
+            sizes = ListOf(Float32)([12.0] * len(xs))
+        else:
+            sizes = ListOf(Float32)(sizes)
+
+        return TextFigure(xs, ys, labels, colors, fractionPositions, offsets, sizes)
+
+    def encode(self, packets):
+        return {
+            "type": "TextFigure",
+            "x": packets.encode(self.xs),
+            "y": packets.encode(self.ys),
+            "label": packets.encode(self.labels),
+            "colors": packets.encode(self.colors),
+            "offsets": packets.encode(self.offsets),
+            "fractionPositions": packets.encode(self.fractionPositions),
+            "sizes": packets.encode(self.sizes),
+        }
 
 
 class TrianglesFigure(Figure):
@@ -458,7 +568,8 @@ class Plot:
         defaultViewport = self.figures[0].extent()
         for f in self.figures[1:]:
             defaultViewport = defaultViewport.union(f.extent())
-        return defaultViewport
+
+        return defaultViewport.expandByFrac(0.05)
 
     @staticmethod
     def create(
@@ -482,6 +593,13 @@ class Plot:
 
     def withViewport(self, defaultViewport):
         return self + Plot(defaultViewport=defaultViewport)
+
+    def withTextLabels(
+        self, xs, ys, labels, colors=None, fractionPositions=None, offsets=None, sizes=None
+    ):
+        return self + Plot(
+            [TextFigure.create(xs, ys, labels, colors, fractionPositions, offsets, sizes)]
+        )
 
     def withLeftAxis(self, **kwargs):
         return Plot(

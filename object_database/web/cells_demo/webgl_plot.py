@@ -124,3 +124,32 @@ class WebglLinesAndTriangles(CellsTestPage):
 
     def text(self):
         return "you should see a graphic you can scroll around on"
+
+
+class WebglText(CellsTestPage):
+    def cell(self):
+        def getData():
+            return (
+                Plot()
+                .withLines([0.0, 0.5], [0.0, 0.5])
+                .withTextLabels(
+                    [0.0, 0.5, 0.25, 0.25, 0.25, 0.25],
+                    [0.0, 0.5, 0.25, 0.25, 0.25, 0.25],
+                    ["lower-left", "upper-right", "left", "right", "up", "down"],
+                    sizes=[10, 25, 12, 12, 12, 12],
+                    offsets=((10, 10), (10, 10), (-10, 0), (10, 0), (0, 10), (0, -10)),
+                    fractionPositions=[
+                        (0, 0),
+                        (0, 0),
+                        (1.0, 0.5),
+                        (0.0, 0.5),
+                        (0.5, 0.0),
+                        (0.5, 1.0),
+                    ],
+                )
+            )
+
+        return cells.WebglPlot(getData)
+
+    def text(self):
+        return "you should see a graphic you can scroll around on"

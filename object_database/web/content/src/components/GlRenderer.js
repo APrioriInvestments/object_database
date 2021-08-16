@@ -1,3 +1,43 @@
+const imageShader = {
+fragmentShader: `
+  #ifdef GL_ES
+    precision highp float;
+  #endif
+
+  varying highp vec2 vTextureCoord;
+
+  uniform sampler2D uSampler;
+
+  void main() {
+    gl_FragColor = texture2D(uSampler, vTextureCoord.yx);
+  }
+`,
+vertexShader: `
+  attribute vec2 aVertexPosition;
+
+  uniform vec2 uScreenSize;
+  uniform vec2 uScreenPosition;
+
+  uniform vec2 uImagePosition;
+  uniform vec2 uImageSize;
+
+  varying highp vec2 vTextureCoord;
+
+  void main() {
+    vec2 vertexPosition = aVertexPosition * uImageSize + uImagePosition;
+
+    vec2 rotatedPosition = vec2(
+      (vertexPosition.x - uScreenPosition.x) / uScreenSize.x * 2.0 - 1.0,
+      (vertexPosition.y - uScreenPosition.y) / uScreenSize.y * 2.0 - 1.0
+    );
+
+    vTextureCoord = aVertexPosition;
+
+    gl_Position = vec4(rotatedPosition, 0.0, 1.0);
+  }
+`
+}
+
 const pointsShader = {
 fragmentShader: `
   #ifdef GL_ES
@@ -143,6 +183,7 @@ class GlRenderer {
         this.linesProgram = this.buildShaderProgram(this.gl, linesShader);
         this.trianglesProgram = this.buildShaderProgram(this.gl, trianglesShader);
         this.pointsProgram = this.buildShaderProgram(this.gl, pointsShader);
+        this.imageProgram = this.buildShaderProgram(this.gl, imageShader);
 
         // where in object coordinates the current draw rect is
         this.screenPosition = [0.0, 0.0];
@@ -156,6 +197,7 @@ class GlRenderer {
         this.drawLines = this.drawLines.bind(this);
         this.drawTriangles = this.drawTriangles.bind(this);
         this.drawPoints = this.drawPoints.bind(this);
+        this.drawImage = this.drawImage.bind(this);
     }
 
     buildShaderProgram(gl, shaderCode) {
@@ -232,6 +274,53 @@ class GlRenderer {
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    }
+
+    drawImage(vertexBuffer, texture, position) {
+        if (!vertexBuffer) {
+            return;
+        }
+
+        let gl = this.gl;
+
+        let program = this.imageProgram;
+
+        gl.useProgram(program);
+
+        let uScreenSize = gl.getUniformLocation(program, "uScreenSize");
+        let uScreenPosition = gl.getUniformLocation(program, "uScreenPosition");
+
+        let uImagePosition = gl.getUniformLocation(program, "uImagePosition");
+        let uImageSize = gl.getUniformLocation(program, "uImageSize");
+        let uSampler = gl.getUniformLocation(program, 'uSampler');
+
+
+        gl.uniform2fv(uScreenSize, this.screenSize);
+        gl.uniform2fv(uScreenPosition, this.screenPosition);
+
+        gl.uniform2fv(uImagePosition, [position[0], position[1]]);
+        gl.uniform2fv(uImageSize, [position[2] - position[0], position[3] - position[1]]);
+
+        let aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+        gl.enableVertexAttribArray(aVertexPosition);
+        gl.vertexAttribPointer(
+            aVertexPosition,
+            2,
+            gl.FLOAT, false, 0, 0
+        );
+
+
+        gl.activeTexture(gl.TEXTURE0);
+
+        // Bind the texture to texture unit 0
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        // Tell the shader we bound the texture to texture unit 0
+        gl.uniform1i(uSampler, 0);
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
 
     drawTriangles(vertexBuffer, colorBuffer, pointCount) {

@@ -437,6 +437,30 @@ class PointFigure(Figure):
         return PointFigure(ListOf(Float32)(x), ListOf(Float32)(y), pointSize, color)
 
 
+class ImageFigure(Figure):
+    def __init__(self, position: Rectangle, colors: ListOf(Color), pixelsWide: int):
+        self.position = position
+        self.colors = colors
+        self.pixelsWide = pixelsWide
+
+        assert isinstance(self.position, Rectangle)
+        assert isinstance(self.colors, ListOf(Color))
+        assert isinstance(self.pixelsWide, int)
+
+        assert len(self.colors) % pixelsWide == 0
+
+    def extent(self):
+        return self.position
+
+    def encode(self, packets):
+        return {
+            "type": "ImageFigure",
+            "position": packets.encode(self.position),
+            "colors": packets.encode(self.colors),
+            "pixelsWide": self.pixelsWide,
+        }
+
+
 class Axis:
     """A method for labeling points in an axis."""
 
@@ -563,6 +587,8 @@ class Legend:
 
 
 class Plot:
+    Color = Color
+
     def __init__(
         self, figures=None, backgroundColor=None, defaultViewport=None, axes=None, legend=None
     ):
@@ -676,6 +702,12 @@ class Plot:
             self.axes + Axes(top=Axis(**kwargs)),
             self.legend,
         )
+
+    def withImage(self, position, colors, pixelsWide):
+        if not isinstance(colors, ListOf(Color)):
+            colors = ListOf(Color)([createColor(c) for c in colors])
+
+        return self + Plot([ImageFigure(createRectangle(position), colors, int(pixelsWide))])
 
     def withRightAxis(self, **kwargs):
         return Plot(

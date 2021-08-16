@@ -4,6 +4,7 @@
 
 import {AxisRenderer} from './AxisRenderer';
 import {ConcreteCell} from './ConcreteCell';
+import {ImageFigure} from './ImageFigure';
 import {TextFigure} from './TextFigure';
 import {LineFigure} from './LineFigure';
 import {PointFigure} from './PointFigure';
@@ -211,6 +212,18 @@ class Packets {
         return floats;
     }
 
+    decodeColorsUint8(jsonRepresentation) {
+        if (Array.isArray(jsonRepresentation)) {
+            if (jsonRepresentation.length != 4) {
+                throw new Error("Bad color encoded");
+            }
+
+            return new Float32Array(jsonRepresentation);
+        }
+
+        return new Uint8Array(this.packetIdToData[jsonRepresentation.packetId]);
+    }
+
     decode(jsonRepresentation) {
         if (jsonRepresentation.packetId) {
             return this.packetIdToData[jsonRepresentation.packetId];
@@ -244,6 +257,12 @@ class WebglPlot extends ConcreteCell {
         this.lineFigureFromJson = this.lineFigureFromJson.bind(this);
         this.renderAxes = this.renderAxes.bind(this);
         this.renderLegend = this.renderLegend.bind(this);
+
+        this.imageFigureFromJson = this.imageFigureFromJson.bind(this);
+        this.triangleFigureFromJson = this.triangleFigureFromJson.bind(this);
+        this.pointFigureFromJson = this.pointFigureFromJson.bind(this);
+        this.textFigureFromJson = this.textFigureFromJson.bind(this);
+        this.lineFigureFromJson = this.lineFigureFromJson.bind(this);
 
         this.renderedDefaultViewport = null;
 
@@ -646,6 +665,11 @@ class WebglPlot extends ConcreteCell {
                             this.triangleFigureFromJson(figureJson)
                         );
                     }
+                    if (figureJson.type == 'ImageFigure') {
+                        this.figures.push(
+                            this.imageFigureFromJson(figureJson)
+                        );
+                    }
                     if (figureJson.type == 'TextFigure') {
                         this.figures.push(
                             this.textFigureFromJson(figureJson)
@@ -720,6 +744,14 @@ class WebglPlot extends ConcreteCell {
             ys,
             color
         );
+    }
+
+    imageFigureFromJson(figureJson) {
+        return new ImageFigure(
+            figureJson.position,
+            figureJson.pixelsWide,
+            this.packets.decodeColorsUint8(figureJson.colors)
+        )
     }
 
     cellWillUnload() {

@@ -115,3 +115,18 @@ class ButtonWithCentersOutside(CellsTestPage):
             "You should see three buttons. One filling horizontal space. One filling vertical."
             " One filling both. The styling should cover the button."
         )
+
+
+class StackedButtonsAndDropdowns(CellsTestPage):
+    def cell(self):
+        return (
+            (cells.Button("A", lambda: None) + cells.Button("B", lambda: None))
+            >> (cells.Button("C", lambda: None))
+            >> (cells.Dropdown("C", [i for i in range(100)], lambda i: None))
+        )
+
+    def text(self):
+        return (
+            "You should see three buttons. One filling horizontal space. One filling vertical."
+            " One filling both. The styling should cover the button."
+        )

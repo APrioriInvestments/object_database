@@ -194,8 +194,7 @@ class Dropdown extends DropdownBase {
             onclick: this.dropdownClicked
         });
 
-        return (
-            h('div', {
+        this.dropdownDiv = h('div', {
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "Dropdown",
@@ -205,8 +204,23 @@ class Dropdown extends DropdownBase {
                     this.renderChildNamed('title')
                 ]),
                 this.dropdownToggle
-            ])
-        );
+            ]);
+
+        let res = h(
+            'div', {class: 'allow-child-to-fill-space'}, [
+                this.dropdownDiv
+            ]
+        )
+
+        this.applySpacePreferencesToClassList(this.dropdownDiv);
+        this.applySpacePreferencesToClassList(res);
+
+        return res;
+    }
+
+    onOwnSpacePrefsChanged() {
+        this.applySpacePreferencesToClassList(this.domElement);
+        this.applySpacePreferencesToClassList(this.dropdownDiv);
     }
 
     onDropdownOpened() {

@@ -1,3 +1,45 @@
+const pointsShader = {
+fragmentShader: `
+  #ifdef GL_ES
+    precision highp float;
+  #endif
+
+  varying lowp vec4 vColor;
+
+  void main() {
+    gl_FragColor += vColor;
+  }
+`,
+vertexShader: `
+  attribute vec4 aVertexPosition;
+  attribute vec4 aVertexColor;
+  attribute float aPointSize;
+
+  uniform vec2 uScreenSize;
+  uniform vec2 uScreenPosition;
+  uniform vec2 uScreenPixelSize;
+
+  uniform vec2 uZOffsetPx;
+  uniform vec2 uWOffsetPx;
+
+  varying lowp vec4 vColor;
+
+  void main() {
+    vColor = aVertexColor;
+
+    vec2 rotatedPosition = vec2(
+      (aVertexPosition.x - uScreenPosition.x) / uScreenSize.x * 2.0 - 1.0,
+      (aVertexPosition.y - uScreenPosition.y) / uScreenSize.y * 2.0 - 1.0
+    );
+
+    rotatedPosition += aVertexPosition.z * (uZOffsetPx * uScreenPixelSize * aPointSize);
+    rotatedPosition += aVertexPosition.w * (uWOffsetPx * uScreenPixelSize * aPointSize);
+
+    gl_Position = vec4(rotatedPosition, 0.0, 1.0);
+  }
+`
+}
+
 const trianglesShader = {
 fragmentShader: `
   #ifdef GL_ES
@@ -100,6 +142,7 @@ class GlRenderer {
 
         this.linesProgram = this.buildShaderProgram(this.gl, linesShader);
         this.trianglesProgram = this.buildShaderProgram(this.gl, trianglesShader);
+        this.pointsProgram = this.buildShaderProgram(this.gl, pointsShader);
 
         // where in object coordinates the current draw rect is
         this.screenPosition = [0.0, 0.0];
@@ -112,6 +155,7 @@ class GlRenderer {
         this.clearViewport = this.clearViewport.bind(this);
         this.drawLines = this.drawLines.bind(this);
         this.drawTriangles = this.drawTriangles.bind(this);
+        this.drawPoints = this.drawPoints.bind(this);
     }
 
     buildShaderProgram(gl, shaderCode) {
@@ -312,6 +356,73 @@ class GlRenderer {
         gl.uniform2fv(uScreenPosition, this.screenPosition);
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, pointCount);
+    }
+
+    drawPoints(vertexBuffer, pointSizeBuffer, colorBuffer, pointCount) {
+        if (!vertexBuffer) {
+            return;
+        }
+
+        let gl = this.gl;
+
+        let currentScale = this.screenSize;
+
+        let program = this.pointsProgram;
+
+        gl.useProgram(program);
+
+        let uScreenSize = gl.getUniformLocation(program, "uScreenSize");
+        let uScreenPixelSize = gl.getUniformLocation(program, "uScreenPixelSize");
+        let uScreenPosition = gl.getUniformLocation(program, "uScreenPosition");
+        let uZOffsetPx = gl.getUniformLocation(program, "uZOffsetPx");
+        let uWOffsetPx = gl.getUniformLocation(program, "uWOffsetPx");
+
+        gl.uniform2fv(uScreenSize, currentScale);
+
+        let aVertexColor = gl.getAttribLocation(program, "aVertexColor");
+        let aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+        let aPointSize = gl.getAttribLocation(program, "aPointSize");
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+        gl.enableVertexAttribArray(aVertexPosition);
+        gl.vertexAttribPointer(
+            aVertexPosition,
+            4,
+            gl.FLOAT, false, 0, 0
+        );
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, pointSizeBuffer);
+        gl.enableVertexAttribArray(aPointSize);
+        gl.vertexAttribPointer(
+            aPointSize,
+            1,
+            gl.FLOAT, false, 0, 0
+        );
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.enableVertexAttribArray(aVertexColor);
+        gl.vertexAttribPointer(
+            aVertexColor,
+            4,
+            gl.FLOAT, false, 0, 0
+        );
+
+        gl.uniform2fv(uScreenPixelSize, [1.0 / this.canvas.width, 1.0 / this.canvas.height]);
+        gl.uniform2fv(uScreenPosition, this.screenPosition);
+
+        let segmentCount = 16;
+        for (let i = 0; i < segmentCount; i++) {
+            gl.uniform2fv(
+                uZOffsetPx,
+                [Math.cos(2.0 * Math.PI * i / segmentCount), Math.sin(2.0 * Math.PI * i / segmentCount)]
+            )
+            gl.uniform2fv(
+                uWOffsetPx,
+                [Math.cos(2.0 * Math.PI * (i + 1) / segmentCount),
+                 Math.sin(2.0 * Math.PI * (i + 1) / segmentCount)]
+            )
+            gl.drawArrays(gl.TRIANGLES, 0, pointCount * 3);
+        }
     }
 }
 

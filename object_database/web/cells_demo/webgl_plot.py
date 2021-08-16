@@ -153,3 +153,23 @@ class WebglText(CellsTestPage):
 
     def text(self):
         return "you should see a graphic you can scroll around on"
+
+
+class WebglPoints(CellsTestPage):
+    def cell(self):
+        def getData():
+            return (
+                Plot()
+                .withLines([0.0, 0.5], [0.0, 0.5])
+                .withPoints(
+                    [0.0, 0.5, 0.25],
+                    [0.0, 0.5, 0.25],
+                    color=["red", "green", "blue"],
+                    pointSize=[5, 15, 30],
+                )
+            )
+
+        return cells.WebglPlot(getData)
+
+    def text(self):
+        return "you should see a graphic you can scroll around on"

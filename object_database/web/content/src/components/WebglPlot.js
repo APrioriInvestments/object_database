@@ -6,6 +6,7 @@ import {AxisRenderer} from './AxisRenderer';
 import {ConcreteCell} from './ConcreteCell';
 import {TextFigure} from './TextFigure';
 import {LineFigure} from './LineFigure';
+import {PointFigure} from './PointFigure';
 import {TrianglesFigure} from './TrianglesFigure';
 import {GlRenderer} from './GlRenderer';
 import {makeDomElt as h} from './Cell';
@@ -635,6 +636,11 @@ class WebglPlot extends ConcreteCell {
                             this.lineFigureFromJson(figureJson)
                         );
                     }
+                    if (figureJson.type == 'PointFigure') {
+                        this.figures.push(
+                            this.pointFigureFromJson(figureJson)
+                        );
+                    }
                     if (figureJson.type == 'TrianglesFigure') {
                         this.figures.push(
                             this.triangleFigureFromJson(figureJson)
@@ -685,6 +691,21 @@ class WebglPlot extends ConcreteCell {
             xs,
             ys,
             lineWidth,
+            color
+        );
+    }
+
+    pointFigureFromJson(figureJson) {
+        let xs = this.packets.decodeFloats(figureJson.x);
+        let ys = this.packets.decodeFloats(figureJson.y);
+
+        let pointSize = this.packets.decodeNumberOrFloats(figureJson.pointSize);
+        let color = this.packets.decodeColors(figureJson.color);
+
+        return new PointFigure(
+            xs,
+            ys,
+            pointSize,
             color
         );
     }

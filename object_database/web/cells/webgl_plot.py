@@ -384,11 +384,57 @@ class LineFigure(Figure):
 
         if color is not None:
             if not isinstance(color, ListOf(Color)):
-                color = createColor(color)
+                color = ListOf(Color)([createColor(c) for c in Color])
         else:
             color = Color(blue=255, alpha=255)
 
         return LineFigure(ListOf(Float32)(x), ListOf(Float32)(y), lineWidth, color)
+
+
+class PointFigure(Figure):
+    def __init__(self, xs, ys, pointSizes=1.0, colors=Color(blue=255, alpha=255)):
+        assert isinstance(pointSizes, (float, int, ListOf(Float32))), type(pointSizes)
+        assert isinstance(xs, ListOf(Float32)), type(xs)
+        assert isinstance(ys, ListOf(Float32)), type(ys)
+        assert isinstance(colors, (Color, ListOf(Color))), type(colors)
+
+        self.xs = xs
+        self.ys = ys
+        self.pointSizes = pointSizes
+        self.colors = colors
+
+    def extent(self):
+        if not self.xs:
+            return Rectangle()
+
+        return Rectangle(
+            left=minOf(self.xs),
+            bottom=minOf(self.ys),
+            right=maxOf(self.xs),
+            top=maxOf(self.ys),
+        )
+
+    def encode(self, packets):
+        return {
+            "type": "PointFigure",
+            "x": packets.encode(self.xs),
+            "y": packets.encode(self.ys),
+            "pointSize": packets.encode(self.pointSizes),
+            "color": packets.encode(self.colors),
+        }
+
+    @staticmethod
+    def create(x, y, pointSize, color=None):
+        if not isinstance(pointSize, (float, int)):
+            pointSize = ListOf(Float32)(pointSize)
+
+        if color is not None:
+            if not isinstance(color, ListOf(Color)):
+                color = ListOf(Color)([createColor(c) for c in color])
+        else:
+            color = Color(blue=255, alpha=255)
+
+        return PointFigure(ListOf(Float32)(x), ListOf(Float32)(y), pointSize, color)
 
 
 class Axis:
@@ -587,6 +633,9 @@ class Plot:
 
     def withLines(self, x, y, lineWidth=1.0, color=None):
         return self + Plot([LineFigure.create(x=x, y=y, lineWidth=lineWidth, color=color)])
+
+    def withPoints(self, x, y, pointSize=1.0, color=None):
+        return self + Plot([PointFigure.create(x=x, y=y, pointSize=pointSize, color=color)])
 
     def withBackgroundColor(self, backgroundColor):
         return self + Plot(backgroundColor=createColor(backgroundColor))

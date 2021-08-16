@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import logging
 
 from object_database.web.cells.computing_cell_context import ComputingCellContext
 
@@ -21,17 +22,22 @@ class Slot:
     that call 'get' will be recalculated if the value changes. UX is allowed
     to change the state (say, because of a button call), thereby causing any
     cells that depend on the Slot to recalculate.
-
-    For the most part, slots are specific to a particular part of a UX tree,
-    so they don't have memory. Eventually, it would be good to give them a
-    specific name based on where they are in the UX, so that we don't lose
-    UX state when we navigate away. We could also keep this in ODB so that
-    the state is preserved when we bounce the page.
     """
 
     def __init__(self, value=None):
         self._value = value
         self._subscribedCells = set()
+        self._onSet = []
+
+    def addListener(self, listener):
+        """Add a listener who will get notified any time a slot's value gets set.
+
+        Listeners will get called with (oldValue, newValue, reason)
+        """
+        self._onSet.append(listener)
+
+    def removeListener(self, listener):
+        self._onSet.remove(listener)
 
     def setter(self, val):
         return lambda: self.set(val)
@@ -58,19 +64,21 @@ class Slot:
 
         return self._value
 
-    def set(self, val):
-        """Write to a slot.
-
-        If the outside context is a Task, this gets placed on a 'pendingValue' and
-        the primary value gets updated between Task cycles. Otherwise, the write
-        is synchronous.
-        """
+    def set(self, val, reason=None):
+        """Write to a slot."""
         if val == self._value:
             return
 
+        oldValue = self._value
         self._value = val
 
         self._triggerListeners()
+
+        for listener in self._onSet:
+            try:
+                listener(oldValue, val, reason)
+            except Exception:
+                logging.exception("Unexpected exception in slot callback")
 
     def _triggerListeners(self):
         toTrigger = self._subscribedCells

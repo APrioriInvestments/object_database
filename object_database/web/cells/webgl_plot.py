@@ -15,6 +15,7 @@
 from typed_python import ListOf, Float32, NamedTuple, UInt8, Entrypoint
 
 from object_database.web.cells.cell import Cell
+from object_database.web.cells.slot import Slot
 from object_database.web.cells.subscribed import SubscribeAndRetry
 
 
@@ -754,6 +755,74 @@ class WebglPlot(Cell):
 
         self.plotDataGenerator = plotDataGenerator
         self.packets = None
+        self.mousePosition = Slot()
+        self.screenRectangle = Slot()
+        self.mouseoverContents = Slot()
+        self.mouseoverContents.addListener(self.onMouseoverContentsChanged)
+
+    def setMouseoverContents(self, x, y, mouseoverContents):
+        """Set the mouseover contents.
+
+        The contents can be a string, a list of strings (rows) or a list of
+        lists of strings (rows of a table). You may also place a color,
+        which indicates a color swatch.
+        """
+
+        def validate(x, level=0):
+            assert level <= 2
+
+            if isinstance(x, float):
+                x = str(x)
+
+            if isinstance(x, (str, Color)):
+                if level == 0:
+                    return [[x]]
+                if level == 1:
+                    return [x]
+
+                return x
+
+            if isinstance(x, list):
+                return [validate(thing, level + 1) for thing in x]
+
+            raise Exception(f"Can't handle mousover element {x} of type {type(x)}")
+
+        if mouseoverContents is not None:
+            mouseoverContents = validate(mouseoverContents)
+
+            self.mouseoverContents.set({"x": x, "y": y, "contents": mouseoverContents})
+        else:
+            self.mouseoverContents.set(None)
+
+    def onMouseoverContentsChanged(self, oldValue, newValue, reason):
+        def encodeMouseoverContents(value):
+            if value is None:
+                return
+
+            if isinstance(value, list):
+                return [encodeMouseoverContents(item) for item in value]
+
+            if isinstance(value, Color):
+                return {"color": self.packets.encode(value)}
+
+            if isinstance(value, (str, int, float)):
+                return {"text": value}
+
+            if isinstance(value, dict):
+                return {
+                    "x": value["x"],
+                    "y": value["y"],
+                    "contents": encodeMouseoverContents(value["contents"]),
+                }
+
+            assert False, value
+
+        self.scheduleMessage(
+            {
+                "event": "mouseoverContentsChanged",
+                "contents": encodeMouseoverContents(newValue),
+            }
+        )
 
     def calculateErrorAndPlotData(self):
         with self.view() as v:
@@ -796,3 +865,25 @@ class WebglPlot(Cell):
 
         self.exportData["error"] = error
         self.exportData["plotData"] = plotData
+
+    def onMessage(self, message):
+        if message.get("event") == "scrollState":
+            p = message["position"]
+            s = message["size"]
+
+            self.screenRectangle.set(
+                Rectangle(bottom=p[1], left=p[0], top=p[1] + s[1], right=p[0] + s[0]),
+                "client-message",
+            )
+        if message.get("event") == "mouseenter":
+            self.mousePosition.set(
+                {"x": message["x"], "y": message["y"], "mouseInside": True}, "client-message"
+            )
+        if message.get("event") == "mouseleave":
+            self.mousePosition.set(
+                {"x": message["x"], "y": message["y"], "mouseInside": False}, "client-message"
+            )
+        if message.get("event") == "mousemove":
+            self.mousePosition.set(
+                {"x": message["x"], "y": message["y"], "mouseInside": True}, "client-message"
+            )

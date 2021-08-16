@@ -197,3 +197,25 @@ class WebglImage(CellsTestPage):
 
     def text(self):
         return "you should see a graphic you can scroll around on"
+
+
+class WebglMouseover(CellsTestPage):
+    def cell(self):
+        def getData():
+            return Plot().withLines([0.0, 0.5], [0.0, 0.5])
+
+        res = cells.WebglPlot(getData)
+        res.mousePosition.addListener(
+            lambda old, new, reason: res.setMouseoverContents(
+                new["x"],
+                new["y"],
+                [["x", new["x"]], ["y", new["y"]], [Plot.Color(red=255, alpha=255)]]
+                if new["mouseInside"]
+                else None,
+            )
+        )
+
+        return res
+
+    def text(self):
+        return "you should see a graphic you can scroll around on"

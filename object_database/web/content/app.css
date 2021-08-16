@@ -66,6 +66,15 @@ th {
     padding: 8px;
 }
 
+.plot-mouseover {
+    background-color: white;
+    border: 1px solid black;
+    max-width: 33%;
+    max-height: 33%;
+    overflow: auto;
+    padding: 8px;
+}
+
 .plot-legend-color {
     width: 10px;
     height: 10px;

@@ -248,6 +248,9 @@ class WebglPlot extends ConcreteCell {
         this.onMouseDown = this.onMouseDown.bind(this);
         this.onWheel = this.onWheel.bind(this);
         this.onDoubleclick = this.onDoubleclick.bind(this);
+        this.onMousemove = this.onMousemove.bind(this);
+        this.onMouseleave = this.onMouseleave.bind(this);
+        this.onMouseenter = this.onMouseenter.bind(this);
 
         this.currentDragHelper = null;
 
@@ -257,6 +260,8 @@ class WebglPlot extends ConcreteCell {
         this.lineFigureFromJson = this.lineFigureFromJson.bind(this);
         this.renderAxes = this.renderAxes.bind(this);
         this.renderLegend = this.renderLegend.bind(this);
+        this.renderMousover = this.renderMousover.bind(this);
+        this.sendScrollStateToServer = this.sendScrollStateToServer.bind(this);
 
         this.imageFigureFromJson = this.imageFigureFromJson.bind(this);
         this.triangleFigureFromJson = this.triangleFigureFromJson.bind(this);
@@ -287,6 +292,72 @@ class WebglPlot extends ConcreteCell {
 
             this.drawScene();
         })
+    }
+
+    handleMessages(messages) {
+        messages.forEach(msg => {
+            if (msg.event == "mouseoverContentsChanged") {
+                this.mouseoverContents = msg.contents;
+                this.requestAnimationFrame();
+            }
+        })
+    }
+
+
+    renderMousover() {
+        let mouseoverContents = this.mouseoverContents;
+
+        while (this.mouseoverHolderDiv.childNodes.length) {
+            this.mouseoverHolderDiv.removeChild(this.mouseoverHolderDiv.firstChild);
+        }
+
+        if (mouseoverContents == null) {
+            return;
+        }
+
+        let x = mouseoverContents.x;
+        let y = mouseoverContents.y;
+
+        let xPx = (x - this.renderer.screenPosition[0]) / this.renderer.screenSize[0] * this.canvas.width;
+        let yPx = (1.0 - (y - this.renderer.screenPosition[1]) / this.renderer.screenSize[1]) * this.canvas.height;
+
+        let contents = mouseoverContents.contents;
+
+        let styles = [];
+
+        styles.push("left:" + xPx + "px")
+        styles.push("top:" + yPx + "px")
+        styles.push('position:absolute')
+
+        let rows = contents.map(row => {
+            return h('tr', {}, row.map(col => {
+                let colElt = null;
+                if (col.color) {
+                    let c = col.color;
+
+                    colElt = h('div', {
+                        'class': 'plot-legend-color',
+                        'style': 'background-color:' +
+                            `rgba(${c[0]*255},${c[1]*255},${c[2]*255},${c[3]})`
+                        },
+                        []
+                    );
+                } else {
+                    colElt = col.text;
+                }
+
+                return h('td', {}, [colElt])
+            }))
+        })
+
+        this.mouseoverHolderDiv.appendChild(
+            h('div', {'style':
+                styles.join(';'),
+                'class': 'plot-mouseover'
+            }, [
+                h('table', {}, rows)
+            ])
+        )
     }
 
     renderLegend() {
@@ -380,6 +451,8 @@ class WebglPlot extends ConcreteCell {
 
         this.renderAxes();
         this.renderLegend();
+        this.renderMousover();
+
 
         let arraysEqual = (x, y) => {
             if (!x && !y) {
@@ -445,7 +518,56 @@ class WebglPlot extends ConcreteCell {
         if (this.renderedDefaultViewport) {
             this.renderer.scrollToRectangle(this.renderedDefaultViewport);
             this.requestAnimationFrame();
+            this.sendScrollStateToServer();
         }
+    }
+
+    onMousemove(e) {
+        if (this.currentDragHelper) {
+            return;
+        }
+
+        let rect = this.canvas.getBoundingClientRect();
+
+        let xFrac = (e.pageX - rect.left) / rect.width;
+        let yFrac = (rect.height - (e.pageY - rect.top)) / rect.height;
+
+        let x = this.renderer.screenPosition[0] + this.renderer.screenSize[0] * xFrac;
+        let y = this.renderer.screenPosition[1] + this.renderer.screenSize[1] * yFrac;
+
+        this.sendMessage({'event': 'mousemove', 'x': x, 'y': y})
+    }
+
+    onMouseenter(e) {
+        if (this.currentDragHelper) {
+            return;
+        }
+
+        let rect = this.canvas.getBoundingClientRect();
+
+        let xFrac = (e.pageX - rect.left) / rect.width;
+        let yFrac = (rect.height - (e.pageY - rect.top)) / rect.height;
+
+        let x = this.renderer.screenPosition[0] + this.renderer.screenSize[0] * xFrac;
+        let y = this.renderer.screenPosition[1] + this.renderer.screenSize[1] * yFrac;
+
+        this.sendMessage({'event': 'mouseenter', 'x': x, 'y': y})
+    }
+
+    onMouseleave(e) {
+        if (this.currentDragHelper) {
+            return;
+        }
+
+        let rect = this.canvas.getBoundingClientRect();
+
+        let xFrac = (e.pageX - rect.left) / rect.width;
+        let yFrac = (rect.height - (e.pageY - rect.top)) / rect.height;
+
+        let x = this.renderer.screenPosition[0] + this.renderer.screenSize[0] * xFrac;
+        let y = this.renderer.screenPosition[1] + this.renderer.screenSize[1] * yFrac;
+
+        this.sendMessage({'event': 'mouseleave', 'x': x, 'y': y})
     }
 
     onMouseDown(e) {
@@ -469,6 +591,7 @@ class WebglPlot extends ConcreteCell {
                     );
 
                     this.requestAnimationFrame();
+                    this.sendScrollStateToServer();
 
                     if (event == 'end') {
                         this.currentDragHelper = null;
@@ -514,6 +637,7 @@ class WebglPlot extends ConcreteCell {
                             )
 
                             this.requestAnimationFrame();
+                            this.sendScrollStateToServer();
                         }
                     } else {
                         let [x0, y0] = startPoint;
@@ -550,7 +674,10 @@ class WebglPlot extends ConcreteCell {
                 style: 'width:100%;height:100%;position:absolute;top:0;left:0',
                 onmousedown: this.onMouseDown,
                 onwheel: this.onWheel,
-                ondblclick: this.onDoubleclick
+                ondblclick: this.onDoubleclick,
+                onmousemove: this.onMousemove,
+                onmouseleave: this.onMouseleave,
+                onmouseenter: this.onMouseenter
             },
             ["Error: no WEBGL available"]
         );
@@ -616,6 +743,10 @@ class WebglPlot extends ConcreteCell {
             'div', {'style': 'width:calc(100.0% - 20px);height:calc(100.0% - 20px);top:10px;left:10px;position:absolute;pointer-events: none;'}, []
         )
 
+        this.mouseoverHolderDiv = h(
+            'div', {'style': 'width:100%;height:100%;top:0;left:0;position:absolute;pointer-events: none;'}, []
+        )
+
         this.textLayer = h(
             'div', {'style': 'width:100%;height:100%;top:0;left:0;position:absolute;pointer-events: none;'}, []
         )
@@ -629,8 +760,17 @@ class WebglPlot extends ConcreteCell {
             this.canvasAndLRAxesHolder,
             this.textLayer,
             this.dragDiv,
-            this.legendHolderDiv
+            this.legendHolderDiv,
+            this.mouseoverHolderDiv
         ]);
+    }
+
+    sendScrollStateToServer() {
+        this.sendMessage({
+            'event': 'scrollState',
+            'position': this.renderer.screenPosition,
+            'size': this.renderer.screenSize
+        });
     }
 
     rebuildDomElement() {

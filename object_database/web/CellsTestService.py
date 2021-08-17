@@ -157,6 +157,9 @@ def reload():
 
 
 def selectionPanel(page):
+    filterBox = cells.SingleLineTextBox(
+        "", onEnter=lambda: substringFilter.set(filterBox.currentText.get())
+    )
     substringFilter = cells.Slot("")
 
     def getAvailableCells():
@@ -174,7 +177,6 @@ def selectionPanel(page):
         return availableCells
 
     reloadInput = cells.Button(cells.Octicon("sync"), reload)
-    filterBox = cells.SingleLineTextBox(substringFilter)
     header = cells.HorizontalSequence([reloadInput, filterBox])
 
     return cells.VScrollable(

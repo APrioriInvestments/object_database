@@ -14,35 +14,70 @@
 
 
 from object_database.web.cells.cell import Cell
-from object_database.web.cells.computing_cell_context import ComputingCellContext
+from object_database.web.cells.slot import Slot
 
 
 class SingleLineTextBox(Cell):
-    def __init__(self, slot, pattern=None, width=None):
-        super().__init__()
-        self.pattern = None
-        self.slot = slot
+    def __init__(
+        self,
+        initialText="",
+        onTextChanged=None,
+        onEnter=None,
+        onEsc=None,
+        pattern=None,
+        font=None,
+        textSize=None,
+    ):
+        """Construct a single-line text box.
 
-        if width:
-            self.exportData["width"] = width
+        It will fill the width available to it, but it's always just one line.
+
+        Args:
+            initialText - the text to display when its first built
+            onTextChanged - callback whenever the text is modified by the user.
+                Gets called with (newText)
+            onEnter - callback that gets called whenever the user hits 'enter'
+                on the text box
+            onEsc - callback that gets called whenever the user hits 'esc' on the
+                textbox.
+            pattern - None, or a regex that the browser applies to the object.
+            font - a font override
+            textSize - a textSize override
+        """
+        super().__init__()
+        assert isinstance(initialText, str)
+
+        self.initialText = initialText
+        self.currentText = Slot(initialText)
+
+        self.currentText.addListener(self.slotValueChanged)
+
+        self.onTextChanged = onTextChanged
+        self.onEnter = onEnter
+        self.onEsc = onEsc
+        self.pattern = pattern
+        self.font = font
+        self.textSize = textSize
+
+    def slotValueChanged(self, oldValue, newValue, reason):
+        self.scheduleMessage({"event": "textChanged", "text": newValue})
 
     def recalculate(self):
-        if self.pattern:
-            self.exportData["pattern"] = self.pattern
-
-        newText = self.getText()
-
-        if newText != self.exportData.get("defaultValue"):
-            self.exportData["defaultValue"] = newText
-            self.markDirty()
-
-    def getText(self):
-        with ComputingCellContext(self):
-            with self.view() as v:
-                try:
-                    return self.slot.get()
-                finally:
-                    self._resetSubscriptionsToViewReads(v)
+        self.exportData["pattern"] = self.pattern
+        self.exportData["initialText"] = self.initialText
+        self.exportData["font"] = self.font
+        self.exportData["textSize"] = self.textSize
 
     def onMessage(self, msgFrame):
-        self.slot.set(msgFrame["text"])
+        if msgFrame.get("event") == "userEdit":
+            self.currentText.set(msgFrame.get("text"), "client-message")
+            if self.onTextChanged:
+                self.onTextChanged(msgFrame.get("text"))
+
+        if msgFrame.get("event") == "escape":
+            if self.onEsc:
+                self.onEsc()
+
+        if msgFrame.get("event") == "enter":
+            if self.onEnter:
+                self.onEnter()

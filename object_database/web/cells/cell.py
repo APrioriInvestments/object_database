@@ -1,6 +1,7 @@
 import object_database
 import time
 import logging
+import types
 
 
 from object_database.web.cells.children import Children
@@ -297,6 +298,8 @@ class Cell:
             return object_database.web.cells.leaves.Text(str(x), sortAs=x)
         if x is None:
             return object_database.web.cells.leaves.Span("")
+        if isinstance(x, types.FunctionType):
+            return object_database.web.cells.subscribed.Subscribed(x)
         if isinstance(x, Cell):
             return x
 

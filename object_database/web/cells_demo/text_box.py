@@ -4,9 +4,26 @@ from object_database.web.CellsTestPage import CellsTestPage
 
 class SingleLineTextBox(CellsTestPage):
     def cell(self):
-        slot = cells.Slot("initial text")
-        return cells.SingleLineTextBox(slot) + cells.Subscribed(
-            lambda: cells.Card(slot.get(), header="Slot Contents")
+        committedText = cells.Slot("<nothing committed yet>")
+
+        def onEsc():
+            box.currentText.set(committedText.get())
+
+        def onEnter():
+            committedText.set(box.currentText.get())
+
+        box = cells.SingleLineTextBox(
+            "some small monospaced text",
+            onEsc=onEsc,
+            onEnter=onEnter,
+            pattern="[a-z]*",
+            font='Monaco,Menlo,"Ubuntu Mono",Consolas,source-code-pro,monospace',
+            textSize=28,
+        )
+
+        return box + cells.Subscribed(
+            lambda: cells.Card(lambda: box.currentText.get(), header="Text Contents")
+            >> cells.Card(lambda: committedText.get(), header="Committed Contents")
         )
 
     def text(self):

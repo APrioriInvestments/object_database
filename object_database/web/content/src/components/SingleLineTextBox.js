@@ -8,9 +8,6 @@ import {ConcreteCell} from './ConcreteCell';
 class SingleLineTextBox extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
-
-        // Bind context to methods
-        this.changeHandler = this.changeHandler.bind(this);
     }
 
     _computeFillSpacePreferences() {
@@ -19,32 +16,63 @@ class SingleLineTextBox extends ConcreteCell {
 
     build(){
         let attrs = {
-                class: "cell",
-                id: this.getElementId().toString(),
-                type: "text",
-                "data-cell-id": this.identity,
-                value: (this.props.defaultValue || ""),
-                "data-cell-type": "SingleLineTextBox",
-                onchange: (event) => {this.changeHandler(event.target.value);}
+            class: "cell",
+            id: this.getElementId().toString(),
+            type: "text",
+            "data-cell-id": this.identity,
+            value: (this.props.defaultValue || ""),
+            "data-cell-type": "SingleLineTextBox",
+            oninput: (event) => {
+                this.sendMessage({event: "userEdit", text: this.domElement.value})
+            },
+            onkeydown: (event) => {
+                if (event.code == "Escape") {
+                    this.sendMessage({event: "escape"});
+                    event.preventDefault();
+                    return;
+                }
+
+                if (event.code == "Enter" || event.code == "NumpadEnter") {
+                    this.sendMessage({event: "enter"});
+                    event.preventDefault();
+                    return;
+                }
+            }
         };
 
-        if (this.props.width) {
-            attrs.style = "width:" + this.props.width + "px";
+        let styles = [];
+
+        if (this.props.font) {
+            styles.push("font-family: " + this.props.font);
         }
 
-        if (this.props.inputValue !== undefined) {
-            attrs.pattern = this.props.inputValue;
+        if (this.props.textSize) {
+            styles.push("font-size: " + this.props.textSize + "px");
         }
-        return h('input', attrs, []);
+
+        attrs.style = styles.join(';');
+
+        if (this.props.pattern) {
+            attrs.pattern = this.props.pattern;
+        }
+
+        let res = h('input', attrs, [])
+
+        res.setAttribute('value', this.props.initialText)
+        res.value = this.props.initialText;
+
+        return res;
     }
 
-    rebuildDomElement() {
-        this.domElement.value = this.props.defaultValue;
-        this.domElement.setAttribute('value', this.props.defaultValue);
-    }
+    rebuildDomElement() {}
 
-    changeHandler(val) {
-        this.sendMessage({event: "click", text: val})
+    handleMessages(messages) {
+        messages.forEach(msg => {
+            if (msg.event == 'textChanged') {
+                this.domElement.setAttribute('value', msg.text);
+                this.domElement.value = msg.text;
+            }
+        });
     }
 }
 

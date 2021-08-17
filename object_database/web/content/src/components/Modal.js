@@ -30,7 +30,6 @@ class Modal extends ConcreteCell {
         this.makeBody = this.makeBody.bind(this);
         this.makeFooter = this.makeFooter.bind(this);
         this.makeClasses = this.makeClasses.bind(this);
-        this.focusFirstInput = this.focusFirstInput.bind(this);
         this.onShow = this.onShow.bind(this);
         this.onHide = this.onHide.bind(this);
         this.onEnterKey = this.onEnterKey.bind(this);
@@ -45,7 +44,6 @@ class Modal extends ConcreteCell {
     }
 
     onFirstInstalled(){
-        this.focusFirstInput();
         if(!this.isShowing && this.props.show){
             // Then we have "shown" the Modal now.
             // Call onShow method
@@ -55,8 +53,6 @@ class Modal extends ConcreteCell {
     }
 
     rebuildDomElement() {
-        this.focusFirstInput();
-
         if(!this.isShowing && this.props.show){
             // In this case, we have gone from
             // hidden to showing, so call
@@ -141,21 +137,6 @@ class Modal extends ConcreteCell {
             ]);
         }
         return null;
-    }
-
-    focusFirstInput(){
-        // If there are any input fields present
-        // in the Modal, find the first one of them
-        // and give it the focus, as long as the
-        // modal is currently being shown.
-        if(this.props.show){
-            let firstInputField = this.getDOMElement().querySelector('input[type="text"]');
-            if(firstInputField){
-                firstInputField.select();
-            } else {
-                this.getDOMElement().focus();
-            }
-        }
     }
 
     onShow(){

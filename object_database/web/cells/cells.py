@@ -20,6 +20,7 @@ import threading
 
 from object_database.web.cells.session_state import SessionState
 from object_database.web.cells.cell import Cell
+from object_database.web.cells.slot import Slot
 from object_database.web.cells.root_cell import RootCell
 from object_database.web.cells.util import SubscribeAndRetry
 from object_database.web.cells.computing_cell_context import ComputingCellContext
@@ -59,6 +60,9 @@ class Cells:
         # set(Cell)
         self._nodesToDiscard = set()
 
+        # set(Cell)
+        self._focusableCells = set()
+
         # set(Cell.identity) - the set of identities we've sent in prior
         # updates
         self._nodesKnownToChannel = set()
@@ -73,7 +77,7 @@ class Cells:
         self._subscribedCells = {}
 
         # used by _newID to generate unique identifiers
-        self._id = 0
+        self._id = 1
 
         # a list of pending callbacks that want to run on the main thread
         self._callbacks = queue.Queue()
@@ -99,6 +103,9 @@ class Cells:
 
         # map from packetId to the callback that produces the packet data
         self._packetCallbacks = {}
+
+        # the cell that currently has the focus
+        self.focusedCell = Slot(None)
 
     def cleanupCells(self):
         """Walk down the tree calling 'onRemovedFromTree' so that our cells can GC any
@@ -227,6 +234,9 @@ class Cells:
         assert cell.identity not in self._cells
         self._cells[cell.identity] = cell
 
+        if cell.FOCUSABLE:
+            self._focusableCells.add(cell)
+
     def _cellOutOfScope(self, cell):
         for c in cell.children.allChildren:
             self._cellOutOfScope(c)
@@ -266,6 +276,7 @@ class Cells:
             self._nodesToDiscard.add(cell)
 
         self._nodesToBroadcast.discard(cell)
+        self._focusableCells.discard(cell)
 
         cell.onRemovedFromTree()
 
@@ -279,9 +290,21 @@ class Cells:
         for child in cell.children.allChildren:
             self.dumpTree(child, indent + 2)
 
+    def pickFocusedCell(self):
+        if not self._focusableCells:
+            return
+
+        return sorted(
+            self._focusableCells,
+            key=lambda cell: (cell.getDefaultFocusOrder(), str(cell.identity)),
+        )[-1]
+
     def renderMessages(self):
         self._processCallbacks()
         self._recalculateCells()
+
+        if self.focusedCell.get() in self._nodesToDiscard:
+            self.focusedCell.set(self.pickFocusedCell())
 
         packet = dict(
             # indicate that this is one complete cell frame
@@ -298,6 +321,7 @@ class Cells:
             messages={},
             # new cell types: list of [(javascript, css)]
             dynamicCellTypeDefinitions=[],
+            focusedCellId=self.focusedCell.get().identity if self.focusedCell.get() else None,
         )
 
         for node in self._nodesToBroadcast:

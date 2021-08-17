@@ -20,6 +20,7 @@ class SingleLineTextBox extends ConcreteCell {
             id: this.getElementId().toString(),
             type: "text",
             "data-cell-id": this.identity,
+            tabIndex: -1,
             value: (this.props.defaultValue || ""),
             "data-cell-type": "SingleLineTextBox",
             oninput: (event) => {
@@ -37,6 +38,9 @@ class SingleLineTextBox extends ConcreteCell {
                     event.preventDefault();
                     return;
                 }
+            },
+            onfocus: (event) => {
+                this.sendMessage({event: 'gainFocus'});
             }
         };
 
@@ -62,6 +66,10 @@ class SingleLineTextBox extends ConcreteCell {
         res.value = this.props.initialText;
 
         return res;
+    }
+
+    serverKnowsAsFocusedCell() {
+        this.domElement.focus();
     }
 
     rebuildDomElement() {}

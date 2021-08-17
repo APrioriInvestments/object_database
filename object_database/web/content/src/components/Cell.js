@@ -139,6 +139,11 @@ class Cell {
         this.setParent = this.setParent.bind(this);
         this.childSpacePreferencesChanged = this.childSpacePreferencesChanged.bind(this);
         this.applySpacePreferencesToClassList = this.applySpacePreferencesToClassList.bind(this);
+        this.serverKnowsAsFocusedCell = this.serverKnowsAsFocusedCell.bind(this)
+    }
+
+    serverKnowsAsFocusedCell() {
+
     }
 
     static copyNodeInto(sourceNode, destNode) {

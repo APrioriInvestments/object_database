@@ -97,6 +97,11 @@ class CodeEditor extends ConcreteCell {
         // this from the serverside after an action
         this.editor.focus();
 
+        this.editor.textInput.getElement().tabIndex = -1;
+        this.editor.textInput.getElement().onfocus = (event) => {
+            this.sendMessage({event: 'focus'});
+        };
+
         let isValidValue = (val) => {
             return val !== null && val !== undefined;
         };

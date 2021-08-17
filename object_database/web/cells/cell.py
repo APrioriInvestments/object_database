@@ -16,6 +16,8 @@ MAX_TRIES = 10
 class Cell:
     """Base class for all Cell instances."""
 
+    FOCUSABLE = False
+
     def __init__(self):
         self.cells = None  # will get set when its added to a 'Cells' object
 
@@ -330,6 +332,21 @@ class Cell:
             return self.parent.getContext(contextKey)
 
         return None
+
+
+class FocusableCell(Cell):
+    """A cell representing an item that can hold the focus."""
+
+    FOCUSABLE = True
+
+    def onFocusGainedOnClient(self):
+        self.cells.focusedCell.set(self)
+
+    def getDefaultFocusOrder(self):
+        return 0
+
+    def focus(self):
+        self.cells.focusedCell.set(self)
 
 
 def context(contextKey):

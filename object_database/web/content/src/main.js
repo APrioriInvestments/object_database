@@ -13,6 +13,13 @@ window.langTools = ace.require("ace/ext/language_tools");
 window.aceEditorCells = {};
 window.keyRegistry = new KeyRegistry();
 
+// disable 'tab' from flowing through
+document.addEventListener('keydown', (event) => {
+    if (event.code == "Tab") {
+        event.preventDefault();
+    }
+});
+
 /**
  * Cell Socket and Handler
  **/

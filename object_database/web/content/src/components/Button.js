@@ -26,7 +26,7 @@ class Button extends ConcreteCell {
     }
 
     build() {
-        this.buttonDiv = h('button', {
+        this.buttonDiv = h('div', {
             id: this.getElementId(),
             "data-cell-id": this.identity,
             "data-cell-type": "Button",

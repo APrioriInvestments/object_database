@@ -13,11 +13,11 @@
 #   limitations under the License.
 
 
-from object_database.web.cells.cell import Cell
+from object_database.web.cells.cell import FocusableCell
 from object_database.web.cells.slot import Slot
 
 
-class SingleLineTextBox(Cell):
+class SingleLineTextBox(FocusableCell):
     def __init__(
         self,
         initialText="",
@@ -69,6 +69,9 @@ class SingleLineTextBox(Cell):
         self.exportData["textSize"] = self.textSize
 
     def onMessage(self, msgFrame):
+        if msgFrame.get("event") == "gainFocus":
+            self.onFocusGainedOnClient()
+
         if msgFrame.get("event") == "userEdit":
             self.currentText.set(msgFrame.get("text"), "client-message")
             if self.onTextChanged:

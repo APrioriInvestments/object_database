@@ -13,12 +13,12 @@
 #   limitations under the License.
 
 
-from object_database.web.cells.cell import Cell
+from object_database.web.cells.cell import FocusableCell
 from object_database.web.cells.computing_cell_context import ComputingCellContext
 from object_database.web.cells.session_state import sessionState
 
 
-class CodeEditor(Cell):
+class CodeEditor(FocusableCell):
     """Produce a code editor."""
 
     def __init__(
@@ -95,6 +95,9 @@ class CodeEditor(Cell):
             self.firstVisibleRowOverride = None
 
     def onMessage(self, msgFrame):
+        if msgFrame["event"] == "focus":
+            self.onFocusGainedOnClient()
+
         if msgFrame["event"] == "keybinding":
             self.keybindings[msgFrame["key"]](msgFrame["buffer"], msgFrame["selection"])
 

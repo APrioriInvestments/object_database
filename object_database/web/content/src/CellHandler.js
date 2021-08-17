@@ -222,6 +222,10 @@ class CellHandler {
                 message.messages[updatedNodeId]
             );
         }
+
+        if (message.focusedCellId) {
+            this.activeCells[message.focusedCellId].serverKnowsAsFocusedCell();
+        }
     }
 
     updateCell(identity, children, data, newUnbuiltCells, cellCreationOrder) {

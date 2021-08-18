@@ -31,6 +31,7 @@ import {Main} from './components/Main';
 import {Modal} from './components/Modal';
 import {Octicon} from './components/Octicon';
 import {Padding} from './components/Padding';
+import {Border} from './components/Border';
 import {Panel} from './components/Panel';
 import {Highlighted} from './components/Highlighted';
 import {Popover} from './components/Popover';
@@ -88,6 +89,7 @@ const ComponentRegistry = {
     Modal,
     Octicon,
     Padding,
+    Border,
     PageView,
     Panel,
     Plot,

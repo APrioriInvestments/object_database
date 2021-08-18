@@ -36,3 +36,25 @@ class HighlightsTopRight(CellsTestPage):
 
     def text(self):
         return "You should see some highlighted text that fills the upper half."
+
+
+class NestedHighlights(CellsTestPage):
+    def cell(self):
+        return cells.Padding(10) * cells.Highlighted(
+            cells.Padding(30, right=100)
+            * cells.Border(right="2px dashed")
+            * cells.Highlighted(
+                cells.Center(
+                    cells.Border()
+                    * cells.Highlighted(color="rgba(0,0,0,.15)")
+                    * cells.Padding(10)
+                    * "SomeText"
+                )
+            ),
+            color="rgba(0,0,0,.15)",
+        )
+
+    def text(self):
+        return (
+            "You should see some centered text with a few different colored boxes around it."
+        )

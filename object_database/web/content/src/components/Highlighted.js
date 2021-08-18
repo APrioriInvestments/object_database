@@ -10,6 +10,9 @@ class Highlighted extends StylingCell {
     }
 
     getStyle() {
+        if (this.props.color) {
+            return "background-color:" + this.props.color;
+        }
         return "";
     }
 

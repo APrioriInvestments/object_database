@@ -73,6 +73,7 @@ from object_database.web.cells.code_editor import CodeEditor
 from object_database.web.cells.plot import Plot
 from object_database.web.cells.table import Table
 from object_database.web.cells.padding import Padding
+from object_database.web.cells.border import Border
 from object_database.web.cells.views.page_view import PageView
 
 from .non_display.key_action import KeyAction

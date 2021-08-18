@@ -29,9 +29,18 @@ class Highlighted(Cell):
         the bordered Panel area.
     """
 
-    def __init__(self, content):
+    def __init__(self, content=None, color=None):
         super().__init__()
-        self.content = Cell.makeCell(content)
+        self.content = content
+        self.color = color
+
+        self.exportData["color"] = color
 
     def recalculate(self):
         self.children["content"] = Cell.makeCell(self.content)
+
+    def __mul__(self, other):
+        if self.content is None:
+            return Highlighted(other, color=self.color)
+        else:
+            return Highlighted(self.content * other, color=self.color)

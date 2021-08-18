@@ -16,34 +16,39 @@
 from object_database.web.cells.cell import Cell
 
 
-class Padding(Cell):
+class Border(Cell):
     def __init__(
-        self, padding=None, content=None, left=None, right=None, top=None, bottom=None
+        self, border=None, content=None, left=None, right=None, top=None, bottom=None
     ):
         super().__init__()
 
         if (
-            padding is None
+            border is None
             and left is None
             and right is None
             and top is None
             and bottom is None
         ):
-            padding = 2
+            border = 1
+
+        def addPx(x):
+            if isinstance(x, (float, int)):
+                return f"{x}px solid"
+            return x
 
         self.content = content
-        self.left = self.exportData["left"] = padding if left is None else left
-        self.right = self.exportData["right"] = padding if right is None else right
-        self.top = self.exportData["top"] = padding if top is None else top
-        self.bottom = self.exportData["bottom"] = padding if bottom is None else bottom
+        self.left = self.exportData["left"] = addPx(border if left is None else left)
+        self.right = self.exportData["right"] = addPx(border if right is None else right)
+        self.top = self.exportData["top"] = addPx(border if top is None else top)
+        self.bottom = self.exportData["bottom"] = addPx(border if bottom is None else bottom)
 
     def recalculate(self):
         if self.content is not None:
             self.children["content"] = Cell.makeCell(self.content)
 
     def __mul__(self, other):
-        return Padding(
-            padding=None,
+        return Border(
+            border=None,
             content=other if self.content is None else self.content * other,
             left=self.left,
             right=self.right,

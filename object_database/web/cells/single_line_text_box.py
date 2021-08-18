@@ -24,7 +24,6 @@ class SingleLineTextBox(FocusableCell):
         onTextChanged=None,
         onEnter=None,
         onEsc=None,
-        pattern=None,
         font=None,
         textSize=None,
     ):
@@ -37,10 +36,9 @@ class SingleLineTextBox(FocusableCell):
             onTextChanged - callback whenever the text is modified by the user.
                 Gets called with (newText)
             onEnter - callback that gets called whenever the user hits 'enter'
-                on the text box
+                on the text box. Gets called with the current text.
             onEsc - callback that gets called whenever the user hits 'esc' on the
                 textbox.
-            pattern - None, or a regex that the browser applies to the object.
             font - a font override
             textSize - a textSize override
         """
@@ -55,7 +53,6 @@ class SingleLineTextBox(FocusableCell):
         self.onTextChanged = onTextChanged
         self.onEnter = onEnter
         self.onEsc = onEsc
-        self.pattern = pattern
         self.font = font
         self.textSize = textSize
 
@@ -63,7 +60,6 @@ class SingleLineTextBox(FocusableCell):
         self.scheduleMessage({"event": "textChanged", "text": newValue})
 
     def recalculate(self):
-        self.exportData["pattern"] = self.pattern
         self.exportData["initialText"] = self.initialText
         self.exportData["font"] = self.font
         self.exportData["textSize"] = self.textSize
@@ -83,4 +79,4 @@ class SingleLineTextBox(FocusableCell):
 
         if msgFrame.get("event") == "enter":
             if self.onEnter:
-                self.onEnter()
+                self.onEnter(self.currentText.get())

@@ -302,6 +302,10 @@ th {
     max-width: 800px;
 }
 
+.alert-margin {
+    margin: 30px;
+}
+
 .modal-cell-show {
     display: block;
     opacity: 1.0;

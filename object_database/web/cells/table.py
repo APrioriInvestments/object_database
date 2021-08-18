@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 from object_database.web.cells.cell import Cell
+from object_database.web.cells.sized import Sized
 from object_database.web.cells.card import Card
 from object_database.web.cells.slot import Slot
 from object_database.web.cells.computed_slot import ComputedSlot
@@ -70,12 +71,24 @@ class TableHeader(Cell):
         if totalPages <= 1:
             pageCell = Cell.makeCell(totalPages)
         else:
-            curPageAsStr = ComputedSlot(
-                lambda: str(self.curPageSlot.get() + 1),
-                onSet=lambda newVal: self.curPageSlot.set(int(newVal) - 1),
-            )
 
-            pageCell = SingleLineTextBox(curPageAsStr, pattern="[0-9]+", width=40)
+            def makeTableWidget():
+                def setPageSlot(text):
+                    try:
+                        intOfText = int(text)
+                    except Exception:
+                        textBox.currentText.set(textBox.initialText)
+                        return
+
+                    self.curPageSlot.set(min(max(0, intOfText - 1), totalPages - 1))
+
+                textBox = SingleLineTextBox(
+                    str(self.curPageSlot.get() + 1), onEnter=setPageSlot
+                )
+
+                return Sized(textBox, width=40)
+
+            pageCell = Subscribed(makeTableWidget)
 
         pageCell = pageCell >> Padding() >> Text(f"of {totalPages}")
 

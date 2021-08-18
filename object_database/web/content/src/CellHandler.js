@@ -41,7 +41,7 @@ class CellHandler {
              h("div", {id: "page_root", 'data-cell-id': 'page_root', 'class': 'allow-child-to-fill-space',
                     'data-cell-type': 'RootCell'}, [
                  h("div", {class: 'container-fluid'}, [
-                     h("div", {class: "card mt-5"}, [
+                     h("div", {class: "card alert-margin"}, [
                          h("div", {class: 'card-body'}, ["Loading..."])
                      ])
                  ])
@@ -62,7 +62,7 @@ class CellHandler {
 
         document.getElementById("page_root").replaceWith(
             h("main", {role: "main", class: 'container'}, [
-            h("div", {class: "alert alert-primary center-block mt-5"},
+            h("div", {class: "alert alert-primary center-block alert-margin"},
                    ["Disconnected"])
             ])
         );

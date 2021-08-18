@@ -30,9 +30,23 @@ class Sized extends ConcreteCell {
         return res;
     }
 
+    allotedSpaceIsInfinite(child) {
+        let isInfinite = this.parent.allotedSpaceIsInfinite();
+
+        if (this.props.height !== null) {
+            isInfinite.vertical = false;
+        }
+
+        if (this.props.width !== null) {
+            isInfinite.horizontal = false;
+        }
+
+        return isInfinite;
+    }
+
     _computeFillSpacePreferences() {
         let res = Object.assign(
-            {}, 
+            {},
             this.namedChildren['content'].getFillSpacePreferences()
         );
 

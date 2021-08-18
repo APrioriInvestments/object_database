@@ -56,10 +56,6 @@ class SingleLineTextBox extends ConcreteCell {
 
         attrs.style = styles.join(';');
 
-        if (this.props.pattern) {
-            attrs.pattern = this.props.pattern;
-        }
-
         let res = h('input', attrs, [])
 
         res.setAttribute('value', this.props.initialText)

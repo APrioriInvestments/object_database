@@ -60,7 +60,7 @@ from object_database.web.cells.subscribed import (
 
 from object_database.web.cells.webgl_plot import WebglPlot
 from object_database.web.cells.card import Card, CardTitle
-from object_database.web.cells.modal import Modal
+from object_database.web.cells.modal import Modal, ButtonModal
 from object_database.web.cells.button import Clickable, Button, ButtonGroup
 
 

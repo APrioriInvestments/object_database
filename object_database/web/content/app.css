@@ -294,7 +294,7 @@ th {
     height: 100vh;
     background-color: rgba(0, 0, 0, 0.0);
     transition: background-color 0.1s linear;
-    z-index: -1;
+    z-index: 1;
     opacity: 0.0;
 }
 

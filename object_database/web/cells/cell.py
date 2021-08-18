@@ -339,6 +339,17 @@ class FocusableCell(Cell):
 
     FOCUSABLE = True
 
+    def __init__(self):
+        super().__init__()
+
+        self.focusOnInstall = False
+
+    def install(self, cells, parent, identity):
+        super().install(cells, parent, identity)
+
+        if self.focusOnInstall:
+            self.cells.focusedCell.set(self)
+
     def onFocusGainedOnClient(self):
         self.cells.focusedCell.set(self)
 
@@ -346,7 +357,10 @@ class FocusableCell(Cell):
         return 0
 
     def focus(self):
-        self.cells.focusedCell.set(self)
+        if self.cells is None:
+            self.focusOnInstall = True
+        else:
+            self.cells.focusedCell.set(self)
 
 
 def context(contextKey):

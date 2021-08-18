@@ -13,69 +13,59 @@
 #   limitations under the License.
 
 
+from object_database.web.cells.subscribed import Subscribed
+from object_database.web.cells.table import Padding
 from object_database.web.cells.cell import Cell
-from object_database.web.cells.computing_cell_context import ComputingCellContext
 from object_database.web.cells.button import Button
-from object_database.web.cells.slot import Slot
 
 
 class Modal(Cell):
-    def __init__(self, title, message, show=None, **buttonActions):
-        """Initialize a modal dialog.
+    def __init__(self, body, header=None, footer=None, onEnter=None, onEsc=None):
+        """Show a modal dialog.  It will be immediately visible.
 
-        title - string for the title
-        message - string for the message body
-        show - A Slot whose value is True if the cell
-               should currently be showing and false if
-               otherwise.
-        buttonActions - a dict from string to a button action function.
+        The dialog will prevent anything behind it from accepting keystrokes,
+        and will defocus any prior elements.
+
+        Only one modal may be visible at once.
         """
         super().__init__()
-        self.title = Cell.makeCell(title).tagged("title")
-        self.message = Cell.makeCell(message).tagged("message")
-        if not show:
-            self.show = Slot(False)
-        else:
-            self.show = show
-        self.initButtons(buttonActions)
-        self.buttonActions = buttonActions
 
-    def initButtons(self, buttonActions):
-        def augmentButtonAction(onClick):
-            def newOnClick():
-                self.show.set(False)
-                onClick()
+        if body:
+            self.children["body"] = Cell.makeCell(body)
 
-            return newOnClick
+        if header:
+            self.children["header"] = Cell.makeCell(header)
 
-        buttons = [
-            Button(k, augmentButtonAction(v)).tagged(k) for k, v in buttonActions.items()
-        ]
-        self.buttons = {}
-        for i in range(len(buttons)):
-            button = buttons[i]
-            self.buttons["____button_{}__".format(i)] = button
+        if footer:
+            self.children["footer"] = Cell.makeCell(footer)
 
-    def recalculate(self):
-        self.children.addFromDict(
-            {
-                "buttons": list(self.buttons.values()),
-                "title": self.title,
-                "message": self.message,
-            }
-        )
-        with ComputingCellContext(self):
-            self.exportData["show"] = self.show.get()
+        self.onEnter = onEnter
+        self.onEsc = onEsc
 
-    def onMessage(self, messageFrame):
-        if messageFrame["event"] == "close":
-            self.show.set(False)
-            if "Cancel" in self.buttonActions:
-                self.buttonActions["Cancel"]()
+    def onMessage(self, msg):
+        if msg.get("event") == "enter":
+            if self.onEnter:
+                self.onEnter()
 
-        elif messageFrame["event"] == "accept":
-            # First, run the default action,
-            # which should be the one associated
-            # with the *first* button
-            if len(self.buttons) >= 1:
-                self.buttons["____button_0__"].onClick()
+        if msg.get("event") == "esc":
+            if self.onEsc:
+                self.onEsc()
+
+
+def ButtonModal(shown, title, body, ok, cancel=None):
+    def makeModal():
+        def onOk():
+            shown.set(False)
+            ok()
+
+        def onCancel():
+            shown.set(False)
+            cancel()
+
+        buttons = Button("OK", onOk)
+        if cancel:
+            buttons = buttons >> Padding() >> Button("Cancel", onCancel)
+
+        return Modal(body, header=title, footer=buttons, onEnter=onOk, onEsc=onCancel)
+
+    return Subscribed(lambda: makeModal() if shown.get() else None)

@@ -32,7 +32,8 @@ class SingleLineTextBox(FocusableCell):
         It will fill the width available to it, but it's always just one line.
 
         Args:
-            initialText - the text to display when its first built
+            initialText - the text to display when its first built, or a slot.
+                if the slot value changes,
             onTextChanged - callback whenever the text is modified by the user.
                 Gets called with (newText)
             onEnter - callback that gets called whenever the user hits 'enter'
@@ -43,10 +44,11 @@ class SingleLineTextBox(FocusableCell):
             textSize - a textSize override
         """
         super().__init__()
-        assert isinstance(initialText, str)
 
-        self.initialText = initialText
-        self.currentText = Slot(initialText)
+        if isinstance(initialText, str):
+            self.currentText = Slot(initialText)
+        else:
+            self.currentText = initialText
 
         self.currentText.addListener(self.slotValueChanged)
 
@@ -57,10 +59,11 @@ class SingleLineTextBox(FocusableCell):
         self.textSize = textSize
 
     def slotValueChanged(self, oldValue, newValue, reason):
-        self.scheduleMessage({"event": "textChanged", "text": newValue})
+        if reason != "client-message":
+            self.scheduleMessage({"event": "textChanged", "text": newValue})
 
     def recalculate(self):
-        self.exportData["initialText"] = self.initialText
+        self.exportData["initialText"] = self.currentText.getWithoutRegisteringDependency()
         self.exportData["font"] = self.font
         self.exportData["textSize"] = self.textSize
 
@@ -70,6 +73,7 @@ class SingleLineTextBox(FocusableCell):
 
         if msgFrame.get("event") == "userEdit":
             self.currentText.set(msgFrame.get("text"), "client-message")
+
             if self.onTextChanged:
                 self.onTextChanged(msgFrame.get("text"))
 

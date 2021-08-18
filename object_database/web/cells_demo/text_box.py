@@ -17,7 +17,6 @@ class SingleLineTextBox(CellsTestPage):
             "some small monospaced text",
             onEsc=onEsc,
             onEnter=onEnter,
-            pattern="[a-z]*",
             font='Monaco,Menlo,"Ubuntu Mono",Consolas,source-code-pro,monospace',
             textSize=28,
         )

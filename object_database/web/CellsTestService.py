@@ -157,9 +157,7 @@ def reload():
 
 
 def selectionPanel(page):
-    filterBox = cells.SingleLineTextBox(
-        "", onEnter=lambda: substringFilter.set(filterBox.currentText.get())
-    )
+    filterBox = cells.SingleLineTextBox("", onEnter=lambda text: substringFilter.set(text))
     substringFilter = cells.Slot("")
 
     def getAvailableCells():

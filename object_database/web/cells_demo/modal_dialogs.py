@@ -22,12 +22,17 @@ class BasicModal(CellsTestPage):
 
         button = cells.Button("Toggle Modal", lambda: isShowing.set(True))
 
-        modal = cells.Modal(
-            "Basic Modal",
-            cells.Text("Modal Body"),
-            isShowing,
-            Close=lambda: isShowing.set(False),
+        modal = cells.Subscribed(
+            lambda: cells.Modal(
+                cells.Text("Modal Body")
+                + cells.Right(cells.Button("Close", lambda: isShowing.set(False))),
+                onEsc=lambda: isShowing.set(False),
+                onEnter=lambda: isShowing.set(False),
+            )
+            if isShowing.get()
+            else None
         )
+
         return cells.Card(button + modal)
 
     def text(self):
@@ -40,58 +45,37 @@ class BasicModal(CellsTestPage):
 class ModalWithUpdateField(CellsTestPage):
     def cell(self):
         isShowing = cells.Slot(False)
-        sharedContent = cells.Slot("Some Text")
+
+        committedContent = cells.Slot("Some Text")
+        editContent = cells.Slot("Some Text")
 
         button = cells.Button("Open Modal", lambda: isShowing.set(True))
 
-        textDisplay = cells.Subscribed(lambda: cells.Text(sharedContent.get()))
+        textDisplay = cells.Subscribed(lambda: cells.Text(committedContent.get()))
 
-        modal = cells.Modal(
-            "Text Updater",
-            cells.SingleLineTextBox(sharedContent),
-            show=isShowing,
-            OK=lambda: None,
-        )
+        def onOK():
+            committedContent.set(editContent.get())
+            isShowing.set(False)
+
+        def onCancel():
+            editContent.set(committedContent.get())
+
+        textBox = cells.SingleLineTextBox(editContent, onEnter=onOK, onEsc=onCancel)
+
+        def showingChanged(old, new, reason):
+            if new and not old:
+                textBox.focus()
+
+        isShowing.addListener(showingChanged)
+
+        modal = cells.ButtonModal(isShowing, "Text Updater", textBox, ok=onOK, cancel=onCancel)
+
         return cells.Card(button + textDisplay + modal)
 
     def text(self):
         return (
             "You should see a button that lets you edit the "
-            "'Some Text' text in a modal popup."
-        )
-
-
-class ModalWithUpdateFieldAndCancel(CellsTestPage):
-    def cell(self):
-        isShowing = cells.Slot(False)
-        pageContent = cells.Slot("Some Text")
-        modalContent = cells.Slot("Some Text")
-
-        def buttonClick():
-            modalContent.set(pageContent.get())
-            isShowing.set(True)
-
-        def updateClick():
-            pageContent.set(modalContent.get())
-
-        def cancelClick():
-            modalContent.set(pageContent.get())
-
-        button = cells.Button("Open Modal", buttonClick)
-        textDisplay = cells.Subscribed(lambda: cells.Text(pageContent.get()))
-        modal = cells.Modal(
-            "Text Updater",
-            cells.SingleLineTextBox(modalContent),
-            show=isShowing,
-            Cancel=cancelClick,
-            Update=updateClick,
-        )
-        return cells.Card(button + textDisplay + modal)
-
-    def text(self):
-        return (
-            "You should see a button that lets you edit the "
-            "'Some Text' text in a modal popup."
+            "'Some Text' text in a modal popup or cancel it"
         )
 
 
@@ -101,10 +85,7 @@ def test_basic_modal(headless_browser):
     button_query = '[data-cell-type="Button"]'
     button = headless_browser.find_by_css(button_query)
 
-    # The modal is initially hidden
-    modal_query = '[data-cell-type="Modal"]'
-    modal = headless_browser.find_by_css(modal_query)
-    assert modal.is_displayed() is False
+    modal_query = ".modal-cell-show"
 
     # Clicking on the button causes the modal to appear
     button.click()
@@ -146,9 +127,7 @@ def test_modal_with_update_field(headless_browser):
     assert button.text == "Open Modal"
 
     # The modal is initially hidden
-    modal_query = '[data-cell-type="Modal"]'
-    modal = headless_browser.find_by_css(modal_query)
-    assert modal.is_displayed() is False
+    modal_query = ".modal-cell-show"
 
     # Read the text on the card
     text_query = '.button-holder + [data-cell-type="Text"]'  # + means get sibling
@@ -172,7 +151,9 @@ def test_modal_with_update_field(headless_browser):
     assert text_box.get_attribute("value") == slot_text
 
     # modify the text in the SingleLineTextBox
-    text_box.send_keys(len(slot_text) * "\b" + "final text")
+    from selenium.webdriver.common.keys import Keys
+
+    text_box.send_keys((len(slot_text) * Keys.DELETE) + "final text")
     slot_text = "final text"
     assert text_box.get_attribute("value") == slot_text
 
@@ -204,15 +185,13 @@ def test_modal_with_cancel_and_update_buttons(headless_browser):
         - clicking on the Cancel button makes the modal disappear without updating the card
         - clicking on the Update button makes the modal dissapear and updates the card
     """
-    headless_browser.load_demo_page(ModalWithUpdateFieldAndCancel)
+    headless_browser.load_demo_page(ModalWithUpdateField)
     initial_text = "Some Text"
     slot_text = initial_text
 
     button_query = '[data-cell-type="Button"]'
     # The modal is initially hidden
-    modal_query = '[data-cell-type="Modal"]'
-    modal = headless_browser.find_by_css(modal_query)
-    assert modal.is_displayed() is False
+    modal_query = ".modal-cell-show"
 
     # Read the text on the card
     text_query = '.button-holder + [data-cell-type="Text"]'  # + means get sibling
@@ -246,7 +225,10 @@ def test_modal_with_cancel_and_update_buttons(headless_browser):
     def modifyTextBox(new_text):
         text_box = headless_browser.find_by_css(modal_text_query)
         slot_text = text_box.get_attribute("value")
-        text_box.send_keys(len(slot_text) * "\b" + new_text)
+
+        from selenium.webdriver.common.keys import Keys
+
+        text_box.send_keys(len(slot_text) * Keys.DELETE + new_text)
         assert text_box.get_attribute("value") == new_text
         return new_text
 
@@ -259,7 +241,7 @@ def test_modal_with_cancel_and_update_buttons(headless_browser):
         assert len(modal_buttons) == 2
         modal_buttons = {mb.text: mb for mb in modal_buttons}
         assert "Cancel" in modal_buttons
-        assert "Update" in modal_buttons
+        assert "OK" in modal_buttons
         return modal_buttons
 
     def closeModal(button):
@@ -280,6 +262,6 @@ def test_modal_with_cancel_and_update_buttons(headless_browser):
     openModal()
     checkTextBox(slot_text)
     slot_text = modifyTextBox("updated text")
-    closeModal("Update")
+    closeModal("OK")
     text = headless_browser.find_by_css(text_query)
     assert text.text == slot_text

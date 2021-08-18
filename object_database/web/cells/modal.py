@@ -14,7 +14,7 @@
 
 
 from object_database.web.cells.subscribed import Subscribed
-from object_database.web.cells.table import Padding
+from object_database.web.cells.padding import Padding
 from object_database.web.cells.cell import Cell
 from object_database.web.cells.button import Button
 

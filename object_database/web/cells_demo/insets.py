@@ -14,30 +14,18 @@
 
 from object_database.web import cells
 from object_database.web.CellsTestPage import CellsTestPage
-from object_database.web.cells.util import Padding, Margin
+from object_database.web.cells.padding import Padding
 
 
 class BasicPadding(CellsTestPage):
     def cell(self):
         buttons = [
-            Padding(10, cells.Button("First", lambda: None)),
-            Padding(10, cells.Button("Second", lambda: None)),
-            Padding(10, cells.Button("Third", lambda: None)),
+            Padding(10) * cells.Button("First", lambda: None),
+            cells.Highlighted(Padding(10)),
+            Padding(10) * cells.Button("Second", lambda: None),
+            Padding(10) * cells.Button("Third", lambda: None),
         ]
         return cells.HorizontalSequence(buttons)
 
     def text(self):
         return "Should see a horizontal sequence of three buttons each with 10px padding"
-
-
-class BasicMargin(CellsTestPage):
-    def cell(self):
-        buttons = [
-            Margin(10, cells.Button("First", lambda: None)),
-            Margin(10, cells.Button("Second", lambda: None)),
-            Margin(10, cells.Button("Third", lambda: None)),
-        ]
-        return cells.HorizontalSequence(buttons)
-
-    def text(self):
-        return "Should see a horizontal sequence of three buttons each with 10px margin"

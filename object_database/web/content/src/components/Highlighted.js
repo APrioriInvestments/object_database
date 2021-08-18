@@ -13,7 +13,7 @@ class Highlighted extends StylingCell {
         return "";
     }
 
-    getClass(){
+    getClass() {
         return "cell-highlighted";
     }
 }

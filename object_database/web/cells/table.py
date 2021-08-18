@@ -13,6 +13,7 @@
 #   limitations under the License.
 from object_database.web.cells.cell import Cell
 from object_database.web.cells.sized import Sized
+from object_database.web.cells.padding import Padding
 from object_database.web.cells.card import Card
 from object_database.web.cells.slot import Slot
 from object_database.web.cells.computed_slot import ComputedSlot
@@ -24,14 +25,6 @@ from object_database.web.cells.sort_wrapper import SortWrapper
 
 import time
 import logging
-
-
-class Padding(Cell):
-    def __init__(self):
-        super().__init__()
-
-    def sortsAs(self):
-        return " "
 
 
 class TableHeader(Cell):

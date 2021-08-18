@@ -3,22 +3,30 @@
  */
 
 import {makeDomElt as h} from './Cell';
-import {ConcreteCell} from './ConcreteCell';
+import {StylingCell} from './StylingCell';
 
-class Padding extends ConcreteCell {
+class Padding extends StylingCell {
     constructor(props, ...args){
         super(props, ...args);
     }
 
-    build(){
-        return (
-            h('span', {
-                id: this.getElementId(),
-                "data-cell-id": this.identity,
-                "data-cell-type": "Padding",
-                class: "horizontal-padding"
-            }, [" "])
-        );
+    getStyle() {
+        let s = [];
+
+        if (this.props.left) {
+            s.push(`padding-left:${this.props.left}px`)
+        }
+        if (this.props.right) {
+            s.push(`padding-right:${this.props.right}px`)
+        }
+        if (this.props.bottom) {
+            s.push(`padding-bottom:${this.props.bottom}px`)
+        }
+        if (this.props.top) {
+            s.push(`padding-top:${this.props.top}px`)
+        }
+
+        return s.join(';')
     }
 }
 

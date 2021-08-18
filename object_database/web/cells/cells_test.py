@@ -34,14 +34,6 @@ from object_database.frontends.service_manager import (
     autoconfigureAndStartServiceManagerProcess,
 )
 from object_database.test_util import currentMemUsageMb, log_cells_stats
-from object_database.web.cells import (
-    Padding,
-    PaddingRight,
-    PaddingLeft,
-    Margin,
-    MarginSides,
-    MarginRight,
-)
 
 import logging
 import pytest
@@ -399,49 +391,3 @@ class CellsTests(unittest.TestCase):
         self.assertTrue(self.cells.findChildrenByTag("large display 1"))
         self.assertTrue(self.cells.findChildrenByTag("sized display 2"))
         self.assertTrue(self.cells.findChildrenByTag("display 3"))
-
-
-class CellsUtilTests(unittest.TestCase):
-    def test_padding_all_dimensions(self):
-        cell = Text("test")
-        Padding(10, cell)
-        self.assertTrue("padding" in cell.exportData["customStyle"])
-        self.assertEqual("10px", cell.exportData["customStyle"]["padding"])
-
-    def test_padding_right(self):
-        cell = Text("test")
-        PaddingRight(22, cell)
-        self.assertFalse("padding" in cell.exportData["customStyle"])
-        self.assertTrue("padding-right" in cell.exportData["customStyle"])
-        self.assertEqual("22px", cell.exportData["customStyle"]["padding-right"])
-
-    def test_padding_left(self):
-        cell = Text("test")
-        PaddingLeft(22, cell)
-        self.assertFalse("padding" in cell.exportData["customStyle"])
-        self.assertTrue("padding-left" in cell.exportData["customStyle"])
-        self.assertEqual("22px", cell.exportData["customStyle"]["padding-left"])
-
-    def test_margin_all_dimensions(self):
-        cell = Text("test")
-        Margin(15, cell)
-        self.assertTrue("margin" in cell.exportData["customStyle"])
-        self.assertEqual("15px", cell.exportData["customStyle"]["margin"])
-
-    def test_margin_sides(self):
-        cell = Text("test")
-        MarginSides(10, cell)
-        self.assertTrue("margin-right" in cell.exportData["customStyle"])
-        self.assertTrue("margin-left" in cell.exportData["customStyle"])
-        self.assertEqual("10px", cell.exportData["customStyle"]["margin-right"])
-        self.assertEqual("10px", cell.exportData["customStyle"]["margin-left"])
-
-    def test_margin_right(self):
-        cell = Text("test")
-        MarginRight(12, cell)
-        self.assertTrue("margin-right" in cell.exportData["customStyle"])
-        self.assertEqual("12px", cell.exportData["customStyle"]["margin-right"])
-        self.assertFalse("margin" in cell.exportData["customStyle"])
-        self.assertEqual("0px", cell.exportData["customStyle"]["margin-left"])
-        self.assertEqual("0px", cell.exportData["customStyle"]["margin-bottom"])
-        self.assertEqual("0px", cell.exportData["customStyle"]["margin-top"])

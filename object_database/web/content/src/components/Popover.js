@@ -66,18 +66,19 @@ class Popover extends DropdownBase {
             children
         );
 
+        let arrowOnRight = styleAndOpenAbove.isAnchoredOnRightSide;
 
         if (styleAndOpenAbove.isOpenAbove) {
             return h("div", {}, [
                 openMenu,
-                h("div", {class: 'cell-popover-arrow-holder'}, [
+                h("div", {class: 'cell-popover-arrow-holder' + (arrowOnRight ? "-right" : "")}, [
                     h("div", {class: 'cell-popover-down-arrow'}, []),
                     h("div", {class: 'cell-popover-down-arrow-small'}, [])
                 ])
             ]);
         } else {
             return h("div", {}, [
-                h("div", {class: 'cell-popover-arrow-holder'}, [
+                h("div", {class: 'cell-popover-arrow-holder' + (arrowOnRight ? "-right" : "")}, [
                     h("div", {class: 'cell-popover-up-arrow'}, []),
                     h("div", {class: 'cell-popover-up-arrow-small'}, [])
                 ]),

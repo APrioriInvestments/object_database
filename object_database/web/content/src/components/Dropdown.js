@@ -79,9 +79,13 @@ class DropdownBase extends ConcreteCell {
         styles.push('position: absolute');
         styles.push('z-index: 10');
 
+        let isAnchoredOnRightSide = false;
+
         if (curBoundingRect.right > totalBoundingRect.width * .66) {
+            isAnchoredOnRightSide = true;
             styles.push(`right:${totalBoundingRect.right - curBoundingRect.right}px`);
         } else {
+            isAnchoredOnRightSide = false;
             styles.push(`left:${curBoundingRect.left}px`);
         }
 
@@ -107,7 +111,7 @@ class DropdownBase extends ConcreteCell {
             styles.push(`max-height:${maxHeight}px`);
         }
 
-        return {style: styles.join(";"), isOpenAbove: isOpenAbove}
+        return {style: styles.join(";"), isOpenAbove: isOpenAbove, isAnchoredOnRightSide: isAnchoredOnRightSide}
     }
 
     dropdownClicked() {

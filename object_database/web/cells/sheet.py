@@ -11,10 +11,10 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-from object_database.web.cells import Cell
+from object_database.web.cells import FocusableCell
 
 
-class Sheet(Cell):
+class Sheet(FocusableCell):
     def __init__(
         self,
         rowFun,

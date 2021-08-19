@@ -316,6 +316,10 @@ class Sheet extends ConcreteCell {
     tearDownEvents(){
     }
 
+    serverKnowsAsFocusedCell() {
+        this.domElement.focus();
+    }
+
     build(){
         let sheetDom = h('ap-sheet', {
             id: this.getElementId(),
@@ -331,7 +335,8 @@ class Sheet extends ConcreteCell {
             'onmousemove': this.onMouseMove,
             'onmouseleave': this.onMouseLeave,
             'onmouseenter': this.onMouseEnter,
-            'onwheel': this.onMouseWheel
+            'onwheel': this.onMouseWheel,
+            'onfocus': this.focusReceived
         }, []);
 
         sheetDom.addEventListener('sheet-needs-data', this.onSheetNeedsData);

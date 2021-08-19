@@ -20,14 +20,20 @@ class Text extends ConcreteCell {
         return h(
             'div',
             {
-                class: "cell",
+                class: "cell cell-focus-no-outline",
                 id: this.getElementId(),
                 style: this.style,
                 "data-cell-id": `${this.identity}`,
-                "data-cell-type": "Text"
+                "data-cell-type": "Text",
+                'onfocus': this.focusReceived,
+                'tabindex': 0
             },
             [this.props.rawText ? this.props.rawText.toString() : null]
         );
+    }
+
+    serverKnowsAsFocusedCell() {
+        this.domElement.focus();
     }
 }
 

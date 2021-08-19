@@ -20,10 +20,17 @@ class Traceback extends ConcreteCell {
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "Traceback",
-                class: "alert alert-primary traceback"
+                class: "alert alert-primary traceback cell-focus-no-outline",
+                tabindex: 0,
+                onfocus: this.focusReceived
             }, [this.renderChildNamed('traceback')])
         );
     }
+
+    serverKnowsAsFocusedCell() {
+        this.domElement.focus();
+    }
+
 }
 
 

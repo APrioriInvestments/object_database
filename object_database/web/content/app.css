@@ -30,6 +30,8 @@ th {
     overflow: hidden;
 }
 
+.cell-focus-no-outline:focus { outline: none; }
+
 .page-view-body-holder {
     width:100%;
     position:relative;

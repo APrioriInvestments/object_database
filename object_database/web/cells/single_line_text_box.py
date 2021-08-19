@@ -68,9 +68,6 @@ class SingleLineTextBox(FocusableCell):
         self.exportData["textSize"] = self.textSize
 
     def onMessage(self, msgFrame):
-        if msgFrame.get("event") == "gainFocus":
-            self.onFocusGainedOnClient()
-
         if msgFrame.get("event") == "userEdit":
             self.currentText.set(msgFrame.get("text"), "client-message")
 

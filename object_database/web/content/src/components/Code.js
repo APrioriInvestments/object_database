@@ -21,13 +21,19 @@ class Code extends ConcreteCell {
     build(){
         return h('pre',
                  {
-                     class: "cell code",
+                     class: "cell code cell-focus-no-outline",
                      id: this.getElementId(),
-                     "data-cell-type": "Code"
+                     "data-cell-type": "Code",
+                    tabindex: 0,
+                     onfocus: this.focusReceived
                  }, [
                      h("code", {}, [this.makeCode()])
                  ]
                 );
+    }
+
+    serverKnowsAsFocusedCell() {
+        this.domElement.focus();
     }
 
     makeCode(){

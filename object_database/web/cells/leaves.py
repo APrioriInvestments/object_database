@@ -14,7 +14,7 @@
 
 
 import html
-from object_database.web.cells.cell import Cell
+from object_database.web.cells.cell import FocusableCell, Cell
 
 
 class Octicon(Cell):
@@ -48,7 +48,7 @@ class Badge(Cell):
         self.children["inner"] = self.inner
 
 
-class Text(Cell):
+class Text(FocusableCell):
     def __init__(self, text, text_color=None, sortAs=None):
         super().__init__()
         self.text = str(text)
@@ -65,7 +65,7 @@ class Text(Cell):
         self.exportData["textColor"] = self.text_color
 
 
-class Traceback(Cell):
+class Traceback(FocusableCell):
     def __init__(self, traceback):
         super().__init__()
         self.traceback = traceback
@@ -76,7 +76,7 @@ class Traceback(Cell):
         return self.traceback
 
 
-class Code(Cell):
+class Code(FocusableCell):
     def __init__(self, codeContents):
         super().__init__()
         self.codeContents = codeContents

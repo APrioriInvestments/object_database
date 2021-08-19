@@ -156,7 +156,9 @@ class TableHeader(Cell):
         )
 
         def makeFilterBox():
-            if columnFilterSlot.get() is None:
+            isNone = ComputedSlot(lambda: columnFilterSlot.get() is None)
+
+            if isNone.get():
                 return Clickable(Octicon("search"), lambda: columnFilterSlot.set(""))
             else:
                 return SingleLineTextBox(columnFilterSlot) >> Button(

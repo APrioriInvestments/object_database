@@ -50,6 +50,7 @@ class ComputedSlot(Slot):
         self._valueUpToDate = False
         self._subscribedCells = set()
         self._slotsWatching = set()
+        self._listeners = []
         self.subscriptions = set()
         self.cells = None
         self.garbageCollected = False
@@ -91,7 +92,7 @@ class ComputedSlot(Slot):
 
         return super().get()
 
-    def set(self, val):
+    def set(self, val, reason=None):
         if not self._onSet:
             raise Exception("This ComputedSlot is not settable.")
 
@@ -142,6 +143,7 @@ class ComputedSlot(Slot):
 
                             if oldValue != self._value:
                                 self._triggerListeners()
+                                self._fireListenerCallbacks(oldValue, self._value, "recompute")
 
                 return
             except SubscribeAndRetry as e:

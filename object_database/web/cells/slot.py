@@ -27,17 +27,17 @@ class Slot:
     def __init__(self, value=None):
         self._value = value
         self._subscribedCells = set()
-        self._onSet = []
+        self._listeners = []
 
     def addListener(self, listener):
         """Add a listener who will get notified any time a slot's value gets set.
 
         Listeners will get called with (oldValue, newValue, reason)
         """
-        self._onSet.append(listener)
+        self._listeners.append(listener)
 
     def removeListener(self, listener):
-        self._onSet.remove(listener)
+        self._listeners.remove(listener)
 
     def setter(self, val):
         return lambda: self.set(val)
@@ -73,8 +73,10 @@ class Slot:
         self._value = val
 
         self._triggerListeners()
+        self._fireListenerCallbacks(oldValue, val, reason)
 
-        for listener in self._onSet:
+    def _fireListenerCallbacks(self, oldValue, val, reason):
+        for listener in self._listeners:
             try:
                 listener(oldValue, val, reason)
             except Exception:

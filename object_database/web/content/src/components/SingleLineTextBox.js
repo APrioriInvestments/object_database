@@ -8,6 +8,8 @@ import {ConcreteCell} from './ConcreteCell';
 class SingleLineTextBox extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
+
+        this.everFocused = false;
     }
 
     _computeFillSpacePreferences() {
@@ -40,8 +42,9 @@ class SingleLineTextBox extends ConcreteCell {
                 }
             },
             onfocus: (event) => {
-                this.sendMessage({event: 'gainFocus'});
-            }
+                this.everFocused = true;
+                this.focusReceived();
+            },
         };
 
         let styles = [];
@@ -65,7 +68,13 @@ class SingleLineTextBox extends ConcreteCell {
     }
 
     serverKnowsAsFocusedCell() {
+        let everFocused = this.everFocused;
+
         this.domElement.focus();
+
+        if (!everFocused) {
+            this.domElement.select();
+        }
     }
 
     rebuildDomElement() {}

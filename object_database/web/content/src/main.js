@@ -10,7 +10,6 @@ import {Cell, render} from './components/Cell';
  * Globals
  **/
 window.langTools = ace.require("ace/ext/language_tools");
-window.aceEditorCells = {};
 window.keyRegistry = new KeyRegistry();
 
 // disable 'tab' from flowing through

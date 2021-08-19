@@ -37,6 +37,10 @@ class CodeEditor extends ConcreteCell {
         this._resetMarkers = this._resetMarkers.bind(this);
     }
 
+    serverKnowsAsFocusedCell() {
+        this.editor.focus();
+    }
+
     build(){
         let actualEditorDiv = h('div', {
              id: "editor" + this.identity,
@@ -93,13 +97,9 @@ class CodeEditor extends ConcreteCell {
     setupEditorOn(editorDiv){
         this.editor = ace.edit(editorDiv);
 
-        // force a focus. it would be better to pick a better way to trigger
-        // this from the serverside after an action
-        this.editor.focus();
-
         this.editor.textInput.getElement().tabIndex = -1;
         this.editor.textInput.getElement().onfocus = (event) => {
-            this.sendMessage({event: 'focus'});
+            this.focusReceived()
         };
 
         let isValidValue = (val) => {

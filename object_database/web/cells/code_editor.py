@@ -95,9 +95,6 @@ class CodeEditor(FocusableCell):
             self.firstVisibleRowOverride = None
 
     def onMessage(self, msgFrame):
-        if msgFrame["event"] == "focus":
-            self.onFocusGainedOnClient()
-
         if msgFrame["event"] == "keybinding":
             self.keybindings[msgFrame["key"]](msgFrame["buffer"], msgFrame["selection"])
 

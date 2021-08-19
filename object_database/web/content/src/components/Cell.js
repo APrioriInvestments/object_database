@@ -139,9 +139,18 @@ class Cell {
         this.setParent = this.setParent.bind(this);
         this.childSpacePreferencesChanged = this.childSpacePreferencesChanged.bind(this);
         this.applySpacePreferencesToClassList = this.applySpacePreferencesToClassList.bind(this);
-        this.serverKnowsAsFocusedCell = this.serverKnowsAsFocusedCell.bind(this)
+        this.serverKnowsAsFocusedCell = this.serverKnowsAsFocusedCell.bind(this);
+        this.focusReceived = this.focusReceived.bind(this);
     }
 
+    // indicate to the server that we received focus
+    focusReceived() {
+        if (this.handler) {
+            this.handler.cellReceivedFocus(this.identity);
+        }
+    }
+
+    // called to trigger a focus change
     serverKnowsAsFocusedCell() {
 
     }

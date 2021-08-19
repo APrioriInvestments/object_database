@@ -32,6 +32,14 @@ class CellHandler {
         this.handleFrame = this.handleFrame.bind(this);
         this.doesNotUnderstand = this.doesNotUnderstand.bind(this);
         this.updateCell = this.updateCell.bind(this);
+        this.cellReceivedFocus = this.cellReceivedFocus.bind(this);
+        // identity of the current focus event.
+        // this increases monotonically, and lets us differentiate between
+        // user-focus events and messages from the server that have not yet
+        // caught up to the browser state
+        this.committedFocusEventId = 0;
+        this.isProcessingFocusEvent = false;
+        this.currentlyFocusedCellId = null;
     }
 
     initialRender() {
@@ -125,106 +133,125 @@ class CellHandler {
         // the javascript provided should construct new entries in the
         // ComponentRegistry, and the CSS definitions will apply to the
         // entire document.
-        message.dynamicCellTypeDefinitions.forEach(javascriptAndCss => {
-            Function(javascriptAndCss[0])()(ComponentRegistry);
+        this.isProcessingFocusEvent = true;
 
-            var styleSheetElement = document.createElement('style');
-            styleSheetElement.type = 'text/css';
-            styleSheetElement.innerHTML = javascriptAndCss[1];
-            document.head.appendChild(styleSheetElement)
-        });
+        try {
+            message.dynamicCellTypeDefinitions.forEach(javascriptAndCss => {
+                Function(javascriptAndCss[0])()(ComponentRegistry);
 
-        // indicate to each cell that's going out of scope that we're
-        // getting rid of it
-        message.nodesToDiscard.forEach(nodeId => {
-            let cell = this.activeCells[nodeId]
+                var styleSheetElement = document.createElement('style');
+                styleSheetElement.type = 'text/css';
+                styleSheetElement.innerHTML = javascriptAndCss[1];
+                document.head.appendChild(styleSheetElement)
+            });
 
-            if (cell) {
-                cell.cellWillUnload();
-                cell.parent = null;
-                this.activeCells[nodeId].parent = null;
+            // indicate to each cell that's going out of scope that we're
+            // getting rid of it
+            message.nodesToDiscard.forEach(nodeId => {
+                let cell = this.activeCells[nodeId]
+
+                if (cell) {
+                    cell.cellWillUnload();
+                    cell.parent = null;
+                    this.activeCells[nodeId].parent = null;
+                } else {
+                    console.error("Node " + nodeId + " can't be discarded because it doesn't exist.");
+                }
+            });
+
+            // build a map of the parents of any new cells
+            let parentIdentities = {};
+            let cellCreationOrder = [];
+
+            for (var createdCellId in message.nodesCreated) {
+                let parentId = message.nodesCreated[createdCellId].parent;
+
+                if (parentId !== null) {
+                    parentIdentities[createdCellId] = parentId;
+                }
+            }
+
+            let rebuildPageRoot = false;
+
+            // the first message we get should define the page root
+            if (message.nodesCreated['page_root']) {
+                if (this.activeCells['page_root']) {
+                    throw new Error("Page root was already set");
+                }
+
+                this.createCellFromInitialMessage('page_root', message.nodesCreated, cellCreationOrder);
+
+                rebuildPageRoot = true;
+            }
+
+            // walk through each 'updated' cell and construct any new
+            // cells beneath it
+            for (var updatedNodeId in message.nodesUpdated) {
+                this.updateCell(
+                    updatedNodeId,
+                    message.nodesUpdated[updatedNodeId].children,
+                    message.nodesUpdated[updatedNodeId].extraData,
+                    message.nodesCreated,
+                    cellCreationOrder
+                );
+            }
+
+            // at this point, message.nodesCreated should be empty
+            if (message.nodesCreated && Object.keys(message.nodesCreated).length) {
+                throw new Error(
+                    "Frame contained unused cell ids: [" + Object.keys(message.nodesCreated).join(", ") + "]"
+                );
+            }
+
+            // remove the unused cells
+            message.nodesToDiscard.forEach(nodeId => {
+                if (this.activeCells[nodeId]) {
+                    delete this.activeCells[nodeId];
+                }
+            });
+
+            // wire any parents
+            for (var cellId in parentIdentities) {
+                this.activeCells[cellId].setParent(this.activeCells[parentIdentities[cellId]]);
+            }
+
+            for (var updatedNodeId in message.nodesUpdated) {
+                this.activeCells[updatedNodeId].rebuildDomElement();
+            }
+
+            if (rebuildPageRoot) {
+                this.activeCells['page_root'].rebuildDomElement();
+            }
+
+            // notify cells that they now exist
+            cellCreationOrder.forEach(childId => {
+                this.activeCells[childId].onFirstInstalled();
+            });
+
+            for (var updatedNodeId in message.messages) {
+                this.activeCells[updatedNodeId].handleMessages(
+                    message.messages[updatedNodeId]
+                );
+            }
+
+            if (message.focusedCellEventId > this.committedFocusEventId) {
+                this.committedFocusEventId = message.focusedCellEventId;
+                this.currentlyFocusedCellId = message.focusedCellId;
+            }
+
+            if (this.currentlyFocusedCellId) {
+                if (this.activeCells[this.currentlyFocusedCellId]) {
+                    this.activeCells[this.currentlyFocusedCellId].serverKnowsAsFocusedCell();
+                }
             } else {
-                console.error("Node " + nodeId + " can't be discarded because it doesn't exist.");
-            }
-        });
-
-        // build a map of the parents of any new cells
-        let parentIdentities = {};
-        let cellCreationOrder = [];
-
-        for (var createdCellId in message.nodesCreated) {
-            let parentId = message.nodesCreated[createdCellId].parent;
-
-            if (parentId !== null) {
-                parentIdentities[createdCellId] = parentId;
+                // defocus
+                if (document.activeElement) {
+                    document.activeElement.blur();
+                }
             }
         }
-
-        let rebuildPageRoot = false;
-
-        // the first message we get should define the page root
-        if (message.nodesCreated['page_root']) {
-            if (this.activeCells['page_root']) {
-                throw new Error("Page root was already set");
-            }
-
-            this.createCellFromInitialMessage('page_root', message.nodesCreated, cellCreationOrder);
-
-            rebuildPageRoot = true;
-        }
-
-        // walk through each 'updated' cell and construct any new
-        // cells beneath it
-        for (var updatedNodeId in message.nodesUpdated) {
-            this.updateCell(
-                updatedNodeId,
-                message.nodesUpdated[updatedNodeId].children,
-                message.nodesUpdated[updatedNodeId].extraData,
-                message.nodesCreated,
-                cellCreationOrder
-            );
-        }
-
-        // at this point, message.nodesCreated should be empty
-        if (message.nodesCreated && Object.keys(message.nodesCreated).length) {
-            throw new Error(
-                "Frame contained unused cell ids: [" + Object.keys(message.nodesCreated).join(", ") + "]"
-            );
-        }
-
-        // remove the unused cells
-        message.nodesToDiscard.forEach(nodeId => {
-            if (this.activeCells[nodeId]) {
-                delete this.activeCells[nodeId];
-            }
-        });
-
-        // wire any parents
-        for (var cellId in parentIdentities) {
-            this.activeCells[cellId].setParent(this.activeCells[parentIdentities[cellId]]);
-        }
-
-        for (var updatedNodeId in message.nodesUpdated) {
-            this.activeCells[updatedNodeId].rebuildDomElement();
-        }
-
-        if (rebuildPageRoot) {
-            this.activeCells['page_root'].rebuildDomElement();
-        }
-
-        // notify cells that they now exist
-        cellCreationOrder.forEach(childId => {
-            this.activeCells[childId].onFirstInstalled();
-        });
-
-        for (var updatedNodeId in message.messages) {
-            this.activeCells[updatedNodeId].handleMessages(
-                message.messages[updatedNodeId]
-            );
-        }
-
-        if (message.focusedCellId) {
-            this.activeCells[message.focusedCellId].serverKnowsAsFocusedCell();
+        finally {
+            this.isProcessingFocusEvent = false;
         }
     }
 
@@ -317,9 +344,34 @@ class CellHandler {
         return newCell;
     }
 
+    cellReceivedFocus(cellId) {
+        if (this.isProcessingFocusEvent) {
+            // we don't need to send this back to the server
+            return;
+        }
+
+        this.committedFocusEventId += 1;
+        this.currentlyFocusedCellId = cellId;
+
+        this.sendMessageToCells(
+            {
+                event: 'focusChanged',
+                eventId: this.committedFocusEventId,
+                cellId: cellId
+            }
+        );
+    }
+
     sendMessageFor(message, cellId){
         if (this.socket) {
             message['target_cell'] = cellId.toString();
+            this.socket.sendString(JSON.stringify(message));
+        }
+    }
+
+    sendMessageToCells(message){
+        if (this.socket) {
+            message['target_cell'] = 'main_cells_handler';
             this.socket.sendString(JSON.stringify(message));
         }
     }

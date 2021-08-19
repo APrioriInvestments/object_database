@@ -58,19 +58,19 @@ class Modal extends ConcreteCell {
 
         if (this.namedChildren['header']) {
             children.push(
-                h('div', {class: "modal-header"}, [this.renderChildNamed('header')])
+                h('div', {class: "modal-header allow-child-to-fill-space"}, [this.renderChildNamed('header')])
             );
         }
 
         if (this.namedChildren['body']) {
             children.push(
-                h('div', {class: "modal-body"}, [this.renderChildNamed('body')])
+                h('div', {class: "modal-body allow-child-to-fill-space"}, [this.renderChildNamed('body')])
             );
         }
 
         if (this.namedChildren['footer']) {
             children.push(
-                h('div', {class: "modal-footer"}, [this.renderChildNamed('footer')])
+                h('div', {class: "modal-footer allow-child-to-fill-space"}, [this.renderChildNamed('footer')])
             );
         }
 

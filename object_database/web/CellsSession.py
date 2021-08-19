@@ -108,10 +108,13 @@ class CellsSession:
 
         def callbackFun():
             cell_id = jsonMsg.get("target_cell")
-            cell = self.cells[cell_id]
+            if cell_id == "main_cells_handler":
+                self.cells.onMessage(jsonMsg)
+            else:
+                cell = self.cells[cell_id]
 
-            if cell is not None:
-                cell.onMessageWithTransaction(jsonMsg)
+                if cell is not None:
+                    cell.onMessageWithTransaction(jsonMsg)
 
         return callbackFun
 

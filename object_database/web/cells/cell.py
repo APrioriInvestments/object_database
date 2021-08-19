@@ -343,24 +343,19 @@ class FocusableCell(Cell):
         super().__init__()
 
         self.focusOnInstall = False
+        self.mostRecentFocusId = None
 
     def install(self, cells, parent, identity):
         super().install(cells, parent, identity)
 
         if self.focusOnInstall:
-            self.cells.focusedCell.set(self)
-
-    def onFocusGainedOnClient(self):
-        self.cells.focusedCell.set(self)
-
-    def getDefaultFocusOrder(self):
-        return 0
+            self.cells.changeFocus(self)
 
     def focus(self):
         if self.cells is None:
             self.focusOnInstall = True
         else:
-            self.cells.focusedCell.set(self)
+            self.cells.changeFocus(self)
 
 
 def context(contextKey):

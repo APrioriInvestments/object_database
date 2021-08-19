@@ -107,6 +107,35 @@ class Cells:
         # the cell that currently has the focus
         self.focusedCell = Slot(None)
 
+        # an ever-increasing 'eventId' that we can use to handle the race between
+        # the user changing focus and the server sending an old focus
+        self.focusEventId = 1
+
+    def onMessage(self, message):
+        """Called when the CellHandler sends a message _directly_ to 'cells'."""
+        if message.get("event") == "focusChanged":
+            eventId = message.get("eventId")
+            if eventId > self.focusEventId:
+                cellId = message.get("cellId")
+
+                cell = self._cells.get(cellId)
+
+                self.focusedCell.set(cell)
+                self.focusEventId = eventId
+
+                if cell is not None:
+                    cell.mostRecentFocusId = self.focusEventId
+
+    def changeFocus(self, newCell):
+        """Trigger a server-side focus change."""
+        self._eventHasTransactions.put(1)
+
+        self.focusedCell.set(newCell)
+        self.focusEventId += 1000
+
+        if newCell is not None:
+            newCell.mostRecentFocusId = self.focusEventId
+
     def cleanupCells(self):
         """Walk down the tree calling 'onRemovedFromTree' so that our cells can GC any
         outstanding threads or downloaders they have sitting around."""
@@ -291,12 +320,13 @@ class Cells:
             self.dumpTree(child, indent + 2)
 
     def pickFocusedCell(self):
+        """Pick the most recently focused focusable cell."""
         if not self._focusableCells:
             return
 
         return sorted(
             self._focusableCells,
-            key=lambda cell: (cell.getDefaultFocusOrder(), str(cell.identity)),
+            key=lambda cell: (cell.mostRecentFocusId or -1, str(cell.identity)),
         )[-1]
 
     def renderMessages(self):
@@ -305,6 +335,7 @@ class Cells:
 
         if self.focusedCell.get() in self._nodesToDiscard:
             self.focusedCell.set(self.pickFocusedCell())
+            self.focusEventId += 1
 
         packet = dict(
             # indicate that this is one complete cell frame
@@ -322,6 +353,7 @@ class Cells:
             # new cell types: list of [(javascript, css)]
             dynamicCellTypeDefinitions=[],
             focusedCellId=self.focusedCell.get().identity if self.focusedCell.get() else None,
+            focusedCellEventId=self.focusEventId,
         )
 
         for node in self._nodesToBroadcast:

@@ -74,6 +74,10 @@ class TableRow extends ConcreteCell {
         super(props, ...args);
     }
 
+    allotedSpaceIsInfinite(child) {
+        return {horizontal: false, vertical: false};
+    }
+
     build() {
         return h('tr', {}, this.renderChildrenNamed('cells').map((elt, colIndex) => {
             return (
@@ -86,6 +90,10 @@ class TableRow extends ConcreteCell {
 class TableHeader extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
+    }
+
+    allotedSpaceIsInfinite(child) {
+        return {horizontal: false, vertical: false};
     }
 
     build() {

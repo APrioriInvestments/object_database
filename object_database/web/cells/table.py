@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 from object_database.web.cells.cell import Cell
+from object_database.web.cells.layout import Left
 from object_database.web.cells.sized import Sized
 from object_database.web.cells.padding import Padding
 from object_database.web.cells.card import Card
@@ -100,7 +101,7 @@ class TableHeader(Cell):
                 lambda: self.curPageSlot.set(min(self.curPageSlot.get() + 1, totalPages - 1)),
             )
 
-        return Card(pageCell >> Padding() >> leftCell >> rightCell, padding=1)
+        return Card(Left(pageCell >> Padding() >> leftCell >> rightCell), padding=1)
 
     def recalculate(self):
         with self.view() as v:
@@ -162,7 +163,7 @@ class TableHeader(Cell):
                     Octicon("x"), lambda: columnFilterSlot.set(None), small=True
                 )
 
-        return Card(clickToSort >> Subscribed(makeFilterBox), padding=1)
+        return Card(Left(clickToSort >> Subscribed(makeFilterBox)), padding=1)
 
 
 class TableRow(Cell):

@@ -51,7 +51,9 @@ class Button extends ConcreteCell {
         this.applySpacePreferencesToClassList(this.buttonDiv);
     }
 
-    onClick() {
+    onClick(event) {
+        event.stopPropagation()
+
         if (this.props.url) {
             if (this.props.target) {
                 window.open(this.props.url, this.props.target);

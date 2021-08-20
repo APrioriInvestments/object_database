@@ -52,7 +52,9 @@ class Clickable extends ConcreteCell {
         return this.renderChildNamed('content');
     }
 
-    onClick() {
+    onClick(event) {
+        event.stopPropagation();
+
         if (this.props.url) {
             if (this.props.target) {
                 window.open(this.props.url, this.props.target);

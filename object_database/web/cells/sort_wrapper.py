@@ -19,6 +19,9 @@ class SortWrapper:
 
     def __lt__(self, other):
         try:
+            if type(self.x) in (int, float) and type(other.x) in (int, float):
+                return self.x < other.x
+
             if type(self.x) is type(other.x):  # noqa: E721
                 return self.x < other.x
             else:

@@ -53,6 +53,27 @@ class MultiPageTable(CellsTestPage):
         )
 
 
+class TableWithPopover(CellsTestPage):
+    def cell(self):
+        return cells.Scrollable(
+            cells.Table(
+                colFun=lambda: [f"Col{i+1}" for i in range(10)],
+                rowFun=lambda: list(range(10)),
+                headerFun=lambda x: x,
+                rendererFun=lambda w, field: cells.Popover(f"{field} {w}", "title", "detail"),
+                maxRowsPerPage=50,
+                sortColumn="Col1",
+                sortColumnAscending=True,
+            )
+        )
+
+    def text(self):
+        return (
+            "You should see a table with two columns, "
+            "two pages of 50 rows and all fields saying 'hi'"
+        )
+
+
 class TableNoScrollWithAndWithoutFlex(CellsTestPage):
     def cell(self):
         columns = cells.Slot(4)

@@ -58,7 +58,7 @@ class TableHeader(Cell):
         self.cols = []
 
     def buildPageWidget(self):
-        totalRows = len(self.sortedRowsSlot.get())
+        totalRows = len(self.sortedRowsSlot.get() or [])
 
         totalPages = (totalRows - 1) // self.maxRowsPerPage + 1
 

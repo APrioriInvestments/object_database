@@ -40,7 +40,7 @@ class Popover(Cell):
         self.exportData["width"] = self.width
 
     def sortsAs(self):
-        return self.contentCell.sortAs()
+        return self.contentCell.sortsAs()
 
     def onMessage(self, msgFrame):
         if "open_state" in msgFrame:

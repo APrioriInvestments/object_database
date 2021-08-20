@@ -155,7 +155,7 @@ class CodeEditor extends ConcreteCell {
             if (isValidValue(this.props.firstVisibleRow)) {
                 this.editor.resize(true);
                 this.editor.scrollToRow(this.props.firstVisibleRow - 1)
-                this.editor.gotoLine(this.props.firstVisibleRow, 0, true);
+                // this.editor.gotoLine(this.props.firstVisibleRow, 0, true);
             }
 
             if (isValidValue(this.props.initialSelection)) {
@@ -183,7 +183,7 @@ class CodeEditor extends ConcreteCell {
                 let row = parseInt(message.firstVisibleRow);
                 this.editor.resize(true);
                 this.editor.scrollToRow(row - 1)
-                this.editor.gotoLine(row, 0, true);
+                // this.editor.gotoLine(row, 0, true);
             } else if (message.updateMarkers === true) {
                 // remove the highlighting
                 this.highlightMarkerDefinitions = message.markers;

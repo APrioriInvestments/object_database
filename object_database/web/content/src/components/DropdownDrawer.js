@@ -14,25 +14,43 @@ class DropdownDrawer extends DropdownBase {
         // if the dropdown exists already, just remove it
         this.clearVisibleDropdown();
 
-        this.dropdownToggle = h('button', {
-            class: "btn btn-xs btn-outline-secondary dropdown-toggle dropdown-toggle-split",
-            type: "button",
-            onclick: this.dropdownClicked
-        });
-
-        return (
-            h('div', {
-                id: this.getElementId(),
-                "data-cell-id": this.identity,
-                "data-cell-type": "Dropdown",
-                class: "cell cell-dropdown dropdown btn-group",
-            }, [
-                h('a', {class: "btn btn-xs btn-outline-secondary"}, [
+        if (this.props.withoutButtonStyling) {
+            this.dropdownToggle = (
+                h('div', {
+                    id: this.getElementId(),
+                    "data-cell-id": this.identity,
+                    "data-cell-type": "Dropdown",
+                    class: "cell cell-dropdown dropdown",
+                    style: 'display:inline-block',
+                    onclick: this.dropdownClicked
+                }, [
                     this.renderChildNamed('menu')
-                ]),
-                this.dropdownToggle
-            ])
-        );
+                ])
+            );
+
+            return this.dropdownToggle;
+
+        } else {
+            this.dropdownToggle = h('button', {
+                class: "btn btn-xs btn-outline-secondary dropdown-toggle dropdown-toggle-split",
+                type: "button",
+                onclick: this.dropdownClicked
+            });
+
+            return (
+                h('div', {
+                    id: this.getElementId(),
+                    "data-cell-id": this.identity,
+                    "data-cell-type": "Dropdown",
+                    class: "cell cell-dropdown dropdown btn-group",
+                }, [
+                    h('a', {class: "btn btn-xs btn-outline-secondary"}, [
+                        this.renderChildNamed('menu')
+                    ]),
+                    this.dropdownToggle
+                ])
+            );
+        }
     }
 
     onDropdownOpened() {

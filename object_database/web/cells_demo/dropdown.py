@@ -82,3 +82,11 @@ class BasicDropdownDrawer(CellsTestPage):
 
     def text(self):
         return "You should see a basic DropdownDrawer with 'Result' as text child"
+
+
+class BasicUnstyledDropdownDrawer(CellsTestPage):
+    def cell(self):
+        return cells.DropdownDrawer("Click Me", cells.Text("Result"), True)
+
+    def text(self):
+        return "You should see a basic DropdownDrawer with 'Result' as text child"

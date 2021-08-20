@@ -28,7 +28,7 @@ class Scrollable(Container):
         assert halign in ("start", "center", "end", "nearest")
 
         self.scheduleMessage(
-            {
+            lambda: {
                 "event": "scrollChildIntoView",
                 "id": child.identity,
                 "valign": valign,

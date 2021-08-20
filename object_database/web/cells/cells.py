@@ -16,6 +16,7 @@ import queue
 import time
 import traceback
 import logging
+import types
 import threading
 
 from object_database.web.cells.session_state import SessionState
@@ -178,7 +179,9 @@ class Cells:
     def markPendingMessages(self, cell, message):
         wasEmpty = len(self._pendingOutgoingMessages) == 0
 
-        self._pendingOutgoingMessages.setdefault(cell.identity, []).extend(message)
+        messagesToSend = self._pendingOutgoingMessages.setdefault(cell.identity, [])
+
+        messagesToSend.extend(message)
 
         if wasEmpty:
             self._eventHasTransactions.put(1)
@@ -416,7 +419,23 @@ class Cells:
             # we process messages at the end of the cell update cycle,
             # after the tree is fully rebuilt.
             if nodeId in self._nodesKnownToChannel:
-                packet["messages"][nodeId] = messages
+                toSend = []
+
+                def unpackMessage(m):
+                    if isinstance(m, types.FunctionType):
+                        try:
+                            toSend.append(m())
+                        except Exception:
+                            self._logger.exception(
+                                "Callback %s threw an unexpected exception:", m
+                            )
+                    else:
+                        toSend.append(m)
+
+                for m in messages:
+                    unpackMessage(m)
+
+                packet["messages"][nodeId] = toSend
 
         self._pendingOutgoingMessages.clear()
         self._nodesToBroadcast = set()

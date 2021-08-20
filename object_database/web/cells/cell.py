@@ -35,8 +35,6 @@ class Cell:
         self.subscriptions = set()
         self.context = {}
 
-        self._logger = logging.getLogger(__name__)
-
         self._messagesToSendOnInstall = []
 
         # This is for interim JS refactoring.
@@ -223,10 +221,10 @@ class Cell:
                 except RevisionConflictException:
                     tries += 1
                     if tries > MAX_TRIES or time.time() - t0 > MAX_TIMEOUT:
-                        self._logger.error("OnMessage timed out. This should really fail.")
+                        logging.error("OnMessage timed out. This should really fail.")
                         return
                 except Exception:
-                    self._logger.exception(
+                    logging.exception(
                         "Exception processing message %s to cell %s logic:", args, self
                     )
                     return

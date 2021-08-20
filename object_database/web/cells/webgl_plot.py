@@ -18,8 +18,8 @@ from object_database.web.cells.cell import Cell
 from object_database.web.cells.slot import Slot
 from object_database.web.cells.subscribed import SubscribeAndRetry
 
-
 import traceback
+import logging
 
 
 class Figure:
@@ -841,7 +841,7 @@ class WebglPlot(Cell):
             except SubscribeAndRetry:
                 raise
             except Exception:
-                self._logger.exception("Exception in plot recalculation")
+                logging.exception("Exception in plot recalculation")
 
                 return traceback.format_exc(), None
             finally:

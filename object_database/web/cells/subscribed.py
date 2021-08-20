@@ -100,7 +100,7 @@ class Subscribed(Cell):
             except Exception:
                 tracebackCell = Traceback(traceback.format_exc())
                 self.children["content"] = tracebackCell
-                self._logger.exception("Subscribed inner function threw exception:")
+                logging.exception("Subscribed inner function threw exception:")
 
             self._resetSubscriptionsToViewReads(v)
 
@@ -239,7 +239,7 @@ class SubscribedSequence(Cell):
         except SubscribeAndRetry:
             raise
         except Exception:
-            self._logger.exception("SubscribedSequence itemsFun threw exception:")
+            logging.exception("SubscribedSequence itemsFun threw exception:")
             self.items = []
 
     def _updateExistingItems(self):

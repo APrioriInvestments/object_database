@@ -22,6 +22,7 @@ from object_database.web.cells.subscribed import SubscribeAndRetry
 import json
 import numpy
 import traceback
+import logging
 
 
 class Plot(Cell):
@@ -54,8 +55,6 @@ class Plot(Cell):
         self.exportData["error"] = error
         self.exportData["packetId"] = self.cells.getPacketId(self.getPacketData)
 
-        print("Packet is ", self.exportData["packetId"])
-
         self.plotData = plotData
 
     def getPacketData(self, packetId):
@@ -85,7 +84,7 @@ class Plot(Cell):
             except SubscribeAndRetry:
                 raise
             except Exception:
-                self._logger.exception("Exception in plot recalculation")
+                logging.exception("Exception in plot recalculation")
 
                 return traceback.format_exc(), None
             finally:

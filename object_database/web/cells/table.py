@@ -110,7 +110,7 @@ class TableHeader(Cell):
             except SubscribeAndRetry:
                 raise
             except Exception:
-                self._logger.exception("Col fun calc threw an exception:")
+                logging.exception("Col fun calc threw an exception:")
                 self.cols = []
 
             self._resetSubscriptionsToViewReads(v)
@@ -186,7 +186,7 @@ class TableRow(Cell):
             except SubscribeAndRetry:
                 raise
             except Exception:
-                self._logger.exception("Col fun calc threw an exception:")
+                logging.exception("Col fun calc threw an exception:")
                 self.cols = []
 
             self._resetSubscriptionsToViewReads(v)
@@ -351,7 +351,7 @@ class Table(Cell):
             except SubscribeAndRetry:
                 raise
             except Exception:
-                self._logger.exception("Row fun calc threw an exception:")
+                logging.exception("Row fun calc threw an exception:")
                 self.rowKeys = []
 
             self._resetSubscriptionsToViewReads(v)

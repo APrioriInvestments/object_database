@@ -269,14 +269,14 @@ class CellsTests(unittest.TestCase):
             initFn(db, cells)
 
             rss0 = currentMemUsageMb()
-            log_cells_stats(cells, self._logger.info, indentation=4)
+            log_cells_stats(cells, logging.info, indentation=4)
 
             workFn(db, cells)
-            log_cells_stats(cells, self._logger.info, indentation=4)
+            log_cells_stats(cells, logging.info, indentation=4)
 
             rss = currentMemUsageMb()
-            self._logger.info("Initial Memory Usage: {} MB".format(rss0))
-            self._logger.info("Final   Memory Usage: {} MB".format(rss))
+            logging.info("Initial Memory Usage: {} MB".format(rss0))
+            logging.info("Final   Memory Usage: {} MB".format(rss))
             self.assertTrue(
                 rss - rss0 < thresholdMB, "Memory Usage Increased by {} MB.".format(rss - rss0)
             )

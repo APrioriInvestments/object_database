@@ -83,8 +83,6 @@ class Cells:
         # a list of pending callbacks that want to run on the main thread
         self._callbacks = queue.Queue()
 
-        self._logger = logging.getLogger(__name__)
-
         # Testing. Remove.
         self.updatedCellTypes = set()
 
@@ -157,9 +155,7 @@ class Cells:
                 try:
                     callback()
                 except Exception:
-                    self._logger.exception(
-                        "Callback %s threw an unexpected exception:", callback
-                    )
+                    logging.exception("Callback %s threw an unexpected exception:", callback)
         except queue.Empty:
             return
 
@@ -426,9 +422,7 @@ class Cells:
                         try:
                             toSend.append(m())
                         except Exception:
-                            self._logger.exception(
-                                "Callback %s threw an unexpected exception:", m
-                            )
+                            logging.exception("Callback %s threw an unexpected exception:", m)
                     else:
                         toSend.append(m)
 
@@ -574,8 +568,8 @@ class Cells:
                         child_cell.prepareForReuse()
 
             except Exception:
-                self._logger.exception("Node %s had exception during recalculation:", node)
-                self._logger.exception("Subscribed cell threw an exception:")
+                logging.exception("Node %s had exception during recalculation:", node)
+                logging.exception("Subscribed cell threw an exception:")
                 tracebackCell = Traceback(traceback.format_exc())
                 node.children["content"] = tracebackCell
 

@@ -275,7 +275,7 @@ th {
 .cell-grid td {
     width: auto;
     overflow-wrap: break-word;
-    white-space: pre-wrap;
+    white-space: pre;
  }
 
 /* Expands
@@ -354,7 +354,7 @@ pre {
 }
 
 .code {
-    white-space: pre-wrap;
+    white-space: pre;
 }
 
 /* CodeEditor

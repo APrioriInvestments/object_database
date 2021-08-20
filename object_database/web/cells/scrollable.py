@@ -17,15 +17,29 @@ from object_database.web.cells.container import Container
 
 
 class Scrollable(Container):
-    def __init__(self, child=None, vertical=True, horizontal=True):
+    def __init__(self, child=None, vertical=True, horizontal=True, visible=True):
         super().__init__(child)
         self.exportData["vertical"] = vertical
         self.exportData["horizontal"] = horizontal
+        self.exportData["visible"] = visible
+
+    def scrollChildIntoView(self, child, valign="nearest", halign="nearest"):
+        assert valign in ("start", "center", "end", "nearest")
+        assert halign in ("start", "center", "end", "nearest")
+
+        self.scheduleMessage(
+            {
+                "event": "scrollChildIntoView",
+                "id": child.identity,
+                "valign": valign,
+                "halign": halign,
+            }
+        )
 
 
-def VScrollable(child):
-    return Scrollable(child, vertical=True, horizontal=False)
+def VScrollable(child, visible=True):
+    return Scrollable(child, vertical=True, horizontal=False, visible=visible)
 
 
-def HScrollable(child):
-    return Scrollable(child, vertical=False, horizontal=True)
+def HScrollable(child, visible=True):
+    return Scrollable(child, vertical=False, horizontal=True, visible=visible)

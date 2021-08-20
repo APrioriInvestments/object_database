@@ -31,6 +31,10 @@ class Scrollable extends ConcreteCell {
     build(){
         let childClass = "allow-child-to-fill-space";
 
+        if (this.props.visible) {
+            childClass += " cell-scrollbars-visible"
+        }
+
         if (this.props.vertical && this.props.horizontal) {
             childClass += " cell-scrollable-body-both";
         }
@@ -80,6 +84,16 @@ class Scrollable extends ConcreteCell {
 
     makeChild(){
         return this.renderChildNamed('child');
+    }
+
+    handleMessages(messages) {
+        messages.forEach((msg) => {
+            if (msg.event == 'scrollChildIntoView') {
+                this.handler.activeCells[msg.id].domElement.scrollIntoView(
+                    {block: msg.valign, inline: msg.halign}
+                );
+            }
+        })
     }
 }
 

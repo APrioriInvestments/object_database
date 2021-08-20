@@ -133,7 +133,7 @@ th {
 }
 
 .cell-scrollable-body-both {
-    overflow: auto;
+    overflow: hidden;
 
     /* place this body on top of the parent, but don't allow
     child size to bleed out */
@@ -143,6 +143,10 @@ th {
 
     width: 100%;
     height: 100%;
+}
+
+.cell-scrollable-body-both.cell-scrollbars-visible {
+    overflow: auto;
 }
 
 .cell-scrollable-body-horizontal {
@@ -152,26 +156,33 @@ th {
     top: 0;
     bottom: 0;
 
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: hidden;
 
     width: 100%;
     height: 100%;
 }
 
-.cell-scrollable-body-vertical {
+.cell-scrollable-body-horizontal.cell-scrollbars-visible {
+    overflow-x: auto;
+}
 
+.cell-scrollable-body-vertical {
     /* place this body on top of the parent, but don't allow
     child size to bleed out */
     position: absolute;
     top: 0;
     bottom: 0;
 
-    overflow-y: auto;
+    overflow-y: hidden;
     overflow-x: hidden;
 
     width: 100%;
     height: 100%;
+}
+
+.cell-scrollable-body-vertical.cell-scrollbars-visible {
+    overflow-y: auto;
 }
 
 /* ResizablePanel and Friends

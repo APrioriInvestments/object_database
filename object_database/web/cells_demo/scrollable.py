@@ -172,3 +172,18 @@ class ScrollableVWithSeveralCodeEditors(CellsTestPage):
 
     def text(self):
         return "Should see several plots stacked horizontally."
+
+
+class ScrollableScrollChildToView(CellsTestPage):
+    def cell(self):
+        children = [cells.Text(i) for i in range(1000)]
+
+        def change(x):
+            scrollable.scrollChildIntoView(children[int(x)])
+
+        scrollable = cells.VScrollable(cells.Sequence(children), visible=False)
+
+        return cells.SingleLineTextBox(onTextChanged=change) + scrollable
+
+    def text(self):
+        return "Should see several plots stacked horizontally."

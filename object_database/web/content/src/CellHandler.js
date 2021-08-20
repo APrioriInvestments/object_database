@@ -135,6 +135,13 @@ class CellHandler {
         // entire document.
         this.isProcessingFocusEvent = true;
 
+        let t0 = Date.now();
+
+        let totalUpdateCount = (
+            Object.keys(message.nodesCreated).length +
+            Object.keys(message.nodesUpdated).length
+        )
+
         try {
             message.dynamicCellTypeDefinitions.forEach(javascriptAndCss => {
                 Function(javascriptAndCss[0])()(ComponentRegistry);
@@ -252,6 +259,13 @@ class CellHandler {
         }
         finally {
             this.isProcessingFocusEvent = false;
+
+            if (Date.now() - t0 > 10) {
+                console.log(
+                    "Spent " + (Date.now() - t0) + " ms handling a message with "
+                        + totalUpdateCount + " nodes created/updated."
+                )
+            }
         }
     }
 

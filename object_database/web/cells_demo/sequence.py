@@ -40,3 +40,19 @@ class HorizontalSplitSequence(CellsTestPage):
 
     def text(self):
         return "You should see a horizontally split sequence of text."
+
+
+class HorizontalSequenceNextToVerticalSequence(CellsTestPage):
+    def cell(self):
+        def first():
+            return cells.Subscribed(lambda: None) + cells.HorizontalSubscribedSequence(
+                lambda: [1, 2, 3], lambda i: cells.Text("i = " + str(i))
+            )
+
+        def second():
+            return cells.Text("ASDF")
+
+        return cells.Subscribed(first) + cells.Subscribed(second)
+
+    def text(self):
+        return "You should see a horizontally split sequence of text."

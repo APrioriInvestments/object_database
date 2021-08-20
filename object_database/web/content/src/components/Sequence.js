@@ -19,6 +19,8 @@ class Sequence extends Cell {
         // an array of dom children if we have a parent who has been calculated
         this.domChildren = null;
 
+        this.brokenOutFromOppositeOrientationParent = false;
+
         // cache for space preferences
         this._fillSpacePrefs = null;
     }
@@ -27,6 +29,8 @@ class Sequence extends Cell {
         if (this.domElement) {
             replaceChildren(this.domElement, this.makeElements());
             this.updateSpacePreferenceCalculation();
+        } else if (this.brokenOutFromOppositeOrientationParent) {
+            this.domChildren = [this.buildDomElement()];
         } else {
             this.domChildren = this.makeElements();
             this.parent.childChanged(this);
@@ -153,6 +157,10 @@ class Sequence extends Cell {
         if (this.domChildren === null) {
             if (horizontal != (this.props.orientation == 'horizontal')) {
                 // our parent is the wrong orientation
+                this.brokenOutFromOppositeOrientationParent = true;
+
+                // after this we have both dom children and also
+                // a dom element.
                 this.domChildren = [this.buildDomElement()];
             } else {
                 this.domChildren = this.makeElements();

@@ -33,7 +33,9 @@ class Text extends ConcreteCell {
     }
 
     serverKnowsAsFocusedCell() {
-        this.domElement.focus();
+        if (this.domElement) {
+            this.domElement.focus();
+        }
     }
 }
 

@@ -160,6 +160,8 @@ class SubscribedSequence(Cell):
         self.existingItems = {}
         self.items = []
 
+        assert orientation in ("horizontal", "vertical")
+
         self.orientation = orientation
         self._mergedIntoParent = False
 

@@ -69,21 +69,22 @@ class Grid(Cell):
         new_named_children = {"headers": [], "rowLabels": [], "dataCells": []}
         seen = set()
 
-        for col_ix, col in enumerate(self.cols):
-            seen.add((None, col))
-            if (None, col) in self.existingItems:
-                new_named_children["headers"].append(self.existingItems[(None, col)])
-            else:
-                try:
-                    headerCell = Cell.makeCell(self.headerFun(col[0]))
-                    self.existingItems[(None, col)] = headerCell
-                    new_named_children["headers"].append(headerCell)
-                except SubscribeAndRetry:
-                    raise
-                except Exception:
-                    tracebackCell = Traceback(traceback.format_exc)()
-                    self.existingItems[(None, col)] = tracebackCell
-                    new_named_children["headers"].append(tracebackCell)
+        if self.headerFun is not None:
+            for col_ix, col in enumerate(self.cols):
+                seen.add((None, col))
+                if (None, col) in self.existingItems:
+                    new_named_children["headers"].append(self.existingItems[(None, col)])
+                else:
+                    try:
+                        headerCell = Cell.makeCell(self.headerFun(col[0]))
+                        self.existingItems[(None, col)] = headerCell
+                        new_named_children["headers"].append(headerCell)
+                    except SubscribeAndRetry:
+                        raise
+                    except Exception:
+                        tracebackCell = Traceback(traceback.format_exc())
+                        self.existingItems[(None, col)] = tracebackCell
+                        new_named_children["headers"].append(tracebackCell)
 
         if self.rowLabelFun is not None:
             for row_ix, row in enumerate(self.rows):

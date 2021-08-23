@@ -669,6 +669,21 @@ class WebglPlot extends ConcreteCell {
     }
 
     build() {
+        this.dragDiv = h(
+            'div', {
+                style: 'width:0px;height:0px;display:none;pointer-events:none',
+                class: "plot-zoom-handle"
+            }, []
+        );
+
+        this.legendHolderDiv = h(
+            'div', {'style': 'width:calc(100.0% - 20px);height:calc(100.0% - 20px);top:10px;left:10px;position:absolute;pointer-events: none;'}, []
+        )
+
+        this.mouseoverHolderDiv = h(
+            'div', {'style': 'width:100%;height:100%;top:0;left:0;position:absolute;pointer-events: none;'}, []
+        )
+
         this.canvas = h(
             'canvas', {
                 style: 'width:100%;height:100%;position:absolute;top:0;left:0',
@@ -685,30 +700,35 @@ class WebglPlot extends ConcreteCell {
         this.canvasHolder = h(
             'div',
             {'style': 'width:100%;flex:1;z-index:0;position:relative;top:0;left:0'},
-            [this.canvas]
+            [
+            this.canvas,
+            this.dragDiv,
+            this.legendHolderDiv,
+            this.mouseoverHolderDiv
+            ]
         );
 
-        this.leftAxisLegend = h('div', {style:'height:100%'}, []);
-        this.rightAxisLegend = h('div', {style:'height:100%'}, []);
-        this.topAxisLegend = h('div', {style:'width:100%'}, []);
-        this.bottomAxisLegend = h('div', {style:'width:100%'}, []);
+        this.leftAxisLegend = h('div', {style:'height:100%;pointer-events:none'}, []);
+        this.rightAxisLegend = h('div', {style:'height:100%;pointer-events:none'}, []);
+        this.topAxisLegend = h('div', {style:'width:100%;pointer-events:none'}, []);
+        this.bottomAxisLegend = h('div', {style:'width:100%;pointer-events:none'}, []);
 
-        this.leftAxis = h('div', {style:'z-index:1;width:0px;height:100%;position:relative;top:0;left:0;'}, []);
-        this.rightAxis = h('div', {style:'z-index:1;width:0px;height:100%;position:relative;top:0;left:0;'}, []);
-        this.topAxis = h('div', {style:'z-index:1;width:100%;height:0px;position:relative;top:0;left:0;'}, []);
-        this.bottomAxis = h('div', {style:'z-index:1;width:100%;height:0px;position:relative;top:0;left:0;'}, []);
+        this.leftAxis = h('div', {style:'z-index:1;width:0px;height:100%;position:relative;top:0;left:0;pointer-events:none'}, []);
+        this.rightAxis = h('div', {style:'z-index:1;width:0px;height:100%;position:relative;top:0;left:0;pointer-events:none'}, []);
+        this.topAxis = h('div', {style:'z-index:1;width:100%;height:0px;position:relative;top:0;left:0;pointer-events:none'}, []);
+        this.bottomAxis = h('div', {style:'z-index:1;width:100%;height:0px;position:relative;top:0;left:0;pointer-events:none'}, []);
 
-        this.leftAxisLegendHolder = h('div', {style:'height:100%;flex:0'}, [this.leftAxisLegend]);
-        this.leftAxisHolder = h('div', {style:'height:100%;flex:0'}, [this.leftAxis]);
+        this.leftAxisLegendHolder = h('div', {style:'height:100%;flex:0;pointer-events:none'}, [this.leftAxisLegend]);
+        this.leftAxisHolder = h('div', {style:'height:100%;flex:0;pointer-events:none'}, [this.leftAxis]);
 
-        this.rightAxisLegendHolder = h('div', {style:'height:100%;flex:0'}, [this.rightAxisLegend]);
-        this.rightAxisHolder = h('div', {style:'height:100%;flex:0'}, [this.rightAxis]);
+        this.rightAxisLegendHolder = h('div', {style:'height:100%;flex:0;pointer-events:none'}, [this.rightAxisLegend]);
+        this.rightAxisHolder = h('div', {style:'height:100%;flex:0;pointer-events:none'}, [this.rightAxis]);
 
-        this.topAxisLegendHolder = h('div', {style:'width:100%;flex:0'}, [this.topAxisLegend]);
-        this.topAxisHolder = h('div', {style:'width:100%;flex:0'}, [this.topAxis]);
+        this.topAxisLegendHolder = h('div', {style:'width:100%;flex:0;pointer-events:none'}, [this.topAxisLegend]);
+        this.topAxisHolder = h('div', {style:'width:100%;flex:0;pointer-events:none'}, [this.topAxis]);
 
-        this.bottomAxisLegendHolder = h('div', {style:'width:100%;flex:0'}, [this.bottomAxisLegend]);
-        this.bottomAxisHolder = h('div', {style:'width:100%;flex:0'}, [this.bottomAxis]);
+        this.bottomAxisLegendHolder = h('div', {style:'width:100%;flex:0;pointer-events:none'}, [this.bottomAxisLegend]);
+        this.bottomAxisHolder = h('div', {style:'width:100%;flex:0;pointer-events:none'}, [this.bottomAxis]);
 
         this.canvasAndUDAxesHolder = h('div',
             {'style': 'flex:1;display:flex;flex-direction:column;width:100%'},
@@ -732,36 +752,18 @@ class WebglPlot extends ConcreteCell {
             ]
         )
 
-        this.dragDiv = h(
-            'div', {
-                style: 'width:0px;height:0px;display:none',
-                class: "plot-zoom-handle"
-            }, []
-        );
-
-        this.legendHolderDiv = h(
-            'div', {'style': 'width:calc(100.0% - 20px);height:calc(100.0% - 20px);top:10px;left:10px;position:absolute;pointer-events: none;'}, []
-        )
-
-        this.mouseoverHolderDiv = h(
-            'div', {'style': 'width:100%;height:100%;top:0;left:0;position:absolute;pointer-events: none;'}, []
-        )
-
         this.textLayer = h(
             'div', {'style': 'width:100%;height:100%;top:0;left:0;position:absolute;pointer-events: none;'}, []
         )
 
-        this.backgroundColorDiv = h('div', {'style': 'position:absolute;top:0;left:0;width:100%;height:100%'}, []);
+        this.backgroundColorDiv = h('div', {'style': 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none'}, []);
 
         this.loadPacketIfNecessary();
 
         return h('div', {'style':'position:relative;top:0;left:0'}, [
             this.backgroundColorDiv,
             this.canvasAndLRAxesHolder,
-            this.textLayer,
-            this.dragDiv,
-            this.legendHolderDiv,
-            this.mouseoverHolderDiv
+            this.textLayer
         ]);
     }
 

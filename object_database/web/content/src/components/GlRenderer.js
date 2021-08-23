@@ -158,9 +158,9 @@ vertexShader: `
     float projAmount = - dot(offset, avgDirection) / dot(normedDirection, avgDirection);
 
     if (aLinePos < .5) {
-        projAmount = max(projAmount, 0.0);
+        projAmount = min(max(projAmount, 0.0), length(directionPx));
     } else {
-        projAmount = min(projAmount, 0.0);
+        projAmount = max(min(projAmount, 0.0), -length(directionPx));
     }
 
     offset += projAmount * normedDirection;

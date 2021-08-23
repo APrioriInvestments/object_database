@@ -252,8 +252,8 @@ class AxisRenderer {
     renderVerticalAxis(isFar) {
         if (this.axisData.label) {
             this.legendDiv.appendChild(
-                h('div', {style: 'height:100%;display:flex;flex-direction:column;justify-content:center'}, [
-                    h('div', {style: 'text-align:center;min-width:40px;padding-right: 3px'}, [this.axisData.label])
+                h('div', {style: 'height:100%;display:flex;flex-direction:column;justify-content:center;pointer-events:none'}, [
+                    h('div', {style: 'text-align:center;min-width:40px;padding-right:3px;pointer-events:none'}, [this.axisData.label])
                 ])
             )
         }
@@ -312,7 +312,7 @@ class AxisRenderer {
             lineDivs.push(lineDiv);
 
             let labelDiv = h('div', {style:
-                    'white-space:nowrap;position:absolute;bottom:' + pxPosition + "px;"
+                    'white-space:nowrap;pointer-events:none;position:absolute;bottom:' + pxPosition + "px;"
                     + (
                         isFar ?
                           "transform:translate(0%,50%);"
@@ -354,7 +354,7 @@ class AxisRenderer {
     renderHorizontalAxis(isFar) {
         if (this.axisData.label) {
             this.legendDiv.appendChild(
-                h('div', {style: 'text-align: center'}, [this.axisData.label])
+                h('div', {style: 'text-align: center;pointer-events:none'}, [this.axisData.label])
             )
         }
 
@@ -393,7 +393,7 @@ class AxisRenderer {
 
 
             let lineDiv = h('div', {style:
-                    'width:1px;position:absolute;top:' + (
+                    'width:1px;pointer-events:none;position:absolute;top:' + (
                         isFar ? -plotHeightPx : this.axisData.space
                     )
                     + 'px;height:' + plotHeightPx + 'px;left:' + pxPosition + "px;"
@@ -406,7 +406,7 @@ class AxisRenderer {
             lineDivs.push(lineDiv);
 
             let labelDiv = h('div', {style:
-                'white-space:nowrap;position:absolute;left:' + pxPosition + "px;"
+                'white-space:nowrap;pointer-events:none;position:absolute;left:' + pxPosition + "px;"
                 + (
                     isFar ?
                       "top: 0px; transform:translate(-50%,0%);"

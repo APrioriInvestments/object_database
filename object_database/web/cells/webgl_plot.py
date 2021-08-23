@@ -384,8 +384,13 @@ class LineFigure(Figure):
             lineWidth = ListOf(Float32)(lineWidth)
 
         if color is not None:
-            if not isinstance(color, ListOf(Color)):
-                color = ListOf(Color)([createColor(c) for c in Color])
+            if not isinstance(color, (Color, ListOf(Color))):
+                if isinstance(color, str):
+                    color = createColor(color)
+                elif len(color) == 4 and isinstance(color[0], (int, float)):
+                    color = createColor(color)
+                else:
+                    color = ListOf(Color)([createColor(c) for c in color])
         else:
             color = Color(blue=255, alpha=255)
 
@@ -650,7 +655,9 @@ class Plot:
     ):
         return Plot(
             [LineFigure.create(x=x, y=y, lineWidth=lineWidth, color=color)],
-            backgroundColor=createColor(backgroundColor),
+            backgroundColor=createColor(backgroundColor)
+            if backgroundColor is not None
+            else None,
             defaultViewport=defaultViewport,
             axes=axes,
         )

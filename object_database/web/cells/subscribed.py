@@ -29,6 +29,9 @@ def augmentToBeUnique(listOfItems):
     """
     counts = {}
     output = []
+    if listOfItems is None:
+        return []
+
     for x in listOfItems:
         counts[x] = counts.setdefault(x, 0) + 1
         output.append((x, counts[x] - 1))

@@ -50,6 +50,25 @@ class BasicWebglPlot(CellsTestPage):
         )
 
 
+class WebglLinesTightAngles(CellsTestPage):
+    def cell(self):
+        def getData():
+            epsilon = 1e-2
+            x = [0.0, 0.5 - epsilon, 0.5, 0.5 + epsilon * 2, 1.0]
+            y = [0.0, 0.0, 1.0, 0.3, 0.3]
+
+            return (
+                Plot()
+                .withLines(x, y, lineWidth=50, color=[(1.0, 0.0, 0.0, 0.5)])
+                .withViewport((-0.5, -0.5, 1.5, 1.5))
+            )
+
+        return cells.WebglPlot(getData)
+
+    def text(self):
+        return "you should see a line plot. The line should not go off the bottom."
+
+
 class WebglBackgroundColor(CellsTestPage):
     def cell(self):
         def getData():

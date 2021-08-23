@@ -554,7 +554,7 @@ class Axes:
 class Legend:
     def __init__(self, position, seriesNames, colors):
         self.position = position
-        self.seriesNames = seriesNames
+        self.seriesNames = list(seriesNames)
         self.colors = [createColor(c) for c in colors]
 
         assert isinstance(position, tuple)

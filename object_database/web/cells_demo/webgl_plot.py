@@ -122,12 +122,15 @@ class WebglLegend(CellsTestPage):
                 lineWidth=10,
                 color=(0.0, 0.0, 0.0, 1.0),
                 backgroundColor=(0.0, 0.0, 0.0, 0.0),
-            ).withLegend((1.0, 1.0), ["A", "B"], ["red", "blue"])
+            ).withLegend((1.0, 1.0), ["A", "B"] * 100, ["red", "blue"] * 100)
 
         return cells.WebglPlot(getData)
 
     def text(self):
-        return "you should see a graphic you can scroll around on"
+        return (
+            "you should see a graphic you can scroll around on. You should be able"
+            " to scroll the legend contents."
+        )
 
 
 class WebglLinesAndTriangles(CellsTestPage):

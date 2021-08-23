@@ -66,6 +66,7 @@ th {
     max-height: 33%;
     overflow: auto;
     padding: 8px;
+    pointer-events: all;
 }
 
 .plot-mouseover {

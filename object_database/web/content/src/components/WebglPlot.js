@@ -253,6 +253,7 @@ class WebglPlot extends ConcreteCell {
         this.onMouseenter = this.onMouseenter.bind(this);
 
         this.currentDragHelper = null;
+        this.hasBuiltLegend = false;
 
         this.animationFrameRequested = false;
         this.requestAnimationFrame = this.requestAnimationFrame.bind(this);
@@ -360,7 +361,23 @@ class WebglPlot extends ConcreteCell {
         )
     }
 
+    // make sure we zero out our legen
+    updateSelf(namedChildren, data) {
+        this.namedChildren = namedChildren;
+        this.props = data;
+
+        // force a rebuild of the legend.
+        this.hasBuiltLegend = false;
+    }
+
     renderLegend() {
+        // the legend can't change, so don't rebuild it
+        if (this.hasBuiltLegend) {
+            return;
+        }
+
+        this.hasBuiltLegend = true;
+
         while (this.legendHolderDiv.childNodes.length) {
             this.legendHolderDiv.removeChild(this.legendHolderDiv.firstChild);
         }
@@ -677,7 +694,7 @@ class WebglPlot extends ConcreteCell {
         );
 
         this.legendHolderDiv = h(
-            'div', {'style': 'width:calc(100.0% - 20px);height:calc(100.0% - 20px);top:10px;left:10px;position:absolute;pointer-events: none;'}, []
+            'div', {'style': 'width:calc(100.0% - 20px);height:calc(100.0% - 20px);top:10px;left:10px;position:absolute;pointer-events:none;'}, []
         )
 
         this.mouseoverHolderDiv = h(

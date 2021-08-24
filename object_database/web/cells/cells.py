@@ -64,6 +64,8 @@ class Cells:
         # set(Cell)
         self._focusableCells = set()
 
+        self._sessionId = None
+
         # set(Cell.identity) - the set of identities we've sent in prior
         # updates
         self._nodesKnownToChannel = set()
@@ -185,10 +187,7 @@ class Cells:
     def withRoot(self, root_cell, session_state=None):
         self._root.setChild(root_cell)
         self._root.setContext(
-            SessionState,
-            session_state
-            or self._root.context.get(SessionState)
-            or SessionState()._reset(self),
+            SessionState, session_state or self._root.context.get(SessionState)
         )
         return self
 

@@ -89,7 +89,7 @@ class Subscribed(Cell):
         return Cell.makeCell(self.cellFactory()).sortsAs()
 
     def recalculate(self):
-        with self.view() as v:
+        with self.transaction() as v:
             try:
                 newCell = Cell.makeCell(self.cellFactory())
 
@@ -188,7 +188,7 @@ class SubscribedSequence(Cell):
         return Cell.makeCell(self.rendererFun(item))
 
     def recalculate(self):
-        with self.view() as v:
+        with self.transaction() as v:
             self._getItems()
             self._resetSubscriptionsToViewReads(v)
             self._updateExistingItems()

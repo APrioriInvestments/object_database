@@ -17,6 +17,7 @@ import threading
 import time
 import queue
 import json
+import uuid
 
 from object_database.web.ActiveWebService_util import (
     makeMainView,
@@ -45,7 +46,7 @@ class CellsSession:
         sendMessage,
         path,
         queryArgs,
-        sessionId,
+        sessionCookie,
         currentUser,
         authorized_groups_text,
     ):
@@ -61,21 +62,22 @@ class CellsSession:
             sendMessage - a function of (connId, msg) to send a str message to 'connId'
             path - the actual path we were loaded with
             queryArgs - the queryArgs we were loaded with
-            sessionId - the session cookie
+            sessionCookie - the session cookie
             currentUser - name of the currently authenticated user
             authorized_groups_text - a string description of who can log in.
         """
         self.inboundMessageQueue = inboundMessageQueue
-        self._logger = logging.getLogger(__name__)
         self.sendMessage = sendMessage
 
         self.primaryConnId = None
-        self.primaryConnIdSet = threading.Event()
 
         self.db = db
         self.path = path
         self.queryArgs = queryArgs
-        self.sessionId = sessionId
+        self.sessionCookie = sessionCookie
+
+        self.sessionId = None
+
         self.currentUser = currentUser
         self.authorized_groups_text = authorized_groups_text
         self.shouldStop = threading.Event()
@@ -86,18 +88,62 @@ class CellsSession:
         self.lastDumpTimeSpentCalculating = 0.0
         self.frameTimestamps = []
 
-        self.sessionState = SessionState()
-
-        self.sessionState.currentUser = currentUser
-
-        self.cells = Cells(self.db).withRoot(
-            Subscribed(lambda: self.displayForPathAndQueryArgs(path, queryArgs)),
-            session_state=self.sessionState,
-        )
+        # not set until the persistent sessionId is known
+        self.sessionState = None
+        self.cells = None
 
         self.largeMessageAck = queue.Queue()
 
         self.readThread = None
+
+    def performSessionHandshake(self):
+        """Wait for all initial handshakes to finish.
+
+        This takes over main socket interactions and synchronously executes
+        until we know which channel is the primary websocket channel (in case
+        of a race condition on startup) and what the browser-stored
+        session id is (so that we can bounce the browser and retain our
+        session information).
+        """
+        while self.primaryConnId is None or self.sessionId is None:
+            msg, connId = self.inboundMessageQueue.get()
+
+            if msg is DISCONNECT or self.shouldStop.is_set():
+                return
+
+            jsonMsg = json.loads(msg)
+
+            if jsonMsg.get("msg") == "primaryWebsocket":
+                self.primaryConnId = connId
+            else:
+                assert self.primaryConnId is not None
+
+                if jsonMsg.get("event") == "requestSessionId":
+                    self.sessionId = str(uuid.uuid4())
+
+                    logging.info("Initializing new cells session %s", self.sessionId)
+
+                    self.sendMessage(self.primaryConnId, "1")
+                    self.sendMessage(
+                        self.primaryConnId,
+                        json.dumps(dict(type="#sessionId", sessionId=self.sessionId)),
+                    )
+                elif jsonMsg.get("event") == "setSessionId":
+                    self.sessionId = jsonMsg["sessionId"]
+                    logging.info("Continuing existing cells session %s", self.sessionId)
+
+        self.sessionState = SessionState(self.sessionId)
+
+        self.sessionState.cleanupOldSessions(self.db)
+        self.sessionState.setup(self.db)
+
+        with self.db.transaction():
+            self.sessionState.set("currentUser", self.currentUser)
+
+        self.cells = Cells(self.db).withRoot(
+            Subscribed(lambda: self.displayForPathAndQueryArgs(self.path, self.queryArgs)),
+            session_state=self.sessionState,
+        )
 
     def makeMessageCallback(self, jsonMsg):
         """Return a callback that processes 'jsonMsg'
@@ -129,11 +175,7 @@ class CellsSession:
             try:
                 jsonMsg = json.loads(msg)
 
-                if isinstance(jsonMsg, dict) and jsonMsg.get("msg") == "primaryWebsocket":
-                    self.primaryConnId = connId
-                    self.primaryConnIdSet.set()
-
-                elif isinstance(jsonMsg, dict) and jsonMsg.get("msg") == "getPacket":
+                if isinstance(jsonMsg, dict) and jsonMsg.get("msg") == "getPacket":
                     self.sendPacketTo(connId, jsonMsg.get("packet"))
                 else:
                     if "ACK" in jsonMsg:
@@ -141,7 +183,7 @@ class CellsSession:
                     else:
                         self.cells.scheduleCallback(self.makeMessageCallback(jsonMsg))
             except Exception:
-                self._logger.exception("Exception in inbound message:")
+                logging.exception("Exception in inbound message:")
 
         self.largeMessageAck.put(DISCONNECT)
 
@@ -166,7 +208,7 @@ class CellsSession:
         try:
             msg = json.dumps(message)
         except Exception:
-            self._logger.exception("Failed to encode message as json.")
+            logging.exception("Failed to encode message as json.")
             return 0
 
         # split msg into small frames
@@ -177,7 +219,7 @@ class CellsSession:
             i += FRAME_SIZE
 
         if len(frames) >= FRAMES_PER_ACK:
-            self._logger.info(
+            logging.info(
                 "Sending large message of %s bytes over %s frames", len(msg), len(frames)
             )
 
@@ -220,7 +262,7 @@ class CellsSession:
 
         # log slow messages
         if time.time() - self.lastDumpTimestamp > 60.0:
-            self._logger.info(
+            logging.info(
                 "In the last %.2f seconds, spent %.2f seconds"
                 " calculating %s messages over %s frames",
                 time.time() - self.lastDumpTimestamp,
@@ -233,6 +275,10 @@ class CellsSession:
             self.lastDumpMessages = 0
             self.lastDumpTimeSpentCalculating = 0
             self.lastDumpTimestamp = time.time()
+
+            # make sure the session timestamp is up to date
+            with self.db.transaction():
+                self.sessionState.touch()
 
         self.frameTimestamps.append(time.time())
 
@@ -249,15 +295,13 @@ class CellsSession:
                         return
 
     def run(self):
+        self.performSessionHandshake()
+
         self.readThread = threading.Thread(target=self.readThreadLoop)
         self.readThread.start()
 
         try:
             # don't execute until we know which channel is the main websocket.
-            self.primaryConnIdSet.wait()
-            if self.primaryConnId is None:
-                return
-
             while not self.shouldStop.is_set():
                 t0 = time.time()
                 messages = self.cells.renderMessages()
@@ -273,7 +317,7 @@ class CellsSession:
                         self.lastDumpMessages += 1
 
                     if bytesSent > 100 * 1024:
-                        self._logger.info(
+                        logging.info(
                             "Sent a large message packet of %.2f mb", bytesSent / 1024.0 ** 2
                         )
 
@@ -292,23 +336,33 @@ class CellsSession:
                 self.cells.wait()
 
         except Exception:
-            self._logger.exception("Websocket handler error:")
+            logging.exception("Websocket handler error:")
 
         finally:
             self.shouldStop.set()
             self.inboundMessageQueue.put((DISCONNECT, None))
 
             self.readThread.join()
-            self.cells.cleanupCells()
+
+            if self.cells is not None:
+                self.cells.cleanupCells()
 
     def displayForPathAndQueryArgs(self, path, queryArgs):
-        display, toggles = displayAndHeadersForPathAndQueryArgs(path, queryArgs)
-        if toggles is None:
-            return display
-        return makeMainView(display, toggles, self.currentUser, self.authorized_groups_text)
+        try:
+            display, toggles = displayAndHeadersForPathAndQueryArgs(path, queryArgs)
+
+            if toggles is None:
+                return display
+
+            return makeMainView(
+                display, toggles, self.currentUser, self.authorized_groups_text
+            )
+        except Exception as e:
+            if "is instantiated in another codebase already" in str(e):
+                logging.info("Cells exiting because codebase is out of date.")
+                self.stop()
 
     def stop(self):
         self.shouldStop.set()
-        self.primaryConnIdSet.set()
         self.inboundMessageQueue.put((DISCONNECT, None))
         self.largeMessageAck.put(DISCONNECT)

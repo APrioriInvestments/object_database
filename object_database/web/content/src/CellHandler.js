@@ -5,7 +5,7 @@
  * of several varieties that come over
  * a CellSocket instance.
  */
-import {makeDomElt, Cell} from './components/Cell';
+import {makeDomElt as h, Cell, replaceChildren} from './components/Cell';
 import {ComponentRegistry} from './ComponentRegistry';
 
 class CellHandler {
@@ -20,18 +20,22 @@ class CellHandler {
 
         this.activeCells = {};
 
-        // Private properties
-        this._sessionId = null;
-
         // Bind Cell methods
+        this.renderMainDiv = this.renderMainDiv.bind(this);
         this.initialRender = this.initialRender.bind(this);
+        this.renderErrorMessage = this.renderErrorMessage.bind(this);
+
+        this.afterConnected = this.afterConnected.bind(this);
         this.showConnectionClosed = this.showConnectionClosed.bind(this);
         this.createCellFromInitialMessage = this.createCellFromInitialMessage.bind(this);
         this.sendMessageFor = this.sendMessageFor.bind(this);
+        this.sendMessageToCells = this.sendMessageToCells.bind(this);
+        this.sendMessageToCellSession = this.sendMessageToCellSession.bind(this);
         this.receive = this.receive.bind(this);
         this.handleFrame = this.handleFrame.bind(this);
         this.doesNotUnderstand = this.doesNotUnderstand.bind(this);
         this.updateCell = this.updateCell.bind(this);
+        this.handleSessionId = this.handleSessionId.bind(this);
         this.cellReceivedFocus = this.cellReceivedFocus.bind(this);
         // identity of the current focus event.
         // this increases monotonically, and lets us differentiate between
@@ -42,22 +46,55 @@ class CellHandler {
         this.currentlyFocusedCellId = null;
     }
 
+    renderMainDiv(div) {
+        if (!document.getElementById("page_root")) {
+            let pageRootDiv = h("div", {}, [
+                 h("div", {id: "page_root", 'data-cell-id': 'page_root', 'class': 'allow-child-to-fill-space',
+                        'data-cell-type': 'RootCell'}, []),
+            ]);
+
+            document.body.appendChild(pageRootDiv);
+        }
+
+        replaceChildren(
+            document.getElementById("page_root"),
+            [div]
+        );
+
+    }
+
+    renderErrorMessage(msg) {
+        this.renderMainDiv(
+            h("main", {role: "main", class: 'container'}, [
+            h("div", {class: "alert alert-primary center-block alert-margin"},
+                   ["Failed to connect: " + msg])
+            ])
+        );
+    }
+
     initialRender() {
-        let h = makeDomElt;
-
-        let loadingPage = h("div", {}, [
-             h("div", {id: "page_root", 'data-cell-id': 'page_root', 'class': 'allow-child-to-fill-space',
-                    'data-cell-type': 'RootCell'}, [
-                 h("div", {class: 'container-fluid'}, [
-                     h("div", {class: "card alert-margin"}, [
-                         h("div", {class: 'card-body'}, ["Loading..."])
-                     ])
+        this.renderMainDiv(
+             h("div", {class: 'container-fluid'}, [
+                 h("div", {class: "card alert-margin"}, [
+                     h("div", {class: 'card-body'}, ["Loading..."])
                  ])
-            ]),
-            h('div', {id: 'modal-area'}, [])
-        ]);
+             ])
+        );
+    }
 
-        document.body.appendChild(loadingPage);
+    afterConnected() {
+        let sessionId = window.sessionStorage.getItem('sessionId');
+
+        if (sessionId == null) {
+            this.sendMessageToCellSession({
+                'event': "requestSessionId"
+            })
+        } else {
+            this.sendMessageToCellSession({
+                'event': 'setSessionId',
+                'sessionId': sessionId
+            })
+        }
     }
 
     /**
@@ -65,13 +102,11 @@ class CellHandler {
      * an indicator that the socket has been
      * disconnected.
      */
-    showConnectionClosed() {
-        let h = makeDomElt;
-
-        document.getElementById("page_root").replaceWith(
+    showConnectionClosed(waitSeconds) {
+        this.renderMainDiv(
             h("main", {role: "main", class: 'container'}, [
             h("div", {class: "alert alert-primary center-block alert-margin"},
-                   ["Disconnected"])
+                   ["Reconnecting in " + waitSeconds + " seconds"])
             ])
         );
     }
@@ -93,12 +128,17 @@ class CellHandler {
         switch(message.type){
             case '#frame':
                 return this.handleFrame(message);
+            case '#sessionId':
+                return this.handleSessionId(message);
             default:
                 return this.doesNotUnderstand(message);
         }
     }
 
     /** Primary Message Handlers **/
+    handleSessionId(message) {
+        window.sessionStorage.setItem('sessionId', message.sessionId);
+    }
 
     /**
      * Catch-all message handler for messages
@@ -386,6 +426,13 @@ class CellHandler {
     sendMessageToCells(message){
         if (this.socket) {
             message['target_cell'] = 'main_cells_handler';
+            this.socket.sendString(JSON.stringify(message));
+        }
+    }
+
+    sendMessageToCellSession(message){
+        if (this.socket) {
+            message['target_cell'] = 'main_cells_session';
             this.socket.sendString(JSON.stringify(message));
         }
     }

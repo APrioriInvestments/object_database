@@ -15,7 +15,7 @@
 
 from object_database.web.cells.computing_cell_context import ComputingCellContext
 from object_database.web.cells.slot import Slot
-from object_database.web.cells.cells import SubscribeAndRetry
+from object_database.web.cells.util import SubscribeAndRetry
 from object_database import MaskView
 
 
@@ -123,7 +123,7 @@ class ComputedSlot(Slot):
             try:
                 with ComputingCellContext(self):
                     with MaskView():
-                        with self.cells.db.view() as v:
+                        with self.cells.db.transaction() as v:
                             oldValue = self._value
 
                             try:

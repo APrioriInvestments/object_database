@@ -98,15 +98,15 @@ class ResizePanelWithButtons(CellsTestPage):
 
         def toggledSecondAndThird():
             if (
-                cells.sessionState().showSecond is True
-                and cells.sessionState().showThird is True
+                cells.sessionState().get("showSecond") is True
+                and cells.sessionState().get("showThird") is True
             ):
                 return cells.ResizablePanel(
                     cells.Subscribed(secondDisplay), cells.Subscribed(thirdDisplay)
                 )
-            elif cells.sessionState().showSecond is True:
+            elif cells.sessionState().get("showSecond") is True:
                 return cells.Subscribed(secondDisplay)
-            elif cells.sessionState().showThird is True:
+            elif cells.sessionState().get("showThird") is True:
                 return cells.Subscribed(thirdDisplay)
             else:
                 return cells.Panel(cells.Span("Nothing to see here"))
@@ -118,7 +118,7 @@ class ResizePanelWithButtons(CellsTestPage):
                     cells.Subscribed(toggledSecondAndThird),
                     ratio=0.20,
                 )
-                if ss.showFirst
+                if ss.get("showFirst")
                 else cells.Subscribed(toggledSecondAndThird)
             )
         )

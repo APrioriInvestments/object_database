@@ -67,12 +67,16 @@ class CellSocket {
          */
         this.errorHandler = null;
 
+        // callback for when we first connect
+        this.onOpenHandler = null;
+
         // Bind Instance Methods
         this.connect = this.connect.bind(this);
         this.sendString = this.sendString.bind(this);
         this.handleRawMessage = this.handleRawMessage.bind(this);
         this.onMessage = this.onMessage.bind(this);
         this.onClose = this.onClose.bind(this);
+        this.onOpen = this.onOpen.bind(this);
         this.onError = this.onError.bind(this);
     }
 
@@ -118,8 +122,9 @@ class CellSocket {
         }
 
         this.socket.onclose = this.closeHandler;
-        this.socket.onmessage = this.handleRawMessage.bind(this);
+        this.socket.onmessage = this.handleRawMessage;
         this.socket.onerror = this.errorHandler;
+        this.socket.onopen = this.onOpenHandler;
     }
 
     /**
@@ -232,6 +237,10 @@ class CellSocket {
 
     onError(callback){
         this.errorHandler = callback;
+    }
+
+    onOpen(callback){
+        this.onOpenHandler = callback;
     }
 }
 

@@ -94,6 +94,14 @@ class CodeEditor(FocusableCell):
         else:
             self.firstVisibleRowOverride = None
 
+    @property
+    def selectionSlot(self):
+        return sessionState().slotFor(self.identityPath + ("CodeEditorState",))
+
+    @property
+    def firstVisibleRowSlot(self):
+        return sessionState().slotFor(self.identityPath + ("CodeEditorStateFirstVisibleRow",))
+
     def onMessage(self, msgFrame):
         if msgFrame["event"] == "keybinding":
             self.keybindings[msgFrame["key"]](msgFrame["buffer"], msgFrame["selection"])
@@ -237,14 +245,6 @@ class CodeEditor(FocusableCell):
                     return self.textToDisplayFunction()
                 finally:
                     self._resetSubscriptionsToViewReads(v)
-
-    @property
-    def selectionSlot(self):
-        return sessionState()._slotFor(self.identityPath + ("CodeEditorState",))
-
-    @property
-    def firstVisibleRowSlot(self):
-        return sessionState()._slotFor(self.identityPath + ("CodeEditorStateFirstVisibleRow",))
 
     def recalculate(self):
         if self.firstVisibleRowOverride is not None:

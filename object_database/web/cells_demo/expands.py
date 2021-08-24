@@ -22,12 +22,12 @@ class ExpanderTree(CellsTestPage):
 
         def expander(path):
             def isSelected():
-                return sessionState.selectedPath == path
+                return sessionState.get("selectedPath") == path
 
             isSelectedSlot = cells.ComputedSlot(isSelected)
 
             def onClick():
-                sessionState.selectedPath = path
+                sessionState.set("selectedPath", path)
 
             def inner():
                 if isSelectedSlot.get():

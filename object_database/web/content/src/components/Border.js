@@ -25,6 +25,12 @@ class Border extends StylingCell {
         if (this.props.top) {
             s.push(`border-top:${this.props.top}`)
         }
+        if (this.props.radius) {
+            s.push(`border-radius:${this.props.radius}`)
+        }
+        if (this.props.backgroundColor) {
+            s.push(`background-color:${this.props.backgroundColor}`)
+        }
 
         return s.join(';')
     }

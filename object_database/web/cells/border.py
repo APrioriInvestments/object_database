@@ -18,7 +18,15 @@ from object_database.web.cells.cell import Cell
 
 class Border(Cell):
     def __init__(
-        self, border=None, content=None, left=None, right=None, top=None, bottom=None
+        self,
+        border=None,
+        content=None,
+        left=None,
+        right=None,
+        top=None,
+        bottom=None,
+        radius=None,
+        backgroundColor=None,
     ):
         super().__init__()
 
@@ -31,9 +39,12 @@ class Border(Cell):
         ):
             border = 1
 
-        def addPx(x):
+        def addPx(x, addSolid=True):
             if isinstance(x, (float, int)):
-                return f"{x}px solid"
+                if addSolid:
+                    return f"{x}px solid"
+                else:
+                    return f"{x}px"
             return x
 
         self.content = content
@@ -41,6 +52,8 @@ class Border(Cell):
         self.right = self.exportData["right"] = addPx(border if right is None else right)
         self.top = self.exportData["top"] = addPx(border if top is None else top)
         self.bottom = self.exportData["bottom"] = addPx(border if bottom is None else bottom)
+        self.radius = self.exportData["radius"] = addPx(radius, addSolid=False)
+        self.backgroundColor = self.exportData["backgroundColor"] = backgroundColor
 
     def recalculate(self):
         if self.content is not None:
@@ -54,4 +67,6 @@ class Border(Cell):
             right=self.right,
             top=self.top,
             bottom=self.bottom,
+            radius=self.radius,
+            backgroundColor=self.backgroundColor,
         )

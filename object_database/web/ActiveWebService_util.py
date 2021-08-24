@@ -344,7 +344,7 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
 
     Returns:
         a tuple made of a cell.Cell and a list of toggles for the
-        appropriate rervice
+        appropriate service
 
     Raises: SubscribeAndRetry if the odb connection is not subscribed
         to the schema of the typeObj (c.f., call to

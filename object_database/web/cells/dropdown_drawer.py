@@ -21,7 +21,7 @@ from object_database.web.cells.subscribed import Subscribed
 class DropdownDrawer(Cell):
     """A Dropdown menu with arbitrary content (instead of menu items)"""
 
-    def __init__(self, menu, content, withoutButtonStyling=False):
+    def __init__(self, menu, content, withoutButtonStyling=False, closeOnChildClick=True):
         """
         Parameters
         ----------
@@ -39,10 +39,17 @@ class DropdownDrawer(Cell):
         self.children["content"] = self.contentCell
         self.children["menu"] = self.menuCell
         self.exportData["withoutButtonStyling"] = withoutButtonStyling
+        self.closeOnChildClick = closeOnChildClick
 
     def onMessage(self, msgFrame):
         if "open_state" in msgFrame:
             self.isOpen.set(msgFrame["open_state"])
+
+    def childHadUserAction(self, directChild, deepChild):
+        if directChild is self.children["content"] and self.closeOnChildClick:
+            self.scheduleMessage({"action": "force-close"})
+        else:
+            self.parent.childHadUserAction(self, deepChild)
 
 
 class CircleLoader(Cell):

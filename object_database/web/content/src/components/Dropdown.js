@@ -160,6 +160,14 @@ class DropdownBase extends ConcreteCell {
         observer.observe(this.domElement);
         observer.observe(this.dropdownBackdrop);
     }
+
+    handleMessages(messages) {
+        messages.forEach(msg => {
+            if (msg.action == 'force-close') {
+                this.clearVisibleDropdown();
+            }
+        });
+    }
 }
 
 
@@ -177,6 +185,8 @@ class Dropdown extends DropdownBase {
     }
 
     handleMessages(messages) {
+        super.handleMessages(messages)
+
         messages.forEach(msg => {
             if (msg.action == 'redirect') {
                 if (msg.target) {

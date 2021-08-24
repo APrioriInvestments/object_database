@@ -78,14 +78,6 @@ class ContextMenu extends DropdownBase {
             [this.renderChildNamed('content')]
         );
     }
-
-    handleMessages(messages) {
-        messages.forEach(msg => {
-            if (msg.action == 'force-close') {
-                this.clearVisibleDropdown();
-            }
-        });
-    }
 }
 
 export {ContextMenu, ContextMenu as default};

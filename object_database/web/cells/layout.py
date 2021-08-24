@@ -17,7 +17,7 @@ from object_database.web.cells.cell import Cell
 
 
 class FillSpace(Cell):
-    def __init__(self, content, horizontal=None, vertical=None):
+    def __init__(self, content=None, horizontal=None, vertical=None):
         """Fill space horizontally or vertically (or both).
 
         Args:
@@ -29,85 +29,98 @@ class FillSpace(Cell):
         assert horizontal in (None, "left", "right", "center")
         assert vertical in (None, "top", "bottom", "center")
 
-        self.children["content"] = Cell.makeCell(content)
+        self.content = content
+        self.horizontal = horizontal
+        self.vertical = vertical
 
-        if horizontal:
-            self.exportData["horizontal"] = horizontal
+    def recalculate(self):
+        self.children["content"] = Cell.makeCell(self.content)
 
-        if vertical:
-            self.exportData["vertical"] = vertical
+        if self.horizontal:
+            self.exportData["horizontal"] = self.horizontal
+
+        if self.vertical:
+            self.exportData["vertical"] = self.vertical
+
+    def __mul__(self, other):
+        if self.content is None:
+            return FillSpace(other, horizontal=self.horizontal, vertical=self.vertical)
+        else:
+            return FillSpace(
+                self.content * other, horizontal=self.horizontal, vertical=self.vertical
+            )
 
 
-def HCenter(cell):
+def HCenter(cell=None):
     """Take up horizontal space, and center the cell within it."""
     return FillSpace(cell, "center", None)
 
 
-def VCenter(cell):
+def VCenter(cell=None):
     """Take up vertical space, and center the cell within it."""
     return FillSpace(cell, None, "center")
 
 
-def Center(cell):
+def Center(cell=None):
     """Take up horizontal and vertical space, and center the cell within it."""
     return FillSpace(cell, "center", "center")
 
 
-def Left(cell):
+def Left(cell=None):
     """Take up horizontal space, and place the cell on the left side of it."""
     return FillSpace(cell, "left", None)
 
 
-def LeftCenter(cell):
+def LeftCenter(cell=None):
     """Take up horizontal and vertical space, and place the cell on the left center of it."""
     return FillSpace(cell, "left", "center")
 
 
-def Right(cell):
+def Right(cell=None):
     """Take up horizontal space, and place the cell on the right side of it."""
     return FillSpace(cell, "right", None)
 
 
-def RightCenter(cell):
+def RightCenter(cell=None):
     """Take up horizontal and vertical space, and place the cell on the right center of it."""
     return FillSpace(cell, "right", "center")
 
 
-def Top(cell):
+def Top(cell=None):
     """Take up vertical space, and place the cell at the top of it."""
     return FillSpace(cell, None, "top")
 
 
-def Bottom(cell):
+def Bottom(cell=None):
     """Take up vertical space, and place the cell at the bottom of it."""
     return FillSpace(cell, None, "bottom")
 
 
-def TopLeft(cell):
+def TopLeft(cell=None):
     """Take up vertical and horizontal space, and place the cell at the top left of it."""
     return FillSpace(cell, "left", "top")
 
 
-def TopCenter(cell):
+def TopCenter(cell=None):
     """Take up vertical and horizontal space, and place the cell at the top center of it."""
     return FillSpace(cell, "center", "top")
 
 
-def TopRight(cell):
+def TopRight(cell=None):
     """Take up vertical and horizontal space, and place the cell at the top right of it."""
     return FillSpace(cell, "right", "top")
 
 
-def BottomLeft(cell):
+def BottomLeft(cell=None):
     """Take up vertical and horizontal space, and place the cell at the bottom left of it."""
     return FillSpace(cell, "left", "bottom")
 
 
-def BottomCenter(cell):
+def BottomCenter(cell=None):
     """Take up vertical and horizontal space, and place the cell at the bottom center of it."""
     return FillSpace(cell, "center", "bottom")
 
 
-def BottomRight(cell):
+def BottomRight(cell=None):
     """Take up vertical and horizontal space, and place the cell at the bottom right of it."""
     return FillSpace(cell, "right", "bottom")

@@ -58,8 +58,8 @@ class Cells:
         # set(Cell)
         self._nodesToDataRequest = set()
 
-        # set(Cell)
-        self._nodesToDiscard = set()
+        # set(Cell.identity)
+        self._nodeIdsToDiscard = set()
 
         # set(Cell)
         self._focusableCells = set()
@@ -301,7 +301,7 @@ class Cells:
         assert not cell.garbageCollected, (cell, cell.text if isinstance(cell, Text) else "")
 
         if cell.identity in self._nodesKnownToChannel:
-            self._nodesToDiscard.add(cell)
+            self._nodeIdsToDiscard.add(cell.identity)
 
         self._nodesToBroadcast.discard(cell)
         self._focusableCells.discard(cell)
@@ -332,7 +332,10 @@ class Cells:
         self._processCallbacks()
         self._recalculateCells()
 
-        if self.focusedCell.get() in self._nodesToDiscard:
+        if (
+            self.focusedCell.get()
+            and self.focusedCell.get().identity in self._nodeIdsToDiscard
+        ):
             self.focusedCell.set(self.pickFocusedCell())
             self.focusEventId += 1
 
@@ -402,13 +405,13 @@ class Cells:
         # will be discarded
         finalNodesToDiscard = packet["nodesToDiscard"]
 
-        for node in self._nodesToDiscard:
-            if node.cells is not None:
-                assert node.cells == self
-                assert node.identity in self._nodesKnownToChannel
+        for nodeId in self._nodeIdsToDiscard:
+            assert nodeId in self._nodesKnownToChannel
+            assert nodeId not in packet["nodesUpdated"], nodeId
+            assert nodeId not in packet["nodesCreated"], nodeId
 
-                finalNodesToDiscard.append(node.identity)
-                self._nodesKnownToChannel.discard(node.identity)
+            finalNodesToDiscard.append(nodeId)
+            self._nodesKnownToChannel.discard(nodeId)
 
         for nodeId, messages in self._pendingOutgoingMessages.items():
             # only send messages for cells that still exist.
@@ -435,7 +438,7 @@ class Cells:
         self._nodesToBroadcast = set()
         self._nodesToDataUpdate = set()
         self._nodesToDataRequest = set()
-        self._nodesToDiscard = set()
+        self._nodeIdsToDiscard = set()
 
         # if packet['nodesUpdated']:
         #     print("SENDING PACKET WITH ")
@@ -562,11 +565,6 @@ class Cells:
                             % (type(node), childname, type(child_cell))
                         )
 
-                    if child_cell.cells:
-                        # ensure all new children that were garbage collected get marked for
-                        # re-use so that we can add them back in.
-                        child_cell.prepareForReuse()
-
             except Exception:
                 logging.exception("Node %s had exception during recalculation:", node)
                 logging.exception("Subscribed cell threw an exception:")
@@ -577,12 +575,17 @@ class Cells:
 
         newChildren = set(node.children.allChildren)
 
-        for child in newChildren.difference(origChildren):
-            self._addCell(child, node)
-            self._recalculateSingleCell(child)
-
+        # remove any nodes from the tree we're no longer using
         for child in origChildren.difference(newChildren):
             self._cellOutOfScope(child)
+
+        for child in newChildren.difference(origChildren):
+            if child.garbageCollected:
+                child.prepareForReuse()
+                self._addCell(child, node)
+            else:
+                self._addCell(child, node)
+            self._recalculateSingleCell(child)
 
         self._cellsKnownChildren[node.identity] = newChildren
 

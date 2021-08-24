@@ -39,3 +39,16 @@ class MultiOcticon(CellsTestPage):
 
     def text(self):
         return "You should see a single octicon."
+
+
+class ReusedOcticon(CellsTestPage):
+    def cell(self):
+        slot = cells.Slot(0)
+        o = cells.Octicon("shield")
+
+        return cells.Button("Add", lambda: slot.set(slot.get() + 1)) + cells.Subscribed(
+            lambda: cells.Text(f"Its {slot.get()}") + o
+        )
+
+    def text(self):
+        return "You should see an octicon. Clicking on the button shouldn't crash us."

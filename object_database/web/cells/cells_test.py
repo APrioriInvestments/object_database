@@ -184,7 +184,7 @@ class CellsTests(unittest.TestCase):
         ]
 
         # We have discarded only one
-        self.assertEqual(len(self.cells._nodesToDiscard), 1)
+        self.assertEqual(len(self.cells._nodeIdsToDiscard), 1)
 
         # We have created three: Span and two Text
         self.assertEqual(len(nodes_created), 3)

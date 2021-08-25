@@ -191,7 +191,7 @@ class CellsSession:
         packetContents = self.cells.getPacketContents(packetId)
 
         if not isinstance(packetContents, (bytes, str)):
-            logging.error("Packet %s has no data", packetId)
+            logging.error("Packet %s has no data: %s", packetId, type(packetContents))
             self.sendMessage(connId, b"")
         else:
             self.sendMessage(connId, packetContents)

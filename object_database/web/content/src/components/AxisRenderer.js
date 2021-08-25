@@ -274,9 +274,18 @@ class AxisRenderer {
         let y0 = this.glRenderer.screenPosition[1];
         let y1 = y0 + this.glRenderer.screenSize[1];
 
+        // if we're a log-scale plot, then the actual labeled 'y0' and 'y1'
+        // are 'exp' of these values
+        let isLogscale = this.axisData.isLogscale;
+
         // map these coordinates to the coordinates we want to display
         y0 = this.axisData.offset + y0 * this.axisData.scale;
         y1 = this.axisData.offset + y1 * this.axisData.scale;
+
+        if (isLogscale) {
+            y0 = Math.exp(y0);
+            y1 = Math.exp(y1);
+        }
 
         // determine the tick width we want to show - we want to show gridmarks between
         // 100 and 250 pixels on values at a 10, 20, 50, or 100
@@ -298,9 +307,16 @@ class AxisRenderer {
 
             let pxPosition = plotHeightPx * (y0Tick - y0) / (y1 - y0);
 
+            if (isLogscale) {
+                let y0Log = Math.log(y0);
+                let y1Log = Math.log(y1);
+
+                pxPosition = plotHeightPx * (Math.log(y0Tick) - y0Log) / (y1Log - y0Log);
+            }
+
             let lineDiv = h('div', {style:
                 'height:1px;position:absolute;left:' + (
-                    axisLabelAreaWidth + (isFar ? -plotWidthPx : 0)
+                    (isFar ? -plotWidthPx:axisLabelAreaWidth)
                 )
                 + 'px;width:' + plotWidthPx + 'px;bottom:' + pxPosition + "px;"
                 + 'background-color:' + this.colorToString(
@@ -345,7 +361,7 @@ class AxisRenderer {
                 }
 
                 lineDivs.forEach(div => {
-                    div.style.left = (newWidth + (isFar ? -plotWidthPx : 0)) + "px";
+                    div.style.left = (isFar ? -plotWidthPx : newWidth) + "px";
                 });
             }
         }
@@ -371,6 +387,15 @@ class AxisRenderer {
         x0 = this.axisData.offset + x0 * this.axisData.scale;
         x1 = this.axisData.offset + x1 * this.axisData.scale;
 
+        // if we're a log-scale plot, then the actual labeled 'x0' and 'x1'
+        // are 'exp' of these values
+        let isLogscale = this.axisData.isLogscale;
+
+        if (isLogscale) {
+            x0 = Math.exp(x0);
+            x1 = Math.exp(x1);
+        }
+
         // determine the tick width we want to show - we want to show gridmarks between
         // 100 and 250 pixels on values at a 10, 20, 50, or 100
         let tickSize = this.pickTickSizeFor(x0, x1, plotWidthPx, 99, 251);
@@ -391,6 +416,12 @@ class AxisRenderer {
 
             let pxPosition = plotWidthPx * (x0Tick - x0) / (x1 - x0);
 
+            if (isLogscale) {
+                let x0Log = Math.log(x0);
+                let x1Log = Math.log(x1);
+
+                pxPosition = plotHeightPx * (Math.log(x0Tick) - x0Log) / (x1Log - x0Log);
+            }
 
             let lineDiv = h('div', {style:
                     'width:1px;pointer-events:none;position:absolute;top:' + (

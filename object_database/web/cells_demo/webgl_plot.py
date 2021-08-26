@@ -197,6 +197,23 @@ class WebglPoints(CellsTestPage):
         return "you should see a graphic you can scroll around on"
 
 
+class WebglLogscale(CellsTestPage):
+    def cell(self):
+        def getData():
+            return (
+                Plot()
+                .withLines(
+                    [0.0, 1.0, 2.0, 3.0], [math.log(x) for x in [1.0, 10.0, 100.0, 1000.0]]
+                )
+                .withLeftAxis(isLogscale=True)
+            )
+
+        return cells.WebglPlot(getData)
+
+    def text(self):
+        return "you should see a graphic you can scroll around on"
+
+
 class WebglImage(CellsTestPage):
     def cell(self):
         def getData():

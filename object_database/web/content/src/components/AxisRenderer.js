@@ -23,6 +23,7 @@ class AxisRenderer {
         this.pickTickSizeFor = this.pickTickSizeFor.bind(this);
         this.nextTick = this.nextTick.bind(this);
         this.isZeroTick = this.isZeroTick.bind(this);
+        this.getTickList = this.getTickList.bind(this);
     }
 
     render() {
@@ -249,6 +250,172 @@ class AxisRenderer {
         return Math.round(pos / tickSize) == 0.0;
     }
 
+    // return an array of tickmark posititions
+    getTickList(low, high, pixels, minWidth, maxWidth) {
+        if (this.axisData.isLogscale) {
+            let powersOf10 = Math.ceil(Math.log10(high)) - Math.floor(Math.log10(low));
+
+            let pixelsPer10 = pixels / powersOf10;
+
+            if (pixelsPer10 > minWidth && pixelsPer10 < maxWidth * 1.5) {
+                // just show powers of 10
+                let res = [];
+                for (let i = Math.floor(Math.log10(low)); i <= Math.ceil(Math.log10(high)); i++) {
+                    res.push(Math.pow(10, i));
+                }
+
+                return [res, "powersOfTen"];
+            }
+
+            if (pixelsPer10 < minWidth) {
+                let ratio = Math.ceil(minWidth / pixelsPer10);
+
+                let res = [];
+
+                for (let i = Math.floor(Math.log10(low)); i <= Math.ceil(Math.log10(high)); i += ratio) {
+                    res.push(Math.pow(10, i));
+                }
+
+                return [res, "powersOfTen"];
+            }
+
+            console.log("Computing logscale ticks for " + low + " to " + high)
+            // we need to fill in ticks between 'low' and 'high' on groups of 2,5, and 10
+            // such that nobody is closer than 'minWidth' or further than 'maxWidth'
+            // start by picking the power of 10 that's bigger than 'high - low'
+            let curWidth = Math.pow(10, Math.ceil(Math.log10(high - low)));
+
+            let lowTick = Math.floor(low / curWidth) * curWidth;
+            let highTick = Math.ceil(high / curWidth) * curWidth;
+
+            let pixelsWide = (curLow, curHigh) => {
+                return pixels * (Math.log(curHigh) - Math.log(curLow)) / (Math.log(high) - Math.log(low));
+            }
+
+            let computeTicks = (curLow, curHigh, base, depth) => {
+                if (depth > 10) {
+                    return [];
+                }
+
+                console.log("    ... " + curLow + " to " + curHigh + " with base " + base + " and depth " + depth);
+
+                if (curHigh < low) {
+                    return [];
+                }
+
+                if (curLow > high) {
+                    return [];
+                }
+
+                // we're straddling the screen
+                if (curLow < low && curHigh > high) {
+                    let oneWidth = (curHigh - curLow) / base;
+
+                    // we're off the edge, so we need to subdivide
+                    let tickSets = [];
+                    while (curLow < curHigh) {
+                        tickSets.push(computeTicks(curLow, curLow + oneWidth, 10, depth+1));
+                        curLow += oneWidth;
+                    }
+                    return [].concat(...tickSets);
+                }
+
+                // this interval goes off the top - subdivide if the top is more than 20% off
+                if (curLow < high && high < curHigh && (high - curHigh) / (curHigh - curLow) > .2) {
+                    let oneWidth = (curHigh - curLow) / base;
+
+                    // we're off the edge, so we need to subdivide
+                    let tickSets = [];
+                    while (curLow < curHigh) {
+                        tickSets.push(computeTicks(curLow, curLow + oneWidth, 10, depth+1));
+                        curLow += oneWidth;
+                    }
+                    return [].concat(...tickSets);
+                }
+
+
+                if (pixelsWide(curLow, curHigh) < maxWidth) {
+                    // no need to subdivide
+                    return curLow >= low ? [curLow] : [];
+                }
+
+                let curWidth = curHigh - curLow;
+                let oneWidth = (curHigh - curLow) / base;
+
+                console.log("         compare " + pixelsWide(curHigh - oneWidth, curHigh) + " to " + minWidth)
+
+                // see if we can go to 1 from wherever we are
+                if (minWidth < pixelsWide(curHigh - oneWidth, curHigh)) {
+                    let tickSets = [];
+                    while (curLow < curHigh) {
+                        tickSets.push(computeTicks(curLow, curLow + oneWidth, 10, depth+1));
+                        curLow += oneWidth;
+                    }
+                    return [].concat(...tickSets);
+                }
+
+                // if the largest step is too large, then also go
+                if (pixelsWide(curLow, curLow + oneWidth) > maxWidth) {
+                    let tickSets = [];
+                    while (curLow < curHigh) {
+                        tickSets.push(computeTicks(curLow, curLow + oneWidth, 10, depth+1));
+                        curLow += oneWidth;
+                    }
+                    return [].concat(...tickSets);
+                }
+
+                // we're done
+                return curLow >= low ? [curLow] : [];
+            }
+
+            let tickSets = [];
+
+            while (lowTick < highTick) {
+                tickSets.push(computeTicks(lowTick, lowTick + curWidth, 10, 0));
+                lowTick = lowTick + curWidth;
+            }
+
+            // return the smallest tick size
+            let res = [].concat(...tickSets);
+
+            console.log("Result is (" + res.join(",") + ")")
+
+            let snapToScale = (val) => {
+                // scale is a number of approximately the same scale as 'val'
+                let scale = Math.pow(10, Math.floor(Math.log10(val)) - 2);
+                return Math.round(val / scale) * scale;
+            }
+
+            let finalRes = [snapToScale(res[0])];
+
+            for (let i = 1; i < res.length; i++) {
+                let val = snapToScale(res[i]);
+                if (val != finalRes[finalRes.length - 1]) {
+                    finalRes.push(val);
+                }
+            }
+
+            return [finalRes, finalRes[1] - finalRes[0]]
+        } else {
+            let tickSize = this.pickTickSizeFor(low, high, pixels, minWidth, maxWidth);
+            let curPos = this.nextTick(low, tickSize);
+
+            let ticks = [];
+
+            while (curPos < high) {
+                ticks.push(curPos);
+
+                curPos = this.nextTick(curPos, tickSize);
+
+                if (ticks.length > 10000) {
+                    throw new Error("Somehow, we added 10000 ticks? TickSize is " + tickSize);
+                }
+            }
+
+            return [ticks, tickSize]
+        }
+    }
+
     renderVerticalAxis(isFar) {
         if (this.axisData.label) {
             this.legendDiv.appendChild(
@@ -289,22 +456,12 @@ class AxisRenderer {
 
         // determine the tick width we want to show - we want to show gridmarks between
         // 100 and 250 pixels on values at a 10, 20, 50, or 100
-        let tickSize = this.pickTickSizeFor(y0, y1, plotHeightPx, 49, 126);
-
-        // draw tickmarks
-        let y0Tick = this.nextTick(y0, tickSize);
-
-        let ct = 0;
+        let [ticks, tickSize] = this.getTickList(y0, y1, plotHeightPx, 49, 126);
 
         let labelDivs = [];
         let lineDivs = [];
 
-        while (y0Tick < y1) {
-            ct += 1;
-            if (ct > 10000) {
-                throw new Error("Somehow, we added 10000 ticks? TickSize is " + tickSize);
-            }
-
+        ticks.forEach(y0Tick => {
             let pxPosition = plotHeightPx * (y0Tick - y0) / (y1 - y0);
 
             if (isLogscale) {
@@ -338,9 +495,7 @@ class AxisRenderer {
 
             this.axisDiv.appendChild(labelDiv);
             labelDivs.push(labelDiv);
-
-            y0Tick = this.nextTick(y0Tick, tickSize);
-        }
+        });
 
         if (this.axisData.allowExpand) {
             let maxWidth = 0;
@@ -398,22 +553,12 @@ class AxisRenderer {
 
         // determine the tick width we want to show - we want to show gridmarks between
         // 100 and 250 pixels on values at a 10, 20, 50, or 100
-        let tickSize = this.pickTickSizeFor(x0, x1, plotWidthPx, 99, 251);
-
-        // draw tickmarks
-        let x0Tick = this.nextTick(x0, tickSize);
-
-        let ct = 0;
+        let [ticks, tickSize] = this.getTickList(x0, x1, plotWidthPx, 99, 251);
 
         let labelDivs = [];
         let lineDivs = [];
 
-        while (x0Tick < x1) {
-            ct += 1;
-            if (ct > 10000) {
-                throw new Error("Somehow, we added 10000 ticks? tickSize is " + JSON.stringify(tickSize));
-            }
-
+        ticks.forEach(x0Tick => {
             let pxPosition = plotWidthPx * (x0Tick - x0) / (x1 - x0);
 
             if (isLogscale) {
@@ -447,9 +592,7 @@ class AxisRenderer {
 
             this.axisDiv.appendChild(labelDiv);
             labelDivs.push(labelDiv);
-
-            x0Tick = this.nextTick(x0Tick, tickSize);
-        }
+        });
 
         if (this.axisData.allowExpand) {
             let maxHeight = 0;
@@ -503,7 +646,20 @@ class AxisRenderer {
 
             return ts.format('YYYY-MM-DD HH:mm:ss') + "." + ts.milliseconds().toString().padStart(3, '0')
         } else {
+            if (tickSize == "powersOfTen") {
+                return "1e" + Math.round(Math.log10(number));
+            }
+
+            if (Math.abs(number) / tickSize < .01) {
+                return "0";
+            }
+
             let digits = Math.max(0, -Math.floor(Math.log10(tickSize)))
+
+            if (digits > 10) {
+                return number.toExponential();
+            }
+
             return number.toFixed(digits);
         }
     }

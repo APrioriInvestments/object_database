@@ -17,10 +17,11 @@ selenium = "*"
 [packages]
 beautifulsoup4 = "*"
 boto3 = "*"
-flask = "<2.0"
+flask = ">=2.0, <3.0"
 flask-cors = "*"
 flask-login = "*"
-flask-sockets = "*"
+flask-sockets = {git = "https://github.com/APrioriInvestments/flask-sockets.git",ref = "2b767f456d166c02d8507f88a65926335a045789"}
+
 flask-wtf = "*"
 gevent = "*"
 gevent-websocket = "*"

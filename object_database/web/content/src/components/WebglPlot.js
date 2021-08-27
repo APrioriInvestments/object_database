@@ -65,8 +65,6 @@ class Packets {
         this.onAllPacketsLoaded = onAllPacketsLoaded;
         this.onPacketLoadFailed = onPacketLoadFailed;
 
-        this.error = null;
-
         this.packetIdToData = {};
         this.touchedPacketsIds = {};
         this.requestedPacketIds = {};
@@ -156,7 +154,6 @@ class Packets {
     onFailure(packetId, status, errorText) {
         console.error("Loading " + packetId + " failed: " + errorText);
 
-        this.error = errorText;
         this.onPacketLoadFailed(errorText);
     }
 
@@ -686,6 +683,14 @@ class WebglPlot extends ConcreteCell {
     }
 
     build() {
+        this.errorDiv = h('div', 
+            {
+                'style': 'position:absolute;height:100%;width:100%;top:0;left:0;pointer-events:none',
+                'class': 'allow-child-to-fill-space'
+            },
+            [this.renderChildNamed('errorCell')]
+        );
+
         this.dragDiv = h(
             'div', {
                 style: 'width:0px;height:0px;display:none;pointer-events:none',
@@ -780,7 +785,8 @@ class WebglPlot extends ConcreteCell {
         return h('div', {'style':'position:relative;top:0;left:0'}, [
             this.backgroundColorDiv,
             this.canvasAndLRAxesHolder,
-            this.textLayer
+            this.textLayer,
+            this.errorDiv
         ]);
     }
 

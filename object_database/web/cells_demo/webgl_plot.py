@@ -258,3 +258,30 @@ class WebglMouseover(CellsTestPage):
 
     def text(self):
         return "you should see a graphic you can scroll around on"
+
+
+class WebglError(CellsTestPage):
+    def cell(self):
+        hasError = cells.Slot(False)
+        point = cells.Slot(.5)
+
+        def getData():
+            if hasError.get():
+                raise Exception("This is an error")
+
+            return Plot().withLines([0.0, 0.5, 1.0], [0.0, 1.0, point.get()])
+
+        res = cells.WebglPlot(getData)
+
+        return (
+            cells.Button("Turn on an error", hasError.toggle) 
+            + cells.Button("increment me", lambda: point.set(point.get() + 1))
+            + res
+        )
+
+    def text(self):
+        return (
+            "You should see a graphic. Clicking the 'increment' button should change it. "
+            "Clicking 'turn on an error' should toggle an Exception display. You should be "
+            "able to switch back and forth between the two displays."
+        )

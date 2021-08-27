@@ -15,8 +15,13 @@
 from typed_python import ListOf, Float32, NamedTuple, UInt8, Entrypoint
 
 from object_database.web.cells.cell import Cell
+from object_database.web.cells.highlighted import Highlighted
+from object_database.web.cells.layout import Center
 from object_database.web.cells.slot import Slot
-from object_database.web.cells.subscribed import SubscribeAndRetry
+from object_database.web.cells.subscribed import (
+    Subscribed, SubscribeAndRetry
+)
+from object_database.web.cells.leaves import Traceback
 
 import traceback
 import logging
@@ -84,6 +89,8 @@ class Packets:
     def eraseUntouched(self):
         for p in list(self.packetIdToData):
             if p not in self.touchedPackets:
+                logging.info("Orphaning packet %s", p)
+
                 self.consumedPacketIds.add(p)
                 del self.dataToPacketId[self.packetIdToData[p]]
                 del self.packetIdToData[p]
@@ -92,7 +99,15 @@ class Packets:
         if packetId not in self.packetIdToData:
             if packetId not in self.consumedPacketIds:
                 raise Exception(f"Unknown Packet {packetId}.")
+            
+            logging.info(
+                "Packet %s was already consumed. This is probably a race condition "
+                "where the server has asked for a packet that's already decomissioned.", 
+                packetId
+            )
             return b""
+
+        logging.info("Serving packet %s", packetId)
 
         assert packetId in self.packetIdToData, packetId
         assert isinstance(self.packetIdToData[packetId], bytes)
@@ -106,11 +121,16 @@ class Packets:
 
         if data in self.dataToPacketId:
             packetId = self.dataToPacketId[data]
+
+            logging.info("Re-using packet %s", packetId)
+        
             self.touchedPackets.add(packetId)
             return packetId
 
         packetId = self.cells.getPacketId(self.getPacketData)
 
+        logging.info("Allocating fresh packet %s", packetId)
+        
         self.dataToPacketId[data] = packetId
         self.packetIdToData[packetId] = data
         self.touchedPackets.add(packetId)
@@ -765,7 +785,19 @@ class WebglPlot(Cell):
         self.mousePosition = Slot()
         self.screenRectangle = Slot()
         self.mouseoverContents = Slot()
+        self.error = Slot()
         self.mouseoverContents.addListener(self.onMouseoverContentsChanged)
+
+        self.children['errorCell'] = Subscribed(
+            lambda: None if self.error.get() is None else Highlighted(
+                Center(
+                    Traceback(
+                        self.error.get()
+                    )
+                ),
+                color='rgba(255,255,255,.9)'
+            )
+        )
 
     def setMouseoverContents(self, x, y, mouseoverContents):
         """Set the mouseover contents.
@@ -833,16 +865,15 @@ class WebglPlot(Cell):
 
     def calculateErrorAndPlotData(self):
         with self.view() as v:
+            self.packets.resetTouched()
+
             try:
                 plot = self.plotDataGenerator()
 
                 if not isinstance(plot, Plot):
-                    return f"plotDataGenerator returned {type(plot)}, not Plot"
-
-                self.packets.resetTouched()
+                    return f"plotDataGenerator returned {type(plot)}, not Plot", None
 
                 response = self.packets.encode(plot)
-                self.packets.eraseUntouched()
 
                 return None, response
             except SubscribeAndRetry:
@@ -852,6 +883,7 @@ class WebglPlot(Cell):
 
                 return traceback.format_exc(), None
             finally:
+                self.packets.eraseUntouched()
                 self._resetSubscriptionsToViewReads(v)
 
     def recalculate(self):
@@ -860,17 +892,15 @@ class WebglPlot(Cell):
 
         error, plotData = self.calculateErrorAndPlotData()
 
-        if error == self.exportData.get("error") and plotData == self.exportData.get(
+        self.error.set(error)
+
+        if plotData == self.exportData.get(
             "plotData"
         ):
             return
 
-        if error != self.exportData.get("error") or plotData != self.exportData.get(
-            "plotData"
-        ):
-            self.markDirty()
+        self.markDirty()
 
-        self.exportData["error"] = error
         self.exportData["plotData"] = plotData
 
     def onMessage(self, message):

@@ -59,6 +59,9 @@ const initializeCellsSession = function() {
     cellSocket = new CellSocket();
     cellHandler = new CellHandler(ComponentRegistry, cellSocket);
 
+    // stash this so that tests can find it.
+    window.cellHandler = cellHandler;
+
     cellSocket.onOpen(() => {
         console.log("Session connected to socket");
         cellHandler.afterConnected();

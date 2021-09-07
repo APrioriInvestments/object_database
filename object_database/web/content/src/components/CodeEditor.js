@@ -42,13 +42,11 @@ class CodeEditor extends ConcreteCell {
     }
 
     build(){
-        let actualEditorDiv = h('div', {
+        this.actualEditorDiv = h('div', {
              id: "editor" + this.identity,
              class: "code-editor-inner",
              onmouseleave: this.handleMouseleave
         }, []);
-
-        this.setupEditorOn(actualEditorDiv);
 
         return h('div',
             {
@@ -58,7 +56,7 @@ class CodeEditor extends ConcreteCell {
                 "data-cell-type": "CodeEditor",
                 key: this
             },
-            [h('div', {'class': 'code-editor-scroll-region'}, [actualEditorDiv])]
+            [h('div', {'class': 'code-editor-scroll-region'}, [this.actualEditorDiv])]
         );
     }
 
@@ -92,6 +90,10 @@ class CodeEditor extends ConcreteCell {
 
     handleMouseleave(){
         clearTimeout(this.mouseoverTimeout);
+    }
+
+    onFirstInstalled() {
+        this.setupEditorOn(this.actualEditorDiv);
     }
 
     setupEditorOn(editorDiv){

@@ -248,8 +248,9 @@ class CodeEditor(FocusableCell):
 
     def recalculate(self):
         if self.firstVisibleRowOverride is not None:
-            self.firstVisibleRowSlot.set(self.firstVisibleRowOverride)
-            self.firstVisibleRowOverride = None
+            with self.transaction():
+                self.firstVisibleRowSlot.set(self.firstVisibleRowOverride)
+                self.firstVisibleRowOverride = None
 
         self.exportData["initialText"] = self.calculateCurrentText()
         self.exportData["currentIteration"] = self.currentIteration

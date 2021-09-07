@@ -95,7 +95,7 @@ def test_stashed_editor_insert_text(headless_browser):
     assert demo_root
     code_editor = headless_browser.find_by_css('[data-cell-type="CodeEditor"]')
     assert code_editor
-    script = 'cellHandler.activeCells["{}"].editor.setValue("{}")'.format(
+    script = 'window.cellHandler.activeCells["{}"].editor.setValue("{}")'.format(
         code_editor.get_attribute("data-cell-id"), "Hello World"
     )
     headless_browser.webdriver.execute_script(script)
@@ -141,7 +141,7 @@ def test_stashed_reloaded_editor_has_text(headless_browser):
     )
 
     # insert some text
-    script = 'cellHandler.activeCells["{}"].editor.setValue("{}")'.format(
+    script = 'window.cellHandler.activeCells["{}"].editor.setValue("{}")'.format(
         code_editor.get_attribute("data-cell-id"), "Hello World"
     )
     headless_browser.webdriver.execute_script(script)
@@ -369,9 +369,16 @@ def test_set_first_row(headless_browser):
     # add text to it.
     demo_root = headless_browser.get_demo_root_for(CodeEditorSetFirstVisibleRow)
     assert demo_root
-    first_line = headless_browser.find_by_css(".ace_gutter-active-line")
-    assert first_line
-    assert first_line.text == "5"
+
+    def firstLineIsFive(*args):
+        first_line = headless_browser.find_by_css(".ace_gutter-cell")
+
+        if not first_line:
+            return
+
+        return first_line.text == "5"
+
+    headless_browser.wait(5).until(firstLineIsFive)
 
 
 class CodeEditorHighlightRows(CellsTestPage):
@@ -519,7 +526,7 @@ def test_text_mirrors_correctly(headless_browser):
 
     code_editor1 = headless_browser.find_by_css('[data-tag="ed1"]')
 
-    script = 'cellHandler.activeCells["{}"].editor.setValue("{}")'.format(
+    script = 'window.cellHandler.activeCells["{}"].editor.setValue("{}")'.format(
         code_editor1.get_attribute("data-cell-id"), "Hello World"
     )
 
@@ -580,7 +587,7 @@ def test_set_first_row_serverside(headless_browser):
     toggle_btn.click()
 
     def gutterLineIsTen(*args):
-        gutterLine = headless_browser.find_by_css(".ace_gutter-active-line")
+        gutterLine = headless_browser.find_by_css(".ace_gutter-cell")
         if not gutterLine:
             return False
 

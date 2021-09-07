@@ -81,7 +81,7 @@ def log_cells_stats(cells, logger, indentation=0):
     log("#  - need bcast: {}".format(len(cells._nodesToBroadcast)))
     log("#  - cells: {}".format(len(cells._cells)))
     log("#  - known children: {}".format(len(cells._cellsKnownChildren)))
-    log("#  - to discard: {}".format(len(cells._nodesToDiscard)))
+    log("#  - to discard: {}".format(len(cells._nodeIdsToDiscard)))
     log("#  - subscribed-to keys: {}".format(len(cells._subscribedCells)))
     log("#####################################################")
 

@@ -18,9 +18,7 @@ from object_database.web.cells.cell import Cell
 from object_database.web.cells.highlighted import Highlighted
 from object_database.web.cells.layout import Center
 from object_database.web.cells.slot import Slot
-from object_database.web.cells.subscribed import (
-    Subscribed, SubscribeAndRetry
-)
+from object_database.web.cells.subscribed import Subscribed, SubscribeAndRetry
 from object_database.web.cells.leaves import Traceback
 
 import traceback
@@ -99,11 +97,11 @@ class Packets:
         if packetId not in self.packetIdToData:
             if packetId not in self.consumedPacketIds:
                 raise Exception(f"Unknown Packet {packetId}.")
-            
+
             logging.info(
                 "Packet %s was already consumed. This is probably a race condition "
-                "where the server has asked for a packet that's already decomissioned.", 
-                packetId
+                "where the server has asked for a packet that's already decomissioned.",
+                packetId,
             )
             return b""
 
@@ -123,14 +121,14 @@ class Packets:
             packetId = self.dataToPacketId[data]
 
             logging.info("Re-using packet %s", packetId)
-        
+
             self.touchedPackets.add(packetId)
             return packetId
 
         packetId = self.cells.getPacketId(self.getPacketData)
 
         logging.info("Allocating fresh packet %s", packetId)
-        
+
         self.dataToPacketId[data] = packetId
         self.packetIdToData[packetId] = data
         self.touchedPackets.add(packetId)
@@ -788,15 +786,10 @@ class WebglPlot(Cell):
         self.error = Slot()
         self.mouseoverContents.addListener(self.onMouseoverContentsChanged)
 
-        self.children['errorCell'] = Subscribed(
-            lambda: None if self.error.get() is None else Highlighted(
-                Center(
-                    Traceback(
-                        self.error.get()
-                    )
-                ),
-                color='rgba(255,255,255,.9)'
-            )
+        self.children["errorCell"] = Subscribed(
+            lambda: None
+            if self.error.get() is None
+            else Highlighted(Center(Traceback(self.error.get())), color="rgba(255,255,255,.9)")
         )
 
     def setMouseoverContents(self, x, y, mouseoverContents):
@@ -894,9 +887,7 @@ class WebglPlot(Cell):
 
         self.error.set(error)
 
-        if plotData == self.exportData.get(
-            "plotData"
-        ):
+        if plotData == self.exportData.get("plotData"):
             return
 
         self.markDirty()

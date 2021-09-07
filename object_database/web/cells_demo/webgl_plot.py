@@ -263,7 +263,7 @@ class WebglMouseover(CellsTestPage):
 class WebglError(CellsTestPage):
     def cell(self):
         hasError = cells.Slot(False)
-        point = cells.Slot(.5)
+        point = cells.Slot(0.5)
 
         def getData():
             if hasError.get():
@@ -274,7 +274,7 @@ class WebglError(CellsTestPage):
         res = cells.WebglPlot(getData)
 
         return (
-            cells.Button("Turn on an error", hasError.toggle) 
+            cells.Button("Turn on an error", hasError.toggle)
             + cells.Button("increment me", lambda: point.set(point.get() + 1))
             + res
         )

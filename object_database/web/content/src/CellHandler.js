@@ -44,6 +44,9 @@ class CellHandler {
         this.committedFocusEventId = 0;
         this.isProcessingFocusEvent = false;
         this.currentlyFocusedCellId = null;
+
+        // the server-assigned session
+        this.sessionId = null;
     }
 
     renderMainDiv(div) {
@@ -90,6 +93,8 @@ class CellHandler {
                 'event': "requestSessionId"
             })
         } else {
+            this.sessionId = sessionId;
+
             this.sendMessageToCellSession({
                 'event': 'setSessionId',
                 'sessionId': sessionId
@@ -138,6 +143,7 @@ class CellHandler {
     /** Primary Message Handlers **/
     handleSessionId(message) {
         window.sessionStorage.setItem('sessionId', message.sessionId);
+        this.sessionId = message.sessionId;
     }
 
     /**

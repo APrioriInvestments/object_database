@@ -397,7 +397,7 @@ class Cell {
             }
         };
 
-        httpRequest.open("GET", "/packet?packetId=" + packetId, true);
+        httpRequest.open("GET", "/packet?session=" + this.handler.sessionId + "&packetId=" + packetId, true);
         httpRequest.send();
     }
 

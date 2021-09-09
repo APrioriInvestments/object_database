@@ -19,12 +19,14 @@ import queue
 import json
 import uuid
 
+from object_database.web.ActiveWebServiceSchema import active_webservice_schema
 from object_database.web.ActiveWebService_util import (
     makeMainView,
     displayAndHeadersForPathAndQueryArgs,
 )
 
 from object_database.web.cells import Subscribed, Cells, MAX_FPS, SessionState
+from object_database.view import revisionConflictRetry
 
 
 class DISCONNECT:
@@ -42,11 +44,11 @@ class CellsSession:
     def __init__(
         self,
         db,
+        session,
         inboundMessageQueue,
         sendMessage,
         path,
         queryArgs,
-        sessionCookie,
         currentUser,
         authorized_groups_text,
     ):
@@ -59,10 +61,10 @@ class CellsSession:
                 connId is the connection that sent us the data.
 
                 There is one connId which represents the incoming socket connection.
+            session - the active_webservice_schema.Session object for this session
             sendMessage - a function of (connId, msg) to send a str message to 'connId'
             path - the actual path we were loaded with
             queryArgs - the queryArgs we were loaded with
-            sessionCookie - the session cookie
             currentUser - name of the currently authenticated user
             authorized_groups_text - a string description of who can log in.
         """
@@ -74,9 +76,9 @@ class CellsSession:
         self.db = db
         self.path = path
         self.queryArgs = queryArgs
-        self.sessionCookie = sessionCookie
 
         self.sessionId = None
+        self.session = session
 
         self.currentUser = currentUser
         self.authorized_groups_text = authorized_groups_text
@@ -119,7 +121,7 @@ class CellsSession:
                 assert self.primaryConnId is not None
 
                 if jsonMsg.get("event") == "requestSessionId":
-                    self.sessionId = str(uuid.uuid4())
+                    self.sessionId = str(uuid.uuid4()).replace("-", "")
 
                     logging.info("Initializing new cells session %s", self.sessionId)
 
@@ -131,6 +133,8 @@ class CellsSession:
                 elif jsonMsg.get("event") == "setSessionId":
                     self.sessionId = jsonMsg["sessionId"]
                     logging.info("Continuing existing cells session %s", self.sessionId)
+
+        self.setSessionIdInOdb(self.sessionId)
 
         self.sessionState = SessionState(self.sessionId)
 
@@ -144,6 +148,14 @@ class CellsSession:
             Subscribed(lambda: self.displayForPathAndQueryArgs(self.path, self.queryArgs)),
             session_state=self.sessionState,
         )
+
+    @revisionConflictRetry
+    def setSessionIdInOdb(self, newSessionId):
+        with self.db.transaction():
+            for session in active_webservice_schema.Session.lookupAll(sessionId=newSessionId):
+                session.delete()
+
+            self.session.sessionId = newSessionId
 
     def makeMessageCallback(self, jsonMsg):
         """Return a callback that processes 'jsonMsg'

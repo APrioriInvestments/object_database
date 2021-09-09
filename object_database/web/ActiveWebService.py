@@ -27,7 +27,6 @@ import socket
 import gevent
 import gevent.fileobject
 
-from object_database.view import revisionConflictRetry
 from object_database.util import genToken, validateLogLevel
 from object_database import ServiceBase, service_schema
 from object_database.message_bus import MessageBus
@@ -303,7 +302,7 @@ class ActiveWebService(ServiceBase):
     def sendPacket(self):
         queryArgs = dict(request.args.items())
 
-        session = request.cookies.get("session")
+        session = queryArgs.get("session")
 
         try:
             packetId = int(queryArgs.get("packetId"))
@@ -391,16 +390,8 @@ class ActiveWebService(ServiceBase):
         finally:
             messageBus.stop()
 
-    @revisionConflictRetry
-    def clearSessionsFor(self, sessionId):
-        with self.db.transaction():
-            for s in active_webservice_schema.Session.lookupAll(sessionId=sessionId):
-                s.delete()
-
     @login_required
     def mainSocket(self, ws, path):
-        self.clearSessionsFor(request.cookies.get("session"))
-
         self._logger.info(
             "ActiveWebService new incoming connection for user %s", current_user.username
         )
@@ -418,7 +409,6 @@ class ActiveWebService(ServiceBase):
                 executingInstance=childInstance,
                 path=str(path),
                 queryArgs=dict(request.args.items()),
-                sessionId=request.cookies.get("session"),
                 user=current_user.username,
                 authorized_groups_text=self.authorized_groups_text,
             )
@@ -550,17 +540,16 @@ class ActiveWebService(ServiceBase):
             with self.db.view():
                 path = session.path.split("/")
                 queryArgs = session.queryArgs
-                sessionId = session.sessionId
                 currentUser = session.user
                 authorized_groups_text = session.authorized_groups_text
 
             session = CellsSession(
                 self.db,
+                session,
                 inMessage,
                 lambda connId, msg: messageBus.sendMessage(connId, msg),
                 path,
                 queryArgs,
-                sessionId,
                 currentUser,
                 authorized_groups_text,
             )

@@ -219,8 +219,8 @@ class WebglImage(CellsTestPage):
         def getData():
             colors = ListOf(Plot.Color)()
 
-            for x in range(100):
-                for y in range(100):
+            for y in range(100):
+                for x in range(200):
                     # lower left corner is black. Should be wider than it is
                     # tall.
                     if x < 30 and y < 10:
@@ -228,9 +228,14 @@ class WebglImage(CellsTestPage):
                     else:
                         # going 'right' should make it red
                         # going 'up' should make it green
-                        colors.append([x / 100.0 * 255, y / 100.0 * 255, 0, 255])
+                        colors.append([x / 200.0 * 255, y / 100.0 * 255, 0, 255])
 
-            return Plot().withImage([0.0, 0.0, 1.0, 1.0], colors, 100)
+            return (
+                Plot()
+                .withImage([0.0, 0.0, 1.0, 1.0], colors, 200)
+                .withLeftAxis()
+                .withBottomAxis()
+            )
 
         return cells.WebglPlot(getData)
 

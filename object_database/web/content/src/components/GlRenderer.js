@@ -9,7 +9,7 @@ fragmentShader: `
   uniform sampler2D uSampler;
 
   void main() {
-    gl_FragColor = texture2D(uSampler, vTextureCoord.yx);
+    gl_FragColor = texture2D(uSampler, vTextureCoord.xy);
   }
 `,
 vertexShader: `

@@ -85,6 +85,7 @@ class TextFigure {
             let yTransform = ( ((-1.0 + this.fractionPositions[i*2 + 1]) * 100) + "%");
 
             style.push('position:absolute');
+            style.push('white-space:nowrap');
             style.push('top:' + y + "px");
             style.push('left:' + x + "px");
             style.push('font-size:' + this.sizes[i] + "px");

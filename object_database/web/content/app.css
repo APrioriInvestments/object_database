@@ -71,10 +71,10 @@ th {
 
 .plot-mouseover {
     background-color: white;
-    border: 1px solid black;
-    max-width: 33%;
-    max-height: 33%;
-    overflow: auto;
+    border: 1px solid rgba(0,0,0,.15);
+    min-width: 60px;
+    min-height: 30px;
+    overflow: hidden;
     padding: 8px;
 }
 
@@ -557,6 +557,14 @@ pre {
     height: 10px;
     width: 20px;
     left: calc(100.0% - 40px);
+    top: 0;
+    position: relative;
+}
+
+.cell-popover-arrow-holder-center {
+    height: 10px;
+    width: 20px;
+    left: calc(50.0% - 10px);
     top: 0;
     position: relative;
 }

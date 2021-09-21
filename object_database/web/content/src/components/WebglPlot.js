@@ -315,49 +315,57 @@ class WebglPlot extends ConcreteCell {
             return;
         }
 
-        let x = mouseoverContents.x;
-        let y = mouseoverContents.y;
+        mouseoverContents.forEach(mouseover=>{
+            let x = mouseover.x;
+            let y = mouseover.y;
 
-        let xPx = (x - this.renderer.screenPosition[0]) / this.renderer.screenSize[0] * this.canvas.width;
-        let yPx = (1.0 - (y - this.renderer.screenPosition[1]) / this.renderer.screenSize[1]) * this.canvas.height;
+            let xPx = (x - this.renderer.screenPosition[0]) / this.renderer.screenSize[0] * this.canvas.width;
+            let yPx = (1.0 - (y - this.renderer.screenPosition[1]) / this.renderer.screenSize[1]) * this.canvas.height;
 
-        let contents = mouseoverContents.contents;
+            let contents = mouseover.contents;
 
-        let styles = [];
+            let styles = [];
 
-        styles.push("left:" + xPx + "px")
-        styles.push("top:" + yPx + "px")
-        styles.push('position:absolute')
+            styles.push("left:" + xPx + "px")
+            styles.push("top:" + (yPx+10) + "px")
+            styles.push("z-index: 10")
+            styles.push('position:absolute')
+            styles.push('transform:translate(-50%,0%)')
 
-        let rows = contents.map(row => {
-            return h('tr', {}, row.map(col => {
-                let colElt = null;
-                if (col.color) {
-                    let c = col.color;
+            let rows = contents.map(row => {
+                return h('tr', {}, row.map(col => {
+                    let colElt = null;
+                    if (col.color) {
+                        let c = col.color;
 
-                    colElt = h('div', {
-                        'class': 'plot-legend-color',
-                        'style': 'background-color:' +
-                            `rgba(${c[0]*255},${c[1]*255},${c[2]*255},${c[3]})`
-                        },
-                        []
-                    );
-                } else {
-                    colElt = col.text;
-                }
+                        colElt = h('div', {
+                            'class': 'plot-legend-color',
+                            'style': 'background-color:' +
+                                `rgba(${c[0]*255},${c[1]*255},${c[2]*255},${c[3]})`
+                            },
+                            []
+                        );
+                    } else {
+                        colElt = '' + col.text;
+                    }
 
-                return h('td', {}, [colElt])
-            }))
-        })
+                    return h('td', {}, [colElt])
+                }))
+            })
 
-        this.mouseoverHolderDiv.appendChild(
-            h('div', {'style':
-                styles.join(';'),
-                'class': 'plot-mouseover'
-            }, [
-                h('table', {}, rows)
-            ])
-        )
+            this.mouseoverHolderDiv.appendChild(
+                h('div', {'style': styles.join(';')}, [
+                    h("div", {class: 'cell-popover-arrow-holder-center'}, [
+                        h("div", {class: 'cell-popover-up-arrow'}, []),
+                        h("div", {class: 'cell-popover-up-arrow-small'}, [])
+                    ]),
+                    h('div', {
+                        'class': 'plot-mouseover',
+                        'style': 'max-width:' + (this.canvas.width / 2) + 'px;'
+                            + 'max-height:' + (this.canvas.height / 2) + 'px;' }, [h('table', {}, rows)])
+                ])
+            )
+        });
     }
 
     // make sure we zero out our legen
@@ -534,7 +542,7 @@ class WebglPlot extends ConcreteCell {
         let yFrac = (rect.height - (e.pageY - rect.top)) / rect.height;
 
         this.renderer.zoom(xFrac, yFrac, Math.exp(e.deltaY / 100), allowHorizontal, allowVertical)
-
+        this.sendScrollStateToServer();
         this.requestAnimationFrame();
     }
 
@@ -804,7 +812,8 @@ class WebglPlot extends ConcreteCell {
         this.sendMessage({
             'event': 'scrollState',
             'position': this.renderer.screenPosition,
-            'size': this.renderer.screenSize
+            'size': this.renderer.screenSize,
+            'canvasSize': [this.canvas.width, this.canvas.height]
         });
     }
 
@@ -967,6 +976,7 @@ class WebglPlot extends ConcreteCell {
 
         this.installResizeObserver();
         this.requestAnimationFrame();
+        this.sendScrollStateToServer();
     }
 }
 

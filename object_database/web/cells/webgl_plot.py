@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typed_python import ListOf, Float32, NamedTuple, UInt8, Entrypoint
+from typed_python import ListOf, Float32, NamedTuple, UInt8, Entrypoint, OneOf
 
 from object_database.web.cells.cell import Cell
 from object_database.web.cells.highlighted import Highlighted
@@ -62,6 +62,14 @@ class Rectangle(NamedTuple(left=float, bottom=float, right=float, top=float)):
             top=self.top + frac * self.height(),
             bottom=self.bottom - frac * self.height(),
         )
+
+
+# describes a grid of things we can draw in a legend
+LegendGrid = ListOf(ListOf(OneOf(None, str, int, float, Color)))
+
+
+# a single hovering legend over a given point on the screen
+MouseoverLegend = NamedTuple(x=float, y=float, contents=LegendGrid)
 
 
 class Packets:
@@ -621,9 +629,17 @@ class Legend:
 
 class Plot:
     Color = Color
+    LegendGrid = LegendGrid
+    MouseoverLegend = MouseoverLegend
 
     def __init__(
-        self, figures=None, backgroundColor=None, defaultViewport=None, axes=None, legend=None
+        self,
+        figures=None,
+        backgroundColor=None,
+        defaultViewport=None,
+        axes=None,
+        legend=None,
+        mouseoverFunction=None,
     ):
         """Create a plot:
 
@@ -632,6 +648,8 @@ class Plot:
             backgroundColor - None or a Color/color tuple
             defaultViewport - None, or a Rect/rect tuple indicating where the plot will
                 be centered by default. If None, then we'll ask each figure for an "extent".
+            mouseoverFunction - a function of a mousePosition dict with
+                ('x', 'y', 'mouseInside') to a 'mouseover' legend
         """
         self.figures = figures or []
 
@@ -653,6 +671,7 @@ class Plot:
 
         self.axes = axes
         self.legend = legend
+        self.mouseoverFunction = mouseoverFunction
 
     def encode(self, packets):
         return {
@@ -718,6 +737,7 @@ class Plot:
             self.defaultViewport,
             self.axes + Axes(left=Axis(**kwargs)),
             self.legend,
+            self.mouseoverFunction,
         )
 
     def withBottomAxis(self, **kwargs):
@@ -727,6 +747,7 @@ class Plot:
             self.defaultViewport,
             self.axes + Axes(bottom=Axis(**kwargs)),
             self.legend,
+            self.mouseoverFunction,
         )
 
     def withTopAxis(self, **kwargs):
@@ -736,6 +757,7 @@ class Plot:
             self.defaultViewport,
             self.axes + Axes(top=Axis(**kwargs)),
             self.legend,
+            self.mouseoverFunction,
         )
 
     def withImage(self, position, colors, pixelsWide):
@@ -751,6 +773,7 @@ class Plot:
             self.defaultViewport,
             self.axes + Axes(right=Axis(**kwargs)),
             self.legend,
+            self.mouseoverFunction,
         )
 
     def withLegend(self, position, seriesNames, colors):
@@ -760,6 +783,21 @@ class Plot:
             self.defaultViewport,
             self.axes,
             Legend(position, seriesNames, colors),
+            self.mouseoverFunction,
+        )
+
+    def withMouseoverFunction(self, mouseoverFunction):
+        """Add a mouseover function to control what we show for different mouse positions.
+
+        It should take (x, y, screenRect) and return a ListOf(MouseoverLegend).
+        """
+        return Plot(
+            self.figures,
+            self.backgroundColor,
+            self.defaultViewport,
+            self.axes,
+            self.legend,
+            mouseoverFunction,
         )
 
     def __add__(self, other):
@@ -772,6 +810,7 @@ class Plot:
             other.defaultViewport or self.defaultViewport,
             other.axes + self.axes,
             other.legend + self.legend if other.legend else self.legend,
+            self.mouseoverFunction,
         )
 
 
@@ -794,6 +833,8 @@ class WebglPlot(Cell):
         self.mouseoverContents = Slot()
         self.error = Slot()
         self.mouseoverContents.addListener(self.onMouseoverContentsChanged)
+        self.mousePosition.addListener(self.onMousePositionChanged)
+        self.mouseoverFunction = None
 
         self.children["errorCell"] = Subscribed(
             lambda: None
@@ -801,37 +842,33 @@ class WebglPlot(Cell):
             else Highlighted(Center(Traceback(self.error.get())), color="rgba(255,255,255,.9)")
         )
 
-    def setMouseoverContents(self, x, y, mouseoverContents):
-        """Set the mouseover contents.
+    def onMousePositionChanged(self, old, new, reason):
+        if self.mouseoverFunction is None:
+            self.mouseoverContents.set(None)
+            return
 
-        The contents can be a string, a list of strings (rows) or a list of
-        lists of strings (rows of a table). You may also place a color,
-        which indicates a color swatch.
-        """
+        mouseFun = self.mouseoverFunction
 
-        def validate(x, level=0):
-            assert level <= 2
+        try:
+            if new and new["mouseInside"]:
+                mouseRes = mouseFun(
+                    new["x"], new["y"], self.screenRectangle.getWithoutRegisteringDependency()
+                )
 
-            if isinstance(x, float):
-                x = str(x)
+                mouseRes = ListOf(MouseoverLegend)(mouseRes)
 
-            if isinstance(x, (str, Color)):
-                if level == 0:
-                    return [[x]]
-                if level == 1:
-                    return [x]
+                self.setMouseoverContents(mouseRes)
+            else:
+                self.setMouseoverContents(None)
+        except Exception:
+            logging.exception("MouseoverFunction %s failed on %s:", mouseFun, new)
 
-                return x
+    def setMouseoverContents(self, mouseovers: ListOf(MouseoverLegend)):
+        """Set the mouseover displays"""
+        if mouseovers is not None:
+            mouseovers = ListOf(MouseoverLegend)(mouseovers)
 
-            if isinstance(x, list):
-                return [validate(thing, level + 1) for thing in x]
-
-            raise Exception(f"Can't handle mousover element {x} of type {type(x)}")
-
-        if mouseoverContents is not None:
-            mouseoverContents = validate(mouseoverContents)
-
-            self.mouseoverContents.set({"x": x, "y": y, "contents": mouseoverContents})
+            self.mouseoverContents.set(mouseovers)
         else:
             self.mouseoverContents.set(None)
 
@@ -840,7 +877,7 @@ class WebglPlot(Cell):
             if value is None:
                 return
 
-            if isinstance(value, list):
+            if isinstance(value, (list, ListOf)):
                 return [encodeMouseoverContents(item) for item in value]
 
             if isinstance(value, Color):
@@ -849,11 +886,11 @@ class WebglPlot(Cell):
             if isinstance(value, (str, int, float)):
                 return {"text": value}
 
-            if isinstance(value, dict):
+            if isinstance(value, MouseoverLegend):
                 return {
-                    "x": value["x"],
-                    "y": value["y"],
-                    "contents": encodeMouseoverContents(value["contents"]),
+                    "x": value.x,
+                    "y": value.y,
+                    "contents": encodeMouseoverContents(value.contents),
                 }
 
             assert False, value
@@ -874,6 +911,12 @@ class WebglPlot(Cell):
 
                 if not isinstance(plot, Plot):
                     return f"plotDataGenerator returned {type(plot)}, not Plot", None
+
+                self.mouseoverFunction = plot.mouseoverFunction
+
+                self.onMousePositionChanged(
+                    None, self.mousePosition.getWithoutRegisteringDependency(), None
+                )
 
                 response = self.packets.encode(plot)
 
@@ -912,6 +955,10 @@ class WebglPlot(Cell):
                 Rectangle(bottom=p[1], left=p[0], top=p[1] + s[1], right=p[0] + s[0]),
                 "client-message",
             )
+            self.onMousePositionChanged(
+                None, self.mousePosition.getWithoutRegisteringDependency(), None
+            )
+
         if message.get("event") == "mouseenter":
             self.mousePosition.set(
                 {"x": message["x"], "y": message["y"], "mouseInside": True}, "client-message"

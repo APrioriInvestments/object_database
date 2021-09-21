@@ -326,8 +326,14 @@ class WebglPlot extends ConcreteCell {
 
             let styles = [];
 
+            let isBelow = mouseover.orientation == 'below';
+
             styles.push("left:" + xPx + "px")
-            styles.push("top:" + (yPx+10) + "px")
+            if (isBelow) {
+                styles.push("top:" + yPx + "px")
+            } else {
+                styles.push("bottom:" + (this.canvas.height - yPx) + "px")
+            }
             styles.push("z-index: 10")
             styles.push('position:absolute')
             styles.push('transform:translate(-50%,0%)')
@@ -353,18 +359,32 @@ class WebglPlot extends ConcreteCell {
                 }))
             })
 
-            this.mouseoverHolderDiv.appendChild(
-                h('div', {'style': styles.join(';')}, [
-                    h("div", {class: 'cell-popover-arrow-holder-center'}, [
-                        h("div", {class: 'cell-popover-up-arrow'}, []),
-                        h("div", {class: 'cell-popover-up-arrow-small'}, [])
-                    ]),
-                    h('div', {
+            let mouseoverDiv = h('div', {
                         'class': 'plot-mouseover',
                         'style': 'max-width:' + (this.canvas.width / 2) + 'px;'
-                            + 'max-height:' + (this.canvas.height / 2) + 'px;' }, [h('table', {}, rows)])
-                ])
-            )
+                            + 'max-height:' + (this.canvas.height / 2) + 'px;' }, [h('table', {}, rows)]);
+
+            if (isBelow) {
+                this.mouseoverHolderDiv.appendChild(
+                    h('div', {'style': styles.join(';')}, [
+                        h("div", {class: 'cell-popover-arrow-holder-center'}, [
+                            h("div", {class: 'cell-popover-up-arrow'}, []),
+                            h("div", {class: 'cell-popover-up-arrow-small'}, [])
+                        ]),
+                        mouseoverDiv
+                    ])
+                )
+            } else {
+                this.mouseoverHolderDiv.appendChild(
+                    h('div', {'style': styles.join(';')}, [
+                        mouseoverDiv,
+                        h("div", {class: 'cell-popover-arrow-holder-center'}, [
+                            h("div", {class: 'cell-popover-down-arrow'}, []),
+                            h("div", {class: 'cell-popover-down-arrow-small'}, [])
+                        ])
+                    ])
+                )
+            }
         });
     }
 

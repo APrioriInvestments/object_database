@@ -275,6 +275,7 @@ class WebglMouseover(CellsTestPage):
                         x=x,
                         y=y,
                         contents=[[Plot.Color(red=255, alpha=255), "right"], ["below"]],
+                        orientation="above",
                     ),
                     Plot.MouseoverLegend(
                         x=x + screenRect.width() * 0.1,

@@ -69,7 +69,9 @@ LegendGrid = ListOf(ListOf(OneOf(None, str, int, float, Color)))
 
 
 # a single hovering legend over a given point on the screen
-MouseoverLegend = NamedTuple(x=float, y=float, contents=LegendGrid)
+MouseoverLegend = NamedTuple(
+    x=float, y=float, contents=LegendGrid, orientation=OneOf("below", "above")
+)
 
 
 class Packets:
@@ -891,6 +893,7 @@ class WebglPlot(Cell):
                     "x": value.x,
                     "y": value.y,
                     "contents": encodeMouseoverContents(value.contents),
+                    "orientation": value.orientation,
                 }
 
             assert False, value

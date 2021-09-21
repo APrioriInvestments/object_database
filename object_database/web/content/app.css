@@ -71,7 +71,7 @@ th {
 
 .plot-mouseover {
     background-color: white;
-    border: 1px solid rgba(0,0,0,.15);
+    border: 1px solid rgba(0,0,0,.19);
     min-width: 60px;
     min-height: 30px;
     overflow: hidden;
@@ -499,7 +499,7 @@ pre {
 }
 
 .cell-menu-item:hover {
-    background-color: rgba(0,0,0,.15);
+    background-color: rgba(0,0,0,.19);
 }
 
 
@@ -523,7 +523,7 @@ pre {
 }
 
 .cell-dropdown-item:hover {
-    background-color: rgba(0,0,0,.15);
+    background-color: rgba(0,0,0,.19);
 }
 
 .cell-open-popover {
@@ -531,7 +531,7 @@ pre {
     overflow: hidden;
     margin: 0;
     background-color: rgba(255,255,255,1);
-    border:1px solid rgba(0,0,0,.15);
+    border:1px solid rgba(0,0,0,.19);
     max-height: 50vh;
     max-width: 50vw;
     overflow: auto;
@@ -577,7 +577,7 @@ pre {
     position: absolute;
     border-left: 10px solid transparent;
     border-right: 10px solid transparent;
-    border-bottom: 10px solid rgba(0,0,0,.15);
+    border-bottom: 10px solid rgba(0,0,0,.19);
 }
 
 .cell-popover-down-arrow {
@@ -588,7 +588,7 @@ pre {
     position: absolute;
     border-left: 10px solid transparent;
     border-right: 10px solid transparent;
-    border-top: 10px solid rgba(0,0,0,.15);
+    border-top: 10px solid rgba(0,0,0,.19);
 }
 
 .cell-popover-up-arrow-small {
@@ -604,7 +604,7 @@ pre {
 .cell-popover-down-arrow-small {
     width: 0;
     height: 0;
-    top: 1px;
+    bottom: 1px;
     position: absolute;
     border-left: 10px solid transparent;
     border-right: 10px solid transparent;
@@ -620,7 +620,7 @@ pre {
     padding: .5rem 0;
     margin: .25rem 0 0;
     background-color: rgba(255,255,255,1);
-    border:1px solid rgba(0,0,0,.15);
+    border:1px solid rgba(0,0,0,.19);
     max-height: 50vh;
     max-width: 50vw;
     overflow: auto;
@@ -632,7 +632,7 @@ pre {
     padding: .5rem;
     margin: .25rem 0 0;
     background-color: rgba(255,255,255,1);
-    border:1px solid rgba(0,0,0,.15);
+    border:1px solid rgba(0,0,0,.19);
     max-height: 50vh;
     max-width: 50vw;
     overflow: auto;

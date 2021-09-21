@@ -500,6 +500,7 @@ class Axis:
         ticklineColor=createColor((0, 0, 0, 0.1)),
         allowExpand=True,
         label=None,
+        labels=None,
     ):
         """Each point in the space 'x' gets mapped to 'x * scale + offset' to produce a label.
 
@@ -514,9 +515,15 @@ class Axis:
         color - the color of the axis and text display.
         zeroColor - the color of the 'zero' line to draw
         ticklineColor - the color of the tickline to draw across
+        label - the name of the axis
+        labels - None, or a tuple of (float, str) containing labels we want to draw on the
+            axes. This will replace the axis labels we would draw otherwise.
         """
         if label is not None:
             assert isinstance(label, str)
+
+        if labels is not None:
+            labels = sorted([(float(x1), str(x2)) for x1, x2 in labels])
 
         self.space = space
         self.color = color
@@ -529,6 +536,7 @@ class Axis:
         self.ticklineColor = createColor(ticklineColor)
         self.allowExpand = allowExpand
         self.label = label
+        self.labels = labels
 
     def encode(self, packets):
         return {
@@ -542,6 +550,7 @@ class Axis:
             "scale": self.scale,
             "allowExpand": self.allowExpand,
             "label": self.label,
+            "labels": self.labels,
         }
 
 

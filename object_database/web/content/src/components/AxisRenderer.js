@@ -461,41 +461,90 @@ class AxisRenderer {
         let labelDivs = [];
         let lineDivs = [];
 
-        ticks.forEach(y0Tick => {
-            let pxPosition = plotHeightPx * (y0Tick - y0) / (y1 - y0);
+        if (!this.axisData.labels) {
+            // draw a collection of labels which are the axis positions
+            ticks.forEach(y0Tick => {
+                let pxPosition = plotHeightPx * (y0Tick - y0) / (y1 - y0);
 
-            if (isLogscale) {
-                let y0Log = Math.log(y0);
-                let y1Log = Math.log(y1);
+                if (isLogscale) {
+                    let y0Log = Math.log(y0);
+                    let y1Log = Math.log(y1);
 
-                pxPosition = plotHeightPx * (Math.log(y0Tick) - y0Log) / (y1Log - y0Log);
-            }
+                    pxPosition = plotHeightPx * (Math.log(y0Tick) - y0Log) / (y1Log - y0Log);
+                }
 
-            let lineDiv = h('div', {style:
-                'height:1px;position:absolute;left:' + (
-                    (isFar ? -plotWidthPx:axisLabelAreaWidth)
-                )
-                + 'px;width:' + plotWidthPx + 'px;bottom:' + pxPosition + "px;"
-                + 'background-color:' + this.colorToString(
-                    this.isZeroTick(y0Tick, tickSize) ? this.axisData.zeroColor : this.axisData.ticklineColor
-                )
-            }, []);
-
-            this.axisDiv.appendChild(lineDiv);
-            lineDivs.push(lineDiv);
-
-            let labelDiv = h('div', {style:
-                    'white-space:nowrap;pointer-events:none;position:absolute;bottom:' + pxPosition + "px;"
-                    + (
-                        isFar ?
-                          "transform:translate(0%,50%);"
-                        : "left:" + (axisLabelAreaWidth - 5) + "px;transform:translate(-100%,50%);"
+                let lineDiv = h('div', {style:
+                    'height:1px;position:absolute;left:' + (
+                        (isFar ? -plotWidthPx:axisLabelAreaWidth)
                     )
-            }, [this.formatNumber(y0Tick, tickSize)]);
+                    + 'px;width:' + plotWidthPx + 'px;bottom:' + pxPosition + "px;"
+                    + 'background-color:' + this.colorToString(
+                        this.isZeroTick(y0Tick, tickSize) ? this.axisData.zeroColor : this.axisData.ticklineColor
+                    )
+                }, []);
 
-            this.axisDiv.appendChild(labelDiv);
-            labelDivs.push(labelDiv);
-        });
+                this.axisDiv.appendChild(lineDiv);
+                lineDivs.push(lineDiv);
+
+                let labelDiv = h('div', {style:
+                        'white-space:nowrap;pointer-events:none;position:absolute;bottom:' + pxPosition + "px;"
+                        + (
+                            isFar ?
+                              "transform:translate(0%,50%);"
+                            : "left:" + (axisLabelAreaWidth - 5) + "px;transform:translate(-100%,50%);"
+                        )
+                }, [this.formatNumber(y0Tick, tickSize)]);
+
+                this.axisDiv.appendChild(labelDiv);
+                labelDivs.push(labelDiv);
+            });
+        } else {
+            // draw a collection of axis labels
+            // each element is [position, labelText]
+            // we want to draw the label closest to each tickmark
+            let labelPositionsAndText = this.axisData.labels;
+
+            let labelIx = 0;
+            let tickIx = 0;
+
+            while (labelIx < labelPositionsAndText.length && tickIx < ticks.length) {
+                // if the next label is closer to the tick than this one, just bump
+                if (labelIx + 1 < labelPositionsAndText.length && (
+                    Math.abs(labelPositionsAndText[labelIx][0] - ticks[tickIx]) >
+                       Math.abs(labelPositionsAndText[labelIx + 1][0] - ticks[tickIx]))) {
+                    labelIx += + 1
+                } else
+                if (tickIx + 1 < ticks.length && (
+                        Math.abs(labelPositionsAndText[labelIx][0] - ticks[tickIx]) >
+                       Math.abs(labelPositionsAndText[labelIx][0] - ticks[tickIx + 1]))) {
+                    tickIx += + 1
+                } else {
+                    let pxPosition = plotHeightPx * (ticks[tickIx] - y0) / (y1 - y0);
+
+                    if (isLogscale) {
+                        let y0Log = Math.log(y0);
+                        let y1Log = Math.log(y1);
+
+                        pxPosition = plotHeightPx * (Math.log(ticks[tickIx]) - y0Log) / (y1Log - y0Log);
+                    }
+
+                    let labelDiv = h('div', {style:
+                            'white-space:nowrap;pointer-events:none;position:absolute;bottom:' + pxPosition + "px;"
+                            + (
+                                isFar ?
+                                  "transform:translate(0%,50%);"
+                                : "left:" + (axisLabelAreaWidth - 5) + "px;transform:translate(-100%,50%);"
+                            )
+                    }, [labelPositionsAndText[labelIx][1]]);
+
+                    this.axisDiv.appendChild(labelDiv);
+                    labelDivs.push(labelDiv);
+
+                    tickIx += 1;
+                    labelIx += 1;
+                }
+            }
+        }
 
         if (this.axisData.allowExpand) {
             let maxWidth = 0;
@@ -558,41 +607,89 @@ class AxisRenderer {
         let labelDivs = [];
         let lineDivs = [];
 
-        ticks.forEach(x0Tick => {
-            let pxPosition = plotWidthPx * (x0Tick - x0) / (x1 - x0);
+        if (!this.axisData.labels) {
+            ticks.forEach(x0Tick => {
+                let pxPosition = plotWidthPx * (x0Tick - x0) / (x1 - x0);
 
-            if (isLogscale) {
-                let x0Log = Math.log(x0);
-                let x1Log = Math.log(x1);
+                if (isLogscale) {
+                    let x0Log = Math.log(x0);
+                    let x1Log = Math.log(x1);
 
-                pxPosition = plotHeightPx * (Math.log(x0Tick) - x0Log) / (x1Log - x0Log);
+                    pxPosition = plotHeightPx * (Math.log(x0Tick) - x0Log) / (x1Log - x0Log);
+                }
+
+                let lineDiv = h('div', {style:
+                        'width:1px;pointer-events:none;position:absolute;top:' + (
+                            isFar ? -plotHeightPx : this.axisData.space
+                        )
+                        + 'px;height:' + plotHeightPx + 'px;left:' + pxPosition + "px;"
+                        + 'background-color:' + this.colorToString(
+                            this.isZeroTick(x0Tick, tickSize) ? this.axisData.zeroColor : this.axisData.ticklineColor
+                        )
+                }, [])
+
+                this.axisDiv.appendChild(lineDiv);
+                lineDivs.push(lineDiv);
+
+                let labelDiv = h('div', {style:
+                    'white-space:nowrap;pointer-events:none;position:absolute;left:' + pxPosition + "px;"
+                    + (
+                        isFar ?
+                          "top: 0px; transform:translate(-50%,0%);"
+                        : "top:" + this.axisData.space + "px;transform:translate(-50%,-100%);"
+                    )
+                }, [this.formatNumber(x0Tick, tickSize)]);
+
+                this.axisDiv.appendChild(labelDiv);
+                labelDivs.push(labelDiv);
+            });
+        } else {
+            // draw a collection of axis labels
+            // each element is [position, labelText]
+            // we want to draw the label closest to each tickmark
+            let labelPositionsAndText = this.axisData.labels;
+
+            let labelIx = 0;
+            let tickIx = 0;
+
+            while (labelIx < labelPositionsAndText.length && tickIx < ticks.length) {
+                // if the next label is closer to the tick than this one, just bump
+                if (labelIx + 1 < labelPositionsAndText.length && (
+                    Math.abs(labelPositionsAndText[labelIx][0] - ticks[tickIx]) >
+                       Math.abs(labelPositionsAndText[labelIx + 1][0] - ticks[tickIx]))) {
+                    labelIx += + 1
+                } else
+                if (tickIx + 1 < ticks.length && (
+                        Math.abs(labelPositionsAndText[labelIx][0] - ticks[tickIx]) >
+                       Math.abs(labelPositionsAndText[labelIx][0] - ticks[tickIx + 1]))) {
+                    tickIx += + 1
+                } else {
+                    let pxPosition = plotWidthPx * (ticks[tickIx] - x0) / (x1 - x0);
+
+                    if (isLogscale) {
+                        let x0Log = Math.log(x0);
+                        let x1Log = Math.log(x1);
+
+                        pxPosition = plotHeightPx * (Math.log(ticks[tickIx]) - x0Log) / (x1Log - x0Log);
+                    }
+
+                    let labelDiv = h('div', {style:
+                        'white-space:nowrap;pointer-events:none;position:absolute;left:' + pxPosition + "px;"
+                        + (
+                            isFar ?
+                              "top: 0px; transform:translate(-50%,0%);"
+                            : "top:" + this.axisData.space + "px;transform:translate(-50%,-100%);"
+                        )
+                    }, [labelPositionsAndText[labelIx][1]]);
+
+                    this.axisDiv.appendChild(labelDiv);
+                    labelDivs.push(labelDiv);
+
+                    tickIx += 1;
+                    labelIx += 1;
+                }
             }
-
-            let lineDiv = h('div', {style:
-                    'width:1px;pointer-events:none;position:absolute;top:' + (
-                        isFar ? -plotHeightPx : this.axisData.space
-                    )
-                    + 'px;height:' + plotHeightPx + 'px;left:' + pxPosition + "px;"
-                    + 'background-color:' + this.colorToString(
-                        this.isZeroTick(x0Tick, tickSize) ? this.axisData.zeroColor : this.axisData.ticklineColor
-                    )
-            }, [])
-
-            this.axisDiv.appendChild(lineDiv);
-            lineDivs.push(lineDiv);
-
-            let labelDiv = h('div', {style:
-                'white-space:nowrap;pointer-events:none;position:absolute;left:' + pxPosition + "px;"
-                + (
-                    isFar ?
-                      "top: 0px; transform:translate(-50%,0%);"
-                    : "top:" + this.axisData.space + "px;transform:translate(-50%,-100%);"
-                )
-            }, [this.formatNumber(x0Tick, tickSize)]);
-
-            this.axisDiv.appendChild(labelDiv);
-            labelDivs.push(labelDiv);
-        });
+        }
 
         if (this.axisData.allowExpand) {
             let maxHeight = 0;

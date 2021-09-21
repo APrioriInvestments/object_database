@@ -183,6 +183,23 @@ class WebglText(CellsTestPage):
         return "you should see a graphic you can scroll around on"
 
 
+class WebglAxisLabels(CellsTestPage):
+    def cell(self):
+        def getData():
+            return (
+                (Plot().withLines([0.0, 100.0], [0.0, 100.0]))
+                .withLeftAxis(labels=[(i, f"left_{i}") for i in range(100)])
+                .withTopAxis(labels=[(i, f"top_{i}") for i in range(100)])
+                .withBottomAxis(labels=[(i, f"bottom_{i}") for i in range(100)])
+                .withRightAxis(labels=[(i, f"right_{i}") for i in range(100)])
+            )
+
+        return cells.WebglPlot(getData)
+
+    def text(self):
+        return "you should see a graphic you can scroll around on"
+
+
 class WebglPoints(CellsTestPage):
     def cell(self):
         def getData():

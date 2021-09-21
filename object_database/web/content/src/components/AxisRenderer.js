@@ -519,13 +519,15 @@ class AxisRenderer {
                        Math.abs(labelPositionsAndText[labelIx][0] - ticks[tickIx + 1]))) {
                     tickIx += + 1
                 } else {
-                    let pxPosition = plotHeightPx * (ticks[tickIx] - y0) / (y1 - y0);
+                    let labelYPos = labelPositionsAndText[labelIx][0];
+
+                    let pxPosition = plotHeightPx * (labelYPos - y0) / (y1 - y0);
 
                     if (isLogscale) {
                         let y0Log = Math.log(y0);
                         let y1Log = Math.log(y1);
 
-                        pxPosition = plotHeightPx * (Math.log(ticks[tickIx]) - y0Log) / (y1Log - y0Log);
+                        pxPosition = plotHeightPx * (Math.log(labelYPos) - y0Log) / (y1Log - y0Log);
                     }
 
                     let labelDiv = h('div', {style:
@@ -664,13 +666,15 @@ class AxisRenderer {
                        Math.abs(labelPositionsAndText[labelIx][0] - ticks[tickIx + 1]))) {
                     tickIx += + 1
                 } else {
-                    let pxPosition = plotWidthPx * (ticks[tickIx] - x0) / (x1 - x0);
+                    let labelXPos = labelPositionsAndText[labelIx][0];
+
+                    let pxPosition = plotWidthPx * (labelXPos - x0) / (x1 - x0);
 
                     if (isLogscale) {
                         let x0Log = Math.log(x0);
                         let x1Log = Math.log(x1);
 
-                        pxPosition = plotHeightPx * (Math.log(ticks[tickIx]) - x0Log) / (x1Log - x0Log);
+                        pxPosition = plotHeightPx * (Math.log(labelXPos) - x0Log) / (x1Log - x0Log);
                     }
 
                     let labelDiv = h('div', {style:

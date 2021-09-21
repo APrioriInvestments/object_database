@@ -232,11 +232,16 @@ class GlRenderer {
         return shader;
     }
 
-    zoom(xScreenFrac, yScreenFrac, zoomFrac) {
-        this.screenPosition[0] += xScreenFrac * this.screenSize[0] * (1 - zoomFrac);
-        this.screenPosition[1] += yScreenFrac * this.screenSize[1] * (1 - zoomFrac);
-        this.screenSize[0] *= zoomFrac;
-        this.screenSize[1] *= zoomFrac;
+    zoom(xScreenFrac, yScreenFrac, zoomFrac, allowHorizontal=true, allowVertical=true) {
+        if (allowHorizontal) {
+            this.screenPosition[0] += xScreenFrac * this.screenSize[0] * (1 - zoomFrac);
+            this.screenSize[0] *= zoomFrac;
+        }
+
+        if (allowVertical) {
+            this.screenPosition[1] += yScreenFrac * this.screenSize[1] * (1 - zoomFrac);
+            this.screenSize[1] *= zoomFrac;
+        }
     }
 
     zoomRect(x0ScreenFrac, y0ScreenFrac, x1ScreenFrac, y1ScreenFrac) {

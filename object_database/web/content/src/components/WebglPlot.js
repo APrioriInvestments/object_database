@@ -244,6 +244,8 @@ class WebglPlot extends ConcreteCell {
 
         this.onMouseDown = this.onMouseDown.bind(this);
         this.onWheel = this.onWheel.bind(this);
+        this.onWheelHorizontal = this.onWheelHorizontal.bind(this);
+        this.onWheelVertical = this.onWheelVertical.bind(this);
         this.onDoubleclick = this.onDoubleclick.bind(this);
         this.onMousemove = this.onMousemove.bind(this);
         this.onMouseleave = this.onMouseleave.bind(this);
@@ -515,7 +517,15 @@ class WebglPlot extends ConcreteCell {
         return {horizontal: true, vertical: true};
     }
 
-    onWheel(e) {
+    onWheelHorizontal(e) {
+        this.onWheel(e, true, false);
+    }
+
+    onWheelVertical(e) {
+        this.onWheel(e, false, true);
+    }
+
+    onWheel(e, allowHorizontal=true, allowVertical=true) {
         e.preventDefault();
 
         let rect = this.canvas.getBoundingClientRect();
@@ -523,7 +533,7 @@ class WebglPlot extends ConcreteCell {
         let xFrac = (e.pageX - rect.left) / rect.width;
         let yFrac = (rect.height - (e.pageY - rect.top)) / rect.height;
 
-        this.renderer.zoom(xFrac, yFrac, Math.exp(e.deltaY / 100))
+        this.renderer.zoom(xFrac, yFrac, Math.exp(e.deltaY / 100), allowHorizontal, allowVertical)
 
         this.requestAnimationFrame();
     }
@@ -746,16 +756,16 @@ class WebglPlot extends ConcreteCell {
         this.bottomAxis = h('div', {style:'z-index:1;width:100%;height:0px;position:relative;top:0;left:0;pointer-events:none', 'class': 'webgl-bottomaxislegend'}, []);
 
         this.leftAxisLegendHolder = h('div', {style:'height:100%;flex:0;pointer-events:none', 'class': 'webgl-leftAxisLegendHolder'}, [this.leftAxisLegend]);
-        this.leftAxisHolder = h('div', {style:'height:100%;flex:0;pointer-events:none', 'class': 'webgl-leftAxisHolder'}, [this.leftAxis]);
+        this.leftAxisHolder = h('div', {style:'height:100%;flex:0', onwheel: this.onWheelVertical, 'class': 'webgl-leftAxisHolder'}, [this.leftAxis]);
 
         this.rightAxisLegendHolder = h('div', {style:'height:100%;flex:0;pointer-events:none', 'class': 'webgl-rightAxisLegendHolder'}, [this.rightAxisLegend]);
-        this.rightAxisHolder = h('div', {style:'height:100%;flex:0;pointer-events:none', 'class': 'webgl-rightAxisHolder'}, [this.rightAxis]);
+        this.rightAxisHolder = h('div', {style:'height:100%;flex:0', onwheel: this.onWheelVertical, 'class': 'webgl-rightAxisHolder'}, [this.rightAxis]);
 
         this.topAxisLegendHolder = h('div', {style:'width:100%;flex:0;pointer-events:none', 'class': 'webgl-topAxisLegendHolder'}, [this.topAxisLegend]);
-        this.topAxisHolder = h('div', {style:'width:100%;flex:0;pointer-events:none', 'class': 'webgl-leftAxisHolder'}, [this.topAxis]);
+        this.topAxisHolder = h('div', {style:'width:100%;flex:0', onwheel: this.onWheelHorizontal, 'class': 'webgl-leftAxisHolder'}, [this.topAxis]);
 
         this.bottomAxisLegendHolder = h('div', {style:'width:100%;flex:0;pointer-events:none', 'class': 'webgl-bottomAxisLegendHolder'}, [this.bottomAxisLegend]);
-        this.bottomAxisHolder = h('div', {style:'width:100%;flex:0;pointer-events:none', 'class': 'webgl-bottomAxisHolder'}, [this.bottomAxis]);
+        this.bottomAxisHolder = h('div', {style:'width:100%;flex:0', onwheel: this.onWheelHorizontal, 'class': 'webgl-bottomAxisHolder'}, [this.bottomAxis]);
 
         this.canvasAndUDAxesHolder = h('div',
             {'style': 'flex:1;display:flex;flex-direction:column;width:100%', 'class': 'webgl-canvasAndUDAxesHolder'},

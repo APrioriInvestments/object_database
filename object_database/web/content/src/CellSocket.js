@@ -67,8 +67,15 @@ class CellSocket {
          */
         this.errorHandler = null;
 
+        /**
+         * A callback for receiving packets. Args are (packetId, arrayBuffer)
+         **/
+        this.packetHandler = null;
+
         // callback for when we first connect
         this.onOpenHandler = null;
+
+        this.packetId = 1;
 
         // Bind Instance Methods
         this.connect = this.connect.bind(this);
@@ -78,6 +85,7 @@ class CellSocket {
         this.onClose = this.onClose.bind(this);
         this.onOpen = this.onOpen.bind(this);
         this.onError = this.onError.bind(this);
+        this.onPacket = this.onPacket.bind(this);
     }
 
     /**
@@ -179,52 +187,63 @@ class CellSocket {
      * from the socket.
      */
     handleRawMessage(event){
-        if(this.currentBuffer.remaining === null){
-            this.currentBuffer.remaining = JSON.parse(event.data);
-            this.currentBuffer.buffer = [];
-            if(this.currentBuffer.hasDisplay && this.currentBuffer.remaining == 1){
-                // SET LARGE DOWNLOAD DISPLAY
-            }
-            return;
-        }
-
-        this.currentBuffer.remaining -= 1;
-        this.currentBuffer.buffer.push(event.data);
-
-        if(this.currentBuffer.buffer.length % FRAMES_PER_ACK == 0){
-            //ACK every tenth message. We have to do active pushback
-            //because the websocket disconnects on Chrome if you jam too
-            //much in at once
-            this.sendString(
-                JSON.stringify({
-                    "ACK": this.currentBuffer.buffer.length
-                }));
-            let percentage = Math.round(100*this.currentBuffer.buffer.length / (this.currentBuffer.remaining + this.currentBuffer.buffer.length));
-            let total = Math.round((this.currentBuffer.remaining + this.currentBuffer.buffer.length) / (1024 / 32));
-            let progressStr = `(Downloaded ${percentage}% of ${total} MB)`;
-            this.setLargeDownloadDisplay(progressStr);
-        }
-
-        if(this.currentBuffer.remaining > 0){
-            return;
-        }
-
-        this.setLargeDownloadDisplay("");
-
-        let joinedBuffer = this.currentBuffer.buffer.join('')
-
-        this.currentBuffer.remaining = null;
-        this.currentBuffer.buffer = null;
-
-        let update = JSON.parse(joinedBuffer);
-
-        if(update == 'request_ack') {
-            this.sendString(JSON.stringify({'ACK': 0}))
+        if (event.data instanceof Blob) {
+            new Response(event.data).arrayBuffer().then(buffer => {
+                this.packetId += 1
+                this.packetHandler(this.packetId - 1, buffer);
+            });
         } else {
-            if(this.messageHandler){
-                this.messageHandler(update);
+            if(this.currentBuffer.remaining === null){
+                this.currentBuffer.remaining = JSON.parse(event.data);
+                this.currentBuffer.buffer = [];
+                if(this.currentBuffer.hasDisplay && this.currentBuffer.remaining == 1){
+                    // SET LARGE DOWNLOAD DISPLAY
+                }
+                return;
+            }
+
+            this.currentBuffer.remaining -= 1;
+            this.currentBuffer.buffer.push(event.data);
+
+            if(this.currentBuffer.buffer.length % FRAMES_PER_ACK == 0){
+                //ACK every tenth message. We have to do active pushback
+                //because the websocket disconnects on Chrome if you jam too
+                //much in at once
+                this.sendString(
+                    JSON.stringify({
+                        "ACK": this.currentBuffer.buffer.length
+                    }));
+                let percentage = Math.round(100*this.currentBuffer.buffer.length / (this.currentBuffer.remaining + this.currentBuffer.buffer.length));
+                let total = Math.round((this.currentBuffer.remaining + this.currentBuffer.buffer.length) / (1024 / 32));
+                let progressStr = `(Downloaded ${percentage}% of ${total} MB)`;
+                this.setLargeDownloadDisplay(progressStr);
+            }
+
+            if(this.currentBuffer.remaining > 0){
+                return;
+            }
+
+            this.setLargeDownloadDisplay("");
+
+            let joinedBuffer = this.currentBuffer.buffer.join('')
+
+            this.currentBuffer.remaining = null;
+            this.currentBuffer.buffer = null;
+
+            let update = JSON.parse(joinedBuffer);
+
+            if(update == 'request_ack') {
+                this.sendString(JSON.stringify({'ACK': 0}))
+            } else {
+                if(this.messageHandler){
+                    this.messageHandler(update);
+                }
             }
         }
+    }
+
+    onPacket(callback) {
+        this.packetHandler = callback;
     }
 
     onMessage(callback){

@@ -371,34 +371,7 @@ class Cell {
      *    onFailure - a function of (packetId, errorText, errorCode)
      **/
     requestPacket(packetId, callback, onFailure) {
-        // make an AJAX query for the plot's data packet
-        let httpRequest = new XMLHttpRequest();
-
-        httpRequest.responseType = 'arraybuffer';
-
-        httpRequest.onreadystatechange = () => {
-            if (httpRequest.readyState == XMLHttpRequest.DONE) {
-                if (httpRequest.status == 200) {
-                    if (httpRequest.getResponseHeader('Content-Type') == "application/octet-stream") {
-                        callback(packetId, httpRequest.response)
-                    } else {
-                        let decoder = new TextDecoder("utf-8");
-                        let decodedString = decoder.decode(httpRequest.response);
-
-                        callback(packetId, decodedString);
-                    }
-                }
-                else {
-                    console.error("Packet " + packetId + " failed: " + httpRequest.responseText)
-                    if (onFailure) {
-                        onFailure(packetId, httpRequest.status, httpRequest.responseText);
-                    }
-                }
-            }
-        };
-
-        httpRequest.open("GET", "/packet?session=" + this.handler.sessionId + "&packetId=" + packetId, true);
-        httpRequest.send();
+        this.handler.requestPacket(packetId, callback);
     }
 
     // called before we remove a cell

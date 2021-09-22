@@ -537,11 +537,14 @@ class Cells:
 
         return packetId
 
-    def getPacketContents(self, packetId):
-        if packetId in self._packetCallbacks:
-            return self._packetCallbacks.pop(packetId)(packetId)
-        else:
-            return None
+    def getPackets(self):
+        """Get a dict from packetId to packet contents"""
+        res = {}
+        for packetId, packetFun in self._packetCallbacks.items():
+            res[packetId] = packetFun(packetId)
+
+        self._packetCallbacks.clear()
+        return res
 
     def _recalculateSingleCell(self, node):
         origChildren = self._cellsKnownChildren.get(node.identity, set())

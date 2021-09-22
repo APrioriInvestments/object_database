@@ -37,6 +37,10 @@ class CellHandler {
         this.updateCell = this.updateCell.bind(this);
         this.handleSessionId = this.handleSessionId.bind(this);
         this.cellReceivedFocus = this.cellReceivedFocus.bind(this);
+
+        this.onPacket = this.onPacket.bind(this);
+        this.requestPacket = this.requestPacket.bind(this);
+
         // identity of the current focus event.
         // this increases monotonically, and lets us differentiate between
         // user-focus events and messages from the server that have not yet
@@ -45,8 +49,41 @@ class CellHandler {
         this.isProcessingFocusEvent = false;
         this.currentlyFocusedCellId = null;
 
+        // unallocated packets
+        this.packets = {};
+
+        // registered packet callbacks
+        this.packetHandlers = {};
+
         // the server-assigned session
         this.sessionId = null;
+    }
+
+    onPacket(packetId, packet) {
+        if (this.packetHandlers[packetId] !== undefined) {
+            try {
+                this.packetHandlers[packetId](packetId, packet)
+            } catch (e) {
+                console.error("Packet handler failed: " + e + "\n\n" + e.stack);
+            }
+            delete this.packetHandlers[packetId];
+        } else {
+            this.packets[packetId] = packet;
+        }
+    }
+
+    requestPacket(packetId, handler) {
+        if (this.packets[packetId] !== undefined) {
+            let res = this.packets[packetId];
+            delete this.packets[packetId];
+            try {
+                handler(res);
+            } catch (e) {
+                console.error("Packet handler failed: " + e + "\n\n" + e.stack);
+            }
+        } else {
+            this.packetHandlers[packetId] = handler;
+        }
     }
 
     renderMainDiv(div) {

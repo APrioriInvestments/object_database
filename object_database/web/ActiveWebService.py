@@ -276,7 +276,6 @@ class ActiveWebService(ServiceBase):
         self.app.add_url_rule(
             "/content/<path:path>", endpoint=None, view_func=self.sendContent
         )
-        self.app.add_url_rule("/packet", endpoint=None, view_func=self.sendPacket)
         self.app.add_url_rule("/services", endpoint=None, view_func=self.sendPage)
         self.app.add_url_rule("/services/<path:path>", endpoint=None, view_func=self.sendPage)
         self.app.add_url_rule("/status", view_func=self.statusPage)
@@ -297,98 +296,6 @@ class ActiveWebService(ServiceBase):
     def sendPage(self, path=None):
         self._logger.info("Sending 'page.html'")
         return self.sendContent("page.html")
-
-    @login_required
-    def sendPacket(self):
-        queryArgs = dict(request.args.items())
-
-        session = queryArgs.get("session")
-
-        try:
-            packetId = int(queryArgs.get("packetId"))
-        except Exception:
-            raise WebServiceError("PacketId must be an integer")
-
-        with self.db.view():
-            sessionObj = active_webservice_schema.Session.lookupAny(sessionId=session)
-
-            port = sessionObj.listening_port
-
-        self._logger.info("ActiveWebService initializing packet handler for %s", sessionObj)
-
-        responseQueue = queue.Queue()
-
-        def onEvent(event):
-            if event.matches.IncomingMessage:
-                responseQueue.put(event.message)
-
-            if (
-                event.matches.OutgoingConnectionFailed
-                or event.matches.OutgoingConnectionClosed
-            ):
-                responseQueue.put(DISCONNECT)
-
-        # connect to the other service
-        messageBus = MessageBus(
-            busIdentity="packet_bus_" + str(packetId) + "_" + str(session),
-            endpoint=None,
-            inMessageType=OneOf(str, bytes),
-            outMessageType=OneOf(str, bytes),
-            onEvent=onEvent,
-            authToken=self.runtimeConfig.authToken,
-        )
-
-        messageBus.start()
-
-        try:
-            connId = messageBus.connect(("localhost", port))
-
-            messageBus.sendMessage(
-                connId, '{"msg": "getPacket", "packet": ' + str(packetId) + "}"
-            )
-
-            try:
-                result = responseQueue.get(timeout=20)
-            except queue.Empty:
-                return "No packet response", 400
-
-            if result is DISCONNECT:
-                logging.error(
-                    "ActiveWebService failed to send packetId=%s because it was not "
-                    "able to connect to the running process.",
-                    packetId,
-                )
-                raise WebServiceError("Failed to connect to running active webservice")
-
-            # open a new connection
-            logging.info(
-                "ActiveWebService sending packetId=%s of size %s bytes to %s",
-                packetId,
-                len(result),
-                sessionObj,
-            )
-
-            if isinstance(result, bytes):
-                self._logger.info("Packet has type bytes")
-                response = make_response(result)
-                response.headers.set("Content-Type", "application/octet-stream")
-            elif isinstance(result, str):
-                self._logger.info("Packet has type str")
-                response = make_response(result.encode("utf-8"))
-                response.headers.set("Content-Type", "application/json")
-            else:
-                raise WebServiceError(f"Invalid packet content of type {type(result)}")
-
-            return response
-        except WebServiceError:
-            raise
-        except Exception as e:
-            logging.exception(
-                "ActiveWebService failed to send packet %s to %s", packetId, sessionObj
-            )
-            raise WebServiceError("Failed to get packet: " + str(e))
-        finally:
-            messageBus.stop()
 
     @login_required
     def mainSocket(self, ws, path):
@@ -479,7 +386,7 @@ class ActiveWebService(ServiceBase):
                 if toSend is None:
                     hasWsMessage.wait()
                 else:
-                    ws.send(toSend)
+                    ws.send(toSend, binary=isinstance(toSend, bytes))
 
         readGreenlet = Greenlet.spawn(readThread)
         writeGreenlet = Greenlet.spawn(writeThread)

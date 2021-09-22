@@ -187,26 +187,15 @@ class CellsSession:
             try:
                 jsonMsg = json.loads(msg)
 
-                if isinstance(jsonMsg, dict) and jsonMsg.get("msg") == "getPacket":
-                    self.sendPacketTo(connId, jsonMsg.get("packet"))
+                if "ACK" in jsonMsg:
+                    self.largeMessageAck.put(jsonMsg["ACK"])
                 else:
-                    if "ACK" in jsonMsg:
-                        self.largeMessageAck.put(jsonMsg["ACK"])
-                    else:
-                        self.cells.scheduleCallback(self.makeMessageCallback(jsonMsg))
+                    self.cells.scheduleCallback(self.makeMessageCallback(jsonMsg))
+
             except Exception:
                 logging.exception("Exception in inbound message:")
 
         self.largeMessageAck.put(DISCONNECT)
-
-    def sendPacketTo(self, connId, packetId):
-        packetContents = self.cells.getPacketContents(packetId)
-
-        if not isinstance(packetContents, (bytes, str)):
-            logging.error("Packet %s has no data: %s", packetId, type(packetContents))
-            self.sendMessage(connId, b"")
-        else:
-            self.sendMessage(connId, packetContents)
 
     def writeJsonMessage(self, message):
         """Send a message over the websocket.
@@ -317,6 +306,7 @@ class CellsSession:
             while not self.shouldStop.is_set():
                 t0 = time.time()
                 messages = self.cells.renderMessages()
+                packets = self.cells.getPackets()
 
                 self.lastDumpTimeSpentCalculating += time.time() - t0
 
@@ -353,6 +343,18 @@ class CellsSession:
                         return
 
                     self.onFrame()
+
+                if packets:
+                    # send all of our packets. Each packet is just a 'bytes' object.
+                    # packetIds are allocated in linear order, starting with 1, so
+                    # the receiving side can tell that each packet increments linearly
+                    # and can just store it in a buffer to be picked up later.
+                    for packetId, packetContents in packets.items():
+                        if not isinstance(packetContents, bytes):
+                            logging.error("Packet %s was not a bytes object", packetId)
+                            self.sendMessage(self.primaryConnId, b"")
+                        else:
+                            self.sendMessage(self.primaryConnId, packetContents)
 
                 self.cells.wait()
 

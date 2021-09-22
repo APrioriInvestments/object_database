@@ -77,6 +77,8 @@ const initializeCellsSession = function() {
         console.log("Session had an error: " + err);
     });
 
+    cellSocket.onPacket(cellHandler.onPacket);
+
     cellHandler.initialRender();
     cellSocket.connect();
 }

@@ -381,6 +381,13 @@ class LineFigure(Figure):
         assert isinstance(ys, ListOf(Float32)), type(ys)
         assert isinstance(colors, (Color, ListOf(Color))), type(colors)
 
+        assert len(xs) == len(ys)
+        if isinstance(lineWidths, ListOf):
+            assert len(lineWidths) == len(xs)
+
+        if isinstance(colors, ListOf):
+            assert len(xs) == len(colors)
+
         self.xs = xs
         self.ys = ys
         self.lineWidths = lineWidths

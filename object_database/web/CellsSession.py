@@ -98,6 +98,8 @@ class CellsSession:
 
         self.readThread = None
 
+        self.sentPacketId = 0
+
     def performSessionHandshake(self):
         """Wait for all initial handshakes to finish.
 
@@ -349,12 +351,25 @@ class CellsSession:
                     # packetIds are allocated in linear order, starting with 1, so
                     # the receiving side can tell that each packet increments linearly
                     # and can just store it in a buffer to be picked up later.
-                    for packetId, packetContents in packets.items():
-                        if not isinstance(packetContents, bytes):
-                            logging.error("Packet %s was not a bytes object", packetId)
-                            self.sendMessage(self.primaryConnId, b"")
+                    packets = sorted(packets.items())
+
+                    for packetId, packetContents in packets:
+                        if packetId < self.sentPacketId:
+                            logging.error("Somehow, we're sending packet %s again!", packetId)
                         else:
-                            self.sendMessage(self.primaryConnId, packetContents)
+                            while packetId > self.sentPacketId + 1:
+                                logging.error("Somehow, we are skipping packet %s", packetId)
+
+                                self.sendMessage(self.primaryConnId, b"")
+                                self.sentPacketId += 1
+
+                            if not isinstance(packetContents, bytes):
+                                logging.error("Packet %s was not a bytes object", packetId)
+                                self.sendMessage(self.primaryConnId, b"")
+                            else:
+                                self.sendMessage(self.primaryConnId, packetContents)
+
+                            self.sentPacketId = packetId
 
                 self.cells.wait()
 

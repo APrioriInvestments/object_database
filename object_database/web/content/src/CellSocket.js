@@ -128,7 +128,7 @@ class CellSocket {
         } else {
             throw new WebsocketNotSupported();
         }
-
+        this.socket.binaryType = "arraybuffer";
         this.socket.onclose = this.closeHandler;
         this.socket.onmessage = this.handleRawMessage;
         this.socket.onerror = this.errorHandler;
@@ -187,11 +187,11 @@ class CellSocket {
      * from the socket.
      */
     handleRawMessage(event){
-        if (event.data instanceof Blob) {
-            new Response(event.data).arrayBuffer().then(buffer => {
-                this.packetId += 1
-                this.packetHandler(this.packetId - 1, buffer);
-            });
+        if (event.data instanceof ArrayBuffer) {
+            let packetIdHere = this.packetId;
+            this.packetId += 1;
+
+            this.packetHandler(packetIdHere, event.data);
         } else {
             if(this.currentBuffer.remaining === null){
                 this.currentBuffer.remaining = JSON.parse(event.data);

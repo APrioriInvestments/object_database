@@ -21,6 +21,7 @@ from object_database.web.cells.slot import Slot
 from object_database.web.cells.subscribed import Subscribed, SubscribeAndRetry
 from object_database.web.cells.leaves import Traceback
 
+import math
 import traceback
 import logging
 
@@ -212,13 +213,16 @@ def createColor(color):
 @Entrypoint
 def minOf(values):
     if not values:
-        return None
+        return 0.0
 
     minValue = values[0]
 
     for v in values:
-        if v < minValue:
+        if v < minValue or math.isnan(minValue):
             minValue = v
+
+    if math.isnan(minValue):
+        return 0.0
 
     return minValue
 
@@ -226,13 +230,16 @@ def minOf(values):
 @Entrypoint
 def maxOf(values):
     if not values:
-        return None
+        return 0.0
 
     maxValue = values[0]
 
     for v in values:
-        if v > maxValue:
+        if v > maxValue or math.isnan(maxValue):
             maxValue = v
+
+    if math.isnan(maxValue):
+        return 0.0
 
     return maxValue
 

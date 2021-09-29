@@ -52,12 +52,6 @@ class Cells:
         # set(Cell)
         self._nodesToBroadcast = set()
 
-        # set(Cell)
-        self._nodesToDataUpdate = set()
-
-        # set(Cell)
-        self._nodesToDataRequest = set()
-
         # set(Cell.identity)
         self._nodeIdsToDiscard = set()
 
@@ -435,8 +429,6 @@ class Cells:
 
         self._pendingOutgoingMessages.clear()
         self._nodesToBroadcast = set()
-        self._nodesToDataUpdate = set()
-        self._nodesToDataRequest = set()
         self._nodeIdsToDiscard = set()
 
         # if packet['nodesUpdated']:

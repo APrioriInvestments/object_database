@@ -125,6 +125,7 @@ class CodeEditor extends ConcreteCell {
 
             if (isValidValue(this.props.initialText)) {
                 this.editor.setValue(this.props.initialText, 1);
+                this.editor.session.$undoManager.reset();
             }
 
             if (isValidValue(this.props.currentIteration)) {
@@ -212,6 +213,9 @@ class CodeEditor extends ConcreteCell {
         console.log("Resetting editor text to " + newBufferText.length
             + " because it changed on the server" +
             " Cur iteration is " + iteration + ".");
+
+        // clear the undo manager. We don't want to accidentally undo to a bad state
+        this.editor.session.$undoManager.reset();
 
         try {
             this.disableEventFiring = true;

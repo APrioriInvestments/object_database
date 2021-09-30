@@ -11,7 +11,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 import traceback
-
 from itertools import chain
 
 from object_database.web.ActiveWebServiceSchema import active_webservice_schema

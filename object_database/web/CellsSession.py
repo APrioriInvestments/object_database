@@ -399,6 +399,8 @@ class CellsSession:
             if "is instantiated in another codebase already" in str(e):
                 logging.info("Cells exiting because codebase is out of date.")
                 self.stop()
+            else:
+                raise
 
     def stop(self):
         self.shouldStop.set()

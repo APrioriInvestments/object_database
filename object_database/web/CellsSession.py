@@ -192,6 +192,8 @@ class CellsSession:
                 if "ACK" in jsonMsg:
                     self.largeMessageAck.put(jsonMsg["ACK"])
                 else:
+                    logging.info("Handle message %s", repr(jsonMsg)[:100])
+
                     self.cells.scheduleCallback(self.makeMessageCallback(jsonMsg))
 
             except Exception:
@@ -205,59 +207,13 @@ class CellsSession:
         We chunk it into small frames of 32 kb apiece to keep the browser
         from getting overloaded.
         """
-        FRAME_SIZE = 128 * 1024
-        FRAMES_PER_ACK = 10
-
         try:
             msg = json.dumps(message)
         except Exception:
             logging.exception("Failed to encode message as json.")
             return 0
 
-        # split msg into small frames
-        frames = []
-        i = 0
-        while i < len(msg):
-            frames.append(msg[i : i + FRAME_SIZE])
-            i += FRAME_SIZE
-
-        if len(frames) >= FRAMES_PER_ACK:
-            logging.info(
-                "Sending large message of %s bytes over %s frames", len(msg), len(frames)
-            )
-
-        self.sendMessage(self.primaryConnId, json.dumps(len(frames)))
-
-        for index, frame in enumerate(frames):
-            self.sendMessage(self.primaryConnId, frame)
-
-            # block until we get the ack for FRAMES_PER_ACK frames ago. That
-            # way we always have FRAMES_PER_ACK frames in the buffer.
-            framesSent = index + 1
-            if framesSent % FRAMES_PER_ACK == 0 and framesSent > FRAMES_PER_ACK:
-                ack = self.largeMessageAck.get()
-
-                if ack is DISCONNECT:
-                    return 0
-                else:
-                    assert ack == framesSent - FRAMES_PER_ACK, (
-                        ack,
-                        framesSent - FRAMES_PER_ACK,
-                    )
-
-        framesSent = len(frames)
-
-        if framesSent >= FRAMES_PER_ACK:
-            finalAckIx = framesSent - (framesSent % FRAMES_PER_ACK)
-
-            ack = self.largeMessageAck.get()
-
-            if ack is DISCONNECT:
-                return 0
-            else:
-                assert ack == finalAckIx, (ack, finalAckIx)
-
-        return len(message)
+        self.sendMessage(self.primaryConnId, msg)
 
     def onFrame(self):
         """Notice that we ticked a frame, log, and throttle so we don't jam the browser."""
@@ -292,7 +248,9 @@ class CellsSession:
                 maxTime = time.time() + 1.0 / MAX_FPS + 0.001
 
                 while time.time() < maxTime:
-                    time.sleep(0.01)
+                    sleepTime = maxTime - time.time()
+                    if sleepTime > 0.0:
+                        time.sleep(sleepTime)
 
                     if self.shouldStop.is_set():
                         return
@@ -315,34 +273,17 @@ class CellsSession:
                 if time.time() - t0 > 0.1:
                     logging.info(
                         "Rendering message packet with %s updates "
-                        "and %s new cells took %.2f seconds.",
+                        "and %s new cells took %.4f seconds.",
                         sum(len(message.get("nodesUpdated", ())) for message in messages),
                         sum(len(message.get("nodesCreated", ())) for message in messages),
                         time.time() - t0,
                     )
 
                 if messages:
-                    bytesSent = 0
-
                     for message in messages:
-                        bytesSent += self.writeJsonMessage(message)
+                        self.writeJsonMessage(message)
 
                         self.lastDumpMessages += 1
-
-                    if bytesSent > 100 * 1024:
-                        logging.info(
-                            "Sent a large message packet of %.2f mb", bytesSent / 1024.0 ** 2
-                        )
-
-                    # request an ACK from the browser before sending any more data
-                    # otherwise it can get overloaded and crash because it can't
-                    # keep up with the data volume
-                    self.writeJsonMessage("request_ack")
-
-                    ack = self.largeMessageAck.get()
-
-                    if ack is DISCONNECT:
-                        return
 
                     self.onFrame()
 

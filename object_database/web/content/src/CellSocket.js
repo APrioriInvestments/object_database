@@ -10,15 +10,6 @@ class WebsocketNotSupported extends Error {
     }
 }
 
-/**
- * This is the global frame
- * control. We might consider
- * putting it elsewhere, but
- * `CellSocket` is its only
- * consumer.
- */
-const FRAMES_PER_ACK = 10;
-
 
 /**
  * CellSocket Controller
@@ -39,12 +30,7 @@ class CellSocket {
         // Instance Props
         this.uri = this.getUri();
         this.socket = null;
-        this.currentBuffer = {
-            remaining: null,
-            buffer: null,
-            hasDisplay: false
-        };
-
+        
         /**
          * A callback for handling messages
          * that are normal JSON data messages.
@@ -147,32 +133,6 @@ class CellSocket {
         }
     }
 
-    // Ideally we move the dom operations of
-    // this function out into another class or
-    // context.
-    /**
-     * Using the internal `currentBuffer`, this
-     * method checks to see if a large multi-frame
-     * piece of websocket data is being sent. If so,
-     * it presents and updates a specific display in
-     * the DOM with the current percentage etc.
-     * @param {string} msg - The message to
-     * display inside the element
-     */
-    setLargeDownloadDisplay(msg){
-
-        if(msg.length == 0 && !this.currentBuffer.hasDisplay){
-            return;
-        }
-
-        this.currentBuffer.hasDisplay = (msg.length != 0);
-
-        let element = document.getElementById("object_database_large_pending_download_text");
-        if(element != undefined){
-            element.innerHTML = msg;
-        }
-    }
-
     /**
      * Handles the `onmessage` event of the underlying
      * websocket.
@@ -193,51 +153,10 @@ class CellSocket {
 
             this.packetHandler(packetIdHere, event.data);
         } else {
-            if(this.currentBuffer.remaining === null){
-                this.currentBuffer.remaining = JSON.parse(event.data);
-                this.currentBuffer.buffer = [];
-                if(this.currentBuffer.hasDisplay && this.currentBuffer.remaining == 1){
-                    // SET LARGE DOWNLOAD DISPLAY
-                }
-                return;
-            }
+            let update = JSON.parse(event.data);
 
-            this.currentBuffer.remaining -= 1;
-            this.currentBuffer.buffer.push(event.data);
-
-            if(this.currentBuffer.buffer.length % FRAMES_PER_ACK == 0){
-                //ACK every tenth message. We have to do active pushback
-                //because the websocket disconnects on Chrome if you jam too
-                //much in at once
-                this.sendString(
-                    JSON.stringify({
-                        "ACK": this.currentBuffer.buffer.length
-                    }));
-                let percentage = Math.round(100*this.currentBuffer.buffer.length / (this.currentBuffer.remaining + this.currentBuffer.buffer.length));
-                let total = Math.round((this.currentBuffer.remaining + this.currentBuffer.buffer.length) / (1024 / 32));
-                let progressStr = `(Downloaded ${percentage}% of ${total} MB)`;
-                this.setLargeDownloadDisplay(progressStr);
-            }
-
-            if(this.currentBuffer.remaining > 0){
-                return;
-            }
-
-            this.setLargeDownloadDisplay("");
-
-            let joinedBuffer = this.currentBuffer.buffer.join('')
-
-            this.currentBuffer.remaining = null;
-            this.currentBuffer.buffer = null;
-
-            let update = JSON.parse(joinedBuffer);
-
-            if(update == 'request_ack') {
-                this.sendString(JSON.stringify({'ACK': 0}))
-            } else {
-                if(this.messageHandler){
-                    this.messageHandler(update);
-                }
+            if (this.messageHandler) {
+                this.messageHandler(update);
             }
         }
     }

@@ -36,6 +36,7 @@ const onSessionDisconnected = function(e) {
 
     reconnectAt = Date.now() + waitSeconds * 1000;
 
+    cellHandler.tearDownAllLiveCells();
     cellHandler.showConnectionClosed(waitSeconds);
 
     // attempt to reconnect

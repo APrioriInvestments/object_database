@@ -37,6 +37,7 @@ class CellHandler {
         this.updateCell = this.updateCell.bind(this);
         this.handleSessionId = this.handleSessionId.bind(this);
         this.cellReceivedFocus = this.cellReceivedFocus.bind(this);
+        this.tearDownAllLiveCells = this.tearDownAllLiveCells.bind(this);
 
         this.onPacket = this.onPacket.bind(this);
         this.requestPacket = this.requestPacket.bind(this);
@@ -57,6 +58,12 @@ class CellHandler {
 
         // the server-assigned session
         this.sessionId = null;
+    }
+
+    tearDownAllLiveCells() {
+        Object.values(this.activeCells).forEach(node => {
+            node.cellWillUnload();
+        });
     }
 
     onPacket(packetId, packet) {

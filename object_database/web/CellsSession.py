@@ -192,8 +192,6 @@ class CellsSession:
                 if "ACK" in jsonMsg:
                     self.largeMessageAck.put(jsonMsg["ACK"])
                 else:
-                    logging.info("Handle message %s", repr(jsonMsg)[:100])
-
                     self.cells.scheduleCallback(self.makeMessageCallback(jsonMsg))
 
             except Exception:

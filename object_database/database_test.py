@@ -1937,6 +1937,7 @@ class ObjectDatabaseTests:
         m2 = numpy.mean(times[-1000:])
         self.assertTrue(abs(m2 / m1 - 1) < 1, (m1, m2))
 
+    @flaky(max_runs=3, min_passes=1)
     def test_memory_growth(self):
         db1 = self.createNewDb()
         db2 = self.createNewDb()

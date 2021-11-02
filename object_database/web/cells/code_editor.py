@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from typed_python import Alternative, NamedTuple, TupleOf
 
 from object_database.web.cells.cell import FocusableCell
 from object_database.web.cells.computing_cell_context import ComputingCellContext
@@ -135,6 +136,8 @@ class CodeEditor(FocusableCell):
         """ Send a message to set the first visible row of the editor to
         rowNum.
 
+        rowNumbers are 1-based.
+
         Parameters
         ----------
         rowNum : int
@@ -144,8 +147,7 @@ class CodeEditor(FocusableCell):
         self.scheduleMessage({"firstVisibleRow": rowNum})
 
     def setSelection(self, selection):
-        """ Send a message to set the first visible row of the editor to
-        rowNum.
+        """ Send a message to set the current selection..
 
         Args:
             selection - a dict(
@@ -153,7 +155,9 @@ class CodeEditor(FocusableCell):
                 end=dict(row=int, column=int)
             )
 
-            indicating what our selection state should be
+            indicating what our selection state should be.
+
+        Row and column numbers are 1-based.
         """
         assert isinstance(selection, dict)
         selection = dict(

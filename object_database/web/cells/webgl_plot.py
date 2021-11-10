@@ -959,8 +959,6 @@ class WebglPlot(Cell):
         if plotData == self.exportData.get("plotData"):
             return
 
-        self.markDirty()
-
         self.exportData["plotData"] = plotData
 
     def onMessage(self, message):

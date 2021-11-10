@@ -45,6 +45,20 @@ class BasicPlot(CellsTestPage):
         )
 
 
+class PlotWithTimeDependency(CellsTestPage):
+    def cell(self):
+        s = cells.Slot(0)
+
+        import time
+        t0 = time.time()
+        def data():
+            return ([{"x": [1, 2, 3], "y": [1, s.get(), time.time() - t0]}], {})
+
+        return cells.Text("Some text above a card with a plot inside") + cells.Card(
+            cells.Plot(data), header="Header text"
+        ) + cells.Button("increment", lambda: s.set(s.get()+1))
+
+
 class TogglePlot(CellsTestPage):
     def cell(self):
         show = cells.Slot(True)

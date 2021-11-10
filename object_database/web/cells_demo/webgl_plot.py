@@ -13,6 +13,8 @@
 #   limitations under the License.
 
 import math
+import time
+
 from object_database.web import cells as cells
 from object_database.web.cells.webgl_plot import Plot
 from object_database.web.CellsTestPage import CellsTestPage
@@ -48,6 +50,27 @@ class BasicWebglPlot(CellsTestPage):
             "you should see a graphic you can scroll around on. "
             "Pressing the button should change it"
         )
+
+
+class PlotWithTimeDependency(CellsTestPage):
+    def cell(self):
+        s = cells.Slot(0)
+
+        t0 = time.time()
+
+        def data():
+            return Plot.create([1, 2, 3], [1, s.get(), time.time() - t0])
+
+        return cells.Text("Some text above a card with a plot inside") + cells.Card(
+            cells.WebglPlot(data), header="Header text"
+        ) + cells.Button("increment", lambda: s.set(s.get()+1))
+
+    def text(self):
+        return (
+            "you should see a plot with a button below it. It shouldn't use 100% CPU. "
+            "Pressing the button should change it"
+        )
+
 
 
 class WebglLinesTightAngles(CellsTestPage):

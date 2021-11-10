@@ -49,9 +49,6 @@ class Plot(Cell):
         if error == self.exportData.get("error") and plotData == self.plotData:
             return
 
-        if error != self.exportData.get("error") or plotData != self.plotData:
-            self.markDirty()
-
         self.exportData["error"] = error
         self.exportData["packetId"] = self.cells.getPacketId(self.getPacketData)
 

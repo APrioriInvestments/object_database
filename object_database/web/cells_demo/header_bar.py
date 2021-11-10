@@ -14,6 +14,7 @@
 
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
+from object_database.web.cells.webgl_plot import Plot
 
 
 class HeaderWithResizerAndPlots(CellsTestPage):
@@ -21,8 +22,8 @@ class HeaderWithResizerAndPlots(CellsTestPage):
         return cells.HeaderBar(
             [cells.Text("Left")], [cells.Text("Middle")], [cells.Text("Right")]
         ) + cells.ResizablePanel(
-            cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {})),
-            cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {})),
+            cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3])),
+            cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3])),
         )
 
     def text(self):
@@ -33,8 +34,8 @@ class PageViewWithResizerAndPlots(CellsTestPage):
     def cell(self):
         return cells.PageView(
             cells.ResizablePanel(
-                cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {})),
-                cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {})),
+                cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3])),
+                cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3])),
             ),
             header=cells.HeaderBar(
                 [cells.Text("Left Head")],

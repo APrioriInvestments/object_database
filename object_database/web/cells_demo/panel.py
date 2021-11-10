@@ -14,6 +14,7 @@
 
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
+from object_database.web.cells.webgl_plot import Plot
 
 
 class BasicPanel(CellsTestPage):
@@ -146,9 +147,7 @@ class PanelAndNestedFlexWithSwitching(CellsTestPage):
                         cells.Subscribed(
                             lambda: cells.Panel(
                                 cells.Subscribed(
-                                    lambda: cells.Plot(
-                                        lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {})
-                                    )
+                                    cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
                                     if isSequence.get()
                                     else None
                                 )

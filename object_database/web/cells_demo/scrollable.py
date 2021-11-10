@@ -14,6 +14,7 @@
 
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
+from object_database.web.cells.webgl_plot import Plot
 
 
 class basicScrollable(CellsTestPage):
@@ -86,19 +87,19 @@ class ScrollableWithSeveralPlots(CellsTestPage):
     def cell(self):
         return cells.Scrollable(
             (
-                cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
-                >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
-                >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+                cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+                >> cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+                >> cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
             )
             + (
-                cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
-                >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
-                >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+                cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+                >> cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+                >> cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
             )
             + (
-                cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
-                >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
-                >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+                cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+                >> cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+                >> cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
             )
         )
 
@@ -109,11 +110,11 @@ class ScrollableWithSeveralPlots(CellsTestPage):
 class ScrollableHWithSeveralPlots(CellsTestPage):
     def cell(self):
         return cells.HScrollable(
-            cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
-            >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
-            >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
-            >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
-            >> cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+            cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+            >> cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+            >> cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+            >> cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+            >> cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
         )
 
     def text(self):
@@ -123,11 +124,11 @@ class ScrollableHWithSeveralPlots(CellsTestPage):
 class ScrollableVWithSeveralPlots(CellsTestPage):
     def cell(self):
         return cells.VScrollable(
-            cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
-            + cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
-            + cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
-            + cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
-            + cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+            cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+            + cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+            + cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+            + cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+            + cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
         )
 
     def text(self):

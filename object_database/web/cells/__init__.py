@@ -70,7 +70,6 @@ from object_database.web.cells.computed_slot import ComputedSlot
 from object_database.web.cells.contextual_display import ContextualDisplay, registerDisplay
 from object_database.web.cells.views.split_view import SplitView
 from object_database.web.cells.code_editor import CodeEditor
-from object_database.web.cells.plot import Plot
 from object_database.web.cells.table import Table
 from object_database.web.cells.padding import Padding
 from object_database.web.cells.border import Border

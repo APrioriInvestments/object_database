@@ -52,7 +52,6 @@ import {Flex} from './components/Flex';
 import {FillSpace} from './components/FillSpace';
 import {Grid} from './components/Grid';
 import {Sheet} from './components/Sheet';
-import {Plot} from './components/Plot';
 import {WebglPlot} from './components/WebglPlot';
 import {Timestamp} from './components/Timestamp';
 import {SplitView} from './components/SplitView';
@@ -92,7 +91,6 @@ const ComponentRegistry = {
     Border,
     PageView,
     Panel,
-    Plot,
     Popover,
     ResizablePanel,
     RootCell,

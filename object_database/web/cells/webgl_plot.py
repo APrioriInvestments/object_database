@@ -834,11 +834,8 @@ class WebglPlot(Cell):
     def __init__(self, plotDataGenerator):
         """Initialize a line plot.
 
-        plotDataGenerator: a function that produces plot data to pass to plotly.
-            the function should return a tuple with two values: (data, layout), where
-            'data' contains a list of trace objects to be passed to plotly, and 'layout'
-            contains a dictionary of layout values to be merged into the layout we pass
-            into plotly.
+        plotDataGenerator: a function that produces plot data to render.
+            the function should return an object_database.webgl_plot.Plot object.
         """
         super().__init__()
 

@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 from object_database.web import cells as cells
+from object_database.web.cells.webgl_plot import Plot
 from object_database.web.CellsTestPage import CellsTestPage
 
 
@@ -60,7 +61,7 @@ class CardWithFlexChildInSequence(CellsTestPage):
 class CardWithPlot(CellsTestPage):
     def cell(self):
         return cells.Text("Some text above a card with a plot inside") + cells.Card(
-            cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {})), header="Header text"
+            cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3])), header="Header text"
         )
 
     def text(self):
@@ -74,7 +75,7 @@ class CardWithPlotInSubscribed(CellsTestPage):
     def cell(self):
         return cells.Text("Some text above a card with a panel inside") + cells.Card(
             cells.Subscribed(
-                lambda: cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+                lambda: cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
             ),
             header="Header text",
         )
@@ -89,7 +90,7 @@ class CardWithPlotInSubscribed(CellsTestPage):
 class CardWithPanelAndPlot(CellsTestPage):
     def cell(self):
         return cells.Text("Some text above a card with a panel inside") + cells.Card(
-            cells.Panel(cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {})))
+            cells.Panel(cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3])))
         )
 
     def text(self):
@@ -103,7 +104,7 @@ class CardPassesThroughFlexnessChanges(CellsTestPage):
         return cells.Button("Toggle between plot and text", isPanel.toggle) + cells.Card(
             cells.Subscribed(
                 lambda: (
-                    cells.Plot(lambda: ([{"x": [1, 2, 3], "y": [1, 2, 3]}], {}))
+                    cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
                     if isPanel.get()
                     else cells.Card("ACard", header="Header")
                 )

@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import ast
 import logging
 import numpy
 import os
@@ -30,27 +29,11 @@ from object_database.service_manager.ServiceManager import ServiceManager
 from object_database.service_manager.ServiceBase import ServiceBase
 import object_database.service_manager.ServiceInstance as ServiceInstance
 from object_database.web.cells import (
-    Button,
-    SubscribedSequence,
-    Subscribed,
-    Text,
-    Dropdown,
     Card,
-    Plot,
-    Code,
-    Slot,
-    CodeEditor,
-    Tabs,
-    Grid,
-    Flex,
     ensureSubscribedType,
-    Expands,
-    ButtonGroup,
-    Octicon,
-    SplitView,
 )
 
-from object_database import Schema, Indexed, core_schema, Index, service_schema, Reactor
+from object_database import Schema, Indexed, core_schema, service_schema, Reactor
 
 ownDir = os.path.dirname(os.path.abspath(__file__))
 ownName = os.path.basename(os.path.abspath(__file__))
@@ -179,333 +162,34 @@ class ReactorService(ServiceBase):
             status.clear()
 
 
-@schema.define
-class TextEditor:
-    code = str
+simpleTestServiceSchema = Schema("core.test.simpleTestService")
 
 
-class TextEditorService(ServiceBase):
-    def initialize(self):
-        self.db.subscribeToSchema(core_schema, service_schema, schema)
-        self.db.subscribeToType(TextEditor)
-
-        with self.db.transaction():
-            code = TextEditor.lookupAny()
-
-            if not code:
-                code = TextEditor()
-                code.code = "{'x': [1,2,3,4,5], 'y': [1,5,1,5,1]}"
-
-    @staticmethod
-    def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
-        ensureSubscribedType(TextEditor)
-
-        toEval = Slot("{'x': [1,2,3,4,5], 'y': [1,5,1,5,1]}")
-
-        def onEnter(buffer, selection):
-            toEval.set(buffer)
-            TextEditor.lookupAny().code = buffer
-
-        def onTextChange(buffer, selection):
-            if TextEditor.lookupAny() is not None:
-                TextEditor.lookupAny().code = buffer
-
-        def textToDisplay():
-            ed = TextEditor.lookupAny()
-            if ed is not None:
-                return ed.code
-
-        ed = CodeEditor(
-            keybindings={"Enter": onEnter},
-            noScroll=True,
-            minLines=50,
-            onTextChange=onTextChange,
-            textToDisplayFunction=textToDisplay,
-        )
-
-        def makePlotData():
-            # data must be a list or dict here, but this is checked/asserted
-            # down the line in cells. Sending anything that is not a dict/list
-            # will break the entire plot.
-            try:
-                data = ast.literal_eval(toEval.get())
-            except (AttributeError, SyntaxError):
-                data = {}
-            return [data], {"title": "some stuff"}
-
-        return SplitView([(ed, 1), (Card(Plot(makePlotData)), 1)])
-
-
-class GraphDisplayService(ServiceBase):
-    def initialize(self):
-        self.db.subscribeToSchema(core_schema, service_schema, schema)
-        with self.db.transaction():
-            if not Feigenbaum.lookupAny():
-                Feigenbaum(y=2.0, density=800)
-
-    @staticmethod
-    def addAPoint():
-        PointsToShow(timestamp=time.time(), y=len(PointsToShow.lookupAll()) ** 2.2)
-
-    @staticmethod
-    def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
-        ensureSubscribedType(PointsToShow)
-        ensureSubscribedType(Feigenbaum)
-        depth = Slot(50)
-
-        def twinned():
-            data = {
-                "name": "PointsToShow",
-                "timestamp": [1500000000 + x for x in range(1000)],
-                "y": [numpy.sin(x) for x in range(1000)],
-            }
-            slot = Slot(None)
-            p1 = Plot(lambda: ([data], {}), xySlot=slot)
-            p2 = Plot(lambda: ([data], {}), xySlot=slot)
-
-            def synchronize():
-                if slot.get() is not None:
-                    p1.setXRange(*slot.get()[0])
-                    p2.setXRange(*slot.get()[0])
-
-            return p1 + p2 + Subscribed(synchronize)
-
-        return Tabs(
-            Overlay=Card(
-                Plot(
-                    lambda: (
-                        [
-                            {"y": [1, 2, 3, 1, 2, 3], "name": "single_array"},
-                            {"x": [1, 2, 3, 1, 2, 3], "y": [4, 5, 6, 7, 8, 9], "name": "xy"},
-                        ],
-                        {},
-                    )
-                )
-                + Code("HI")
-            ),
-            AGrid=Grid(
-                colFun=lambda: ["A", "B", "B"],
-                rowFun=lambda: ["1", "2", "2"],
-                headerFun=lambda x: x,
-                rowLabelFun=None,
-                rendererFun=lambda row, col: row + col,
-            ),
-            Twinned=Subscribed(twinned),
-            feigenbaum=(
-                Dropdown(
-                    "Depth",
-                    [(val, depth.setter(val)) for val in [10, 50, 100, 250, 500, 750, 1000]],
-                )
-                + Dropdown(
-                    "Polynomial",
-                    [1.0, 1.5, 2.0],
-                    lambda polyVal: setattr(Feigenbaum.lookupAny(), "y", float(polyVal)),
-                )
-                + Dropdown(
-                    "Density",
-                    list(range(100, 10000, 100)),
-                    lambda polyVal: setattr(Feigenbaum.lookupAny(), "density", float(polyVal)),
-                )
-                + Card(GraphDisplayService.makeFeigenbaum(depth))
-            ),
-        )
-
-    @staticmethod
-    def chartData():
-        points = sorted(PointsToShow.lookupAll(), key=lambda p: p.timestamp)
-
-        return (
-            [
-                {
-                    "name": "PointsToShow",
-                    "timestamp": [p.timestamp for p in points],
-                    "y": [p.y for p in points],
-                }
-            ],
-            {},
-        )
-
-    @staticmethod
-    def makeFeigenbaum(depth):
-        xySlot = Slot(None)
-        return Plot(lambda: GraphDisplayService.feigenbaum(xySlot, depth.get()), xySlot=xySlot)
-
-    @staticmethod
-    def feigenbaum(xySlot, depth):
-        if xySlot.get() is None:
-            left, right = 0.0, 4.0
-        else:
-            left, right = xySlot.get()[0]
-            left = max(0.0, left) if left is not None else 3
-            right = min(4.0, right) if right is not None else 4
-            left = min(left, right - 1e-6)
-            right = max(left + 1e-6, right)
-
-        values = numpy.linspace(left, right, Feigenbaum.lookupAny().density, endpoint=True)
-
-        y = Feigenbaum.lookupAny().y
-
-        def feigenbaum(values):
-            x = numpy.ones(len(values)) * 0.5
-            for _ in range(10000):
-                x = (values * x * (1 - x)) ** ((y) ** 0.5)
-
-            its = []
-            for _ in range(depth):
-                x = (values * x * (1 - x)) ** ((y) ** 0.5)
-                its.append(x)
-
-            return numpy.concatenate(its)
-
-        fvals = feigenbaum(values)
-
-        return (
-            [
-                {
-                    "name": "feigenbaum",
-                    "x": numpy.concatenate([values] * (len(fvals) // len(values))),
-                    "y": fvals,
-                    "type": "scattergl",
-                    "mode": "markers",
-                    "opacity": 0.5,
-                    "marker": {"size": 2},
-                }
-            ],
-            {"title": "a feigenbaum diagram", "xaxis": {"title": "the x axis"}},
-        )
-
-
-bigGrid = Schema("core.test.biggrid")
-
-
-@bigGrid.define
-class GridValue:
-    row = int
-    col = int
-    row_and_col = Index("row", "col")
-
-    value = int
-
-
-ROW_COUNT = 100
-COL_COUNT = 10
-GRID_INTERVAL = 0.1
-
-
-class BigGridTestService(ServiceBase):
-    @staticmethod
-    def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
-        ensureSubscribedType(GridValue)
-
-        return Grid(
-            colFun=lambda: list(range(COL_COUNT)),
-            rowFun=lambda: list(range(ROW_COUNT)),
-            headerFun=lambda x: x,
-            rowLabelFun=None,
-            rendererFun=lambda row, col: Subscribed(
-                lambda: GridValue.lookupAny(row_and_col=(row, col)).value
-            ),
-        )
-
-    def doWork(self, shouldStop):
-        self.db.subscribeToType(GridValue)
-
-        with self.db.transaction():
-            for row in range(ROW_COUNT):
-                for col in range(COL_COUNT):
-                    GridValue(row=row, col=col, value=0)
-
-        passIx = 0
-        while not shouldStop.is_set():
-            #  print("WRITNG ", passIx)
-            passIx += 1
-            time.sleep(GRID_INTERVAL)
-            rows_and_cols = [
-                (row, col) for row in range(ROW_COUNT) for col in range(COL_COUNT)
-            ]
-            numpy.random.shuffle(rows_and_cols)
-
-            for row, col in rows_and_cols:
-                with self.db.transaction():
-                    GridValue.lookupAny(row_and_col=(row, col)).value = passIx
-
-
-happy = Schema("core.test.happy")
-
-
-@happy.define
-class Happy:
+@simpleTestServiceSchema.define
+class SimpleTestObject:
     i = int
 
-    timesClicked = int
-
     def display(self, queryParams=None):
-        ensureSubscribedType(Happy)
-        return Card("Happy %s. " % self.i + str(queryParams))
+        ensureSubscribedType(SimpleTestObject)
+        return Card("SimpleTestObject %s. " % self.i + str(queryParams))
 
 
-class HappyService(ServiceBase):
+class SimpleTestService(ServiceBase):
     def initialize(self):
         pass
 
-    @staticmethod
-    def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
-        ensureSubscribedType(Happy)
-
-        if instance:
-            return instance.display(queryArgs)
-
-        def happyDisplay(h):
-            return Subscribed(
-                lambda: Button(
-                    f"I am {h._identity} clicked me {h.timesClicked} times",
-                    lambda: setattr(h, "timesClicked", h.timesClicked + 1),
-                )
-                >> Button(Octicon("x"), lambda: h.delete())
-            )
-
-        return (
-            Card(
-                Subscribed(
-                    lambda: Text(
-                        "There are %s happy objects <this should not have lessthans>"
-                        % len(Happy.lookupAll())
-                    )
-                )
-                + Expands(
-                    Text("Closed"),
-                    Subscribed(lambda: HappyService.serviceDisplay(serviceObject)),
-                )
-            )
-            + Button("add a happy", lambda: Happy(i=101))
-            + Flex(
-                SubscribedSequence(
-                    lambda: sorted(Happy.lookupAll(), key=lambda h: h.timesClicked),
-                    happyDisplay,
-                )
-            )
-            + Subscribed(
-                lambda: ButtonGroup(
-                    [
-                        Button(Octicon("list-unordered"), lambda: None, active=lambda: True),
-                        Button(Octicon("terminal"), lambda: None, active=lambda: True),
-                        Button(Octicon("graph"), lambda: None, active=lambda: True),
-                    ]
-                )
-            )
-        )
-
     def doWork(self, shouldStop):
-        self.db.subscribeToSchema(happy)
+        self.db.subscribeToSchema(simpleTestServiceSchema)
 
         with self.db.transaction():
-            h = Happy(i=1)
-            h = Happy(i=2)
+            h = SimpleTestObject(i=1)
+            h = SimpleTestObject(i=2)
 
         while not shouldStop.is_set():
             shouldStop.wait(0.5)
             with self.db.transaction():
-                h = Happy()
+                h = SimpleTestObject()
+
             shouldStop.wait(0.5)
             with self.db.transaction():
                 h.delete()
@@ -771,7 +455,9 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             self.assertEqual(len(getInstances()), 0)
 
         with self.database.transaction():
-            ServiceManager.createOrUpdateService(HappyService, "HappyService", target_count=1)
+            ServiceManager.createOrUpdateService(
+                SimpleTestService, "SimpleTestService", target_count=1
+            )
 
         self.assertTrue(self.database.waitForCondition(lambda: len(getInstances()) == 1, 1))
 
@@ -789,7 +475,9 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             self.assertEqual(len(instances), 0)
 
         with self.database.transaction():
-            ServiceManager.createOrUpdateService(HappyService, "HappyService", target_count=2)
+            ServiceManager.createOrUpdateService(
+                SimpleTestService, "SimpleTestService", target_count=2
+            )
 
         self.assertTrue(
             self.database.waitForCondition(
@@ -805,23 +493,24 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
 
         with self.database.transaction():
             with self.assertRaisesRegex(Exception, "Failed to remove"):
-                ServiceManager.removeService("HappyService")
+                ServiceManager.removeService("SimpleTestService")
 
-            ServiceManager.stopService("HappyService")
+            ServiceManager.stopService("SimpleTestService")
 
         def serviceState():
             with self.database.view():
-                service = service_schema.Service.lookupAny(name="HappyService")
+                service = service_schema.Service.lookupAny(name="SimpleTestService")
                 instances = service_schema.ServiceInstance.lookupAll(service=service)
                 return [i.state for i in instances]
 
         timeout = 6.0 * self.ENVIRONMENT_WAIT_MULTIPLIER
         self.assertTrue(
-            ServiceManager.waitStopped(self.database, "HappyService", timeout), serviceState()
+            ServiceManager.waitStopped(self.database, "SimpleTestService", timeout),
+            serviceState(),
         )
 
         with self.database.transaction():
-            ServiceManager.removeService("HappyService")
+            ServiceManager.removeService("SimpleTestService")
             services = service_schema.Service.lookupAll()
             self.assertEqual(len(services), 0)
             instances = service_schema.ServiceInstance.lookupAll()
@@ -835,7 +524,9 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             self.assertEqual(len(instances), 0)
 
         with self.database.transaction():
-            ServiceManager.createOrUpdateService(HappyService, "HappyService", target_count=2)
+            ServiceManager.createOrUpdateService(
+                SimpleTestService, "SimpleTestService", target_count=2
+            )
 
         self.assertTrue(
             self.database.waitForCondition(
@@ -850,7 +541,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             self.assertEqual(len(instances), 2)
 
         with self.database.transaction():
-            ServiceManager.removeService("HappyService", force=True)
+            ServiceManager.removeService("SimpleTestService", force=True)
             services = service_schema.Service.lookupAll()
             self.assertEqual(len(services), 0)
             instances = service_schema.ServiceInstance.lookupAll()

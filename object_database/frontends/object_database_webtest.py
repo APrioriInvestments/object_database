@@ -14,25 +14,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import os
 import sys
 import tempfile
-import textwrap
 import time
 
 from object_database.service_manager.ServiceManager import ServiceManager
 
-from object_database.service_manager.ServiceManager_test import (
-    GraphDisplayService,
-    TextEditorService,
-    HappyService,
-    # UninitializableService,
-    BigGridTestService,
-)
-
 from object_database.web.CellsTestService import CellsTestService
-
-from object_database.web.EditorDisplayService import EditorDisplayService
 
 from object_database.web.ActiveWebServiceSchema import active_webservice_schema
 from object_database.web.ActiveWebService import ActiveWebService
@@ -40,28 +28,6 @@ from object_database import connect, core_schema, service_schema
 from object_database.frontends.service_manager import startServiceManagerProcess
 from object_database.util import genToken
 from object_database.web.LoginPlugin import LoginIpPlugin
-
-
-ownDir = os.path.dirname(os.path.abspath(__file__))
-
-
-TEST_SERVICE = """
-    from object_database.service_manager.ServiceBase import ServiceBase
-
-    class TestService(ServiceBase):
-        gbRamUsed = 0
-        coresUsed = 0
-
-        def initialize(self):
-            with self.db.transaction():
-                self.runtimeConfig.serviceInstance.statusMessage = "Loaded"
-
-        def doWork(self, shouldStop):
-            shouldStop.wait()
-
-        def display(self, queryParams=None):
-            return "test service display message"
-    """
 
 
 def main(argv=None):
@@ -117,44 +83,6 @@ def main(argv=None):
                 service = ServiceManager.createOrUpdateService(
                     CellsTestService, "CellsTestService", target_count=1
                 )
-
-            with database.transaction():
-                service = ServiceManager.createOrUpdateService(
-                    EditorDisplayService, "EditorDisplayService", target_count=1
-                )
-
-            with database.transaction():
-                service = ServiceManager.createOrUpdateService(
-                    HappyService, "HappyService", target_count=1
-                )
-            with database.transaction():
-                service = ServiceManager.createOrUpdateService(
-                    GraphDisplayService, "GraphDisplayService", target_count=1
-                )
-            with database.transaction():
-                service = ServiceManager.createOrUpdateService(
-                    TextEditorService, "TextEditorService", target_count=1
-                )
-
-            with database.transaction():
-                service = ServiceManager.createOrUpdateService(
-                    BigGridTestService, "BigGridTestService", target_count=1
-                )
-
-            with database.transaction():
-                ServiceManager.createOrUpdateService(
-                    "test_service.service.TestService",
-                    "TestService",
-                    10,
-                    codebase=service_schema.Codebase.createFromFiles(
-                        {
-                            "test_service/__init__.py": "",
-                            "test_service/service.py": textwrap.dedent(TEST_SERVICE),
-                        }
-                    ),
-                )
-
-            print("SERVER IS BOOTED")
 
             while True:
                 time.sleep(0.1)

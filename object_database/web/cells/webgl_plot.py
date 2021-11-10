@@ -188,6 +188,8 @@ colorTable = dict(
     green=Color(green=255, alpha=255),
     blue=Color(blue=255, alpha=255),
     white=Color(red=255, green=255, blue=255, alpha=255),
+    lightGray=Color(red=211, green=211, blue=211, alpha=255),
+    darkGray=Color(red=169, green=169, blue=169, alpha=255),
     black=Color(red=0, green=0, blue=0, alpha=255),
 )
 

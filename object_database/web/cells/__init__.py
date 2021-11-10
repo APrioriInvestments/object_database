@@ -58,7 +58,7 @@ from object_database.web.cells.subscribed import (
     VSubscribedSequence,
 )
 
-from object_database.web.cells.webgl_plot import WebglPlot
+from object_database.web.cells.webgl_plot import WebglPlot, Plot
 from object_database.web.cells.card import Card, CardTitle
 from object_database.web.cells.modal import Modal, ButtonModal
 from object_database.web.cells.button import Clickable, Button, ButtonGroup

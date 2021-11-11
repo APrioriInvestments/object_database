@@ -1,5 +1,8 @@
-import time
+import os
 import pytest
+import tempfile
+import threading
+import time
 
 from object_database.schema import Schema, Indexed
 from .reactor import Reactor, Timeout
@@ -66,8 +69,6 @@ def test_reactor_invalid_uses(in_mem_odb_connection):
     r = Reactor(in_mem_odb_connection, noop)
 
     r.next()
-    with pytest.raises(Exception, match="Reactor .* would block forever"):
-        r.next()
 
     r.start()
     assert r.isRunning()
@@ -341,7 +342,33 @@ def test_reactor_synchronous(db):
     r1.teardown()
 
 
-def test_reactor_block_until_true(db):
+def test_reactor_block_until_true_external(db):
+    db.subscribeToSchema(schema)
+
+    with tempfile.TemporaryDirectory() as tempDir:
+
+        def createFile():
+            time.sleep(0.5)
+            path = os.path.join(tempDir, "asdf.txt")
+            with open(path, "w") as f:
+                f.write("asdf")
+
+        thread = threading.Thread(target=createFile)
+
+        assert len(os.listdir(tempDir)) == 0
+
+        def checker():
+            return len(os.listdir(tempDir)) == 1
+
+        reactor = Reactor(db, checker, maxSleepTime=0.001)
+
+        assert not reactor.blockUntilTrue(timeout=1.0)
+
+        thread.start()
+        assert reactor.blockUntilTrue(timeout=1.0)
+
+
+def test_reactor_block_until_true_internal(db):
     db.subscribeToSchema(schema)
 
     checkCount = [0]

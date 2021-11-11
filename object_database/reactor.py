@@ -113,7 +113,7 @@ class Reactor:
         self._wantRecordTransactions = False
         self._thread = None
         self._isStarted = False
-        self._lastReadKeys = None
+        self._lastReadKeys = set()
         self._nextWakeup = None
 
         # grab a transaction handler. We need to ensure this is the same object
@@ -214,6 +214,7 @@ class Reactor:
                 pass
 
             return True
+
         else:
             curTime = time.time()
             timeThreshold = curTime + timeout
@@ -240,7 +241,7 @@ class Reactor:
         if self._isTornDown:
             raise Exception("Cannot use reactor after it has been torn down.")
 
-        if self._lastReadKeys is not None:
+        if self._lastReadKeys:
             if not self._blockUntilRecalculate(
                 self._lastReadKeys, self._nextWakeup, timeout=timeout
             ):

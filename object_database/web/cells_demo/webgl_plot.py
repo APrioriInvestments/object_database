@@ -83,7 +83,7 @@ class WebglLinesTightAngles(CellsTestPage):
 
             return (
                 Plot()
-                .withLines(x, y, lineWidth=50, color=[(1.0, 0.0, 0.0, 0.5)])
+                .withLines(x, y, lineWidth=50, color=(1.0, 0.0, 0.0, 0.5))
                 .withViewport((-0.5, -0.5, 1.5, 1.5))
             )
 
@@ -253,6 +253,23 @@ class WebglLogscale(CellsTestPage):
                     [0.0, 1.0, 2.0, 3.0], [math.log(x) for x in [1.0, 10.0, 100.0, 1000.0]]
                 )
                 .withLeftAxis(isLogscale=True)
+            )
+
+        return cells.WebglPlot(getData)
+
+    def text(self):
+        return "you should see a graphic you can scroll around on"
+
+
+class WebglHandlesInf(CellsTestPage):
+    def cell(self):
+        import math
+
+        def getData():
+            return (
+                Plot()
+                .withLines([0.0, 1.0, 2.0, 3.0], [1, math.inf, math.nan, 2])
+                .withLeftAxis()
             )
 
         return cells.WebglPlot(getData)

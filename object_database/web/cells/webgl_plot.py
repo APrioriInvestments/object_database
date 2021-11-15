@@ -148,21 +148,29 @@ class Packets:
 
     def encode(self, data):
         if isinstance(data, (float, int)):
+            assert math.isfinite(data), "Json can't handle non-finite floats."
             return float(data)
 
         if data is None:
             return None
 
         if isinstance(data, Color):
-            return [
+            res = [
                 float(data.red) / 255.0,
                 float(data.green) / 255.0,
                 float(data.blue) / 255.0,
                 float(data.alpha) / 255.0,
             ]
+            for x in res:
+                assert math.isfinite(x), "Json can't handle non-finite floats."
+            return res
 
         if isinstance(data, Rectangle):
-            return [float(data.left), float(data.bottom), float(data.right), float(data.top)]
+            res = [float(data.left), float(data.bottom), float(data.right), float(data.top)]
+
+            for x in res:
+                assert math.isfinite(x), "Json can't handle non-finite floats."
+            return res
 
         if isinstance(data, (bytes, ListOf(Float32), ListOf(Color))):
             return {"packetId": self.getPacketId(data)}
@@ -173,12 +181,22 @@ class Packets:
         return data.encode(self)
 
 
+def assertAllFinite(rectangle: Rectangle):
+    assert math.isfinite(rectangle.left)
+    assert math.isfinite(rectangle.right)
+    assert math.isfinite(rectangle.bottom)
+    assert math.isfinite(rectangle.top)
+    return rectangle
+
+
 def createRectangle(rect):
     if isinstance(rect, Rectangle):
-        return rect
+        return assertAllFinite(rect)
 
     if isinstance(rect, (tuple, list, ListOf)) and len(rect) == 4:
-        return Rectangle(left=rect[0], bottom=rect[1], right=rect[2], top=rect[3])
+        return assertAllFinite(
+            Rectangle(left=rect[0], bottom=rect[1], right=rect[2], top=rect[3])
+        )
 
     raise Exception(f"Can't make a rectangle out of {rect}")
 
@@ -217,14 +235,13 @@ def minOf(values):
     if not values:
         return 0.0
 
-    minValue = values[0]
+    populated = False
+    minValue = 0.0
 
     for v in values:
-        if v < minValue or math.isnan(minValue):
+        if math.isfinite(v) and (not populated or v < minValue):
             minValue = v
-
-    if math.isnan(minValue):
-        return 0.0
+            populated = True
 
     return minValue
 
@@ -234,14 +251,13 @@ def maxOf(values):
     if not values:
         return 0.0
 
-    maxValue = values[0]
+    populated = False
+    maxValue = 0.0
 
     for v in values:
-        if v > maxValue or math.isnan(maxValue):
+        if math.isfinite(v) and (not populated or v > maxValue):
             maxValue = v
-
-    if math.isnan(maxValue):
-        return 0.0
+            populated = True
 
     return maxValue
 

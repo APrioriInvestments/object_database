@@ -149,11 +149,5 @@ jobs:
         sed --in-place --expression 's/^-e.*//' reqs.txt
         pip install --requirement reqs.txt
 
-        # check 'safety' up to three times, in case its
-        # flaking out
-        (cat reqs.txt | safety check --stdin) || \
-          (sleep 60; cat reqs.txt | safety check --stdin) || \
-          (sleep 60; cat reqs.txt | safety check --stdin)
-
         make lint
         make black-check-local

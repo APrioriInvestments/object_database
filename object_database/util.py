@@ -55,18 +55,33 @@ def recursiveUpdate(dictionary, updates):
     return dictionary
 
 
+def getFormatter(logger):
+    """ Given a logger, get its default formatter or None. """
+    if logger is None:
+        return None
+
+    if not logger.hasHandlers():
+        return None
+
+    if len(logger.handlers) == 0:
+        return getFormatter(logger.parent)
+
+    return logger.handlers[0].formatter
+
+
 def setupLogging(
-    default_path=None, default_level=None, env_key="LOG_CFG", default_format=None
+    default_path=None, default_level=None, env_key="LOG_CFG", default_format=None, updates=None
 ):
     """Setup logging configuration """
-    updates = {}
+    if updates is None:
+        updates = {}
+
     if default_format:
-        updates["formatters"] = {}
-        updates["formatters"]["default"] = {}
-        updates["formatters"]["default"]["format"] = default_format
+        formatConfig = updates.setdefault("formatters", {}).setdefault("default", {})
+        formatConfig["format"] = default_format
+
     if default_level:
-        updates["root"] = {}
-        updates["root"]["level"] = default_level
+        updates.setdefault("root", {})["level"] = default_level
 
     path = default_path
     value = os.getenv(env_key, None)
@@ -90,7 +105,15 @@ def setupLogging(
         logging.basicConfig(level=level, format=frmt)
 
 
-def configureLogging(preamble="", level=logging.INFO):
+def configureLogging(preamble="", level=logging.INFO, config_updates=None):
+    if not isinstance(level, int):
+        # getLevelName returns a name when given an int and an int when given a name,
+        # and there doesn't seem to be an other way to get the int from the string.
+        level = logging.getLevelName(level)
+
+        if not isinstance(level, int):
+            raise ValueError(f"Invalid logging level {level}")
+
     frmt = (
         "[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s | "
         + (preamble + " | " if preamble else "")
@@ -102,6 +125,7 @@ def configureLogging(preamble="", level=logging.INFO):
         default_path=os.path.join(ownDir, "logging.yaml"),
         default_level=level,
         default_format=frmt,
+        updates=config_updates,
     )
 
     logging.getLogger("botocore.vendored.requests.packages.urllib3.connectionpool").setLevel(
@@ -283,3 +307,32 @@ def validateLogLevel(level: str, fallback=None):
                 level=level, options=VALID_LOG_LEVELS
             )
         )
+
+
+def removeFileIfExists(path) -> bool:
+    """Try to remove a file at path. Silently fail if it's not found.
+
+    This is safer than checking if the file exists and then removing because
+    the file could be removed by an external process in the moments between
+    checking and trying to remove it.
+
+    Returns:
+        True if the removal succeeded and False if it failed because the file was not there.
+    """
+    try:
+        os.remove(path)
+        return True
+    except FileNotFoundError:
+        return False
+
+
+def getDirectorySize(startPath):
+    totalSize = 0
+    for dirpath, dirnames, filenames in os.walk(startPath):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            # skip if it is symbolic link
+            if not os.path.islink(fp):
+                totalSize += os.path.getsize(fp)
+
+    return totalSize

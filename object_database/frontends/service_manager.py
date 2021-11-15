@@ -43,6 +43,7 @@ from object_database import (
     DisconnectedException,
 )
 from object_database.service_manager.SubprocessServiceManager import SubprocessServiceManager
+from object_database.service_manager.logfiles import Logfile
 
 
 ownDir = os.path.dirname(os.path.abspath(__file__))
@@ -96,7 +97,11 @@ def startServiceManagerProcess(
         cmd.append(str(proxyPort))
 
     if logDir:
-        cmd.extend(["--logdir", os.path.join(tempDirectoryName, "logs")])
+        logsPath = os.path.join(tempDirectoryName, "logs")
+        cmd.extend(["--logdir", logsPath])
+        cmd.extend(["--log-max-megabytes", "1"])
+        cmd.extend(["--log-max-total-megabytes", "10"])
+        cmd.extend(["--log-backup-count", "3"])
 
     if sslPath:
         cmd.extend(["--ssl-path", sslPath])
@@ -269,6 +274,9 @@ def main(argv=None):
 
     parser.add_argument("--logdir", default=None, required=False)
     parser.add_argument("--log-level", required=False, default="INFO")
+    parser.add_argument("--log-max-megabytes", required=False, default="100")
+    parser.add_argument("--log-max-total-megabytes", required=False, default="20000")
+    parser.add_argument("--log-backup-count", required=False, default="100")
     parser.add_argument(
         "--watch-aws-image-hash",
         required=False,
@@ -282,12 +290,37 @@ def main(argv=None):
 
     parsedArgs = parser.parse_args(argv[1:])
 
-    level_name = parsedArgs.log_level.upper()
-    level_name = validateLogLevel(level_name, fallback="INFO")
+    level = parsedArgs.log_level.upper()
+    level = validateLogLevel(level, fallback="INFO")
+    startTs = int(time.time())
 
-    # getLevelName returns a name when given an int and an int when given a name,
-    # and there doesn't seem to be an other way to get the int from the string.
-    configureLogging("service_manager", level=logging.getLevelName(level_name))
+    if parsedArgs.logdir:
+        logfile = f"{SubprocessServiceManager.SERVICE_NAME}-{startTs}.log"
+        assert Logfile.parseLogfileName(logfile) is not None, logfile
+
+        if not os.path.isdir(parsedArgs.logdir):
+            os.makedirs(parsedArgs.logdir)
+
+        logpath = os.path.join(parsedArgs.logdir, logfile)
+
+        updates = {
+            "handlers": {
+                "rotating-file": {
+                    "class": "logging.handlers.RotatingFileHandler",
+                    "filename": logpath,
+                    "level": 0,  # this handler should apply to all levels
+                    "formatter": "default",
+                    "maxBytes": int(float(parsedArgs.log_max_megabytes) * 1024 ** 2),
+                    "backupCount": int(parsedArgs.log_backup_count),
+                }
+            },
+            "root": {"handlers": ["default", "rotating-file"]},
+        }
+
+    else:
+        updates = {}
+
+    configureLogging("service_manager", level=level, config_updates=updates)
     logger = logging.getLogger(__name__)
 
     parsedArgs = parser.parse_args(argv[1:])
@@ -396,7 +429,11 @@ def main(argv=None):
                             maxCores=parsedArgs.max_cores or multiprocessing.cpu_count(),
                             logfileDirectory=parsedArgs.logdir,
                             shutdownTimeout=parsedArgs.shutdownTimeout,
-                            logLevelName=level_name,
+                            logLevelName=level,
+                            logMaxMegabytes=float(parsedArgs.log_max_megabytes),
+                            logMaxTotalMegabytes=float(parsedArgs.log_max_total_megabytes),
+                            logBackupCount=int(parsedArgs.log_backup_count),
+                            startTs=startTs,
                         )
                         logger.info("Connected the service-manager")
                     except (
@@ -415,6 +452,7 @@ def main(argv=None):
                         time.sleep(10)
                     else:
                         serviceManager.start()
+
                 else:
                     timeout = max(0.1, serviceManager.shutdownTimeout / 10)
                     shouldStop.wait(timeout=timeout)
@@ -442,13 +480,16 @@ def main(argv=None):
                         )
                         serviceManager.stop(gracefully=False)
                         serviceManager = None
+
                     except Exception:
                         logger.exception("Service manager cleanup failed:")
+
         except KeyboardInterrupt:
             logger.warning("Exiting due to KeyboardInterrupt")
             return 0
 
         return 0
+
     finally:
         if serviceManager is not None:
             try:

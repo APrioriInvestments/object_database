@@ -23,6 +23,7 @@ from object_database import connect
 from object_database.util import validateLogLevel, configureLogging
 from object_database.service_manager.Codebase import setCodebaseInstantiationDirectory
 from object_database.service_manager.ServiceWorker import ServiceWorker
+from object_database.service_manager.logfiles import Logfile
 
 
 def main(argv):
@@ -36,6 +37,9 @@ def main(argv):
     parser.add_argument("storageRoot")
     parser.add_argument("authToken")
     parser.add_argument("--log-level", required=False, default="INFO")
+    parser.add_argument("--log-path", required=False, default=None)
+    parser.add_argument("--log-max-megabytes", required=False, default=0)
+    parser.add_argument("--log-backup-count", required=False, default=0)
     parser.add_argument("--ip", required=False)
 
     parsedArgs = parser.parse_args(argv[1:])
@@ -43,7 +47,28 @@ def main(argv):
     level = parsedArgs.log_level.upper()
     level = validateLogLevel(level, fallback="INFO")
 
-    configureLogging(preamble=str(parsedArgs.instanceid), level=level)
+    if parsedArgs.log_path:
+        if Logfile.parseLogfileName(parsedArgs.log_path) is None:
+            raise ValueError(f"Log Path not parseable: {parsedArgs.log_path}")
+
+        updates = {
+            "handlers": {
+                "rotating-file": {
+                    "class": "logging.handlers.RotatingFileHandler",
+                    "filename": parsedArgs.log_path,
+                    "level": 0,  # this handler should apply to all levels
+                    "formatter": "default",
+                    "maxBytes": int(float(parsedArgs.log_max_megabytes) * 1024 ** 2),
+                    "backupCount": int(parsedArgs.log_backup_count),
+                }
+            },
+            "root": {"handlers": ["default", "rotating-file"]},
+        }
+
+    else:
+        updates = {}
+
+    configureLogging(preamble=str(parsedArgs.instanceid), level=level, config_updates=updates)
 
     logger = logging.getLogger(__name__)
 

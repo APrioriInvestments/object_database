@@ -1214,12 +1214,12 @@ class Server:
                     f".{fieldDef.typename}.{fieldDef.fieldname}"
                 )
 
-            self._logger.info(
-                "In the last %s seconds, %s transactions:\n%s",
-                time.time() - self.lastLogEvent,
-                self.transactionsSinceLastLogEvent,
-                "\n".join(msg),
-            )
+            # self._logger.info(
+            #     "In the last %s seconds, %s transactions:\n%s",
+            #     time.time() - self.lastLogEvent,
+            #     self.transactionsSinceLastLogEvent,
+            #     "\n".join(msg),
+            # )
             self.fieldTransactionsSinceLastLog = {}
             self.transactionsSinceLastLogEvent = 0
             self.lastLogEvent = time.time()

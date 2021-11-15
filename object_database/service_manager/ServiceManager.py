@@ -183,26 +183,36 @@ class ServiceManager(object):
 
     @staticmethod
     def startService(serviceName, targetCount=1):
-        service = service_schema.Service.lookupOne(name=serviceName)
+        service = service_schema.Service.lookupUnique(name=serviceName)
+        if service is None:
+            raise TypeError(f"Unknown service '{serviceName}'")
+
         service.target_count = targetCount
 
     @staticmethod
-    def waitRunning(db, serviceName, timeout=5.0) -> bool:
+    def waitRunning(db, serviceName, timeout=5.0, targetCount=1, exact=False) -> bool:
         def isRunning():
-            service = service_schema.Service.lookupAny(name=serviceName)
+            service = service_schema.Service.lookupUnique(name=serviceName)
             if not service:
                 return False
 
             instances = service_schema.ServiceInstance.lookupAll(service=service)
-            if any(inst.isRunning() for inst in instances):
+            if exact and sum(1 for inst in instances if inst.isRunning()) == targetCount:
                 return True
-            return False
+
+            elif not exact and any(inst.isRunning() for inst in instances):
+                return True
+
+            else:
+                return False
 
         return db.waitForCondition(isRunning, timeout)
 
     @staticmethod
     def stopService(serviceName):
-        service = service_schema.Service.lookupOne(name=serviceName)
+        service = service_schema.Service.lookupUnique(name=serviceName)
+        if service is None:
+            raise TypeError(f"Unknown service '{serviceName}'")
         service.target_count = 0
 
     @staticmethod
@@ -302,11 +312,15 @@ class ServiceManager(object):
                 if not instance.service.exists():
                     orphans.append(instance)
 
-        self.stopServices(orphans)
-        with self.db.transaction():
-            for instance in orphans:
-                if instance.exists():
-                    instance.delete()
+        if len(orphans) > 0:
+            self._logger.warning(
+                f"Removing {len(orphans)} orphaned ServiceInstance instances."
+            )
+            self.stopServices(orphans)
+            with self.db.transaction():
+                for instance in orphans:
+                    if instance.exists():
+                        instance.delete()
 
     @revisionConflictRetry
     def collectDeadHosts(self):
@@ -316,9 +330,14 @@ class ServiceManager(object):
                 instances = service_schema.ServiceInstance.lookupAll(host=serviceHost)
 
                 if not serviceHost.connection.exists():
+                    self._logger.warning(
+                        f"Collecting dead host '{serviceHost.hostname}' "
+                        f"and its {len(instances)} instances."
+                    )
                     for sInst in instances:
                         sInst.delete()
                     serviceHost.delete()
+
                 else:
                     actualRam = sum([i.service.gbRamUsed for i in instances if i.isActive()])
                     actualCores = sum([i.service.coresUsed for i in instances if i.isActive()])
@@ -352,6 +371,10 @@ class ServiceManager(object):
                             serviceInstance.service.lastFailureReason = (
                                 serviceInstance.failureReason
                             )
+                    self._logger.warning(
+                        f"Removing service instance with state='{serviceInstance.state}' "
+                        f"and failureReason='{serviceInstance.failureReason}'."
+                    )
                     serviceInstance.delete()
 
     def redeployServicesIfNecessary(self):
@@ -458,6 +481,7 @@ class ServiceManager(object):
             instance = service_schema.ServiceInstance(
                 service=service, host=host, state="Booting", start_timestamp=time.time()
             )
+            self._logger.info(f"Added Booting instance for service '{service.name}'.")
 
             actual_records.append(instance)
 
@@ -467,6 +491,7 @@ class ServiceManager(object):
         while service.effectiveTargetCount() < len(actual_records):
             sInst = actual_records.pop()
             sInst.triggerShutdown()
+            self._logger.info(f"Triggered shutdown for service '{sInst.service.name}'.")
 
     def instanceRecordsToBoot(self):
         res = []

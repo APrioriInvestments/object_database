@@ -24,8 +24,10 @@ import unittest
 import pytest
 from flaky import flaky
 
+from object_database.util import getDirectorySize
 from object_database.service_manager.ServiceManagerTestCommon import ServiceManagerTestCommon
 from object_database.service_manager.ServiceManager import ServiceManager
+from object_database.service_manager.SubprocessServiceManager import SubprocessServiceManager
 from object_database.service_manager.ServiceBase import ServiceBase
 import object_database.service_manager.ServiceInstance as ServiceInstance
 from object_database.web.cells import Card, ensureSubscribedType
@@ -107,6 +109,31 @@ class MockService(ServiceBase):
                     os._exit(1)
 
                 self.conn.lastPing = time.time()
+
+
+class LoggingService(ServiceBase):
+    gbRamUsed = 0
+    coresUsed = 0
+
+    def initialize(self):
+        pass
+
+    def doWork(self, shouldStop):
+        maxCharacters = 1024 ** 2
+        loggedCharacters = 0
+        logger = logging.getLogger("LoggingService")
+
+        while not shouldStop.is_set():
+            if loggedCharacters < maxCharacters:
+                msg = f"Logged {loggedCharacters} so far. (Max={maxCharacters})"
+                logger.warning(msg)
+                loggedCharacters += len(msg)
+
+            else:
+                logger.warning("Done Logging")
+                shouldStop.wait()
+
+        logger.warning("Exiting because shouldStop is set")
 
 
 class HangingService(ServiceBase):
@@ -307,10 +334,17 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
     def schemasToSubscribeTo(self):
         return [schema]
 
-    def setCountAndBlock(self, count):
+    def setCountAndBlock(self, count, serviceName="MockService"):
         with self.database.transaction():
-            ServiceManager.startService("MockService", count)
-        self.waitForCount(count)
+            ServiceManager.startService(serviceName, count)
+
+        if serviceName == "MockService":
+            self.waitForCount(count)
+        else:
+            if count > 0:
+                ServiceManager.waitRunning(self.database, serviceName, targetCount=count)
+            else:
+                ServiceManager.waitStopped(self.database, serviceName)
 
     def waitForCount(self, count, timeout=5.0):
         def checkAliveCount():
@@ -746,7 +780,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
 
         self.assertTrue(
             self.database.waitForCondition(
-                lambda: len(os.listdir(self.logDir)) == 1,
+                lambda: len(os.listdir(self.logDir)) == 3,
                 timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER,
                 maxSleepTime=0.001,
             )
@@ -754,8 +788,6 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
         priorFilename = os.listdir(self.logDir)[0]
 
         self.setCountAndBlock(0)
-        self.setCountAndBlock(1)
-
         self.assertTrue(
             self.database.waitForCondition(
                 lambda: len(os.listdir(self.logDir)) == 2,
@@ -764,9 +796,103 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             )
         )
 
-        newFilename = [x for x in os.listdir(self.logDir) if x != "old"][0]
+        self.setCountAndBlock(1)
+        self.assertTrue(
+            self.database.waitForCondition(
+                lambda: len(os.listdir(self.logDir)) == 3,
+                timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER,
+                maxSleepTime=0.001,
+            )
+        )
+
+        newFilename = [
+            x
+            for x in os.listdir(self.logDir)
+            if x != "old" and SubprocessServiceManager.SERVICE_NAME not in x
+        ][0]
 
         self.assertNotEqual(priorFilename, newFilename)
+
+    def test_logfiles_backup_and_get_cleaned_up(self):
+        # LoggingService logs between 3MB and 4MB per run
+        MEGABYTE = 1024 ** 2
+        oldsDir = os.path.join(self.logDir, "old")
+
+        with self.database.transaction():
+            ServiceManager.createOrUpdateService(
+                LoggingService, "LoggingService", target_count=1
+            )
+
+        self.assertTrue(
+            self.database.waitForCondition(
+                lambda: len(os.listdir(self.logDir)) == 6,
+                timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER,
+                maxSleepTime=0.01,
+            )
+        )
+
+        for name in os.listdir(self.logDir):
+            size = os.stat(os.path.join(self.logDir, name)).st_size
+
+            # log-max-megabytes is set to 1 (for testing) in
+            # service_manager.py::startServiceManagerProcess,
+            if "log.txt." in name:
+                assert 0.95 * MEGABYTE <= size <= 1.05 * MEGABYTE
+
+            else:
+                assert size <= 1.05 * MEGABYTE
+
+        print(f"logsDir: {self.logDir}")
+        for file in os.listdir(self.logDir):
+            print(file)
+
+        self.setCountAndBlock(0, "LoggingService")
+
+        self.assertTrue(
+            self.database.waitForCondition(
+                lambda: len(os.listdir(self.logDir)) == 2,
+                timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER,
+                maxSleepTime=0.01,
+            )
+        )
+
+        assert "old" in os.listdir(self.logDir)
+        assert any(
+            SubprocessServiceManager.SERVICE_NAME in file for file in os.listdir(self.logDir)
+        )
+
+        assert len(os.listdir(oldsDir)) == 4
+
+        def turnItOnAndOfAgain():
+            self.setCountAndBlock(1, "LoggingService")
+
+            self.assertTrue(
+                self.database.waitForCondition(
+                    lambda: len(os.listdir(self.logDir)) == 6,
+                    timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER,
+                    maxSleepTime=0.01,
+                )
+            )
+            self.setCountAndBlock(0, "LoggingService")
+            self.assertTrue(
+                self.database.waitForCondition(
+                    lambda: len(os.listdir(self.logDir)) == 2,
+                    timeout=5.0 * self.ENVIRONMENT_WAIT_MULTIPLIER,
+                    maxSleepTime=0.01,
+                )
+            )
+
+        size0 = getDirectorySize(self.logDir)
+        turnItOnAndOfAgain()
+        size1 = getDirectorySize(self.logDir)
+        assert 3 * MEGABYTE <= size1 - size0 <= 4 * MEGABYTE
+
+        turnItOnAndOfAgain()
+        size2 = getDirectorySize(self.logDir)
+        turnItOnAndOfAgain()
+        size3 = getDirectorySize(self.logDir)
+        # log cleanup should have kicked in
+        assert size3 - size2 < 2 * MEGABYTE
 
     def test_deploy_imported_module(self):
         with tempfile.TemporaryDirectory() as tf:

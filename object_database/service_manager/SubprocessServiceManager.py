@@ -12,17 +12,18 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import logging
 import os
 import shutil
 import subprocess
-import sys
-import logging
 import threading
 import time
+import sys
 
 from object_database.service_manager.ServiceManager import ServiceManager
 from object_database.service_manager.ServiceSchema import service_schema
-from object_database.util import validateLogLevel
+from object_database.service_manager.logfiles import Logfile, LogfileSet
+from object_database.util import validateLogLevel, getDirectorySize
 from object_database import connect
 
 
@@ -39,17 +40,9 @@ def repoDir():
     return _repoDir
 
 
-def parseLogfileToInstanceid(fname):
-    """Parse a file name and return the integer instance id for the service."""
-    if not fname.endswith(".log.txt") or "-" not in fname:
-        return
-    try:
-        return int(fname[:-8].split("-")[-1])
-    except ValueError:
-        return
-
-
 class SubprocessServiceManager(ServiceManager):
+    SERVICE_NAME = "odb_server"
+
     def __init__(
         self,
         ownHostname,
@@ -59,6 +52,7 @@ class SubprocessServiceManager(ServiceManager):
         storageDir,
         authToken,
         placementGroup,
+        startTs,
         maxGbRam=4,
         maxCores=4,
         logfileDirectory=None,
@@ -66,9 +60,36 @@ class SubprocessServiceManager(ServiceManager):
         logLevelName="INFO",
         metricUpdateInterval=2.0,
         start_new_session=False,
-        capture=True,
         subprocessCheckTimeout=0.0,
+        logMaxMegabytes=100.0,
+        logMaxTotalMegabytes=20000.0,
+        logBackupCount=99,
     ):
+        """
+        Args:
+            ownHostname: see ServiceManager
+            host
+            port
+            sourceDir: see ServiceManager
+            storageDir (str): path to where stuff is stored
+            authToken
+            placementGroup: see ServiceManager
+            maxGbRam: see ServiceManager
+            maxCores: see ServiceManager
+            logfileDirectory (str or None): where to store logs.
+            shutdownTimeout: see ServiceManager
+            logLevelName (str): One of "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
+            metricUpdateInterval (float): see ServiceManager
+            start_new_session (bool)
+            subprocessCheckTimeout (float)
+            logMaxMegabytes (float): number of megabytes an individual logfile
+                is allowed to reach
+            logMaxTotalMegabytes (float): number of megabytes all the logfiles
+                collectively are allowed to reach before clean-up deletions begin.
+            logBackupCount (int): the number of backup log files allowed in
+                addition to the "front" one, for a live process.
+            startTs (int): the start timestamp of the process.
+        """
         self.cleanupLock = threading.Lock()
         self.host = host
         self.port = port
@@ -77,14 +98,21 @@ class SubprocessServiceManager(ServiceManager):
         self.logfileDirectory = logfileDirectory
         self.logLevelName = validateLogLevel(logLevelName, fallback="INFO")
         self.start_new_session = start_new_session
-        self.capture = capture
         self.subprocessCheckTimeout = subprocessCheckTimeout
+        self.logMaxMegabytes = logMaxMegabytes
+        self.logMaxTotalBytes = int(logMaxTotalMegabytes * 1024 ** 2)
+        self.logBackupCount = logBackupCount
 
+        self.startTs = startTs
+
+        self.failures = set()
         self.lock = threading.Lock()
 
-        if logfileDirectory is not None:
+        if logfileDirectory:
             if not os.path.exists(logfileDirectory):
                 os.makedirs(logfileDirectory)
+
+        self._makeOldLogfileDirectoryIfNeeded()
 
         if not os.path.exists(storageDir):
             os.makedirs(storageDir)
@@ -117,40 +145,39 @@ class SubprocessServiceManager(ServiceManager):
                 return
 
             with self.lock:
-                logfileName = service.name + "-" + str(instanceIdentity) + ".log.txt"
+                kwargs = dict(
+                    cwd=self.storageDir,
+                    start_new_session=self.start_new_session,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+
+                cmd = [
+                    sys.executable,
+                    os.path.join(ownDir, "..", "frontends", "service_entrypoint.py"),
+                    service.name,
+                    self.host,
+                    str(self.port),
+                    str(instanceIdentity),
+                    os.path.join(self.sourceDir, str(instanceIdentity)),
+                    os.path.join(self.storageDir, str(instanceIdentity)),
+                    self.authToken,
+                    "--log-level",
+                    self.logLevelName,
+                ]
+
                 if self.logfileDirectory is not None:
+                    logfileName = service.name + "-" + str(instanceIdentity) + ".log"
                     output_file_path = os.path.join(self.logfileDirectory, logfileName)
-                    output_file_descr = open(output_file_path, "w")
+                    cmd.extend(["--log-path", output_file_path])
+                    cmd.extend(["--log-max-megabytes", str(self.logMaxMegabytes)])
+                    cmd.extend(["--log-backup-count", str(self.logBackupCount)])
+
                 else:
                     output_file_path = None
-                    output_file_descr = None
 
-                kwargs = dict(cwd=self.storageDir, start_new_session=self.start_new_session)
-                if self.capture:
-                    kwargs.update(
-                        dict(
-                            stdin=subprocess.DEVNULL,
-                            stdout=output_file_descr,
-                            stderr=subprocess.STDOUT,
-                        )
-                    )
+                process = subprocess.Popen(cmd, **kwargs)
 
-                process = subprocess.Popen(
-                    [
-                        sys.executable,
-                        os.path.join(ownDir, "..", "frontends", "service_entrypoint.py"),
-                        service.name,
-                        self.host,
-                        str(self.port),
-                        str(instanceIdentity),
-                        os.path.join(self.sourceDir, str(instanceIdentity)),
-                        os.path.join(self.storageDir, str(instanceIdentity)),
-                        self.authToken,
-                        "--log-level",
-                        self.logLevelName,
-                    ],
-                    **kwargs,
-                )
                 try:
                     # this should throw a subprocess.TimeoutExpired exception
                     # if the service did not crash
@@ -168,7 +195,7 @@ class SubprocessServiceManager(ServiceManager):
                             f"for service '{service.name}'"
                             f" (retcode:{process.returncode})"
                         )
-                        if not self.capture and process.stderr:
+                        if process.stderr:
                             error = b"".join(process.stderr.readlines())
                             msg += "\n" + error.decode("utf-8")
 
@@ -181,9 +208,6 @@ class SubprocessServiceManager(ServiceManager):
                 )
 
                 self.serviceProcesses[instanceIdentity] = process
-
-                if output_file_descr:
-                    output_file_descr.close()
 
             if output_file_path:
                 self._logger.info(
@@ -295,29 +319,13 @@ class SubprocessServiceManager(ServiceManager):
 
             self.moveCoverageFiles()
             self.cleanupOldLogfiles()
-
-    def extractLogData(self, targetInstanceId, maxBytes):
-        assert isinstance(targetInstanceId, int)
-
-        if self.logfileDirectory:
-            with self.lock:
-                for file in os.listdir(self.logfileDirectory):
-                    instanceId = parseLogfileToInstanceid(file)
-                    if instanceId and instanceId == targetInstanceId:
-                        fpath = os.path.join(self.logfileDirectory, file)
-                        with open(fpath, "r") as f:
-                            f.seek(0, 2)
-                            curPos = f.tell()
-                            f.seek(max(curPos - maxBytes, 0))
-
-                            return f.read()
-
-        return "<logfile not found>"
+            self.cleanupStorageDir()
+            self.cleanupSourceDir()
 
     def moveCoverageFiles(self):
         if self.storageDir:
             with self.lock:
-                if os.path.exists(self.storageDir):
+                if os.path.isdir(self.storageDir):
                     for stringifiedInstanceId in os.listdir(self.storageDir):
                         path = os.path.join(self.storageDir, stringifiedInstanceId)
                         if stringifiedInstanceId.startswith(".coverage.") and os.path.isfile(
@@ -329,30 +337,199 @@ class SubprocessServiceManager(ServiceManager):
                                 self.storageDir,
                                 repoDir(),
                             )
-                            shutil.move(path, os.path.join(repoDir(), stringifiedInstanceId))
+
+                            target = os.path.join(repoDir(), stringifiedInstanceId)
+
+                            try:
+                                shutil.move(path, target)
+
+                            except Exception:
+                                self._logger.exception("Failed to move %s to %s", path, target)
+
+    def _makeOldLogfileDirectoryIfNeeded(self):
+        if self.logfileDirectory:
+            oldPath = os.path.join(self.logfileDirectory, "old")
+            if not os.path.exists(oldPath):
+                os.makedirs(oldPath)
+            return oldPath
+
+    def _moveLogfile(self, file, oldPath):
+        srcPath = os.path.join(self.logfileDirectory, file)
+        dstPath = os.path.join(oldPath, file)
+        try:
+            shutil.move(srcPath, dstPath)
+
+        except Exception as e:
+            self._logger.exception("Failed to move %s to %s: %s", srcPath, dstPath, str(e))
 
     def cleanupOldLogfiles(self):
         if self.logfileDirectory:
             with self.lock:
-                for file in os.listdir(self.logfileDirectory):
-                    instanceId = parseLogfileToInstanceid(file)
+                if os.path.isdir(self.logfileDirectory):
+                    # 1. make old/ path if it doesn't exist
+                    oldPath = self._makeOldLogfileDirectoryIfNeeded()
 
-                    if instanceId is not None and not self._isLiveService(instanceId):
-                        if not os.path.exists(os.path.join(self.logfileDirectory, "old")):
-                            os.makedirs(os.path.join(self.logfileDirectory, "old"))
-                        shutil.move(
-                            os.path.join(self.logfileDirectory, file),
-                            os.path.join(self.logfileDirectory, "old", file),
+                    # 2. move logs of completed service instances to old/
+                    for file in os.listdir(self.logfileDirectory):
+
+                        matches = Logfile.parseLogfileName(file)
+
+                        if matches is not None:
+                            service, instanceId, backupCount = matches
+                            if service == self.SERVICE_NAME:
+                                if instanceId != self.startTs:
+                                    self._moveLogfile(file, oldPath)
+
+                            else:
+                                if not self._isLiveService(instanceId):
+                                    self._moveLogfile(file, oldPath)
+
+                    # 3. delete logs if we exceeded limit
+                    bytesToDelete, failures = self._deleteLogsIfOverLimit(
+                        self.logfileDirectory, self.logMaxTotalBytes
+                    )
+
+                    for failure in failures:
+                        try:
+                            if failure not in self.failures:
+                                self.failures.add(failure)
+                                self._logger.error(failure)
+
+                        except Exception:
+                            self._logger.exception(
+                                "Internal Error: Failed to add 'failure' to known failures."
+                            )
+
+                    if bytesToDelete > 0:
+                        self._logger.error(
+                            f"Failed to delete enough logfiles to reduce log footprint to "
+                            f"{self.logMaxTotalBytes/(1.0 * 1024 ** 2):.2f}MB. "
+                            f"Needed to delete {bytesToDelete} more bytes"
                         )
+                        return False
 
+                    else:
+                        return True
+
+    @staticmethod
+    def _deleteLogsIfOverLimit(logsPath, logMaxTotalBytes):
+        logsByService, failures = SubprocessServiceManager._collectLogs(logsPath)
+        totalSize = getDirectorySize(logsPath)
+
+        bytesToDelete = totalSize - logMaxTotalBytes
+        if bytesToDelete > 0:
+
+            # Try to keep logs for the live and one exited process per service
+            deletedBytes = SubprocessServiceManager._deleteFromServicesWithAtLeastKInstances(
+                logsByService, bytesToDelete, K=3
+            )
+            bytesToDelete -= deletedBytes
+
+            # Failing that, try to keep all the active logs
+        if bytesToDelete > 0:
+            deletedBytes = SubprocessServiceManager._deleteFromServicesWithAtLeastKInstances(
+                logsByService, bytesToDelete, K=2
+            )
+            bytesToDelete -= deletedBytes
+
+        if bytesToDelete > 0:
+            bytesToDelete -= SubprocessServiceManager._deleteFromLiveServices(
+                logsByService, bytesToDelete
+            )
+
+        return bytesToDelete, failures
+
+    @staticmethod
+    def _collectLogs(logsPath):
+        """ Builds a service(str) -> LogfileSet map of all the existing logfiles.
+
+        We assume all log files are in logsPath or logsPath/old and that their
+        filenames are parseable by parseLogfileName
+        """
+        assert os.path.isdir(logsPath)
+
+        oldPath = os.path.join(logsPath, "old")
+        assert os.path.isdir(oldPath)
+
+        logsByService = {}
+        # dict(service:str -> LogfileSet)
+
+        failures = []
+        for file in os.listdir(logsPath):
+            if os.path.isfile(os.path.join(logsPath, file)):
+                try:
+                    log = Logfile(file, logsPath)
+                    if log.service not in logsByService:
+                        logsByService[log.service] = LogfileSet(log.service)
+                    logsByService[log.service].addLogfile(log)
+
+                except (FileNotFoundError, ValueError) as e:
+                    failures.append(
+                        f"failed to collect logfile {logsPath}/{file} for cleanup: {str(e)}"
+                    )
+
+        for file in os.listdir(oldPath):
+            if os.path.isfile(os.path.join(oldPath, file)):
+                try:
+                    log = Logfile(file, oldPath)
+                    if log.service not in logsByService:
+                        logsByService[log.service] = LogfileSet(log.service)
+                    logsByService[log.service].addLogfile(log)
+
+                except (FileNotFoundError, ValueError) as e:
+                    failures.append(
+                        f"failed to collect logfile {oldPath}/{file} for cleanup: {str(e)}"
+                    )
+
+        return logsByService, failures
+
+    @staticmethod
+    def _deleteFromServicesWithAtLeastKInstances(logsByService, bytesToDelete, K):
+        candidates = {
+            service: logSet
+            for service, logSet in logsByService.items()
+            if logSet.instanceCount() >= K
+        }
+
+        deletedBytes = 0
+        while len(candidates) > 0 and deletedBytes < bytesToDelete:
+            oldestLogSet = min(
+                (logSet for logSet in candidates.values()),
+                key=lambda logSet: logSet.oldest.modtime,
+            )
+            deletedBytes += oldestLogSet.deleteOldest()
+            if oldestLogSet.instanceCount() < K:
+                del candidates[oldestLogSet.service]
+
+        return deletedBytes
+
+    @staticmethod
+    def _deleteFromLiveServices(logsByService, bytesToDelete):
+        # We already deleted all logs from exited procesees but we're still above quota,
+        # so we have to delete from live processes. Penalize procesees that are logging
+        # more. All else being equal, delete the oldest log.
+        totalDeletedBytes = 0
+        while totalDeletedBytes < bytesToDelete:
+            largestLogSet = max(
+                (logSet for logSet in logsByService.values()),
+                key=lambda logSet: (logSet.size, -logSet.oldest.modtime),
+            )
+            deletedBytes = largestLogSet.deleteOldest()
+            if deletedBytes == 0:
+                break
+
+            else:
+                totalDeletedBytes += deletedBytes
+
+        return totalDeletedBytes
+
+    def cleanupStorageDir(self):
         if self.storageDir:
             with self.lock:
-                if os.path.exists(self.storageDir):
-                    for stringifiedInstanceId in os.listdir(self.storageDir):
-                        path = os.path.join(self.storageDir, stringifiedInstanceId)
-                        if os.path.isdir(path) and not self._isLiveService(
-                            stringifiedInstanceId
-                        ):
+                if os.path.isdir(self.storageDir):
+                    for instanceIdStr in os.listdir(self.storageDir):
+                        path = os.path.join(self.storageDir, instanceIdStr)
+                        if os.path.isdir(path) and not self._isLiveService(instanceIdStr):
                             try:
                                 self._logger.debug(
                                     "Removing storage at path %s for dead service.", path
@@ -364,13 +541,14 @@ class SubprocessServiceManager(ServiceManager):
                                     path,
                                 )
 
+    def cleanupSourceDir(self):
         if self.sourceDir:
             with self.lock:
-                if os.path.exists(self.sourceDir):
-                    for stringifiedInstanceId in os.listdir(self.sourceDir):
-                        if not self._isLiveService(stringifiedInstanceId):
+                if os.path.isdir(self.sourceDir):
+                    for instanceIdStr in os.listdir(self.sourceDir):
+                        if not self._isLiveService(instanceIdStr):
                             try:
-                                path = os.path.join(self.sourceDir, stringifiedInstanceId)
+                                path = os.path.join(self.sourceDir, instanceIdStr)
                                 self._logger.info(
                                     "Removing source caches at path %s for dead service.", path
                                 )

@@ -322,7 +322,7 @@ class HeadlessTester:
         return self.webdriver.current_url
 
     def switch_to_window(self, handle):
-        return self.webdriver.switch_to_window(handle)
+        return self.webdriver.switch_to.window(handle)
 
 
 @pytest.fixture(scope="session")

@@ -28,10 +28,7 @@ from object_database.service_manager.ServiceManagerTestCommon import ServiceMana
 from object_database.service_manager.ServiceManager import ServiceManager
 from object_database.service_manager.ServiceBase import ServiceBase
 import object_database.service_manager.ServiceInstance as ServiceInstance
-from object_database.web.cells import (
-    Card,
-    ensureSubscribedType,
-)
+from object_database.web.cells import Card, ensureSubscribedType
 
 from object_database import Schema, Indexed, core_schema, service_schema, Reactor
 

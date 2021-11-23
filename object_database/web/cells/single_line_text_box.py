@@ -62,6 +62,9 @@ class SingleLineTextBox(FocusableCell):
         if reason != "client-message":
             self.scheduleMessage({"event": "textChanged", "text": newValue})
 
+    def selectAll(self):
+        self.scheduleMessage({"event": "selectAll"})
+
     def recalculate(self):
         self.exportData["initialText"] = self.currentText.getWithoutRegisteringDependency()
         self.exportData["font"] = self.font

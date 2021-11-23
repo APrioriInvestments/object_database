@@ -336,6 +336,8 @@ class CellHandler {
                 this.currentlyFocusedCellId = message.focusedCellId;
             }
 
+            // we have to do this every time we process a message because otherwise
+            // when we move things around in the DOM we end up losing the focus.
             if (this.currentlyFocusedCellId) {
                 if (this.activeCells[this.currentlyFocusedCellId]) {
                     this.activeCells[this.currentlyFocusedCellId].serverKnowsAsFocusedCell();

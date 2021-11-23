@@ -36,6 +36,10 @@ class Clickable extends ConcreteCell {
         );
     }
 
+    capturesClicks() {
+        return true;
+    }
+
     getStyle(){
         if(this.props.bold){
             return "cursor:pointer;*cursor:hand;font-weight:bold;";

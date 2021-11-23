@@ -237,6 +237,23 @@ class Cell {
         }
     }
 
+    // subclasses can override to indicate that clicks should not pass through
+    // them.
+    capturesClicks() {
+        return false;
+    }
+
+    anyParentCapturesClicks() {
+        let p = this.parent;
+        while (p) {
+            if (p.capturesClicks()) {
+                return true;
+            }
+            p = p.parent;
+        }
+        return false;
+    }
+
     // return {horizontal:, vertical:} where 'horizontal' indicates that the
     // cell will take as much space as given horizontally and similarly for
     // 'vertical'. This should be uncached.

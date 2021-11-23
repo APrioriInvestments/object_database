@@ -17,17 +17,22 @@ class Text extends ConcreteCell {
     }
 
     build() {
+        let divArgs = {
+            class: "cell cell-focus-no-outline",
+            id: this.getElementId(),
+            style: this.style,
+            "data-cell-id": `${this.identity}`,
+            "data-cell-type": "Text",
+            'tabindex': 0
+        };
+
+        if (!this.anyParentCapturesClicks()) {
+            divArgs.onfocus = this.focusReceived
+        }
+
         return h(
             'div',
-            {
-                class: "cell cell-focus-no-outline",
-                id: this.getElementId(),
-                style: this.style,
-                "data-cell-id": `${this.identity}`,
-                "data-cell-type": "Text",
-                'onfocus': this.focusReceived,
-                'tabindex': 0
-            },
+            divArgs,
             [this.props.rawText ? this.props.rawText.toString() : null]
         );
     }

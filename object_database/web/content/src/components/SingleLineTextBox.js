@@ -85,6 +85,9 @@ class SingleLineTextBox extends ConcreteCell {
                 this.domElement.setAttribute('value', msg.text);
                 this.domElement.value = msg.text;
             }
+            else if (msg.event == 'selectAll') {
+                this.domElement.select();
+            }
         });
     }
 }

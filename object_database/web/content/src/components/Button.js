@@ -25,6 +25,10 @@ class Button extends ConcreteCell {
         return this.namedChildren['content'].getFillSpacePreferences();
     }
 
+    capturesClicks() {
+        return true;
+    }
+
     build() {
         this.buttonDiv = h('div', {
             id: this.getElementId(),

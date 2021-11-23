@@ -56,6 +56,7 @@ class MultifocusTextBox(CellsTestPage):
             return (
                 cells.Subscribed(lambda: box if showing.get() else None)
                 >> cells.Button("focus", lambda: box.focus())
+                >> cells.Button("selectAll", lambda: box.selectAll())
                 >> cells.Button("showing", lambda: showing.toggle())
             )
 
@@ -63,7 +64,7 @@ class MultifocusTextBox(CellsTestPage):
             boxAndButtons(box1, box1Showing)
             + boxAndButtons(box2, box2Showing)
             + boxAndButtons(box3, box3Showing)
-            + currentlyShowing
+            + cells.Subscribed(currentlyShowing)
         )
 
     def text(self):

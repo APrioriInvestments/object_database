@@ -28,6 +28,12 @@ class Clickable extends ConcreteCell {
                 "data-cell-id": this.identity,
                 "data-cell-type": "Clickable",
                 onclick: this.onClick,
+                tabindex: -1,
+                onmousedown: (event) => {
+                    // prevent the event from causing us to focus since we just want a
+                    // click
+                    event.preventDefault();
+                },
                 style: this.getStyle()
             }, [
                 this.makeContent()

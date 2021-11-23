@@ -35,7 +35,13 @@ class Button extends ConcreteCell {
             "data-cell-id": this.identity,
             "data-cell-type": "Button",
             class: this._getHTMLClasses(),
-            onclick: this.onClick
+            onclick: this.onClick,
+            tabindex: -1,
+            onmousedown: (event) => {
+                // prevent the event from causing us to focus since we just want a
+                // click
+                event.preventDefault();
+            }
         }, [this.renderChildNamed('content')]);
 
         let res = h(

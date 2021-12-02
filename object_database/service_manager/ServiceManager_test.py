@@ -778,6 +778,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
             ServiceManager.createOrUpdateService(MockService, "MockService", target_count=1)
         self.waitForCount(1)
 
+        # we expect 3 files: the 'old/' dir, the ServiceManager log, and the service log.
         self.assertTrue(
             self.database.waitForCondition(
                 lambda: len(os.listdir(self.logDir)) == 3,
@@ -785,7 +786,22 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
                 maxSleepTime=0.001,
             )
         )
-        priorFilename = os.listdir(self.logDir)[0]
+        files = set(os.listdir(self.logDir))
+        assert len(files) == 3
+
+        assert "old" in files
+        files.remove("old")
+
+        found = False
+        for f in files:
+            if SubprocessServiceManager.SERVICE_NAME in f:
+                found = True
+                files.remove(f)
+                break
+        assert found is True
+
+        priorFilename = files.pop()
+        assert len(files) == 0
 
         self.setCountAndBlock(0)
         self.assertTrue(
@@ -823,6 +839,8 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
                 LoggingService, "LoggingService", target_count=1
             )
 
+        # We expect to see 6 files: the 'old/' dir, the ServiceManager log,
+        # and 4 slices of logs for the LoggingService.
         self.assertTrue(
             self.database.waitForCondition(
                 lambda: len(os.listdir(self.logDir)) == 6,

@@ -190,21 +190,34 @@ class ServiceManager(object):
         service.target_count = targetCount
 
     @staticmethod
-    def waitRunning(db, serviceName, timeout=5.0, targetCount=1, exact=False) -> bool:
+    def waitRunning(db, serviceName, timeout=5.0, targetCount=None) -> bool:
+        """ Returns True if the service is running as expected and False otherwise
+
+        Args:
+            db: an object database connection object
+            serviceName (str): the name of the service we want to wait until it's running.
+            timeout (float): how many seconds to wait until the condition is met.
+                Return False if the condition is not met within that time period.
+            targetCount (None or int): when None, wait until at least one instance is running;
+                when an int, wait until the exact target count is reached.
+        """
+
         def isRunning():
             service = service_schema.Service.lookupUnique(name=serviceName)
             if not service:
                 return False
 
             instances = service_schema.ServiceInstance.lookupAll(service=service)
-            if exact and sum(1 for inst in instances if inst.isRunning()) == targetCount:
-                return True
 
-            elif not exact and any(inst.isRunning() for inst in instances):
-                return True
+            if targetCount is None:
+                if any(inst.isRunning() for inst in instances):
+                    return True
 
             else:
-                return False
+                if sum(1 for inst in instances if inst.isRunning()) == targetCount:
+                    return True
+
+            return False
 
         return db.waitForCondition(isRunning, timeout)
 

@@ -22,8 +22,8 @@ import sys
 
 from object_database.service_manager.ServiceManager import ServiceManager
 from object_database.service_manager.ServiceSchema import service_schema
-from object_database.service_manager.logfiles import Logfile, LogfileSet
-from object_database.util import validateLogLevel, getDirectorySize
+from object_database.service_manager.logfiles import Logfile, LogsDirectoryQuotaManager
+from object_database.util import validateLogLevel
 from object_database import connect
 
 
@@ -108,11 +108,16 @@ class SubprocessServiceManager(ServiceManager):
         self.failures = set()
         self.lock = threading.Lock()
 
+        self.logsManager = None
         if logfileDirectory:
             if not os.path.exists(logfileDirectory):
                 os.makedirs(logfileDirectory)
 
-        self._makeOldLogfileDirectoryIfNeeded()
+            self._makeOldLogfileDirectoryIfNeeded()
+
+            self.logsManager = LogsDirectoryQuotaManager(
+                self.logfileDirectory, self.logMaxTotalBytes
+            )
 
         if not os.path.exists(storageDir):
             os.makedirs(storageDir)
@@ -347,11 +352,10 @@ class SubprocessServiceManager(ServiceManager):
                                 self._logger.exception("Failed to move %s to %s", path, target)
 
     def _makeOldLogfileDirectoryIfNeeded(self):
-        if self.logfileDirectory:
-            oldPath = os.path.join(self.logfileDirectory, "old")
-            if not os.path.exists(oldPath):
-                os.makedirs(oldPath)
-            return oldPath
+        oldPath = os.path.join(self.logfileDirectory, "old")
+        if not os.path.exists(oldPath):
+            os.makedirs(oldPath)
+        return oldPath
 
     def _moveLogfile(self, file, oldPath):
         srcPath = os.path.join(self.logfileDirectory, file)
@@ -385,20 +389,7 @@ class SubprocessServiceManager(ServiceManager):
                                     self._moveLogfile(file, oldPath)
 
                     # 3. delete logs if we exceeded limit
-                    bytesToDelete, failures = self._deleteLogsIfOverLimit(
-                        self.logfileDirectory, self.logMaxTotalBytes
-                    )
-
-                    for failure in failures:
-                        try:
-                            if failure not in self.failures:
-                                self.failures.add(failure)
-                                self._logger.error(failure)
-
-                        except Exception:
-                            self._logger.exception(
-                                "Internal Error: Failed to add 'failure' to known failures."
-                            )
+                    bytesToDelete = self.logsManager.deleteLogsIfOverQuota()
 
                     if bytesToDelete > 0:
                         self._logger.error(
@@ -410,118 +401,6 @@ class SubprocessServiceManager(ServiceManager):
 
                     else:
                         return True
-
-    @staticmethod
-    def _deleteLogsIfOverLimit(logsPath, logMaxTotalBytes):
-        logsByService, failures = SubprocessServiceManager._collectLogs(logsPath)
-        totalSize = getDirectorySize(logsPath)
-
-        bytesToDelete = totalSize - logMaxTotalBytes
-        if bytesToDelete > 0:
-
-            # Try to keep logs for the live and one exited process per service
-            deletedBytes = SubprocessServiceManager._deleteFromServicesWithAtLeastKInstances(
-                logsByService, bytesToDelete, K=3
-            )
-            bytesToDelete -= deletedBytes
-
-            # Failing that, try to keep all the active logs
-        if bytesToDelete > 0:
-            deletedBytes = SubprocessServiceManager._deleteFromServicesWithAtLeastKInstances(
-                logsByService, bytesToDelete, K=2
-            )
-            bytesToDelete -= deletedBytes
-
-        if bytesToDelete > 0:
-            bytesToDelete -= SubprocessServiceManager._deleteFromLiveServices(
-                logsByService, bytesToDelete
-            )
-
-        return bytesToDelete, failures
-
-    @staticmethod
-    def _collectLogs(logsPath):
-        """ Builds a service(str) -> LogfileSet map of all the existing logfiles.
-
-        We assume all log files are in logsPath or logsPath/old and that their
-        filenames are parseable by parseLogfileName
-        """
-        assert os.path.isdir(logsPath)
-
-        oldPath = os.path.join(logsPath, "old")
-        assert os.path.isdir(oldPath)
-
-        logsByService = {}
-        # dict(service:str -> LogfileSet)
-
-        failures = []
-        for file in os.listdir(logsPath):
-            if os.path.isfile(os.path.join(logsPath, file)):
-                try:
-                    log = Logfile(file, logsPath)
-                    if log.service not in logsByService:
-                        logsByService[log.service] = LogfileSet(log.service)
-                    logsByService[log.service].addLogfile(log)
-
-                except (FileNotFoundError, ValueError) as e:
-                    failures.append(
-                        f"failed to collect logfile {logsPath}/{file} for cleanup: {str(e)}"
-                    )
-
-        for file in os.listdir(oldPath):
-            if os.path.isfile(os.path.join(oldPath, file)):
-                try:
-                    log = Logfile(file, oldPath)
-                    if log.service not in logsByService:
-                        logsByService[log.service] = LogfileSet(log.service)
-                    logsByService[log.service].addLogfile(log)
-
-                except (FileNotFoundError, ValueError) as e:
-                    failures.append(
-                        f"failed to collect logfile {oldPath}/{file} for cleanup: {str(e)}"
-                    )
-
-        return logsByService, failures
-
-    @staticmethod
-    def _deleteFromServicesWithAtLeastKInstances(logsByService, bytesToDelete, K):
-        candidates = {
-            service: logSet
-            for service, logSet in logsByService.items()
-            if logSet.instanceCount() >= K
-        }
-
-        deletedBytes = 0
-        while len(candidates) > 0 and deletedBytes < bytesToDelete:
-            oldestLogSet = min(
-                (logSet for logSet in candidates.values()),
-                key=lambda logSet: logSet.oldest.modtime,
-            )
-            deletedBytes += oldestLogSet.deleteOldest()
-            if oldestLogSet.instanceCount() < K:
-                del candidates[oldestLogSet.service]
-
-        return deletedBytes
-
-    @staticmethod
-    def _deleteFromLiveServices(logsByService, bytesToDelete):
-        # We already deleted all logs from exited procesees but we're still above quota,
-        # so we have to delete from live processes. Penalize procesees that are logging
-        # more. All else being equal, delete the oldest log.
-        totalDeletedBytes = 0
-        while totalDeletedBytes < bytesToDelete:
-            largestLogSet = max(
-                (logSet for logSet in logsByService.values()),
-                key=lambda logSet: (logSet.size, -logSet.oldest.modtime),
-            )
-            deletedBytes = largestLogSet.deleteOldest()
-            if deletedBytes == 0:
-                break
-
-            else:
-                totalDeletedBytes += deletedBytes
-
-        return totalDeletedBytes
 
     def cleanupStorageDir(self):
         if self.storageDir:

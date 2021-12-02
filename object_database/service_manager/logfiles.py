@@ -1,5 +1,9 @@
+import logging
 import os
 import re
+
+from object_database.util import getDirectorySize
+
 
 Timestamp = float
 
@@ -258,3 +262,144 @@ class LogfileSet:
 
         else:
             self._oldest = min(candidates, key=lambda logfile: logfile.modtime)
+
+
+class LogsDirectoryQuotaManager:
+    """ Object in charge for cleaning up the logs dir if it exceeds a quota. """
+
+    def __init__(self, path, maxBytes):
+        self._checkIsDir(path)
+        self.path = path
+
+        self.oldsPath = os.path.join(self.path, "old")
+        self._checkIsDir(self.oldsPath)
+
+        self.maxBytes = maxBytes
+
+        self.logger = logging.getLogger(__name__)
+        self.failures = set()
+
+    @staticmethod
+    def _checkIsDir(path):
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Path not found '{path}'")
+
+        if not os.path.isdir(path):
+            raise FileExistsError(f"Path exists but is not a directory '{path}'")
+
+    def deleteLogsIfOverQuota(self):
+        """ Tries to delete enough log files to be within specified quota
+
+        Returns the number of bytes that still need to be deleted to reach the quota,
+        or if negative, the number of bytes available for further logging.
+        """
+
+        logsByService = {}
+        # dict(service:str -> LogfileSet)
+
+        logsByService = self._collectLogsFromPath(self.path, logsByService)
+        logsByService = self._collectLogsFromPath(self.oldsPath, logsByService)
+
+        totalSize = getDirectorySize(self.path)
+
+        bytesToDelete = totalSize - self.maxBytes
+        if bytesToDelete > 0:
+
+            # Try to keep logs for the live and one exited process per service
+            deletedBytes = self._deleteOldestAmongServicesWithAtLeastKInstances(
+                logsByService, bytesToDelete, K=3
+            )
+            bytesToDelete -= deletedBytes
+
+            # Failing that, try to keep all the active logs
+        if bytesToDelete > 0:
+            deletedBytes = self._deleteOldestAmongServicesWithAtLeastKInstances(
+                logsByService, bytesToDelete, K=2
+            )
+            bytesToDelete -= deletedBytes
+
+        if bytesToDelete > 0:
+            bytesToDelete -= self._deleteFromLargestLogfileSet(logsByService, bytesToDelete)
+
+        return bytesToDelete
+
+    def _collectLogsFromPath(self, path, logsByService=None):
+        if logsByService is None:
+            logsByService = {}
+
+        for file in os.listdir(path):
+            if os.path.isfile(os.path.join(path, file)):
+                failure = f"failed to collect logfile {path}/{file} for cleanup"
+
+                try:
+                    log = Logfile(file, path)
+                    if log.service not in logsByService:
+                        logsByService[log.service] = LogfileSet(log.service)
+                    logsByService[log.service].addLogfile(log)
+
+                except (FileNotFoundError, ValueError) as e:
+                    if failure not in self.failures:
+                        self.failures.add(failure)
+                        self.logger.exception(f"{failure}: {str(e)}")
+
+                else:
+                    self.failures.discard(failure)
+
+        return logsByService
+
+    @staticmethod
+    def _deleteOldestAmongServicesWithAtLeastKInstances(
+        logsByService, bytesToDelete: int, K: int
+    ) -> int:
+        """ Repeatedly delete the oldest logfile among services with K or more instances.
+
+        Returns the number of bytes freed from the disk
+
+        Args:
+            logsByService (Dict[service_name:str -> LogfileSet]): known logfiles by service
+            bytesToDelete (int): the number of bytes we need to delete
+            K (int): the number of instances a service needs to have to qualify for deletions.
+        """
+        candidates = {
+            service: logSet
+            for service, logSet in logsByService.items()
+            if logSet.instanceCount() >= K
+        }
+
+        deletedBytes = 0
+        while len(candidates) > 0 and deletedBytes < bytesToDelete:
+            oldestLogSet = min(
+                (logSet for logSet in candidates.values()),
+                key=lambda logSet: logSet.oldest.modtime,
+            )
+            deletedBytes += oldestLogSet.deleteOldest()
+            if oldestLogSet.instanceCount() < K:
+                del candidates[oldestLogSet.service]
+
+        return deletedBytes
+
+    @staticmethod
+    def _deleteFromLargestLogfileSet(logsByService, bytesToDelete: int):
+        """ Repeatedly delete the oldest logfile from the largest LogfileSet.
+
+        Returns the number of bytes freed from the disk
+
+        Args:
+            logsByService (Dict[service_name:str -> LogfileSet]): known logfiles by service
+            bytesToDelete (int): the number of bytes we need to delete
+            K (int): the number of instances a service needs to have to qualify for deletions.
+        """
+        totalDeletedBytes = 0
+        while totalDeletedBytes < bytesToDelete:
+            largestLogSet = max(
+                (logSet for logSet in logsByService.values()),
+                key=lambda logSet: (logSet.size, -logSet.oldest.modtime),
+            )
+            deletedBytes = largestLogSet.deleteOldest()
+            if deletedBytes == 0:
+                break
+
+            else:
+                totalDeletedBytes += deletedBytes
+
+        return totalDeletedBytes

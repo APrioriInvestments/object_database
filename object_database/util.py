@@ -69,16 +69,21 @@ def getFormatter(logger):
     return logger.handlers[0].formatter
 
 
+def logFormat(preamble=""):
+    midpart = f"{preamble} | " if preamble else ""
+    return (
+        "[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s | "
+        + midpart
+        + "%(threadName)10s | %(message)s"
+    )
+
+
 def setupLogging(
     default_path=None, default_level=None, env_key="LOG_CFG", default_format=None, updates=None
 ):
     """Setup logging configuration """
     if updates is None:
         updates = {}
-
-    if default_format:
-        formatConfig = updates.setdefault("formatters", {}).setdefault("default", {})
-        formatConfig["format"] = default_format
 
     if default_level:
         updates.setdefault("root", {})["level"] = default_level
@@ -94,14 +99,24 @@ def setupLogging(
         if updates:
             recursiveUpdate(config, updates)
 
+        # propagate default_format to all configured formatters
+        if default_format:
+            for name, formatConfig in config.setdefault("formatters", {}).items():
+                if "()" in formatConfig:
+                    formatConfig["fmt"] = default_format
+
+                else:
+                    formatConfig["format"] = default_format
+
+            if len(config["formatters"]) == 0:
+                config["formatters"] = dict(default=dict(format=default_format))
+
         logging.config.dictConfig(config)
+
     else:
         logging.info("Failed to configure logging from file. Falling back to basicConfig")
         level = default_level or logging.INFO
-        frmt = default_format or (
-            "[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s"
-            " | %(threadName)10s | %(message)s"
-        )
+        frmt = default_format or logFormat()
         logging.basicConfig(level=level, format=frmt)
 
 
@@ -114,11 +129,7 @@ def configureLogging(preamble="", level=logging.INFO, config_updates=None):
         if not isinstance(level, int):
             raise ValueError(f"Invalid logging level {level}")
 
-    frmt = (
-        "[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s | "
-        + (preamble + " | " if preamble else "")
-        + "%(threadName)10s | %(message)s"
-    )
+    frmt = logFormat(preamble)
 
     ownDir = os.path.dirname(os.path.abspath(__file__))
     setupLogging(

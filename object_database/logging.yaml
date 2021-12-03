@@ -4,13 +4,19 @@ formatters:
     default:
         format: '[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s | %(message)s'
 
+    nyc:
+        (): object_database.logging.TimezonedFormatter
+        timezone: Europe/Athens
+        # timezone: America/New_York
+        fmt: '[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s | %(message)s'
+
 handlers:
     default:
         class: logging.StreamHandler
         level: 0  # Default Handler should apply to all levels
-        formatter: default
+        formatter: nyc
         stream: ext://sys.stdout
 
 root:
-    level: 10  # Default level==INFO
+    level: 20  # Default level==INFO
     handlers: [default]

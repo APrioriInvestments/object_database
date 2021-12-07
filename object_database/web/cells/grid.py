@@ -48,7 +48,7 @@ class Grid(Cell):
         super().prepareForReuse()
 
     def recalculate(self):
-        with self.view() as v:
+        with self.transaction() as v:
             try:
                 self.rows = augmentToBeUnique(self.rowFun())
             except SubscribeAndRetry:

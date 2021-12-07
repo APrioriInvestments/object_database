@@ -935,7 +935,7 @@ class WebglPlot(Cell):
         )
 
     def calculateErrorAndPlotData(self):
-        with self.view() as v:
+        with self.transaction() as v:
             self.packets.resetTouched()
 
             try:

@@ -153,7 +153,7 @@ class Cell:
     def evaluateWithDependencies(self, fun):
         """Evaluate function within a view and add dependencies for whatever
         we read."""
-        with self.view() as v:
+        with self.transaction() as v:
             result = fun()
 
             self._resetSubscriptionsToViewReads(v)

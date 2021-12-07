@@ -104,7 +104,7 @@ class TableHeader(Cell):
         return Card(Left(pageCell >> Padding() >> leftCell >> rightCell), padding=1)
 
     def recalculate(self):
-        with self.view() as v:
+        with self.transaction() as v:
             try:
                 self.cols = list(self.colFun())
             except SubscribeAndRetry:
@@ -180,7 +180,7 @@ class TableRow(Cell):
         self.cols = []
 
     def recalculate(self):
-        with self.view() as v:
+        with self.transaction() as v:
             try:
                 self.cols = list(self.colFun())
             except SubscribeAndRetry:
@@ -338,7 +338,7 @@ class Table(Cell):
 
     def recalculate(self):
         # first, determine what the _set_ of rows we're going to use is
-        with self.view() as v:
+        with self.transaction() as v:
             try:
                 rowKeys = self.sortedRowsSlot.get()
 

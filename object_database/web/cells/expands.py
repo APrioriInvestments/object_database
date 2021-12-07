@@ -45,14 +45,16 @@ class Expands(Cell):
         return self.closed.sortsAs()
 
     def recalculate(self):
+        isExpanded = self.evaluateWithDependencies(lambda: self.isExpanded)
+
         self.children.addFromDict(
             {
-                "content": self.open if self.isExpanded else self.closed,
-                "icon": self.openedIcon if self.isExpanded else self.closedIcon,
+                "content": self.open if isExpanded else self.closed,
+                "icon": self.openedIcon if isExpanded else self.closedIcon,
             }
         )
 
-        self.exportData["isOpen"] = self.isExpanded
+        self.exportData["isOpen"] = isExpanded
 
         for c in self.children.allChildren:
             if c.cells is not None:

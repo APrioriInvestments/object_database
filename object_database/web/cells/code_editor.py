@@ -240,7 +240,7 @@ class CodeEditor(FocusableCell):
         correctly to them.
         """
         with ComputingCellContext(self):
-            with self.view() as v:
+            with self.transaction() as v:
                 try:
                     return self.textToDisplayFunction()
                 finally:
@@ -254,9 +254,10 @@ class CodeEditor(FocusableCell):
 
         self.exportData["initialText"] = self.calculateCurrentText()
         self.exportData["currentIteration"] = self.currentIteration
-        self.exportData[
-            "initialSelection"
-        ] = self.selectionSlot.getWithoutRegisteringDependency()
+        with self.view():
+            self.exportData[
+                "initialSelection"
+            ] = self.selectionSlot.getWithoutRegisteringDependency()
         self.exportData["autocomplete"] = self.autocomplete
         self.exportData["noScroll"] = self.noScroll
         self.exportData["readOnly"] = self.readOnly
@@ -266,9 +267,10 @@ class CodeEditor(FocusableCell):
         if self.minLines is not None:
             self.exportData["minLines"] = self.minLines
 
-        self.exportData[
-            "firstVisibleRow"
-        ] = self.firstVisibleRowSlot.getWithoutRegisteringDependency()
+        with self.view():
+            self.exportData[
+                "firstVisibleRow"
+            ] = self.firstVisibleRowSlot.getWithoutRegisteringDependency()
 
         self.exportData["mouseoverTimeout"] = self.mouseoverTimeout
 

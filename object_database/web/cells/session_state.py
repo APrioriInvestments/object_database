@@ -13,8 +13,8 @@
 #   limitations under the License.
 
 
-from object_database.web.cells.computed_slot import ComputedSlot
 from object_database.web.cells.cell import context
+from object_database import MaskView, current_transaction
 from object_database import core_schema
 from object_database import Schema, Index, Indexed
 from object_database.view import revisionConflictRetry
@@ -124,12 +124,16 @@ class SessionState(object):
             session = PersistentSession.lookupAny(sessionId=self._sessionId)
 
             if session is None:
+                logging.info("Initializing session state for %s", self._sessionId)
+
                 session = PersistentSession(
                     sessionId=self._sessionId,
                     connection=db.connectionObject,
                     lastUpdateTimestamp=time.time(),
                 )
             else:
+                logging.info("Resuming session state for %s", self._sessionId)
+
                 session.connection = db.connectionObject
                 session.lastUpdateTimestamp = time.time()
 
@@ -142,15 +146,25 @@ class SessionState(object):
     def _reset(self, cells):
         return self
 
-    def _odbStateFor(self, name, defaultValue=None):
+    def _odbStateFor(self, name, defaultValue=None, createIfMissing=True):
         if name not in self._slots:
             slot = PersistentSessionState.lookupAny(sessionIdAndName=(self._sessionId, name))
+
+            if not slot and not createIfMissing:
+                return None
+
             if not slot:
                 slot = PersistentSessionState(
                     sessionId=self._sessionId, name=name, value=defaultValue
                 )
 
             self._slots[name] = slot
+
+        if not self._slots[name].exists():
+            raise Exception(
+                f"Somehow slot {name} for session {self._sessionId} was "
+                f"deleted even though the session is alive."
+            )
 
         return self._slots[name]
 
@@ -164,10 +178,33 @@ class SessionState(object):
         self.set(name, not self.get(name))
 
     def get(self, name):
+        odbState = self._odbStateFor(name, createIfMissing=False)
+        if odbState is None:
+            return None
+
         return self._odbStateFor(name).value
 
     def slotFor(self, key):
-        return ComputedSlot(lambda: self.get(key), lambda val: self.set(key, val))
+        return SessionStateSlot(self, key)
+
+
+class SessionStateSlot:
+    def __init__(self, sessionState, name):
+        self.sessionState = sessionState
+        self.name = name
+
+    def get(self):
+        return self.sessionState.get(self.name)
+
+    def set(self, value):
+        self.sessionState.set(self.name, value)
+
+    def getWithoutRegisteringDependency(self):
+        db = current_transaction().db()
+
+        with MaskView():
+            with db.view():
+                return self.sessionState.get(self.name)
 
 
 def sessionState():

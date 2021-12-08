@@ -327,6 +327,10 @@ class MessageBus(object):
     def listeningEndpoint(self):
         return self._listeningEndpoint
 
+    @property
+    def authToken(self):
+        return self._authToken
+
     def setMaxWriteQueueSize(self, queueSize):
         """Insist that we block any _sending_ threads if our outgoing queue gets too large."""
         self._messagesToSendQueue.setMaxBytes(queueSize)

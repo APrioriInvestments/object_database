@@ -108,6 +108,10 @@ class DatabaseConnection:
         self._max_tid_by_schema = {}
         self._max_tid_by_schema_and_type = {}
 
+    @property
+    def auth_token(self):
+        return self._auth_token
+
     def getConnectionMetadata(self):
         """Return any data provided to us by the underlying transport.
 

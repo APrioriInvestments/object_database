@@ -6,8 +6,7 @@ formatters:
 
     nyc:
         (): object_database.logging.TimezonedFormatter
-        timezone: Europe/Athens
-        # timezone: America/New_York
+        timezone: America/New_York
         fmt: '[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s | %(message)s'
 
 handlers:

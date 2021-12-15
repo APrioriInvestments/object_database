@@ -165,8 +165,7 @@ class Logfile:
 class LogfileSet:
     """ A sequence of Logfile objects for a specific service.
 
-    Logfiles must belog to the same service, but may belong to different processes,
-    all of which except for possibly one are old and no longer active.
+    Logfiles must belog to the same service, but may belong to different processes.
     Each process may have multple logfiles with .1, .2, etc extensions.
     """
 
@@ -228,15 +227,20 @@ class LogfileSet:
         if self._oldest is None or logfile.modtime < self._oldest.modtime:
             self._oldest = logfile
 
-    def deleteOldest(self) -> int:
-        """ Returns the number of bytes that were deleted. """
+    def deleteOldest(self, alwaysRemoveOldest=True) -> int:
+        """ Returns the number of bytes that were deleted.
+
+        Args:
+            alwaysRemoveOldest (bool): when False, only remove the oldest Logfile
+                from the LogfileSet if it was successfully deleted.
+        """
         if self._oldest is None:
             return 0
 
         toDelete = self._oldest
 
         deletedBytes = toDelete.delete()
-        if not toDelete.exists():
+        if alwaysRemoveOldest or not toDelete.exists():
             self._removeExistingLogfile(toDelete)
 
         return deletedBytes
@@ -294,27 +298,24 @@ class LogsDirectoryQuotaManager:
         or if negative, the number of bytes available for further logging.
         """
 
-        logsByService = {}
-        # dict(service:str -> LogfileSet)
-
-        logsByService = self._collectLogsFromPath(self.path, logsByService)
-        logsByService = self._collectLogsFromPath(self.oldsPath, logsByService)
+        logsByService = self._collectLogsFromPath(self.path)
+        oldLogsByService = self._collectLogsFromPath(self.oldsPath)
 
         totalSize = getDirectorySize(self.path)
 
         bytesToDelete = totalSize - self.maxBytes
         if bytesToDelete > 0:
 
-            # Try to keep logs for the live and one exited process per service
+            # Try to keep logs for one exited process per service
             deletedBytes = self._deleteOldestAmongServicesWithAtLeastKInstances(
-                logsByService, bytesToDelete, K=3
+                oldLogsByService, bytesToDelete, K=2
             )
             bytesToDelete -= deletedBytes
 
             # Failing that, try to keep all the active logs
         if bytesToDelete > 0:
             deletedBytes = self._deleteOldestAmongServicesWithAtLeastKInstances(
-                logsByService, bytesToDelete, K=2
+                oldLogsByService, bytesToDelete, K=1
             )
             bytesToDelete -= deletedBytes
 
@@ -366,17 +367,17 @@ class LogsDirectoryQuotaManager:
             if logSet.instanceCount() >= K
         }
 
-        deletedBytes = 0
-        while len(candidates) > 0 and deletedBytes < bytesToDelete:
+        totalDeletedBytes = 0
+        while len(candidates) > 0 and totalDeletedBytes < bytesToDelete:
             oldestLogSet = min(
                 (logSet for logSet in candidates.values()),
                 key=lambda logSet: logSet.oldest.modtime,
             )
-            deletedBytes += oldestLogSet.deleteOldest()
+            totalDeletedBytes += oldestLogSet.deleteOldest()
             if oldestLogSet.instanceCount() < K:
                 del candidates[oldestLogSet.service]
 
-        return deletedBytes
+        return totalDeletedBytes
 
     @staticmethod
     def _deleteFromLargestLogfileSet(logsByService, bytesToDelete: int):

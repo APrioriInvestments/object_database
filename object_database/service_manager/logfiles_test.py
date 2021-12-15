@@ -203,7 +203,65 @@ def test_logset(tmpdir):
         logSet.addLogfile(log6)
 
 
-def test_deleteLogsIfOverLimit(tmpdir):
+def test_deleteLogsIfOverQuota_garbage(tmpdir):
+    """ Undeletable garbage files in the logs dir means we can never succeed but
+    we shouldn't loop forever. """
+
+    logsDir = str(tmpdir)
+    oldsDir = os.path.join(logsDir, "old")
+    os.makedirs(oldsDir)
+
+    with open(os.path.join(tmpdir, "non_log_file"), "w") as f:
+        f.write("asdfasdf")
+
+    sleepAmt = 0.015  # this seems sufficient to allow distinguishing between file mod-times
+
+    log0 = makeLogFile("asdf", "live-service", 0, logsDir, isOld=True)
+    time.sleep(sleepAmt)
+    log1 = makeLogFile("asdf", "live-service", 1, logsDir, backupCount=1)
+    time.sleep(sleepAmt)
+    log2 = makeLogFile("asdf", "live-service", 2, logsDir)
+
+    maxBytes = 2
+    mgr = LogsDirectoryQuotaManager(logsDir, maxBytes)
+    bytesToDelete = mgr.deleteLogsIfOverQuota()
+    assert not log0.exists()
+    assert not log1.exists()
+    assert log2.exists()
+    assert bytesToDelete == 10
+
+
+@pytest.mark.timeout(2)
+def test_deleteLogsIfOverQuota_multiple_active_instances_per_service(tmpdir):
+    """ We shouldn't loop forever if we have multiple active logfiles and we're over quota
+    (bugfix).
+    """
+    logsDir = str(tmpdir)
+
+    oldsDir = os.path.join(logsDir, "old")
+    os.makedirs(oldsDir)
+
+    with open(os.path.join(tmpdir, "non_log_file"), "w") as f:
+        f.write("asdfasdf")
+
+    sleepAmt = 0.015  # this seems sufficient to allow distinguishing between file mod-times
+
+    log0 = makeLogFile("asdf", "live-service", 0, logsDir, isOld=True)
+    time.sleep(sleepAmt)
+    log1 = makeLogFile("asdf", "live-service", 1, logsDir)
+    time.sleep(sleepAmt)
+    log2 = makeLogFile("asdf", "live-service", 2, logsDir)
+
+    maxBytes = 2
+    mgr = LogsDirectoryQuotaManager(logsDir, maxBytes)
+    bytesToDelete = mgr.deleteLogsIfOverQuota()
+    assert not log0.exists()
+    assert log1.exists()
+    assert log2.exists()
+    assert bytesToDelete == 14
+
+
+def test_deleteLogsIfOverQuota_happy(tmpdir):
     logsDir = str(tmpdir)
 
     sleepAmt = 0.015  # this seems sufficient to allow distinguishing between file mod-times

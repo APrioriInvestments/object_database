@@ -43,6 +43,11 @@ class ServiceBase:
         self.runtimeConfig = runtimeConfig
         self.registeredReactors = []
         self._reactorsRunning = False
+        self.configureLogging()
+
+    def configureLogging(self):
+        """ Subclasses may override this method to configure logging. """
+        pass
 
     @staticmethod
     def configureFromCommandline(db, serviceObject, args):

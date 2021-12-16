@@ -232,7 +232,12 @@ pypi-upload: $(VIRTUAL_ENV)
 		twine upload dist/*;
 
 requirements.lock: requirements.txt
-	pip-compile --output-file $@ requirements.txt 2> /dev/null
+	pip-compile --quiet --output-file $@ requirements.txt
 
 dev-requirements.lock: dev-requirements.txt requirements.lock
-	pip-compile --output-file $@ dev-requirements.txt 2> /dev/null
+	pip-compile --quiet --output-file $@ dev-requirements.txt
+
+.PHONY: upgrade-dependencies
+upgrade-dependencies:
+	pip-compile --quiet --upgrade --output-file requirements.lock  requirements.txt
+	pip-compile --quiet --upgrade --output-file dev-requirements.lock  dev-requirements.txt

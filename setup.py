@@ -67,7 +67,14 @@ ext_modules = [
     )
 ]
 
-INSTALL_REQUIRES = [line.strip() for line in open("requirements.txt")]
+
+def computeInstallRequires():
+    lines = [line.strip() for line in open("requirements.txt")]
+    return [line for line in lines if not line.startswith("#") and not line.startswith("-i")]
+
+
+INSTALL_REQUIRES = computeInstallRequires()
+
 
 setuptools.setup(
     name="object_database",

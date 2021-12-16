@@ -64,9 +64,9 @@ install: $(VIRTUAL_ENV) testcert.cert testcert.key install-dependencies pre-comm
 
 .PHONY: install-dependencies
 .ONESHELL:
-install-dependencies: $(VIRTUAL_ENV)
+install-dependencies: $(VIRTUAL_ENV) dev-requirements.lock
 	. $(VIRTUAL_ENV)/bin/activate; \
-		pipenv install --dev --deploy
+		pip install --requirement dev-requirements.lock
 
 	nodeenv --python-virtualenv --prebuilt --node=12.13.0 $(NODE_ENV)
 	npm install --global webpack webpack-cli
@@ -193,11 +193,8 @@ clean:
 .ONESHELL:
 $(VIRTUAL_ENV): $(PYTHON) .env
 	$(PYTHON) -m venv $(VIRTUAL_ENV)
-	. $(VIRTUAL_ENV)/bin/activate; \
-		pip install --upgrade pip; \
-		pip install pipenv; \
-		pip install black==19.3b0; \
-		pip install wheel
+	. $(VIRTUAL_ENV)/bin/activate
+	pip install --upgrade pip pip-tools wheel
 
 $(ODB_BUILD_PATH)/all.o: $(ODB_SRC_PATH)/*.hpp $(ODB_SRC_PATH)/*.cpp $(TP_SRC_PATH)/*.hpp
 	$(CC) $(CPP_FLAGS) -c $(ODB_SRC_PATH)/all.cpp $ -o $@
@@ -233,3 +230,9 @@ pypi-upload: $(VIRTUAL_ENV)
 		rm -rf dist; \
 		python setup.py sdist; \
 		twine upload dist/*;
+
+requirements.lock: requirements.txt
+	pip-compile --output-file $@ requirements.txt 2> /dev/null
+
+dev-requirements.lock: dev-requirements.txt requirements.lock
+	pip-compile --output-file $@ dev-requirements.txt 2> /dev/null

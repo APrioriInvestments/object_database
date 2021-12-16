@@ -1,0 +1,14 @@
+-c requirements.txt
+-i https://pypi.org/simple
+
+autopep8
+black==19.3b
+coverage
+flake8
+flaky
+pre-commit
+pytest
+pytest-cov
+pytest-lazy-fixture
+pytest-timeout
+selenium

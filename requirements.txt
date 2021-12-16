@@ -1,6 +1,7 @@
+-i https://pypi.org/simple
+
 beautifulsoup4
 boto3
-flaky
 flask >= 2.0, < 3.0
 flask-cors
 flask-login
@@ -8,16 +9,15 @@ flask-sockets @ git+https://github.com/APrioriInvestments/flask-sockets.git@2b76
 flask-wtf
 gevent
 gevent-websocket
+hiredis
 ldap3
 nodeenv
 numpy < 1.20
 psutil
-pytest-lazy-fixture
 pytz
 pyyaml
 redis
 requests
-selenium
 sortedcontainers
 typed_python >= 0.2.4
 wtforms

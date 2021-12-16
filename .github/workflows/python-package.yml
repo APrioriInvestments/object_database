@@ -55,19 +55,8 @@ jobs:
     - name: Install PIP dependencies
       timeout-minutes: 15  # Should run in ~2 to 3 min with cache
       run: |
-        pip install --upgrade pip
-        pip install pipenv==2018.11.26  # Newer versions choke on the editable tp dependency
-        mkdir --parents ../typed_python
-
-        pipenv lock --requirements > reqs.txt
-        sed --in-place --expression 's/^-e.*//' reqs.txt
-        pip install --requirement reqs.txt
-
-        pipenv lock --dev --requirements > dev-reqs.txt
-        sed --in-place --expression 's/^-e//' dev-reqs.txt
-        cat dev-reqs.txt
-        pip install --requirement dev-reqs.txt
-
+        pip install --upgrade pip pip-tools wheel
+        pip install --requirement dev-requirements.lock
         pip install --editable .
 
     - name: Install NODE dependencies
@@ -136,18 +125,13 @@ jobs:
       timeout-minutes: 2  # Runs in 15 sec
       run: |
         python -m pip install --upgrade pip
-        pip install flake8==3.8.4 pipenv safety black==19.3b0
+        pip install flake8==3.8.4 safety black==19.3b0
 
-    - name: Check pipenv and lint
+    - name: Check black and lint
       timeout-minutes: 2  # Runs in 15 sec
       run: |
-        pip install --upgrade pip
-        pip install pipenv==2018.11.26  # Newer versions choke on the editable tp dependency
-        mkdir --parents ../typed_python
+        pip install --upgrade pip pip-tools wheel
+        pip install --requirement dev-requirements.lock
 
-        pipenv lock --requirements > reqs.txt
-        sed --in-place --expression 's/^-e.*//' reqs.txt
-        pip install --requirement reqs.txt
-
-        make lint
+        make lint-local
         make black-check-local

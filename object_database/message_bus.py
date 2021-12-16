@@ -447,6 +447,11 @@ class MessageBus(object):
             atTimestamp - the earliest posix timestamp to run the callback on
             delay - the amount of time until we fire the callback.
         """
+        if callback is None:
+            self._logger.warning("Cannot scheduleCallback(None); discarding.")
+            # This would cause the event loop thread to terminate
+            return
+
         with self._lock:
             assert atTimestamp is None or delay is None
 

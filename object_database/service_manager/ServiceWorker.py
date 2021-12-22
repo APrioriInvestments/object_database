@@ -26,7 +26,14 @@ import traceback
 
 class ServiceWorker:
     def __init__(
-        self, db, dbConnectionFactory, instance_id, storageRoot, authToken, ownIpAddress
+        self,
+        db,
+        dbConnectionFactory,
+        instance_id,
+        storageRoot,
+        authToken,
+        ownIpAddress,
+        ownsProcess=False,
     ):
         self._logger = logging.getLogger(__name__)
         self.dbConnectionFactory = dbConnectionFactory
@@ -40,6 +47,7 @@ class ServiceWorker:
 
         self.instance = service_schema.ServiceInstance.fromIdentity(instance_id)
         self.instanceId = instance_id
+        self.ownsProcess = ownsProcess
 
         self.runtimeConfig = ServiceRuntimeConfig(
             dbConnectionFactory, storageRoot, authToken, ownIpAddress, self.instance
@@ -95,6 +103,9 @@ class ServiceWorker:
                 self.instance.markFailedToStart(traceback.format_exc())
                 return
         try:
+            if self.ownsProcess:
+                self.serviceObject.configureLogging()
+
             self._logger.info("Initializing service object for %s", self.instanceId)
             self.serviceObject.initialize()
         except Exception:

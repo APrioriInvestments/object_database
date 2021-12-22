@@ -102,6 +102,7 @@ def main(argv):
             parsedArgs.storageRoot,
             parsedArgs.authToken,
             ourIP,
+            ownsProcess=True,
         )
 
         def shutdownCleanly(signalNumber, frame):

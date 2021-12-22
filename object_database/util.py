@@ -14,6 +14,7 @@
 
 import collections
 import collections.abc
+import copy
 import hashlib
 import logging
 import logging.config
@@ -24,7 +25,6 @@ import subprocess
 import tempfile
 import time
 import types
-import yaml
 
 
 def formatTable(rows):
@@ -78,46 +78,61 @@ def logFormat(preamble=""):
     )
 
 
-def setupLogging(
-    default_path=None, default_level=None, env_key="LOG_CFG", default_format=None, updates=None
-):
+DEFAULT_LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "format": "[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s | %(message)s"
+        },
+        "nyc": {
+            "()": "object_database.logging.TimezonedFormatter",
+            "timezone": "America/New_York",
+            "fmt": "[%(asctime)s] %(levelname)8s %(filename)30s:%(lineno)4s | %(message)s",
+        },
+    },
+    "handlers": {
+        "default": {
+            "class": "logging.StreamHandler",
+            "level": 0,  # Default Handler should apply to all levels
+            "formatter": "nyc",
+            "stream": "ext://sys.stdout",
+        }
+    },
+    "root": {"level": logging.INFO, "handlers": ["default"]},
+}
+
+
+def setupLogging(config=None, default_level=None, default_format=None, updates=None):
     """Setup logging configuration """
+    if config is None:
+        config = copy.deepcopy(DEFAULT_LOGGING_CONFIG)
+
     if updates is None:
         updates = {}
 
     if default_level:
+        if not isinstance(default_level, int):
+            raise TypeError(f"Expected int for default_level but got {default_level}.")
+
         updates.setdefault("root", {})["level"] = default_level
 
-    path = default_path
-    value = os.getenv(env_key, None)
-    if value:
-        path = value
+    if updates:
+        recursiveUpdate(config, updates)
 
-    if path is not None and os.path.exists(path):
-        with open(path, "rt") as f:
-            config = yaml.safe_load(f.read())
-        if updates:
-            recursiveUpdate(config, updates)
+    # propagate default_format to all configured formatters
+    if default_format:
+        for name, formatConfig in config.setdefault("formatters", {}).items():
+            if "()" in formatConfig:
+                formatConfig["fmt"] = default_format
 
-        # propagate default_format to all configured formatters
-        if default_format:
-            for name, formatConfig in config.setdefault("formatters", {}).items():
-                if "()" in formatConfig:
-                    formatConfig["fmt"] = default_format
+            else:
+                formatConfig["format"] = default_format
 
-                else:
-                    formatConfig["format"] = default_format
+        if len(config["formatters"]) == 0:
+            config["formatters"] = dict(default=dict(format=default_format))
 
-            if len(config["formatters"]) == 0:
-                config["formatters"] = dict(default=dict(format=default_format))
-
-        logging.config.dictConfig(config)
-
-    else:
-        logging.info("Failed to configure logging from file. Falling back to basicConfig")
-        level = default_level or logging.INFO
-        frmt = default_format or logFormat()
-        logging.basicConfig(level=level, format=frmt)
+    logging.config.dictConfig(config)
 
 
 def configureLogging(preamble="", level=logging.INFO, config_updates=None):
@@ -127,17 +142,11 @@ def configureLogging(preamble="", level=logging.INFO, config_updates=None):
         level = logging.getLevelName(level)
 
         if not isinstance(level, int):
-            raise ValueError(f"Invalid logging level {level}")
+            raise ValueError(f"Invalid logging level: {level}")
 
     frmt = logFormat(preamble)
 
-    ownDir = os.path.dirname(os.path.abspath(__file__))
-    setupLogging(
-        default_path=os.path.join(ownDir, "logging.yaml"),
-        default_level=level,
-        default_format=frmt,
-        updates=config_updates,
-    )
+    setupLogging(default_level=level, default_format=frmt, updates=config_updates)
 
     logging.getLogger("botocore.vendored.requests.packages.urllib3.connectionpool").setLevel(
         logging.CRITICAL

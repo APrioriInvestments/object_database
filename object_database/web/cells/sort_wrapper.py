@@ -17,13 +17,25 @@ class SortWrapper:
     def __init__(self, x):
         self.x = x
 
-    def __lt__(self, other):
-        try:
-            if type(self.x) in (int, float) and type(other.x) in (int, float):
-                return self.x < other.x
+    def sortsAs(self):
+        if hasattr(self.x, "sortsAs"):
+            return self.x.sortsAs()
+        else:
+            return self.x
 
-            if type(self.x) is type(other.x):  # noqa: E721
+    def __lt__(self, other):
+        if not isinstance(other, SortWrapper):
+            other = SortWrapper(other)
+
+        try:
+            if isinstance(self.x, (int, float)) and isinstance(other.x, (int, float)):
                 return self.x < other.x
+        except Exception:
+            return False
+
+        try:
+            if type(self.x) is type(other.x):  # noqa: E721
+                return self.sortsAs() < other.sortsAs()
             else:
                 return str(type(self.x)) < str(type(other.x))
         except Exception:
@@ -33,9 +45,18 @@ class SortWrapper:
                 return False
 
     def __eq__(self, other):
+        if not isinstance(other, SortWrapper):
+            other = SortWrapper(other)
+
+        try:
+            if isinstance(self.x, (int, float)) and isinstance(other.x, (int, float)):
+                return self.x == other.x
+        except Exception:
+            return True
+
         try:
             if type(self.x) is type(other.x):  # noqa: E721
-                return self.x == other.x
+                return self.sortsAs() == other.sortsAs()
             else:
                 return str(type(self.x)) == str(type(other.x))
         except Exception:
@@ -43,3 +64,12 @@ class SortWrapper:
                 return str(self.x) == str(self.other)
             except Exception:
                 return True
+
+    def __le__(self, other):
+        return self < other or self == other
+
+    def __gt__(self, other):
+        return not self <= other
+
+    def __ge__(self, other):
+        return not self < other

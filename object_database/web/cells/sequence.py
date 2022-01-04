@@ -96,7 +96,7 @@ class HorizontalSequence(Cell):
         self.exportData["wrap"] = self.wrap
         self.children["elements"] = self.elements
 
-    def sortAs(self):
+    def sortsAs(self):
         if self.elements:
-            return self.elements[0].sortAs()
+            return self.elements[0].sortsAs()
         return None

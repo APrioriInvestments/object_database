@@ -229,9 +229,9 @@ class SubscribedSequence(Cell):
 
         self.children["elements"] = new_children
 
-    def sortAs(self):
+    def sortsAs(self):
         if len(self.children["elements"]):
-            return self.children["elements"][0].sortAs()
+            return self.children["elements"][0].sortsAs()
 
     def _getItems(self):
         """Retrieves the items using itemsFunc

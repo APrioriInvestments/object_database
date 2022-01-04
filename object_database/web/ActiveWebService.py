@@ -326,6 +326,10 @@ class ActiveWebService(ServiceBase):
             # the session couldn't connect. just close it an exit.
             self._logger.error("Failed to connect to our backend instance %s", childInstance)
             ws.close()
+
+            with self.db.transaction():
+                childInstance.triggerShutdown()
+
             return
 
         with self.db.view():

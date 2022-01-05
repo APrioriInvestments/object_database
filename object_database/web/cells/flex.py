@@ -30,3 +30,6 @@ class Flex(Cell):
 
     def recalculate(self):
         self.children["content"] = Cell.makeCell(self.content)
+
+    def sortsAs(self):
+        return self.content.sortsAs()

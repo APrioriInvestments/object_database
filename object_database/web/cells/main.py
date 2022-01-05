@@ -19,3 +19,10 @@ class Main(Cell):
     def __init__(self, child):
         super().__init__()
         self.children["child"] = child
+
+    def sortsAs(self):
+        child = self.children["child"]
+        if isinstance(child, Cell):
+            return child.sortsAs()
+        else:
+            return child

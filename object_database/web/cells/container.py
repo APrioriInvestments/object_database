@@ -35,3 +35,10 @@ class Container(Cell):
     def setContents(self, newContents, newChildren):
         self.children["child"] = Cell.makeCell(newChildren)
         self.markDirty()
+
+    def sortsAs(self):
+        child = self.children["child"]
+        if isinstance(child, Cell):
+            return child.sortsAs()
+        else:
+            return child

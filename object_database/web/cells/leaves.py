@@ -98,13 +98,15 @@ class Timestamp(Cell):
             posix timestamp (seconds since jan 1 1970)
         """
         super().__init__()
-        assert isinstance(timestamp, (float, int)), (
-            "expected time since " "epoch float or int for" " 'timestamp' argument."
-        )
+        if not isinstance(timestamp, (float, int)):
+            raise TypeError("expected time since epoch float or int for 'timestamp' argument.")
         self.timestamp = timestamp
 
     def recalculate(self):
         self.exportData["timestamp"] = self.timestamp
+
+    def sortsAs(self):
+        self.timestamp
 
 
 class Span(Cell):

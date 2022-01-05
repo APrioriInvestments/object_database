@@ -39,6 +39,9 @@ class Highlighted(Cell):
     def recalculate(self):
         self.children["content"] = Cell.makeCell(self.content)
 
+    def sortsAs(self):
+        return self.content.sortsAs()
+
     def __mul__(self, other):
         if self.content is None:
             return Highlighted(other, color=self.color)

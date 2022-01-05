@@ -51,8 +51,27 @@ class Modal(Cell):
             if self.onEsc:
                 self.onEsc()
 
+    def sortsAs(self):
+        header = self.children["header"]
+        if isinstance(header, Cell):
+            return self.header.sortsAs()
+        else:
+            return header
+
 
 def ButtonModal(shown, title, body, ok, cancel=None):
+    """ Make a Modal with buttons.
+
+    Args:
+        shown (cells.Slot): a cells.Slot boolean that determines whether the modal
+            is shown or hidden.
+        title (str): the text of the title-bar of the modal
+        body (cells.Cell): a Cell to be displayed as the body of the modal
+        ok (zero-arg function): what to execute on clicking 'OK'
+        cancel (zero-arg function): what to execute on clicking 'Cancel'. This is optional.
+            If it is missing, there will be no 'Cancel' button.
+    """
+
     def makeModal():
         def onOk():
             shown.set(False)

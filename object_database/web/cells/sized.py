@@ -23,3 +23,6 @@ class Sized(Cell):
         self.exportData["height"] = height
         self.exportData["width"] = width
         self.children["content"] = Cell.makeCell(self.content)
+
+    def sortsAs(self):
+        return self.content.sortsAs()

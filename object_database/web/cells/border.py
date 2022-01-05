@@ -59,6 +59,9 @@ class Border(Cell):
         if self.content is not None:
             self.children["content"] = Cell.makeCell(self.content)
 
+    def sortsAs(self):
+        return self.content.sortsAs()
+
     def __mul__(self, other):
         return Border(
             border=None,

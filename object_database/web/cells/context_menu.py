@@ -43,6 +43,9 @@ class ContextMenu(Cell):
         if "open_state" in msgFrame:
             self.isOpen.set(msgFrame["open_state"])
 
+    def sortsAs(self):
+        return self.contentCell.sortsAs()
+
     def childHadUserAction(self, directChild, deepChild):
         if directChild is self.children["content"]:
             self.scheduleMessage({"action": "force-close"})

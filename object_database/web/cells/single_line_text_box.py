@@ -70,6 +70,9 @@ class SingleLineTextBox(FocusableCell):
         self.exportData["font"] = self.font
         self.exportData["textSize"] = self.textSize
 
+    def sortsAs(self):
+        return self.currentText.getWithoutRegisteringDependency()
+
     def onMessage(self, msgFrame):
         if msgFrame.get("event") == "userEdit":
             self.currentText.set(msgFrame.get("text"), "client-message")

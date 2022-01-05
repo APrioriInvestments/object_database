@@ -51,6 +51,9 @@ class DropdownDrawer(Cell):
         else:
             self.parent.childHadUserAction(self, deepChild)
 
+    def sortsAs(self):
+        return self.contentCell.sortsAs()
+
 
 class CircleLoader(Cell):
     """A simple circular loading indicator

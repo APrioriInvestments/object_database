@@ -51,6 +51,9 @@ class Panel(Cell):
         self.exportData["applyBorder"] = self.applyBorder
         self.children["content"] = Cell.makeCell(self.content)
 
+    def sortsAs(self):
+        return self.content.sortsAs()
+
 
 class CollapsiblePanel(Cell):
     def __init__(self, panel, content, isExpanded):

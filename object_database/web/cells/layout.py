@@ -33,6 +33,9 @@ class FillSpace(Cell):
         self.horizontal = horizontal
         self.vertical = vertical
 
+    def sortsAs(self):
+        return self.content.sortsAs() if isinstance(self.content, Cell) else None
+
     def recalculate(self):
         self.children["content"] = Cell.makeCell(self.content)
 

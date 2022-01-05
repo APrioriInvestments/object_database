@@ -41,6 +41,12 @@ class Padding(Cell):
         if self.content is not None:
             self.children["content"] = Cell.makeCell(self.content)
 
+    def sortsAs(self):
+        if self.content is not None:
+            return self.content.sortsAs()
+        else:
+            return None
+
     def __mul__(self, other):
         return Padding(
             padding=None,

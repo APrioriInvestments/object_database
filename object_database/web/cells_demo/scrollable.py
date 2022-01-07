@@ -188,3 +188,45 @@ class ScrollableScrollChildToView(CellsTestPage):
 
     def text(self):
         return "Should see several plots stacked horizontally."
+
+
+class ScrollableSequenceOfCardAndPlot(CellsTestPage):
+    def cell(self):
+        return cells.Scrollable(
+            cells.Sequence(
+                [
+                    cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 1])),
+                    cells.Card("A card shrinkwraps"),
+                    cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 1])),
+                    cells.Card("A card shrinkwraps"),
+                    cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 1])),
+                ]
+            )
+        )
+
+    def text(self):
+        return "Should see a Card between each plot."
+
+
+class ScrollableSequenceOfCardAndTabs(CellsTestPage):
+    def cell(self):
+        txtA = (
+            "Tab Card A, longer than the default Tabs width, causing it to wrap once "
+            "we exceed said width, which happens about now."
+        )
+        txtB = "Tab Card B"
+
+        return cells.Scrollable(
+            cells.Sequence(
+                [
+                    cells.Tabs(a=cells.Card(txtA), b=cells.Card(txtB)),
+                    cells.Card("A card shrinkwraps"),
+                    cells.Tabs(a=cells.Card(txtA), b=cells.Card(txtB)),
+                    cells.Card("A card shrinkwraps"),
+                    cells.Tabs(a=cells.Card(txtA), b=cells.Card(txtB)),
+                ]
+            )
+        )
+
+    def text(self):
+        return "Should see a Card between each plot and Card in Tab A should not wrap."

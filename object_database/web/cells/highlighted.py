@@ -31,16 +31,19 @@ class Highlighted(Cell):
 
     def __init__(self, content=None, color=None):
         super().__init__()
-        self.content = content
+        self.content = Cell.makeCell(content) if content is not None else None
         self.color = color
 
         self.exportData["color"] = color
 
     def recalculate(self):
-        self.children["content"] = Cell.makeCell(self.content)
+        self.children["content"] = self.content
 
     def sortsAs(self):
-        return self.content.sortsAs()
+        if isinstance(self.content, Cell):
+            return self.content.sortsAs()
+        else:
+            return self.content
 
     def __mul__(self, other):
         if self.content is None:

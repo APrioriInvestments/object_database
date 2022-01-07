@@ -29,7 +29,7 @@ class Flex(Cell):
         self.content = Cell.makeCell(content)
 
     def recalculate(self):
-        self.children["content"] = Cell.makeCell(self.content)
+        self.children["content"] = self.content
 
     def sortsAs(self):
         return self.content.sortsAs()

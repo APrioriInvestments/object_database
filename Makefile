@@ -59,7 +59,7 @@ TESTTYPES2 = $(DT_SRC_PATH)/ClientToServer0.hpp
 #  MAIN RULES
 
 .PHONY: install
-install: $(VIRTUAL_ENV) testcert.cert testcert.key install-dependencies lib pre-commit-install
+install: $(VIRTUAL_ENV) testcert.cert testcert.key install-dependencies install-odb pre-commit-install
 
 
 .PHONY: install-dependencies
@@ -74,6 +74,12 @@ install-dependencies: $(VIRTUAL_ENV) requirements.lock dev-requirements.lock
 	cd object_database/web/content
 	npm install
 	webpack
+
+.PHONY: install-odb
+.ONESHELL:
+install-odb: $(VIRTUAL_ENV)
+	. $(VIRTUAL_ENV)/bin/activate
+	pip install --editable .
 
 .PHONY: pre-commit-install
 pre-commit-install: $(VIRTUAL_ENV)

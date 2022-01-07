@@ -59,13 +59,14 @@ TESTTYPES2 = $(DT_SRC_PATH)/ClientToServer0.hpp
 #  MAIN RULES
 
 .PHONY: install
-install: $(VIRTUAL_ENV) testcert.cert testcert.key install-dependencies pre-commit-install
+install: $(VIRTUAL_ENV) testcert.cert testcert.key install-dependencies lib pre-commit-install
 
 
 .PHONY: install-dependencies
 .ONESHELL:
-install-dependencies: $(VIRTUAL_ENV) dev-requirements.lock
+install-dependencies: $(VIRTUAL_ENV) requirements.lock dev-requirements.lock
 	. $(VIRTUAL_ENV)/bin/activate; \
+		pip install --requirement requirements.lock; \
 		pip install --requirement dev-requirements.lock
 
 	nodeenv --python-virtualenv --prebuilt --node=12.13.0 $(NODE_ENV)
@@ -129,6 +130,7 @@ black-check-local:
 
 .PHONY: cells-demo
 cells-demo:
+	@echo "Starting cells demo. Point your browser to 'localhost:8000'."
 	. $(VIRTUAL_ENV)/bin/activate; \
 		./object_database/frontends/object_database_webtest.py
 

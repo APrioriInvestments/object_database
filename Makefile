@@ -108,7 +108,15 @@ test: $(VIRTUAL_ENV) testcert.cert testcert.key js-test
 
 .PHONY: js-test
 js-test:
-	cd object_database/web/content/; npm test
+	. $(NODE_ENV)/bin/activate; \
+	cd object_database/web/content/; \
+	npm test
+
+.PHONY: js-test-editor
+js-test-editor:
+	. $(NODE_ENV)/bin/activate; \
+	cd object_database/web/content/; \
+	npm run test-editor
 
 .PHONY: lint-local
 lint-local:

@@ -89,7 +89,7 @@ class Scrollable extends ConcreteCell {
     handleMessages(messages) {
         messages.forEach((msg) => {
             if (msg.event == 'scrollChildIntoView') {
-                this.handler.activeCells[msg.id].domElement.scrollIntoView(
+                this.handler.activeCells[msg.id].getScrollableDomElt().scrollIntoView(
                     {block: msg.valign, inline: msg.halign}
                 );
             }

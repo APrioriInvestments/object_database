@@ -56,7 +56,9 @@ class ConcreteCell extends Cell {
              return false;
         }
 
-        let newChildDomElement = this.renderChildUncached(this.childNameToChild[childName]);
+        let newChildDomElement = this.renderChildUncached(
+            this.childNameToChild[childName]
+        );
 
         // insist that our dom element is a parent of this one
         // we only need to turn this on if we see cases where cells are making multiple

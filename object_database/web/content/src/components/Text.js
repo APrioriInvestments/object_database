@@ -10,15 +10,37 @@ class Text extends ConcreteCell {
         super(props, ...args);
 
         this.style = "display:inline-block";
+        this.extraClasses = "";
 
         if (this.props.textColor) {
             this.style += ";color:" + this.props.textColor;
+        }
+
+        if (this.props.bold) {
+            this.style += ";font-weight: bold"
+        }
+
+        if (this.props.italic) {
+            this.style += ";font-style: italic"
+        }
+
+        if (this.props.monospace) {
+            this.extraClasses += " monospace_font";
+        }
+        if (this.props.preformatted) {
+            this.style += ";white-space: pre";
+        }
+        if (this.props.nowrap) {
+            this.style += ";white-space: nowrap";
+        }
+        if (this.props.fontSize) {
+            this.style += ";fontSize: " + this.props.fontSize;
         }
     }
 
     build() {
         let divArgs = {
-            class: "cell cell-focus-no-outline",
+            class: "cell cell-focus-no-outline" + this.extraClasses,
             id: this.getElementId(),
             style: this.style,
             "data-cell-id": `${this.identity}`,

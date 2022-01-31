@@ -358,6 +358,10 @@ pre {
     white-space: pre;
 }
 
+.monospace_font {
+    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+}
+
 /* CodeEditor
  * ===============================================================*/
 .code-editor {
@@ -729,3 +733,217 @@ pre {
     opacity: 0;
   }
 }
+
+/* Editor */
+@keyframes editor-cursor {
+  0% { opacity: 1; }
+  40% { opacity: 1; }
+  50% { opacity: 0; }
+  90% { opacity: 0; }
+}
+
+.editor-cursor {
+    position: absolute;
+    opacity: .5;
+}
+
+.editor-selection-highlight-other-user {
+    position: absolute;
+}
+
+.editor-cursor-other-user {
+    position: absolute;
+}
+
+.editor-cursor-name-label {
+    position: absolute;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    min-width: 50px;
+}
+.editor-cursor-callout-above {
+    position: absolute;
+    border-top-left-radius: 3px;
+}
+.editor-cursor-callout-below {
+    position: absolute;
+    border-bottom-left-radius: 3px;
+}
+.editor-line-gutter-layer {
+    position: absolute;
+}
+
+.editor:focus .editor-cursor {
+    position: absolute;
+
+    animation: editor-cursor 1.5s infinite;
+}
+
+.editor {
+    position: relative;
+    overflow: hidden;
+}
+
+.editor:focus {
+    outline: 0px solid transparent;
+}
+
+.editor-line {
+    position: absolute;
+    width: 100%;
+}
+
+.editor-section-sep {
+    position:absolute;
+    top:-1px;
+    left:0;
+    width:100%;
+    height:1px;
+}
+
+.editor-section-background {
+    position:absolute;
+}
+
+.editor-line-number {
+    text-align: right;
+    display: inline-block;
+    white-space: pre;
+}
+
+.editor-line-contents {
+    display: inline;
+}
+
+.editor-selection-highlight {
+    position: absolute;
+}
+
+.editor-background-layer {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+}
+
+.editor-line-layer {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    white-space: pre;
+    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+}
+
+.editor-line-piece {
+    display: inline;
+    white-space: pre;
+}
+
+.editor-cursor-background-layer {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+}
+
+.editor-selection-layer {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+}
+
+.editor-cursor-layer {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+}
+
+.editor-scrollbar-layer {
+    position: absolute;
+    top: 0px;
+    right: 3px;
+    width: 6px;
+    height: 100%;
+}
+
+.editor-scrollbar-background {
+    position: absolute;
+    border-radius: 2px;
+    width: 100%;
+}
+
+.editor-content-and-split-holder {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 0px;
+    top: 0px;
+}
+
+
+.editor-edit-contents-holder {
+    position: absolute;
+    height: 100%;
+    left: 0px;
+    top: 0px;
+    overflow: hidden;
+}
+.editor-section-splitter {
+    position: absolute;
+    height: 100%;
+    top: 0px;
+    left: 50%;
+    background-color: white
+}
+
+
+.editor-content-and-split-holder .gutter {
+    position: absolute;
+    height: 100%;
+    background-color: transparent;
+    transition: background-color 150ms linear;
+}
+.editor-content-and-split-holder .gutter:hover {
+    position: absolute;
+    height: 100%;
+    background-color: rgba(200, 200, 200, 0.5);
+    transition background-color 150ms linear;
+    cursor: ew-resize;
+}
+
+
+.editor-subsection-holder {
+    position: absolute;
+    width: 45%;
+    height: 100%;
+    right: 0px;
+    top: 0px;
+    overflow: hidden;
+}
+
+.editor-scrollbar {
+    position: absolute;
+    width: 100%;
+    padding: 2px;
+    border-radius: 2px;
+}
+.editor-mouse-event-div {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+}
+.editor-section-display {}

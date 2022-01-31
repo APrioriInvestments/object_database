@@ -73,9 +73,9 @@ class DataFrame extends Frame {
                 throw `${location} outside of DataFrame`;
             }
             key = location.toString();
-        } else if(location.isPoint){
+        } else if (location.isPoint){
             if(!this.contains(location)){
-                throw `${location} outside of DataFrame`;
+                return '';
             }
             key = `${location.x},${location.y}`;
         } else {

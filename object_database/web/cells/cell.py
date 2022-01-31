@@ -208,6 +208,17 @@ class Cell:
             lambda cell: isinstance(cell, object_database.web.cells.leaves.Traceback)
         )
 
+    def onMessageWithCellContext(self, *args):
+        """ Call our inner 'onMessage' function with a transaction in a retry loop. """
+        with ComputingCellContext(self, isProcessingMessage=True):
+            try:
+                self.onMessage(*args)
+            except Exception:
+                logging.exception(
+                    "Exception processing message %s to cell %s logic:", args, self
+                )
+                return
+
     def onMessageWithTransaction(self, *args):
         """ Call our inner 'onMessage' function with a transaction in a retry loop. """
         tries = 0

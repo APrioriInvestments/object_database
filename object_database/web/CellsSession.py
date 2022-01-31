@@ -174,7 +174,7 @@ class CellsSession:
                 cell = self.cells[cell_id]
 
                 if cell is not None:
-                    cell.onMessageWithTransaction(jsonMsg)
+                    cell.onMessageWithCellContext(jsonMsg)
 
         return callbackFun
 

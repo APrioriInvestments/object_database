@@ -13,7 +13,6 @@
 #   limitations under the License.
 
 
-import html
 from object_database.web.cells.cell import FocusableCell, Cell
 
 
@@ -49,9 +48,27 @@ class Badge(Cell):
 
 
 class Text(FocusableCell):
-    def __init__(self, text, text_color=None, sortAs=None):
+    def __init__(
+        self,
+        text,
+        text_color=None,
+        sortAs=None,
+        bold=False,
+        italic=False,
+        preformatted=False,
+        monospace=False,
+        fontSize=None,
+        nowrap=None,
+    ):
         super().__init__()
         self.text = str(text)
+        self.bold = bold
+        self.italic = italic
+        self.fontSize = fontSize
+        self.nowrap = nowrap
+        self.preformatted = preformatted
+        self.monospace = monospace
+        self.preformatted = preformatted
         self._sortAs = sortAs if sortAs is not None else text
         self.text_color = text_color
 
@@ -59,10 +76,15 @@ class Text(FocusableCell):
         return self._sortAs
 
     def recalculate(self):
-        escapedText = html.escape(str(self.text)) if self.text else " "
-        self.exportData["escapedText"] = escapedText
         self.exportData["rawText"] = self.text
+
         self.exportData["textColor"] = self.text_color
+        self.exportData["bold"] = self.bold
+        self.exportData["italic"] = self.italic
+        self.exportData["monospace"] = self.monospace
+        self.exportData["preformatted"] = self.preformatted
+        self.exportData["fontSize"] = self.fontSize
+        self.exportData["nowrap"] = self.nowrap
 
 
 class Traceback(FocusableCell):

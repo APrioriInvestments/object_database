@@ -16,7 +16,7 @@
 from object_database.web.cells.computing_cell_context import ComputingCellContext
 from object_database.web.cells.slot import Slot
 from object_database.web.cells.util import SubscribeAndRetry
-from object_database import MaskView
+from object_database import MaskView, RevisionConflictException
 
 
 import logging
@@ -49,7 +49,7 @@ class ComputedSlot(Slot):
         self._value = None
         self._valueUpToDate = False
         self._subscribedCells = set()
-        self._slotsWatching = set()
+        self._slotsWatching = set()  # the slots we are watching
         self._listeners = []
         self.subscriptions = set()
         self.cells = None
@@ -96,7 +96,16 @@ class ComputedSlot(Slot):
         if not self._onSet:
             raise Exception("This ComputedSlot is not settable.")
 
+        priorValue = self._value
         self._onSet(val)
+
+        # make sure we know we might be dirty in case we immediately read
+        self._value = val
+        self._valueUpToDate = True
+
+        if priorValue != val:
+            self._triggerListeners()
+            self._fireListenerCallbacks(priorValue, self._value, reason)
 
     def subscribedOdbValueChanged(self, key):
         self._valueUpToDate = False
@@ -118,6 +127,8 @@ class ComputedSlot(Slot):
             return
 
         self._slotsWatching = set()
+
+        revisionConflicts = 0
 
         while True:
             try:
@@ -145,6 +156,12 @@ class ComputedSlot(Slot):
                                 self._triggerListeners()
                                 self._fireListenerCallbacks(oldValue, self._value, "recompute")
 
+                return
+            except RevisionConflictException:
+                revisionConflicts += 1
+                logging.warn("ComputedSlot threw revision conflict #%s", revisionConflicts)
+                if revisionConflicts > 100:
+                    logging.error("ComputedSlot threw so many conflicts we're just bailing")
                 return
             except SubscribeAndRetry as e:
                 e.callback(self.cells.db)

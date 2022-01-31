@@ -8,6 +8,7 @@
 
 import {Cell} from './components/Cell';
 import {ConcreteCell} from './components/ConcreteCell';
+import {PassthroughCell} from './components/PassthroughCell';
 import {DropdownDrawer} from './components/DropdownDrawer';
 import {Badge} from './components/Badge';
 import {Button} from './components/Button';
@@ -46,6 +47,7 @@ import {Sized} from './components/Sized';
 import {Table, TableRow, TableHeader} from './components/Table';
 import {Tabs} from './components/Tabs';
 import {Text} from './components/Text';
+import {Editor} from './components/Editor';
 import {Traceback} from './components/Traceback';
 import {_NavTab} from './components/_NavTab';
 import {Flex} from './components/Flex';
@@ -88,6 +90,7 @@ const ComponentRegistry = {
     Modal,
     Octicon,
     Padding,
+    PassthroughCell,
     Border,
     PageView,
     Panel,
@@ -109,7 +112,8 @@ const ComponentRegistry = {
     Text,
     Timestamp,
     Traceback,
-    WebglPlot
+    WebglPlot,
+    Editor
 };
 
 export {ComponentRegistry, ComponentRegistry as default};

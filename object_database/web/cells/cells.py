@@ -19,6 +19,7 @@ import logging
 import types
 import threading
 
+from object_database.view import RevisionConflictException
 from object_database.web.cells.session_state import SessionState
 from object_database.web.cells.cell import Cell
 from object_database.web.cells.slot import Slot
@@ -148,10 +149,33 @@ class Cells:
             while True:
                 callback = self._callbacks.get(block=False)
 
-                try:
-                    callback()
-                except Exception:
-                    logging.exception("Callback %s threw an unexpected exception:", callback)
+                def callCallback(callback):
+                    revisionConflicts = 0
+
+                    while True:
+                        with self.db.transaction():
+                            try:
+                                callback()
+                                return
+                            except RevisionConflictException:
+                                revisionConflicts += 1
+                                logging.warn(
+                                    "Callback threw revision conflict #%s", revisionConflicts
+                                )
+                                if revisionConflicts > 100:
+                                    logging.error(
+                                        "ComputedSlot threw so many conflicts we're bailing"
+                                    )
+                                return
+                            except SubscribeAndRetry as e:
+                                e.callback(self.db)
+                            except Exception:
+                                logging.exception(
+                                    "Callback %s threw an unexpected exception:", callback
+                                )
+                                return
+
+                callCallback(callback)
         except queue.Empty:
             return
 
@@ -459,7 +483,7 @@ class Cells:
             slot.cells = self
             slot.ensureCalculated()
 
-        if slotsComputed:
+        if slotsComputed and time.time() - t0 > 0.01:
             logging.info(
                 "Recomputed %s ComputedSlots in %s", len(slotsComputed), time.time() - t0
             )

@@ -261,6 +261,9 @@ class Children:
             self._reverseLookup[structure] = name
             return structure
 
+    def names(self):
+        return self.namedChildren.keys()
+
     def __contains__(self, key):
         return key in self.namedChildren
 

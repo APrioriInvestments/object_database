@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 
+from object_database.web.cells.cell import Cell
 from object_database.web.cells.container import Container
 
 
@@ -35,6 +36,47 @@ class Scrollable(Container):
                 "halign": halign,
             }
         )
+
+
+class VisibleInParentScrollOnFirstDisplay(Cell):
+    def __init__(self, content=None, valign="nearest", halign="nearest"):
+        super().__init__()
+        self.content = Cell.makeCell(content) if content is not None else None
+        self.isCalculated = False
+        self.halign = halign
+        self.valign = valign
+
+    def cellJavascriptClassName(self):
+        return "PassthroughCell"
+
+    def recalculate(self):
+        self.children["content"] = self.content if self.content else Cell.makeCell("")
+
+        if not self.isCalculated:
+            self.isCalculated = True
+            p = self.parent
+            while p is not None:
+                if isinstance(p, Scrollable):
+                    p.scrollChildIntoView(self, self.valign, self.halign)
+                    return
+
+                p = p.parent
+
+    def sortsAs(self):
+        if isinstance(self.content, Cell):
+            return self.content.sortsAs()
+        else:
+            return self.content
+
+    def __mul__(self, other):
+        if self.content is None:
+            return VisibleInParentScrollOnFirstDisplay(
+                other, valign=self.valign, halign=self.halign
+            )
+        else:
+            return VisibleInParentScrollOnFirstDisplay(
+                self.content * other, valign=self.valign, halign=self.halign
+            )
 
 
 def VScrollable(child, visible=True):

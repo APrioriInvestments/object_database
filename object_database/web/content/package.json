@@ -5,6 +5,7 @@
   "main": "CellHandler.js",
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha --require esm ./src/tests/ ./src/components/tests/ ./src/webcomponents/sheet/tests/",
+    "test-editor": "./node_modules/mocha/bin/mocha --require esm ./src/components/tests/editor-tests.js",
     "test-libs": "./node_modules/mocha/bin/mocha --require esm ./src/tests/",
     "test-components": "./node_modules/mocha/bin/mocha --require esm ./src/components/tests/",
     "build": "webpack && cd ./src/webcomponents/sheet/ && webpack",

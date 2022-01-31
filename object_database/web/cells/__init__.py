@@ -2,7 +2,12 @@ from object_database.web.cells.cells import Cells
 from object_database.web.cells.cell import Cell, context
 from object_database.web.cells.main import Main
 from object_database.web.cells.root_cell import RootCell
-from object_database.web.cells.scrollable import Scrollable, VScrollable, HScrollable
+from object_database.web.cells.scrollable import (
+    Scrollable,
+    VScrollable,
+    HScrollable,
+    VisibleInParentScrollOnFirstDisplay,
+)
 from object_database.web.cells.layout import (
     FillSpace,
     HCenter,
@@ -21,6 +26,7 @@ from object_database.web.cells.layout import (
     BottomCenter,
     BottomRight,
 )
+from object_database.web.cells.context_broadcast import ContextBroadcast, ContextReflector
 from object_database.web.cells.flex import Flex
 from object_database.web.cells.grid import Grid
 from object_database.web.cells.header_bar import HeaderBar
@@ -70,6 +76,7 @@ from object_database.web.cells.computed_slot import ComputedSlot
 from object_database.web.cells.contextual_display import ContextualDisplay, registerDisplay
 from object_database.web.cells.views.split_view import SplitView
 from object_database.web.cells.code_editor import CodeEditor
+from object_database.web.cells.editor.editor import Editor, OdbEditorState, SlotEditorState
 from object_database.web.cells.table import Table
 from object_database.web.cells.padding import Padding
 from object_database.web.cells.border import Border

@@ -555,6 +555,7 @@ class WebglPlot extends ConcreteCell {
 
     onWheel(e, allowHorizontal=true, allowVertical=true) {
         e.preventDefault();
+        event.stopPropagation();
 
         let rect = this.canvas.getBoundingClientRect();
 
@@ -624,6 +625,7 @@ class WebglPlot extends ConcreteCell {
 
     onMouseDown(e) {
         e.preventDefault();
+        e.stopPropagation();
 
         if (this.currentDragHelper) {
             this.currentDragHelper.teardown();
@@ -1000,4 +1002,4 @@ class WebglPlot extends ConcreteCell {
     }
 }
 
-export {WebglPlot, WebglPlot as default};
+export {WebglPlot, DragHelper, WebglPlot as default};

@@ -80,7 +80,25 @@ const copyNodeInto = (sourceNode, destNode) => {
     destNode.cellsProperties = sourceNode.cellsProperties;
 }
 
+const childListsAreIdentical = (nodes1, nodes2) => {
+    if (nodes1.length != nodes2.length) {
+        return false;
+    }
+
+    for (let i = 0; i < nodes1.length; i++) {
+        if (nodes1[i] !== nodes2[i]) {
+            return false;
+        }
+    }
+
+    return true;
+};
+
 const replaceChildren = (domElement, children) => {
+    if (childListsAreIdentical(domElement.childNodes, children)) {
+        return;
+    }
+
     if (domElement.replaceChildren) {
         // when this is available...
         domElement.replaceChildren(...children);
@@ -125,9 +143,11 @@ class Cell {
         this.getDOMElement = this.getDOMElement.bind(this);
         this.updateSelf = this.updateSelf.bind(this);
         this.sendMessage = this.sendMessage.bind(this);
+        this.isEmptyCell = this.isEmptyCell.bind(this);
         this.getElementId = this.getElementId.bind(this);
         this.cellWillUnload = this.cellWillUnload.bind(this);
         this.buildDomElement = this.buildDomElement.bind(this);
+        this.getScrollableDomElt = this.getScrollableDomElt.bind(this);
         this.buildDomElementInner = this.buildDomElementInner.bind(this);
         this.buildDomSequenceChildren = this.buildDomSequenceChildren.bind(this);
         this.onFirstInstalled = this.onFirstInstalled.bind(this);
@@ -141,6 +161,10 @@ class Cell {
         this.applySpacePreferencesToClassList = this.applySpacePreferencesToClassList.bind(this);
         this.serverKnowsAsFocusedCell = this.serverKnowsAsFocusedCell.bind(this);
         this.focusReceived = this.focusReceived.bind(this);
+    }
+
+    isEmptyCell() {
+        return false;
     }
 
     // indicate to the server that we received focus
@@ -165,6 +189,10 @@ class Cell {
 
     static replaceChildren(domElt, children) {
         return replaceChildren(domElt, children);
+    }
+
+    getScrollableDomElt() {
+        return this.domElement;
     }
 
     setParent(parent) {

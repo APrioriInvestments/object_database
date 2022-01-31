@@ -54,6 +54,10 @@ class SessionState(object):
         self._sessionId = sessionId
         self._slots = {}
 
+    @property
+    def sessionId(self):
+        return self._sessionId
+
     @revisionConflictRetry
     def cleanupOldSessions(self, db, gcTimeWindow=3600):
         db.subscribeToType(PersistentSession)
@@ -196,7 +200,7 @@ class SessionStateSlot:
     def get(self):
         return self.sessionState.get(self.name)
 
-    def set(self, value):
+    def set(self, value, reason=None):
         self.sessionState.set(self.name, value)
 
     def getWithoutRegisteringDependency(self):

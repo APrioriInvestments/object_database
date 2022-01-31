@@ -1,5 +1,5 @@
 /**
- * CodeEditor Cell Cell
+ * CodeEditor Cell
  */
 
 import {makeDomElt as h} from './Cell';

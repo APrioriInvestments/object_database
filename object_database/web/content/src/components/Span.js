@@ -10,6 +10,10 @@ class Span extends ConcreteCell {
         super(props, ...args);
     }
 
+    isEmptyCell() {
+        return this.props.text == "";
+    }
+
     build(){
         return (
             h('span', {

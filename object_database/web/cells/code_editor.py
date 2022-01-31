@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
+from object_database import MaskView
 from object_database.web.cells.cell import FocusableCell
 from object_database.web.cells.computing_cell_context import ComputingCellContext
 from object_database.web.cells.session_state import sessionState
@@ -239,12 +239,13 @@ class CodeEditor(FocusableCell):
         as part of this change, look at which values changed and make sure we subscribe
         correctly to them.
         """
-        with ComputingCellContext(self):
-            with self.transaction() as v:
-                try:
-                    return self.textToDisplayFunction()
-                finally:
-                    self._resetSubscriptionsToViewReads(v)
+        with MaskView():
+            with ComputingCellContext(self):
+                with self.transaction() as v:
+                    try:
+                        return self.textToDisplayFunction()
+                    finally:
+                        self._resetSubscriptionsToViewReads(v)
 
     def recalculate(self):
         if self.firstVisibleRowOverride is not None:

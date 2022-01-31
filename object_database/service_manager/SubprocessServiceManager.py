@@ -153,9 +153,11 @@ class SubprocessServiceManager(ServiceManager):
                 kwargs = dict(
                     cwd=self.storageDir,
                     start_new_session=self.start_new_session,
-                    stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
+
+                if self.logfileDirectory is not None:
+                    kwargs["stdout"] = subprocess.DEVNULL
 
                 cmd = [
                     sys.executable,
@@ -180,6 +182,7 @@ class SubprocessServiceManager(ServiceManager):
 
                 else:
                     output_file_path = None
+                    logfileName = None
 
                 process = subprocess.Popen(cmd, **kwargs)
 
@@ -209,7 +212,8 @@ class SubprocessServiceManager(ServiceManager):
                         raise Exception(msg)
 
                 self._logger.info(
-                    f"Started service_entrypoint.py subprocess with PID={process.pid}"
+                    f"Started service_entrypoint.py subprocess with PID={process.pid} "
+                    "logging to {logfileName}"
                 )
 
                 self.serviceProcesses[instanceIdentity] = process

@@ -44,7 +44,7 @@ class MessageBusLoopExit(Exception):
 
 
 class MessageBuffer:
-    def __init__(self, extraMessageSizeCheck):
+    def __init__(self, extraMessageSizeCheck: bool):
         # the buffer we're reading
         self.buffer = bytearray()
         self.messagesEver = 0
@@ -57,7 +57,7 @@ class MessageBuffer:
         return len(self.buffer)
 
     @staticmethod
-    def encode(bytes, extraMessageSizeCheck):
+    def encode(bytes, extraMessageSizeCheck: bool):
         """Prepend a message-length prefix"""
         res = bytearray(struct.pack("i", len(bytes)))
         res.extend(bytes)
@@ -556,6 +556,10 @@ class MessageBus(object):
                     host=self._listeningEndpoint.host, port=sock.getsockname()[1]
                 )
 
+            if self._wantsSSL:
+                assert self._sslContext is not None
+                sock = self._sslContext.wrap_socket(sock, server_side=True)
+
             with self._lock:
                 self._acceptSocket = sock
 
@@ -612,11 +616,6 @@ class MessageBus(object):
             newSocket, newSocketSource = socketWithData.accept()
             newSocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
             newSocket.setblocking(False)
-
-            if self._wantsSSL:
-                newSocket = self._sslContext.wrap_socket(
-                    newSocket, server_side=True, do_handshake_on_connect=False
-                )
 
             self._allReadSockets.add(newSocket)
 

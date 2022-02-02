@@ -401,7 +401,7 @@ class Editor(FocusableCell):
         darkMode=False,
         sectionDisplayFun=None,
         overlayDisplayFun=None,
-        splitFractionSlot=None
+        splitFractionSlot=None,
     ):
         """Initialize a collaborative code editor.
 
@@ -619,7 +619,7 @@ class Editor(FocusableCell):
             self.selectionSlot.set(messageFrame.get("currentCursors"), "server")
 
             if self.splitFractionSlot is not None:
-                self.splitFractionSlot.set(messageFrame.get('splitFraction'))
+                self.splitFractionSlot.set(messageFrame.get("splitFraction"))
 
             # tell the world about our selection!
             if self.userSelectionSlot is not None and self.username is not None:
@@ -701,7 +701,7 @@ class Editor(FocusableCell):
                         self.children.removeChildNamed(child)
 
                 if not self.children.hasChildNamed("_overlay"):
-                    self.children['_overlay'] = Subscribed(self.overlayDisplayFun)
+                    self.children["_overlay"] = Subscribed(self.overlayDisplayFun)
 
                 return
 
@@ -751,7 +751,7 @@ class Editor(FocusableCell):
                     )
 
         for child in list(self.children.names()):
-            if child not in sectionKeys and child != '_overlay':
+            if child not in sectionKeys and child != "_overlay":
                 assert self.children.removeChildNamed(child)
 
     def makeSectionDisplay(self, sectionName, sectionCount):
@@ -838,8 +838,9 @@ class Editor(FocusableCell):
         self.exportData["username"] = self.username
         self.exportData["readOnly"] = self.readOnly
         self.exportData["splitFraction"] = (
-            (self.splitFractionSlot.getWithoutRegisteringDependency() or .5)
-            if self.splitFractionSlot is not None else .5
+            (self.splitFractionSlot.getWithoutRegisteringDependency() or 0.5)
+            if self.splitFractionSlot is not None
+            else 0.5
         )
         self.exportData["darkMode"] = self.darkMode
         self.exportData["hasSectionHeaders"] = bool(

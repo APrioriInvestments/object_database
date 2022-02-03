@@ -698,6 +698,7 @@ class MessageBus(object):
             )
 
     def _socketThreadLoop(self):
+        t0 = time.time()
         selectsWithNoUpdate = 0
         try:
             while True:
@@ -743,7 +744,8 @@ class MessageBus(object):
                         min(maxSleepTime, SELECT_TIMEOUT),
                     )[:2]
 
-                    if time.time() > 0.01:
+                    if time.time() - t0 > 0.01:
+                        t0 = time.time()
                         selectsWithNoUpdate = 0
 
                 except ValueError:

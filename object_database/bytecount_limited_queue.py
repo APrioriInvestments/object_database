@@ -44,11 +44,12 @@ class BytecountLimitedQueue(object):
             msgLen = self._bytecountFunction(msg)
 
             if not allowWriteWhileOverLimit:
-                while self.isBlocked():
-                    if not block:
-                        raise queue.Full()
+                if block:
+                    while self.isBlocked():
+                        self._canPushCondition.wait()
 
-                    self._canPushCondition.wait()
+                elif self.isBlocked():
+                    raise queue.Full()
 
             self.totalBytes += msgLen
             self._underlyingQueue.put(msg)

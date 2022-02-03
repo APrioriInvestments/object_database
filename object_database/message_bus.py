@@ -711,7 +711,7 @@ class MessageBus(object):
                 # before going to sleep, flush any callbacks that need to fire. Note that
                 # we do this only if we're allowed to read messages also
                 if canRead:
-                    maxSleepTime = self.consumeCallbacksOnOutputThread()
+                    maxSleepTime = self._consumeCallbacksOnOutputThread()
                     if maxSleepTime is None:
                         maxSleepTime = SELECT_TIMEOUT
                 else:
@@ -1047,28 +1047,25 @@ class MessageBus(object):
 
             return False
 
-    def consumeCallbacksOnOutputThread(self):
+    def _consumeCallbacksOnOutputThread(self):
         """Move any callbacks that are scheduled for now onto the event thread.
 
         Returns:
             None if no additional callbacks are pending, or the amount of time
             to the next scheduled callback.
         """
-        while True:
-            with self._lock:
+        with self._lock:
+            while True:
                 t0 = time.time()
-
-                callback = None
 
                 if self._pendingTimedCallbacks and self._pendingTimedCallbacks[0][0] <= t0:
                     _, callback = self._pendingTimedCallbacks.pop(0)
+                    if callback is not None:
+                        self._eventQueue.put(callback)
                 else:
                     if self._pendingTimedCallbacks:
                         return max(self._pendingTimedCallbacks[0][0] - t0, 0.0)
                     return
-
-                if callback is not None:
-                    self._eventQueue.put(callback)
 
     def _eventThreadLoop(self):
         while True:

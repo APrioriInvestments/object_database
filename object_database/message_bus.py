@@ -392,6 +392,7 @@ class MessageBus(object):
 
         if self._acceptSocket is not None:
             self._ensureSocketClosed(self._acceptSocket)
+            self._acceptSocket = None
 
         def closePipe(fdPair):
             os.close(fdPair[0])
@@ -452,18 +453,24 @@ class MessageBus(object):
             # This would cause the event loop thread to terminate
             return
 
+        if atTimestamp is not None and delay is not None:
+            raise ValueError("atTimestamp and delay arguments cannot both have values.")
+
+        if delay is None:
+            delay = 0.0
+
+        if atTimestamp is None:
+            atTimestamp = time.time() + (delay or 0.0)
+
         with self._lock:
-            assert atTimestamp is None or delay is None
-
-            if atTimestamp is None:
-                atTimestamp = time.time() + (delay or 0.0)
-
             self._pendingTimedCallbacks.add((atTimestamp, callback))
 
             # if we put this on the front of the queue, we need to wake
             # the thread loop
             if self._pendingTimedCallbacks[0][0] == atTimestamp:
-                assert os.write(self._generalWakePipe[1], b" ") == 1
+                written = os.write(self._generalWakePipe[1], b" ")
+                if written != 1:
+                    raise Exception("Internal Error: Failed to write to general wake pipe")
 
     def sendMessage(self, connectionId, message):
         """Send a message to another endpoint endpoint.

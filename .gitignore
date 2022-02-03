@@ -13,7 +13,6 @@ nodeenv
 .nodeenv
 node_modules
 object_database/web/content/dist
-object_database/web/content/webcomponents/sheet/dist
 
 # Emacs
 \#*

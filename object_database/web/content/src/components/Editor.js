@@ -425,6 +425,11 @@ class Editor extends ConcreteCell {
     }
 
     onWheel(event) {
+        if (event.ctrlKey || event.altKey || event.metaKey) {
+            return;
+        }
+
+        event.stopPropagation();
         event.preventDefault();
 
         this.renderModel.moveViewBy(Math.round(event.deltaY / 10), true);
@@ -627,6 +632,10 @@ class Editor extends ConcreteCell {
     }
 
     onKeydown(event) {
+        if (document.activeElement !== this.div) {
+            return;
+        }
+
         // see if the main model wants to handle it
         if (this.dataModel.handleKey(event)) {
             event.preventDefault();

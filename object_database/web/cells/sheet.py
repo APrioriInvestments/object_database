@@ -33,15 +33,15 @@ class Sheet(FocusableCell):
         self.totalRows = totalRows
         self.colWidth = colWidth
         self.rowHeight = rowHeight
+
         if numLockRows >= totalRows:
-            raise "The number of totalRows must be greater than numLockRows."
+            raise Exception("The number of totalRows must be greater than numLockRows.")
+
+        if numLockColumns >= totalColumns:
+            raise Exception("The number of totalColumns must be greater than numLockColumns.")
+
         self.numLockRows = numLockRows
         self.numLockColumns = numLockColumns
-        if numLockColumns >= totalColumns:
-            raise "The number of totalColumns must be greater than numLockColumns."
-
-        # TODO: Add double click feature from
-        # current old sheet
 
     def recalculate(self):
         self.exportData["numLockRows"] = self.numLockRows
@@ -53,25 +53,19 @@ class Sheet(FocusableCell):
 
     def onMessage(self, msgFrame):
         if msgFrame["event"] == "sheet_needs_data":
-            requested_frames = msgFrame["frames"]
-            response_frames = []
-            for frame in requested_frames:
-                rows_to_send = self.rowFun(
-                    # start_row
-                    frame["origin"]["y"],
-                    # end row
-                    frame["corner"]["y"],
-                    # start_column
-                    frame["origin"]["x"],
-                    # end_column
-                    frame["corner"]["x"],
-                )
-                response_frames.append(
-                    {
-                        "data": rows_to_send,
-                        "origin": frame["origin"],
-                        "corner": frame["corner"],
-                    }
-                )
+            rng = msgFrame.get("range")
 
-            self.scheduleMessage({"action": msgFrame["action"], "frames": response_frames})
+            rows_to_send = self.rowFun(
+                # start_row
+                rng[0][1],
+                # end row
+                rng[1][1],
+                # start_column
+                rng[0][0],
+                # end_column
+                rng[1][0],
+            )
+
+            response = {"data": rows_to_send, "range": rng, "reason": msgFrame.get('reason')}
+
+            self.scheduleMessage(response)

@@ -297,6 +297,7 @@ class RenderedLine {
                     i += 2;
                 } else if (text[i] == '\\') {
                     i++;
+                    colors[i] = STRING;
                 }
             } else if (inString != ' ') {
                 colors[i] = STRING;
@@ -307,6 +308,7 @@ class RenderedLine {
 
                 if (text[i] == '\\') {
                     i++;
+                    colors[i] = STRING;
                 }
             } else if (isInComment) {
                 colors[i] = COMMENT;
@@ -380,6 +382,13 @@ class RenderedLine {
                 blockStart = i;
             }
             i++;
+        }
+
+        if (text.startsWith(constants.sectionStarter)) {
+            divs.forEach((div) => {
+                div.style['font-weight'] = 'bold';
+                div.style['color'] = constants.textColor;
+            });
         }
 
         syntaxCache[cacheKey] = divs;

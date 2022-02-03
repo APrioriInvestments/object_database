@@ -19,12 +19,17 @@ class DragHelper {
 
         this.onMouseMove = this.onMouseMove.bind(this);
         this.onMouseUp = this.onMouseUp.bind(this);
+        this.triggerInitial = this.triggerInitial.bind(this);
 
         this.initialPoint = [startEvent.pageX, startEvent.pageY];
         this.lastPoint = [startEvent.pageX, startEvent.pageY];
 
         window.addEventListener('mousemove', this.onMouseMove);
         window.addEventListener('mouseup', this.onMouseUp);
+    }
+
+    triggerInitial() {
+        this.callback("start", this.initialPoint, this.initialPoint, this.initialPoint);
     }
 
     onMouseMove(e) {

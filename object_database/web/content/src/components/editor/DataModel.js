@@ -732,12 +732,12 @@ class DataModel {
                     let newCursor = this.cursors[this.cursors.length-1].clone();
                     this.cursors.push();
                     this.cursors.push(newCursor);
-                    newCursor.offset(this.lines, x, y);
+                    newCursor.offset(this.lines, x, y, event.shiftKey);
                     newCursor.removeTail();
                 } else {
                     this.cursors.map(
                         (cursor) => {
-                            cursor.offset(this.lines, x, y);
+                            cursor.offset(this.lines, x, y, event.shiftKey);
 
                             if (!event.shiftKey) {
                                 cursor.removeTail();

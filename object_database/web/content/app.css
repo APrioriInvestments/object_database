@@ -878,12 +878,6 @@ pre {
     height: 100%;
 }
 
-.editor-scrollbar-background {
-    position: absolute;
-    border-radius: 2px;
-    width: 100%;
-}
-
 .editor-content-and-split-holder {
     position: absolute;
     width: 100%;
@@ -933,12 +927,24 @@ pre {
     overflow: hidden;
 }
 
+.editor-scrollbar-background {
+    position: absolute;
+    border-radius: 2px;
+    width: 100%;
+}
+
 .editor-scrollbar {
     position: absolute;
     width: 100%;
     padding: 2px;
     border-radius: 2px;
 }
+.editor-scrollbar-background {
+    position: absolute;
+    border-radius: 2px;
+    width: 100%;
+}
+
 .editor-mouse-event-div {
     position: absolute;
     left: 0px;
@@ -947,3 +953,127 @@ pre {
     height: 100%;
 }
 .editor-section-display {}
+
+/* sheet */
+.sheet {
+    overflow: hidden;
+    position: relative;
+}
+
+.sheet:focus { outline: none; }
+
+.sheet-cell-layer {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+}
+
+.sheet-cell-more-content-available {
+    position: absolute;
+    right: 0px;
+    bottom: 4px;
+    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    white-space: pre;
+}
+
+.sheet-cell {
+    position: absolute;
+    overflow: hidden;
+    display: inline;
+
+    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    white-space: pre;
+    padding-top: 4px;
+    padding-left: 4px;
+}
+
+.sheet-grid-cell {
+    position: absolute;
+    overflow: hidden;
+    border-left: 1px solid #DDDDDD;
+    border-top: 1px solid #DDDDDD;
+}
+
+.sheet-grid {
+    position: absolute;
+    overflow: hidden;
+}
+
+.sheet-selection {
+    position: absolute;
+    border: 1px solid #0000DD;
+    background-color: #0000FF22;
+}
+.sheet-selection-unfocused {
+    position: absolute;
+    border: 1px solid #DDDDDD;
+    background-color: #00000022;
+}
+
+.sheet-selection-active-element {
+    position: absolute;
+    background-color: #0000FF44;
+}
+.sheet-scrollbar {
+    position: absolute;
+    border-radius: 2px;
+    background-color: #AAAAAA;
+}
+.sheet-scrollbar-background {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 2px;
+    background-color: #DDDDDD;
+}
+.sheet-right-scrollbar-holder {
+    position: absolute;
+    width: 0px;
+    padding: 2px;
+    height: calc(100% - 12px);
+    top: 0px;
+    right: 0px;
+}
+.sheet-bottom-scrollbar-holder {
+    position: absolute;
+    height: 0px;
+    padding: 2px;
+    width: calc(100% - 12px);
+    bottom: 0px;
+    left: 0px;
+}
+.sheet-content-holder {
+    position: absolute;
+    overflow: hidden;
+}
+.sheet-restriction-panel {
+    position: absolute;
+    overflow: hidden;
+}
+.sheet-visible-overlay-layer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0px;
+    left: 0px;
+    overflow: hidden;
+    pointer-events: none;
+}
+.sheet-cell-overlay-contents {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0px;
+    left: 0px;
+
+    background-color: #FFFFFFFF;
+    border: 1px solid #DDDDDD;
+    white-space: pre;
+    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    padding: 4px;
+
+    overflow: auto;
+    pointer-events: auto;
+}

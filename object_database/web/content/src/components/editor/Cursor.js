@@ -115,6 +115,22 @@ class Cursor {
         return this.tailLineOffset != this.lineOffset || this.tailColOffset != this.colOffset;
     }
 
+    ensureOrdered() {
+        if (this.tailLineOffset > this.lineOffset || this.tailLineOffset == this.lineOffset &&
+                this.tailColOffset > this.colOffset) {
+            let p1 = [this.lineOffset, this.colOffset]
+            let p2 = [this.tailLineOffset, this.tailColOffset]
+
+            this.lineOffset = p2[0];
+            this.colOffset = p2[1];
+
+            this.tailLineOffset = p1[0];
+            this.tailColOffset = p1[1];
+
+            this.touch();
+        }
+    }
+
     // return a string representing this selection
     getSelectedText(lines) {
         let selRanges = this.selectedRanges(lines, false, false);
@@ -614,10 +630,25 @@ class Cursor {
         }
     }
 
-    offset(lines, x, y) {
+    offset(lines, x, y, isShifted=false) {
         if (lines.length == 0) {
             this.desiredColOffset = 0;
             this.lineOffset = 0;
+            this.touch();
+            return;
+        }
+
+        if (this.hasTail() && x == 1 && y == 0 && !isShifted) {
+            this.removeTail(true);
+            this.touch();
+            return;
+        }
+
+        if (this.hasTail() && x == -1 && y == 0 && !isShifted) {
+            this.ensureOrdered();
+            this.lineOffset = this.tailLineOffset;
+            this.colOffset = this.tailColOffset;
+            this.desiredColOffset = this.colOffset;
             this.touch();
             return;
         }

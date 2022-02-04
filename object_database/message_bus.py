@@ -162,6 +162,75 @@ def MessageBusEvent(MessageType):
     )
 
 
+class SocketWatcher:
+    """A lightweight wrapper around epoll"""
+
+    def __init__(self):
+        self._epoll = select.epoll()
+        self._fdToSocketObj = {}
+
+    @staticmethod
+    def fdForSockOrFd(sockOrFd):
+        if isinstance(sockOrFd, int):
+            return sockOrFd
+        else:
+            return sockOrFd.fileno()
+
+    def add(self, sockOrFd, forRead, forWrite):
+        """Start watching the given socket or filedescriptor.
+
+        Args:
+            sockOrFd - must be an int or an object with 'fileno'
+        """
+        fd = self.fdForSockOrFd(sockOrFd)
+
+        self._fdToSocketObj[fd] = sockOrFd
+
+        self._epoll.register(
+            fd, (select.EPOLLIN if forRead else 0) | (select.EPOLLOUT if forWrite else 0)
+        )
+
+    def addForRead(self, socketOrFd):
+        self.add(socketOrFd, True, False)
+
+    def addForWrite(self, socketOrFd):
+        self.add(socketOrFd, False, True)
+
+    def poll(self, timeout=None):
+        """Return a list of the sockets that have pending data.
+
+        The response will contain the object or integer you originally passed.
+        """
+        events = self._epoll.poll(timeout)
+
+        socketsReadable = set()
+        socketsWriteable = set()
+
+        for fd, eventMask in events:
+            if eventMask & select.EPOLLIN:
+                socketsReadable.add(self._fdToSocketObj[fd])
+            if eventMask & select.EPOLLOUT:
+                socketsWriteable.add(self._fdToSocketObj[fd])
+
+        return socketsReadable, socketsWriteable
+
+    def discardSocket(self, sockOrFd):
+        fd = self.fdForSockOrFd(sockOrFd)
+
+        if fd not in self._fdToSocketObj:
+            return
+
+        self._fdToSocketObj.pop(fd)
+
+        self._epoll.unregister(fd)
+
+    def teardown(self):
+        self._epoll.close()
+
+    def __len__(self):
+        return len(self._fdToSocketObj)
+
+
 class MessageBus(object):
     def __init__(
         self,
@@ -342,19 +411,20 @@ class MessageBus(object):
         """
         Start the message bus. May create threads and connect sockets.
         """
-        assert not self.started
+        with self._lock:
+            assert not self.started
 
-        if not self._setupAcceptSocket():
-            raise FailedToStart()
+            if not self._setupAcceptSocket():
+                raise FailedToStart()
 
-        # allocate the pipes that we use to wake our select loop.
-        self._messageToSendWakePipe = os.pipe()
-        self._eventToFireWakePipe = os.pipe()
-        self._generalWakePipe = os.pipe()
+            # allocate the pipes that we use to wake our select loop.
+            self._messageToSendWakePipe = os.pipe()
+            self._eventToFireWakePipe = os.pipe()
+            self._generalWakePipe = os.pipe()
 
-        self.started = True
-        self._socketThread.start()
-        self._eventThread.start()
+            self.started = True
+            self._socketThread.start()
+            self._eventThread.start()
 
     def stop(self, timeout=None):
         """
@@ -497,28 +567,23 @@ class MessageBus(object):
                 message, serializeType=self.outMessageType
             )
 
-        with self._lock:
-            isDefinitelyDead = (
-                connectionId not in self._connIdToOutgoingEndpoint
-                and connectionId not in self._connIdToIncomingEndpoint
-            )
-
-        if isDefinitelyDead:
+        if self._isDefinitelyDead(connectionId):
             return False
 
         self._putOnSendQueue(connectionId, serializedMessage)
 
         return True
 
-    def closeConnection(self, connectionId):
-        """Trigger a connection close."""
+    def _isDefinitelyDead(self, connectionId):
         with self._lock:
-            isDefinitelyDead = (
+            return (
                 connectionId not in self._connIdToOutgoingEndpoint
                 and connectionId not in self._connIdToIncomingEndpoint
             )
 
-        if isDefinitelyDead:
+    def closeConnection(self, connectionId):
+        """Trigger a connection close."""
+        if self._isDefinitelyDead(connectionId):
             return
 
         self._putOnSendQueue(connectionId, TriggerDisconnect)
@@ -750,15 +815,12 @@ class MessageBus(object):
 
                 except ValueError:
                     # one of the sockets must have failed
-                    def filenoFor(socketOrFd):
-                        if isinstance(socketOrFd, int):
-                            return socketOrFd
-                        else:
-                            return socketOrFd.fileno()
+                    def hasNegativeFd(socketOrFd):
+                        return SocketWatcher.fdForSockOrFd(socketOrFd) < 0
 
                     failedSockets = [
-                        s for s in self._socketToBytesNeedingWrite if filenoFor(s) < 0
-                    ] + [s for s in readableSockets if filenoFor(s) < 0]
+                        s for s in self._socketToBytesNeedingWrite if hasNegativeFd(s) < 0
+                    ] + [s for s in readableSockets if hasNegativeFd(s) < 0]
 
                     if not failedSockets:
                         # if not, then we don't have a good understanding of why this happened
@@ -819,36 +881,35 @@ class MessageBus(object):
     def _handleMessageToSend(self):
         connectionAndMsg = self._messagesToSendQueue.get(timeout=0.0)
 
-        if connectionAndMsg is Disconnected:
+        if connectionAndMsg is Disconnected or connectionAndMsg is None:
             return
 
-        if connectionAndMsg is not None:
-            connId, msg = connectionAndMsg
+        connId, msg = connectionAndMsg
 
-            if msg is TriggerDisconnect:
-                # take this message, and make sure we never put this
-                # socket in the selectloop again.
-                if connId in self._socketToBytesNeedingWrite:
-                    del self._socketToBytesNeedingWrite[connId]
+        if msg is TriggerDisconnect:
+            # take this message, and make sure we never put this
+            # socket in the selectloop again.
+            if connId in self._socketToBytesNeedingWrite:
+                del self._socketToBytesNeedingWrite[connId]
 
-                with self._lock:
-                    self._currentlyClosingConnections.add(connId)
+            with self._lock:
+                self._currentlyClosingConnections.add(connId)
 
-                # Then trigger the socket loop to remove it and gracefully close it.
-                self._scheduleEvent((connId, TriggerDisconnect))
+            # Then trigger the socket loop to remove it and gracefully close it.
+            self._scheduleEvent((connId, TriggerDisconnect))
 
-            elif msg is TriggerConnect:
-                # we're supposed to connect to this worker. We have to do
-                # this in a background.
+        elif msg is TriggerConnect:
+            # we're supposed to connect to this worker. We have to do
+            # this in a background.
 
-                # preschedule the auth token write. When we connect we'll send it
-                # immediately
-                if self._authToken is not None:
-                    self._scheduleBytesForWrite(connId, self._authToken.encode("utf8"))
+            # preschedule the auth token write. When we connect we'll send it
+            # immediately
+            if self._authToken is not None:
+                self._scheduleBytesForWrite(connId, self._authToken.encode("utf8"))
 
-                self.scheduleCallback(lambda: self._connectTo(connId))
-            else:
-                self._scheduleBytesForWrite(connId, msg)
+            self.scheduleCallback(lambda: self._connectTo(connId))
+        else:
+            self._scheduleBytesForWrite(connId, msg)
 
     def _handleEventToFire(self):
         # one message should be on the queue for each "E" msg trigger on the
@@ -1036,6 +1097,7 @@ class MessageBus(object):
                         self._scheduleBytesForWrite(connId, m)
 
             return True
+
         except Exception:
             # we failed to connect. cleanup after ourselves.
             with self._lock:

@@ -765,8 +765,13 @@ class MessageBus(object):
     def _socketThreadLoop(self):
         t0 = time.time()
         selectsWithNoUpdate = 0
+
         try:
             while True:
+                if time.time() - t0 > 0.01:
+                    t0 = time.time()
+                    selectsWithNoUpdate = 0
+
                 # don't read from the serialization queue unless we can handle the
                 # bytes in our 'self.totalBytesPendingInOutputLoop' flow
                 canRead = (
@@ -809,10 +814,6 @@ class MessageBus(object):
                         min(maxSleepTime, SELECT_TIMEOUT),
                     )[:2]
 
-                    if time.time() - t0 > 0.01:
-                        t0 = time.time()
-                        selectsWithNoUpdate = 0
-
                 except ValueError:
                     # one of the sockets must have failed
                     def hasNegativeFd(socketOrFd):
@@ -833,10 +834,6 @@ class MessageBus(object):
                         if s in self._socketToBytesNeedingWrite:
                             del self._socketToBytesNeedingWrite[s]
                 else:
-                    writeReady.extend(self._socketsWithSslWantWrite)
-
-                    self._socketsWithSslWantWrite.clear()
-
                     didSomething = False
 
                     for socketWithData in readReady:
@@ -846,16 +843,26 @@ class MessageBus(object):
                         elif socketWithData == self._eventToFireWakePipe[0]:
                             self._handleEventToFireWakePipe()
                             didSomething = True
+
                         elif socketWithData == self._generalWakePipe[0]:
                             self._handleGeneralWakePipe()
                             didSomething = True
+
                         else:
                             if self._handleReadReadySocket(socketWithData):
                                 didSomething = True
 
-                    for writeable in writeReady:
-                        if self._handleWriteReadySocket(writeable):
+                    socketsWithSslWantWrite = self._socketsWithSslWantWrite
+                    self._socketsWithSslWantWrite.clear()
+                    for writeable in socketsWithSslWantWrite:
+                        if self._hadleWriteReadySocket(writeable):
                             didSomething = True
+
+                    # if we're just spinning making no progress, don't bother
+                    if selectsWithNoUpdate < 10:
+                        for writeable in writeReady:
+                            if self._handleWriteReadySocket(writeable):
+                                didSomething = True
 
                     if didSomething:
                         selectsWithNoUpdate = 0

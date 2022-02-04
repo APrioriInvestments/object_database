@@ -168,6 +168,7 @@ class SocketWatcher:
     def __init__(self):
         self._epoll = select.epoll()
         self._fdToSocketObj = {}
+        self._socketToFd = {}
 
     @staticmethod
     def fdForSockOrFd(sockOrFd):
@@ -176,20 +177,43 @@ class SocketWatcher:
         else:
             return sockOrFd.fileno()
 
+    def __contains__(self, sockOrFd):
+        return sockOrFd in self._socketToFd
+
     def add(self, sockOrFd, forRead, forWrite):
         """Start watching the given socket or filedescriptor.
 
         Args:
             sockOrFd - must be an int or an object with 'fileno'
         """
-        fd = self.fdForSockOrFd(sockOrFd)
 
-        if fd not in self._fdToSocketObj:
+        if sockOrFd not in self._socketToFd:
             readMask = select.EPOLLIN if forRead else 0
             writeMask = select.EPOLLOUT if forWrite else 0
 
+            fd = self.fdForSockOrFd(sockOrFd)
+            self._socketToFd[sockOrFd] = (fd, forRead, forWrite)
             self._fdToSocketObj[fd] = sockOrFd
             self._epoll.register(fd, readMask | writeMask)
+
+        else:
+            currFd, currRead, currWrite = self._socketToFd[sockOrFd]
+            fd = self.fdForSockOrFd(sockOrFd)
+
+            if fd != currFd:
+                self.discardSocket(sockOrFd)
+                self.add(sockOrFd, forRead, forWrite)
+
+            else:
+                # we may be adding read or write to a socket
+                forRead |= currRead
+                forWrite |= currWrite
+
+                if currRead != forRead or currWrite != forWrite:
+                    readMask = select.EPOLLIN if forRead else 0
+                    writeMask = select.EPOLLOUT if forWrite else 0
+                    self._socketToFd[sockOrFd] = (fd, forRead, forWrite)
+                    self._epoll.modify(fd, readMask | writeMask)
 
     def addForRead(self, socketOrFd):
         self.add(socketOrFd, True, False)
@@ -216,9 +240,8 @@ class SocketWatcher:
         return socketsReadable, socketsWriteable
 
     def discardSocket(self, sockOrFd):
-        fd = self.fdForSockOrFd(sockOrFd)
-
-        if fd in self._fdToSocketObj:
+        if sockOrFd in self._socketToFd:
+            fd, forRead, forWrite = self._socketToFd.pop(sockOrFd)
             self._fdToSocketObj.pop(fd)
             self._epoll.unregister(fd)
 

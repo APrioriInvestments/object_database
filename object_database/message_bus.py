@@ -35,7 +35,7 @@ from object_database.util import sslContextFromCertPathOrNone
 from object_database.bytecount_limited_queue import BytecountLimitedQueue
 
 MESSAGE_LEN_BYTES = 4  # sizeof an int32 used to pack messages
-SELECT_TIMEOUT = 5.0
+EPOLL_TIMEOUT = 5.0
 MSG_BUF_SIZE = 128 * 1024
 
 
@@ -784,9 +784,11 @@ class MessageBus(object):
                 if canRead:
                     maxSleepTime = self._consumeCallbacksOnOutputThread()
                     if maxSleepTime is None:
-                        maxSleepTime = SELECT_TIMEOUT
+                        maxSleepTime = EPOLL_TIMEOUT
+                    else:
+                        maxSleepTime = min(maxSleepTime, EPOLL_TIMEOUT)
                 else:
-                    maxSleepTime = SELECT_TIMEOUT
+                    maxSleepTime = EPOLL_TIMEOUT
 
                 readableSockets = list(self._allReadSockets)
                 if self._acceptSocket is not None:
@@ -796,7 +798,7 @@ class MessageBus(object):
 
                 if canRead:
                     # only listen on this socket if we can actually absorb more
-                    # data. if we cant we'll wake up in SELECT_TIMEOUT seconds, after
+                    # data. if we cant we'll wake up in EPOLL_TIMEOUT seconds, after
                     # which something should have flushed
                     readableSockets.append(self._messageToSendWakePipe[0])
 
@@ -811,7 +813,7 @@ class MessageBus(object):
                         readableSockets,
                         writeableSelectSockets,
                         [],
-                        min(maxSleepTime, SELECT_TIMEOUT),
+                        min(maxSleepTime, EPOLL_TIMEOUT),
                     )[:2]
 
                 except ValueError:

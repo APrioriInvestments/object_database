@@ -184,11 +184,12 @@ class SocketWatcher:
         """
         fd = self.fdForSockOrFd(sockOrFd)
 
-        self._fdToSocketObj[fd] = sockOrFd
+        if fd not in self._fdToSocketObj:
+            readMask = select.EPOLLIN if forRead else 0
+            writeMask = select.EPOLLOUT if forWrite else 0
 
-        self._epoll.register(
-            fd, (select.EPOLLIN if forRead else 0) | (select.EPOLLOUT if forWrite else 0)
-        )
+            self._fdToSocketObj[fd] = sockOrFd
+            self._epoll.register(fd, readMask | writeMask)
 
     def addForRead(self, socketOrFd):
         self.add(socketOrFd, True, False)
@@ -217,12 +218,9 @@ class SocketWatcher:
     def discardSocket(self, sockOrFd):
         fd = self.fdForSockOrFd(sockOrFd)
 
-        if fd not in self._fdToSocketObj:
-            return
-
-        self._fdToSocketObj.pop(fd)
-
-        self._epoll.unregister(fd)
+        if fd in self._fdToSocketObj:
+            self._fdToSocketObj.pop(fd)
+            self._epoll.unregister(fd)
 
     def teardown(self):
         self._epoll.close()

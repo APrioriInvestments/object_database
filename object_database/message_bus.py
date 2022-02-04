@@ -177,10 +177,21 @@ class SocketWatcher:
         else:
             return sockOrFd.fileno()
 
+    @staticmethod
+    def eventMask(forRead: bool, forWrite: bool):
+        readMask = select.EPOLLIN if forRead else 0
+        writeMask = select.EPOLLOUT if forWrite else 0
+        return readMask | writeMask
+
     def __contains__(self, sockOrFd):
         return sockOrFd in self._socketToFd
 
-    def add(self, sockOrFd, forRead, forWrite):
+    def gc(self):
+        for sock in self._socketToFd:
+            if self.fdForSockOrFd(sock) < 0:
+                self.discard(sock, True, True)
+
+    def add(self, sockOrFd, forRead: bool, forWrite: bool):
         """Start watching the given socket or filedescriptor.
 
         Args:
@@ -188,20 +199,17 @@ class SocketWatcher:
         """
 
         if sockOrFd not in self._socketToFd:
-            readMask = select.EPOLLIN if forRead else 0
-            writeMask = select.EPOLLOUT if forWrite else 0
-
             fd = self.fdForSockOrFd(sockOrFd)
             self._socketToFd[sockOrFd] = (fd, forRead, forWrite)
             self._fdToSocketObj[fd] = sockOrFd
-            self._epoll.register(fd, readMask | writeMask)
+            self._epoll.register(fd, self.eventMask(forRead, forWrite))
 
         else:
             currFd, currRead, currWrite = self._socketToFd[sockOrFd]
             fd = self.fdForSockOrFd(sockOrFd)
 
             if fd != currFd:
-                self.discardSocket(sockOrFd)
+                self.discard(sockOrFd, True, True)
                 self.add(sockOrFd, forRead, forWrite)
 
             else:
@@ -210,10 +218,8 @@ class SocketWatcher:
                 forWrite |= currWrite
 
                 if currRead != forRead or currWrite != forWrite:
-                    readMask = select.EPOLLIN if forRead else 0
-                    writeMask = select.EPOLLOUT if forWrite else 0
                     self._socketToFd[sockOrFd] = (fd, forRead, forWrite)
-                    self._epoll.modify(fd, readMask | writeMask)
+                    self._epoll.modify(fd, self.eventMask(forRead, forWrite))
 
     def addForRead(self, socketOrFd):
         self.add(socketOrFd, True, False)
@@ -239,11 +245,26 @@ class SocketWatcher:
 
         return socketsReadable, socketsWriteable
 
-    def discardSocket(self, sockOrFd):
+    def discardForRead(self, socketOrFd):
+        self.discard(socketOrFd, True, False)
+
+    def discardForWrite(self, socketOrFd):
+        self.discard(socketOrFd, False, True)
+
+    def discard(self, sockOrFd, forRead: bool, forWrite: bool):
         if sockOrFd in self._socketToFd:
-            fd, forRead, forWrite = self._socketToFd.pop(sockOrFd)
-            self._fdToSocketObj.pop(fd)
-            self._epoll.unregister(fd)
+            fd, currRead, currWrite = self._socketToFd[sockOrFd]
+            forRead = currRead and not forRead
+            forWrite = currWrite and not forWrite
+
+            if not forRead and not forWrite:
+                self._socketToFd.pop(sockOrFd)
+                self._fdToSocketObj.pop(fd)
+                self._epoll.unregister(fd)
+
+            elif forRead != currRead or forWrite != currWrite:
+                self._socketToFd[sockOrFd] = (fd, forRead, forWrite)
+                self._epoll.modify(fd, self.eventMask(forRead, forWrite))
 
     def teardown(self):
         self._epoll.close()
@@ -391,6 +412,7 @@ class MessageBus(object):
         self._socketsWithSslWantWrite = set()
 
         # set of sockets currently readable
+        self._allSockets = None
         self._allReadSockets = set()
 
         # dict from 'socket' object to MessageBuffer
@@ -442,6 +464,12 @@ class MessageBus(object):
             self._messageToSendWakePipe = os.pipe()
             self._eventToFireWakePipe = os.pipe()
             self._generalWakePipe = os.pipe()
+
+            self._allSockets = SocketWatcher()
+            self._allSockets.addForRead(self._generalWakePipe[0])
+            self._allSockets.addForRead(self._eventToFireWakePipe[0])
+            if self._acceptSocket is not None:
+                self._allSockets.addForRead(self._acceptSocket)
 
             self.started = True
             self._socketThread.start()
@@ -498,6 +526,8 @@ class MessageBus(object):
 
         for sock in self._connIdToOutgoingSocket.values():
             self._ensureSocketClosed(sock)
+
+        self._allSockets.teardown()
 
     def connect(self, endpoint: Endpoint) -> ConnectionId:
         """Make a connection to another endpoint and return a ConnectionId for it.
@@ -721,6 +751,7 @@ class MessageBus(object):
                 self._connIdToIncomingSocket[connId] = newSocket
                 self._socketToIncomingConnId[newSocket] = connId
                 self._connIdToIncomingEndpoint[connId] = newSocketSource
+                self._allSockets.addForRead(newSocket)
 
                 self._incomingSocketBuffers[newSocket] = MessageBuffer(
                     self.extraMessageSizeCheck
@@ -733,7 +764,7 @@ class MessageBus(object):
             )
 
             return True
-        elif socketWithData in self._allReadSockets:
+        elif socketWithData in self._allSockets:
             try:
                 bytesReceived = socketWithData.recv(MSG_BUF_SIZE)
             except ssl.SSLWantReadError:
@@ -752,6 +783,7 @@ class MessageBus(object):
             elif bytesReceived == b"":
                 self._markSocketClosed(socketWithData)
                 self._allReadSockets.discard(socketWithData)
+                self._allSockets.discardForRead(socketWithData)
                 del self._incomingSocketBuffers[socketWithData]
                 return True
             else:
@@ -774,6 +806,7 @@ class MessageBus(object):
                     if not self._handleIncomingMessage(m, socketWithData):
                         self._markSocketClosed(socketWithData)
                         self._allReadSockets.discard(socketWithData)
+                        self._allSockets.discardForRead(socketWithData)
                         del self._incomingSocketBuffers[socketWithData]
                         break
 
@@ -811,31 +844,26 @@ class MessageBus(object):
                 else:
                     maxSleepTime = EPOLL_TIMEOUT
 
-                readableSockets = list(self._allReadSockets)
-                if self._acceptSocket is not None:
-                    readableSockets.append(self._acceptSocket)
-                readableSockets.append(self._generalWakePipe[0])
-                readableSockets.append(self._eventToFireWakePipe[0])
-
                 if canRead:
                     # only listen on this socket if we can actually absorb more
                     # data. if we cant we'll wake up in EPOLL_TIMEOUT seconds, after
                     # which something should have flushed
-                    readableSockets.append(self._messageToSendWakePipe[0])
+                    self._allSockets.addForRead(self._messageToSendWakePipe[0])
+                else:
+                    self._allSockets.discardForRead(self._messageToSendWakePipe[0])
 
                 try:
-                    # writeableSelectSockets = set(self._socketsWithSslWantWrite)
-
+                    ts0 = time.time()
                     # if we're just spinning making no progress, don't bother
                     if selectsWithNoUpdate < 10:
-                        writeableSelectSockets = set(self._socketToBytesNeedingWrite)
+                        for sock in self._socketToBytesNeedingWrite:
+                            self._allSockets.addForWrite(sock)
 
-                    readReady, writeReady = select.select(
-                        readableSockets,
-                        writeableSelectSockets,
-                        [],
-                        min(maxSleepTime, EPOLL_TIMEOUT),
-                    )[:2]
+                    else:
+                        for sock in self._socketToBytesNeedingWrite:
+                            self._allSockets.discardForWrite(sock)
+
+                    readReady, writeReady = self._allSockets.poll(maxSleepTime)
 
                 except ValueError:
                     # one of the sockets must have failed
@@ -844,7 +872,7 @@ class MessageBus(object):
 
                     failedSockets = [
                         s for s in self._socketToBytesNeedingWrite if hasNegativeFd(s) < 0
-                    ] + [s for s in readableSockets if hasNegativeFd(s) < 0]
+                    ] + [s for s in self._allReadSockets if hasNegativeFd(s) < 0]
 
                     if not failedSockets:
                         # if not, then we don't have a good understanding of why this happened
@@ -855,14 +883,20 @@ class MessageBus(object):
 
                     for s in failedSockets:
                         if s in self._socketToBytesNeedingWrite:
+                            self._allSockets.discardForWrite(s)
                             del self._socketToBytesNeedingWrite[s]
+
+                    self._allSockets.gc()
+
                 else:
                     didSomething = False
 
                     for socketWithData in readReady:
                         if socketWithData == self._messageToSendWakePipe[0]:
-                            self._handleMessageToSendWakePipe()
-                            didSomething = True
+                            if canRead:
+                                self._handleMessageToSendWakePipe()
+                                didSomething = True
+
                         elif socketWithData == self._eventToFireWakePipe[0]:
                             self._handleEventToFireWakePipe()
                             didSomething = True
@@ -878,6 +912,7 @@ class MessageBus(object):
                     socketsWithSslWantWrite = self._socketsWithSslWantWrite
                     self._socketsWithSslWantWrite.clear()
                     for writeable in socketsWithSslWantWrite:
+                        self._allSockets.discardForWrite(writeable)
                         if self._hadleWriteReadySocket(writeable):
                             didSomething = True
 
@@ -920,6 +955,7 @@ class MessageBus(object):
             # take this message, and make sure we never put this
             # socket in the selectloop again.
             if connId in self._socketToBytesNeedingWrite:
+                self._allSockets.discardForWrite(connId)
                 del self._socketToBytesNeedingWrite[connId]
 
             with self._lock:
@@ -959,6 +995,7 @@ class MessageBus(object):
             if socket is not None:
                 self._markSocketClosed(socket)
                 self._allReadSockets.discard(socket)
+                self._allSockets.discardForRead(socket)
                 del self._incomingSocketBuffers[socket]
                 self._currentlyClosingConnections.discard(socket)
         else:
@@ -973,6 +1010,7 @@ class MessageBus(object):
                 sock = self._connIdToOutgoingSocket.get(readMessage.connectionId)
                 if sock is not None:
                     self._allReadSockets.add(sock)
+                    self._allSockets.addForRead(sock)
                     self._incomingSocketBuffers[sock] = MessageBuffer(
                         self.extraMessageSizeCheck
                     )
@@ -1005,6 +1043,7 @@ class MessageBus(object):
 
         if bytesWritten == 0:
             # the primary socket close pathway is in the socket handler.
+            self._allSockets.discardForWrite(writeable)
             del self._socketToBytesNeedingWrite[writeable]
         elif bytesWritten == -1:
             # do nothing
@@ -1014,6 +1053,7 @@ class MessageBus(object):
 
             if not self._socketToBytesNeedingWrite[writeable]:
                 # we have no bytes to flush
+                self._allSockets.discardForWrite(writeable)
                 del self._socketToBytesNeedingWrite[writeable]
 
             return True
@@ -1035,6 +1075,7 @@ class MessageBus(object):
                 del self._connIdToIncomingEndpoint[connId]
                 self._unauthenticatedConnections.discard(connId)
                 toFire.append(self.eventType.IncomingConnectionClosed(connectionId=connId))
+
             elif socket in self._socketToOutgoingConnId:
                 connId = self._socketToOutgoingConnId[socket]
                 del self._socketToOutgoingConnId[socket]

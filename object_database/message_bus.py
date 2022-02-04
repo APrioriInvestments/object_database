@@ -801,7 +801,7 @@ class MessageBus(object):
                     readableSockets.append(self._messageToSendWakePipe[0])
 
                 try:
-                    writeableSelectSockets = set(self._socketsWithSslWantWrite)
+                    # writeableSelectSockets = set(self._socketsWithSslWantWrite)
 
                     # if we're just spinning making no progress, don't bother
                     if selectsWithNoUpdate < 10:

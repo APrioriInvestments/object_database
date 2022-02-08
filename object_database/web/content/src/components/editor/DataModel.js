@@ -626,6 +626,15 @@ class DataModel {
     }
 
     startClick(lineOffset, colOffset, ctrlKey, shiftKey) {
+        if (shiftKey && this.cursors.length > 0) {
+            let lastCursor = this.cursors[this.cursors.length - 1];
+            lastCursor.colOffset = colOffset;
+            lastCursor.lineOffset = lineOffset;
+            lastCursor.touch();
+            lastCursor.ensureValid(this.lines);
+            return;
+        }
+
         if (!ctrlKey) {
             this.cursors = [];
         }

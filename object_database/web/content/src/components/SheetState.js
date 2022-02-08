@@ -5,6 +5,7 @@ let scrollbarPadding = 2;
 let lockedCellColor = "#EEEEEE";
 let charWidthPx = 8;
 let minCharsInCell = 10;
+let maxFloatPrecision = 12;
 
 class SheetRenderingConfig {
     constructor(sheetState, width, height, isFocused, rightScrollbar, bottomScrollbar) {
@@ -187,6 +188,11 @@ class SheetState {
 
         if (typeof(contents) == 'number' && applyFormatting) {
             let rep = contents.toString();
+            let rep2 = contents.toPrecision(maxFloatPrecision);
+
+            if (rep.length > rep2.length) {
+                rep = rep2;
+            }
 
             let dotIx = rep.indexOf('.');
             if (dotIx == -1) {
@@ -204,6 +210,15 @@ class SheetState {
 
     absorbCellContents(x, y, data) {
         let widthOf = (s) => {
+            if (typeof(s) == 'number') {
+                return Math.min(
+                    s.toString().length,
+                    s.toPrecision(maxFloatPrecision).length
+                ) + 1;
+            }
+
+            s = '' + s;
+
             return s.length + s.split('\n').length
         }
 
@@ -211,7 +226,7 @@ class SheetState {
             let row = data[yOff];
 
             for (let xOff = 0; xOff < row.length; xOff++) {
-                let widthOfCell = Math.min(widthOf('' + row[xOff]), 500);
+                let widthOfCell = Math.min(widthOf(row[xOff]), 500);
 
                 // upsize the column widths
                 if (this.columnCharWidths[x + xOff] === undefined || this.columnCharWidths[x + xOff] < widthOfCell) {
@@ -229,6 +244,12 @@ class SheetState {
                     // this is going to get shown as a number. Calculate the number
                     // of digits to the left and right of the decimal.
                     let rep = row[xOff].toString();
+                    let rep2 = row[xOff].toPrecision(maxFloatPrecision);
+
+                    if (rep.length > rep2.length) {
+                        rep = rep2;
+                    }
+
                     let dotIx = rep.indexOf('.')
                     let leftOf = 0;
                     let rightOf = 0;
@@ -604,8 +625,8 @@ class SheetState {
         let cornerDivs = [];
 
         // body
-        for (let i = Math.floor(this.corner[0] + this.lockColumns); i <= maxColumn && i <= this.columnCt; i++) {
-            for (let j = Math.floor(this.corner[1] + this.lockRows); j <= Math.ceil(this.corner[1] + rows) && j <= this.rowCt; j++) {
+        for (let i = Math.floor(Math.max(this.corner[0], this.lockColumns)); i <= maxColumn && i <= this.columnCt; i++) {
+            for (let j = Math.floor(Math.max(this.corner[1], this.lockRows)); j <= Math.ceil(this.corner[1] + rows) && j <= this.rowCt; j++) {
                 bodyDivs.push(renderFun(i, j));
             }
         }

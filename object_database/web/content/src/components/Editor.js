@@ -36,8 +36,8 @@ class Constants {
         this.renderSections = true;
         this.sectionStarter = '#-';
 
-        this.stringColor = '#999999';
-        this.commentColor = '#999999';
+        this.stringColor = '#777777';
+        this.commentColor = '#777777';
         this.reservedWordColor = '#DD0055';
         this.keywordColor = '#5555FF';
 
@@ -655,6 +655,31 @@ class Editor extends ConcreteCell {
                     (this.dataModel.cursors.map((cursor) => cursor.getSelectedText(this.dataModel.lines)))
                     .join("\n")
                 );
+
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+
+            if (event.key == 'x') {
+                // handle copy event
+                navigator.clipboard.writeText(
+                    (this.dataModel.cursors.map((cursor) => cursor.getSelectedText(this.dataModel.lines)))
+                    .join("\n")
+                );
+
+                if (!this.readOnly) {
+                    this.dataModel.cursors.map((cursor) => {
+                        if (cursor.hasTail()) {
+                            this.dataModel.clearCursorOverlap(cursor);
+                            return;
+                        }
+                    });
+
+                    this.renderModel.sync();
+                    this.transactionManager.snapshot({'event': 'paste'});
+                    this.requestAnimationFrame();
+                }
 
                 event.preventDefault();
                 event.stopPropagation();

@@ -127,6 +127,7 @@ th {
 
 .cell-scrollable-parent {
     overflow: hidden;
+    pointer-events: auto;
 
     /* give the parent a relative position so that we can
     give an absolute offset to the child.*/

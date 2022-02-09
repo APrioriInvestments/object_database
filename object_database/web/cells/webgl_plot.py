@@ -16,8 +16,8 @@ from typed_python import ListOf, Float32, NamedTuple, UInt8, Entrypoint, OneOf
 
 from object_database.web.cells.cell import Cell
 from object_database.web.cells.highlighted import Highlighted
-from object_database.web.cells.layout import Center
 from object_database.web.cells.slot import Slot
+from object_database.web.cells.scrollable import Scrollable
 from object_database.web.cells.subscribed import Subscribed, SubscribeAndRetry
 from object_database.web.cells.leaves import Traceback
 
@@ -870,7 +870,9 @@ class WebglPlot(Cell):
         self.children["errorCell"] = Subscribed(
             lambda: None
             if self.error.get() is None
-            else Highlighted(Center(Traceback(self.error.get())), color="rgba(255,255,255,.9)")
+            else Highlighted(
+                Scrollable(Traceback(self.error.get())), color="rgba(255,255,255,.9)"
+            )
         )
 
     def onMousePositionChanged(self, old, new, reason):

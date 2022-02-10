@@ -166,6 +166,7 @@ class SocketWatcher:
     """A lightweight wrapper around epoll"""
 
     def __init__(self):
+        self._logger = logging.getLogger(__name__)
         self._epoll = select.epoll()
         self._fdToSocketObj = {}
         self._socketToFd = {}
@@ -197,16 +198,26 @@ class SocketWatcher:
         Args:
             sockOrFd - must be an int or an object with 'fileno'
         """
+        fd = self.fdForSockOrFd(sockOrFd)
+        if fd < 0:
+            if sockOrFd in self._socketToFd:
+                self.discard(True, True)
+
+            return
 
         if sockOrFd not in self._socketToFd:
-            fd = self.fdForSockOrFd(sockOrFd)
-            self._socketToFd[sockOrFd] = (fd, forRead, forWrite)
-            self._fdToSocketObj[fd] = sockOrFd
-            self._epoll.register(fd, self.eventMask(forRead, forWrite))
+            try:
+                self._epoll.register(fd, self.eventMask(forRead, forWrite))
+
+            except Exception:
+                self._logger.error(f"Failed to register socket {sockOrFd} with FD={fd}.")
+
+            else:
+                self._socketToFd[sockOrFd] = (fd, forRead, forWrite)
+                self._fdToSocketObj[fd] = sockOrFd
 
         else:
             currFd, currRead, currWrite = self._socketToFd[sockOrFd]
-            fd = self.fdForSockOrFd(sockOrFd)
 
             if fd != currFd:
                 self.discard(sockOrFd, True, True)
@@ -218,8 +229,14 @@ class SocketWatcher:
                 forWrite |= currWrite
 
                 if currRead != forRead or currWrite != forWrite:
-                    self._socketToFd[sockOrFd] = (fd, forRead, forWrite)
-                    self._epoll.modify(fd, self.eventMask(forRead, forWrite))
+                    try:
+                        self._epoll.modify(fd, self.eventMask(forRead, forWrite))
+
+                    except Exception:
+                        self._logger.error(f"Failed to modify socket {sockOrFd} with FD={fd}.")
+
+                    else:
+                        self._socketToFd[sockOrFd] = (fd, forRead, forWrite)
 
     def addForRead(self, socketOrFd):
         self.add(socketOrFd, True, False)
@@ -253,18 +270,30 @@ class SocketWatcher:
 
     def discard(self, sockOrFd, forRead: bool, forWrite: bool):
         if sockOrFd in self._socketToFd:
-            fd, currRead, currWrite = self._socketToFd[sockOrFd]
+            curFd, currRead, currWrite = self._socketToFd[sockOrFd]
             forRead = currRead and not forRead
             forWrite = currWrite and not forWrite
+            fd = self.fdForSockOrFd(sockOrFd)
 
-            if not forRead and not forWrite:
+            if fd < 0 or (not forRead and not forWrite):
                 self._socketToFd.pop(sockOrFd)
-                self._fdToSocketObj.pop(fd)
-                self._epoll.unregister(fd)
+                self._fdToSocketObj.pop(curFd)
+
+                try:
+                    self._epoll.unregister(curFd)
+
+                except Exception:
+                    if self.fdForSockOrFd(sockOrFd) >= 0:
+                        self._logger.exception(f"INFO: Failed to unregister FD={curFd}")
 
             elif forRead != currRead or forWrite != currWrite:
-                self._socketToFd[sockOrFd] = (fd, forRead, forWrite)
-                self._epoll.modify(fd, self.eventMask(forRead, forWrite))
+                self._socketToFd[sockOrFd] = (curFd, forRead, forWrite)
+
+                try:
+                    self._epoll.modify(curFd, self.eventMask(forRead, forWrite))
+
+                except Exception:
+                    self._logger.error(f"Failed to modify socket {sockOrFd} with FD={curFd}.")
 
     def teardown(self):
         self._epoll.close()
@@ -853,7 +882,6 @@ class MessageBus(object):
                     self._allSockets.discardForRead(self._messageToSendWakePipe[0])
 
                 try:
-                    ts0 = time.time()
                     # if we're just spinning making no progress, don't bother
                     if selectsWithNoUpdate < 10:
                         for sock in self._socketToBytesNeedingWrite:

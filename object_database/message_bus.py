@@ -868,7 +868,7 @@ class MessageBus(object):
                 self._markSocketClosed(socket)
                 self._allSockets.discardForRead(socket)
                 del self._incomingSocketBuffers[socket]
-                self._currentlyClosingConnections.discard(socket)
+                self._currentlyClosingConnections.discard(connIdToClose)
         else:
             assert isinstance(readMessage, self.eventType)
             self._fireEvent(readMessage)
@@ -1036,6 +1036,8 @@ class MessageBus(object):
 
                     for m in messages:
                         self._scheduleBytesForWrite(connId, m)
+
+                self._connIdPendingOutgoingConnection.discard(connId)
 
             return True
 

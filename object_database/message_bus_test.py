@@ -142,20 +142,18 @@ class TestMessageBus(unittest.TestCase):
     def test_actively_closing(self):
         for passIx in range(100):
             connId = self.messageBus1.connect(("localhost", 8001))
-            self.assertTrue(
-                self.messageQueue1.get(timeout=TIMEOUT).matches.OutgoingConnectionEstablished
-            )
-            self.assertTrue(
-                self.messageQueue2.get(timeout=TIMEOUT).matches.NewIncomingConnection
-            )
+            self.messageBus1.sendMessage(connId, "Msg")
+
+            assert self.messageQueue1.get(TIMEOUT).matches.OutgoingConnectionEstablished
+            assert self.messageQueue2.get(TIMEOUT).matches.NewIncomingConnection
+            assert self.messageQueue2.get(TIMEOUT).message == "Msg"
 
             self.messageBus1.closeConnection(connId)
-            self.assertTrue(
-                self.messageQueue1.get(timeout=TIMEOUT).matches.OutgoingConnectionClosed
-            )
-            self.assertTrue(
-                self.messageQueue2.get(timeout=TIMEOUT).matches.IncomingConnectionClosed
-            )
+            assert self.messageQueue1.get(TIMEOUT).matches.OutgoingConnectionClosed
+            assert self.messageQueue2.get(TIMEOUT).matches.IncomingConnectionClosed
+
+        assert len(self.messageBus1._connIdPendingOutgoingConnection) == 0
+        assert len(self.messageBus1._currentlyClosingConnections) == 0
 
     def test_closing_incoming(self):
         self.messageBus1.connect(("localhost", 8001))

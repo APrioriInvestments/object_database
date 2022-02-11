@@ -129,9 +129,11 @@ def test_add_discard_with_closed_socket(listeningSocket):
     assert cs in sw
     assert ss in sw
     cs.close()
-    sw.gc()
+    failed = sw.gc()
     assert cs not in sw
     assert ss in sw
+    assert len(failed) == 1
+    assert cs in failed
 
     # discarding from a closed socket causes it to be removed from SocketWatcher
     cs, ss = connect(listeningSocket)

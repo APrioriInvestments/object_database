@@ -264,9 +264,8 @@ class MessageBus(object):
         self._eventToFireWakePipe = None
         self._generalWakePipe = None
 
-        self._currentlyClosingConnections = (
-            set()
-        )  # set of ConnectionId, while we are closing them
+        # set of ConnectionId, while we are closing them
+        self._currentlyClosingConnections = set()
 
         # how many bytes do we actually have in our deserialized pump loop
         # waiting to be sent down the wire.
@@ -289,10 +288,8 @@ class MessageBus(object):
         self._messagesToSendQueue = BytecountLimitedQueue(self._bytesPerMsg)
         self._eventsToFireQueue = queue.Queue()
 
-        self._socketThread = threading.Thread(target=self._socketThreadLoop)
-        self._eventThread = threading.Thread(target=self._eventThreadLoop)
-        self._socketThread.daemon = True
-        self._eventThread.daemon = True
+        self._socketThread = threading.Thread(target=self._socketThreadLoop, daemon=True)
+        self._eventThread = threading.Thread(target=self._eventThreadLoop, daemon=True)
         self._wantsSSL = wantsSSL
         self._sslContext = sslContext
 
@@ -302,7 +299,6 @@ class MessageBus(object):
 
         # set of sockets currently readable
         self._allSockets = None
-        self._allReadSockets = set()
 
         # dict from 'socket' object to MessageBuffer
         self._incomingSocketBuffers = {}
@@ -629,8 +625,6 @@ class MessageBus(object):
             newSocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
             newSocket.setblocking(False)
 
-            self._allReadSockets.add(newSocket)
-
             with self._lock:
                 connId = self._newConnectionId()
 
@@ -671,7 +665,6 @@ class MessageBus(object):
                 pass
             elif bytesReceived == b"":
                 self._markSocketClosed(socketWithData)
-                self._allReadSockets.discard(socketWithData)
                 self._allSockets.discardForRead(socketWithData)
                 del self._incomingSocketBuffers[socketWithData]
                 return True
@@ -694,7 +687,6 @@ class MessageBus(object):
                 for m in newMessages:
                     if not self._handleIncomingMessage(m, socketWithData):
                         self._markSocketClosed(socketWithData)
-                        self._allReadSockets.discard(socketWithData)
                         self._allSockets.discardForRead(socketWithData)
                         del self._incomingSocketBuffers[socketWithData]
                         break
@@ -755,12 +747,7 @@ class MessageBus(object):
 
                 except ValueError:
                     # one of the sockets must have failed
-                    def hasNegativeFd(socketOrFd):
-                        return SocketWatcher.fdForSockOrFd(socketOrFd) < 0
-
-                    failedSockets = [
-                        s for s in self._socketToBytesNeedingWrite if hasNegativeFd(s) < 0
-                    ] + [s for s in self._allReadSockets if hasNegativeFd(s) < 0]
+                    failedSockets = self._allSockets.gc()
 
                     if not failedSockets:
                         # if not, then we don't have a good understanding of why this happened
@@ -771,10 +758,7 @@ class MessageBus(object):
 
                     for s in failedSockets:
                         if s in self._socketToBytesNeedingWrite:
-                            self._allSockets.discardForWrite(s)
                             del self._socketToBytesNeedingWrite[s]
-
-                    self._allSockets.gc()
 
                 else:
                     didSomething = False
@@ -882,7 +866,6 @@ class MessageBus(object):
 
             if socket is not None:
                 self._markSocketClosed(socket)
-                self._allReadSockets.discard(socket)
                 self._allSockets.discardForRead(socket)
                 del self._incomingSocketBuffers[socket]
                 self._currentlyClosingConnections.discard(socket)
@@ -897,7 +880,6 @@ class MessageBus(object):
             elif readMessage.matches.OutgoingConnectionEstablished:
                 sock = self._connIdToOutgoingSocket.get(readMessage.connectionId)
                 if sock is not None:
-                    self._allReadSockets.add(sock)
                     self._allSockets.addForRead(sock)
                     self._incomingSocketBuffers[sock] = MessageBuffer(
                         self.extraMessageSizeCheck

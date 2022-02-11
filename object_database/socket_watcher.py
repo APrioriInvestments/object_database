@@ -45,9 +45,14 @@ class SocketWatcher:
 
     def gc(self):
         """ Garbage-Collect any closed sockets. """
+        sockets = []
+
         for sock in list(self._socketToFd.keys()):
             if self.fdForSockOrFd(sock) < 0:
                 self.discard(sock, True, True)
+                sockets.append(sock)
+
+        return sockets
 
     def add(self, sockOrFd, forRead: bool, forWrite: bool) -> bool:
         """Start watching the given socket or filedescriptor.

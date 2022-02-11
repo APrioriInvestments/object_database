@@ -24,7 +24,6 @@ import threading
 import queue
 import struct
 import logging
-import select
 import os
 import socket
 import sortedcontainers
@@ -33,6 +32,7 @@ from typed_python import Alternative, NamedTuple, TypeFunction, serialize, deser
 
 from object_database.util import sslContextFromCertPathOrNone
 from object_database.bytecount_limited_queue import BytecountLimitedQueue
+from object_database.socket_watcher import SocketWatcher
 
 MESSAGE_LEN_BYTES = 4  # sizeof an int32 used to pack messages
 EPOLL_TIMEOUT = 5.0
@@ -160,146 +160,6 @@ def MessageBusEvent(MessageType):
         # an outgoing connection closed
         OutgoingConnectionClosed=dict(connectionId=ConnectionId),
     )
-
-
-class SocketWatcher:
-    """A lightweight wrapper around epoll"""
-
-    def __init__(self):
-        self._logger = logging.getLogger(__name__)
-        self._epoll = select.epoll()
-        self._fdToSocketObj = {}
-        self._socketToFd = {}
-
-    @staticmethod
-    def fdForSockOrFd(sockOrFd):
-        if isinstance(sockOrFd, int):
-            return sockOrFd
-        else:
-            return sockOrFd.fileno()
-
-    @staticmethod
-    def eventMask(forRead: bool, forWrite: bool):
-        readMask = select.EPOLLIN if forRead else 0
-        writeMask = select.EPOLLOUT if forWrite else 0
-        return readMask | writeMask
-
-    def __contains__(self, sockOrFd):
-        return sockOrFd in self._socketToFd
-
-    def gc(self):
-        for sock in self._socketToFd:
-            if self.fdForSockOrFd(sock) < 0:
-                self.discard(sock, True, True)
-
-    def add(self, sockOrFd, forRead: bool, forWrite: bool):
-        """Start watching the given socket or filedescriptor.
-
-        Args:
-            sockOrFd - must be an int or an object with 'fileno'
-        """
-        fd = self.fdForSockOrFd(sockOrFd)
-        if fd < 0:
-            if sockOrFd in self._socketToFd:
-                self.discard(True, True)
-
-            return
-
-        if sockOrFd not in self._socketToFd:
-            try:
-                self._epoll.register(fd, self.eventMask(forRead, forWrite))
-
-            except Exception:
-                self._logger.error(f"Failed to register socket {sockOrFd} with FD={fd}.")
-
-            else:
-                self._socketToFd[sockOrFd] = (fd, forRead, forWrite)
-                self._fdToSocketObj[fd] = sockOrFd
-
-        else:
-            currFd, currRead, currWrite = self._socketToFd[sockOrFd]
-
-            if fd != currFd:
-                self.discard(sockOrFd, True, True)
-                self.add(sockOrFd, forRead, forWrite)
-
-            else:
-                # we may be adding read or write to a socket
-                forRead |= currRead
-                forWrite |= currWrite
-
-                if currRead != forRead or currWrite != forWrite:
-                    try:
-                        self._epoll.modify(fd, self.eventMask(forRead, forWrite))
-
-                    except Exception:
-                        self._logger.error(f"Failed to modify socket {sockOrFd} with FD={fd}.")
-
-                    else:
-                        self._socketToFd[sockOrFd] = (fd, forRead, forWrite)
-
-    def addForRead(self, socketOrFd):
-        self.add(socketOrFd, True, False)
-
-    def addForWrite(self, socketOrFd):
-        self.add(socketOrFd, False, True)
-
-    def poll(self, timeout=None):
-        """Return a list of the sockets that have pending data.
-
-        The response will contain the object or integer you originally passed.
-        """
-        events = self._epoll.poll(timeout)
-
-        socketsReadable = set()
-        socketsWriteable = set()
-
-        for fd, eventMask in events:
-            if eventMask & select.EPOLLIN:
-                socketsReadable.add(self._fdToSocketObj[fd])
-            if eventMask & select.EPOLLOUT:
-                socketsWriteable.add(self._fdToSocketObj[fd])
-
-        return socketsReadable, socketsWriteable
-
-    def discardForRead(self, socketOrFd):
-        self.discard(socketOrFd, True, False)
-
-    def discardForWrite(self, socketOrFd):
-        self.discard(socketOrFd, False, True)
-
-    def discard(self, sockOrFd, forRead: bool, forWrite: bool):
-        if sockOrFd in self._socketToFd:
-            curFd, currRead, currWrite = self._socketToFd[sockOrFd]
-            forRead = currRead and not forRead
-            forWrite = currWrite and not forWrite
-            fd = self.fdForSockOrFd(sockOrFd)
-
-            if fd < 0 or (not forRead and not forWrite):
-                self._socketToFd.pop(sockOrFd)
-                self._fdToSocketObj.pop(curFd)
-
-                try:
-                    self._epoll.unregister(curFd)
-
-                except Exception:
-                    if self.fdForSockOrFd(sockOrFd) >= 0:
-                        self._logger.exception(f"INFO: Failed to unregister FD={curFd}")
-
-            elif forRead != currRead or forWrite != currWrite:
-                self._socketToFd[sockOrFd] = (curFd, forRead, forWrite)
-
-                try:
-                    self._epoll.modify(curFd, self.eventMask(forRead, forWrite))
-
-                except Exception:
-                    self._logger.error(f"Failed to modify socket {sockOrFd} with FD={curFd}.")
-
-    def teardown(self):
-        self._epoll.close()
-
-    def __len__(self):
-        return len(self._fdToSocketObj)
 
 
 class MessageBus(object):
@@ -722,12 +582,12 @@ class MessageBus(object):
                     self._listeningEndpoint[1],
                 )
 
-                return True
-
         except OSError:
             sock.close()
+            return False
 
-        return False
+        else:
+            return True
 
     def _scheduleBytesForWrite(self, connId, bytes):
         if not bytes:

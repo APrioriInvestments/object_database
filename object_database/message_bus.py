@@ -701,8 +701,8 @@ class MessageBus(object):
         t0 = time.time()
         selectsWithNoUpdate = 0
 
-        try:
-            while True:
+        while True:
+            try:
                 if time.time() - t0 > 0.01:
                     t0 = time.time()
                     selectsWithNoUpdate = 0
@@ -799,10 +799,16 @@ class MessageBus(object):
                     else:
                         selectsWithNoUpdate += 1
 
-        except MessageBusLoopExit:
-            self._logger.debug("Socket loop for MessageBus exiting gracefully")
-        except Exception:
-            self._logger.exception("Socket loop for MessageBus failed")
+            except MessageBusLoopExit:
+                self._logger.debug("Socket loop for MessageBus exiting gracefully")
+                return
+
+            except Exception as e:
+                self._logger.exception(
+                    "INFO: MessageBus socket-thread encountered unexpected exception "
+                    f"(and ignoring): {str(e)}"
+                )
+                time.sleep(1.0)
 
     def _handleMessageToSendWakePipe(self):
         for receivedMsgTrigger in os.read(self._messageToSendWakePipe[0], MSG_BUF_SIZE):

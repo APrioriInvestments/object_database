@@ -34,7 +34,7 @@ class Text extends ConcreteCell {
             this.style += ";white-space: nowrap";
         }
         if (this.props.fontSize) {
-            this.style += ";fontSize: " + this.props.fontSize;
+            this.style += ";font-size: " + this.props.fontSize + "px";
         }
     }
 

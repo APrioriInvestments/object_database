@@ -145,9 +145,13 @@ class Cells:
 
     def _processCallbacks(self):
         """Execute any callbacks that have been scheduled to run on the main UI thread."""
+        processed = 0
+        t0 = time.time()
+
         try:
             while True:
                 callback = self._callbacks.get(block=False)
+                processed += 1
 
                 def callCallback(callback):
                     revisionConflicts = 0
@@ -178,6 +182,11 @@ class Cells:
                 callCallback(callback)
         except queue.Empty:
             return
+        finally:
+            if processed:
+                logging.info(
+                    "Processed %s callbacks in %s seconds", processed, time.time() - t0
+                )
 
     def scheduleCallback(self, callback):
         """Schedule a callback to execute on the main cells thread as soon as possible.

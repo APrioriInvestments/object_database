@@ -165,6 +165,7 @@ class CellsSession:
         We have to process messages on the same thread as the rest of Cells or
         we'll get race conditions.
         """
+        t0 = time.time()
 
         def callbackFun():
             cell_id = jsonMsg.get("target_cell")
@@ -175,6 +176,8 @@ class CellsSession:
 
                 if cell is not None:
                     cell.onMessageWithCellContext(jsonMsg)
+
+            logging.info("Processed callback with lag of %s", time.time() - t0)
 
         return callbackFun
 
@@ -268,7 +271,7 @@ class CellsSession:
 
                 self.lastDumpTimeSpentCalculating += time.time() - t0
 
-                if time.time() - t0 > 0.1:
+                if time.time() - t0 > 0.0:
                     logging.info(
                         "Rendering message packet with %s updates "
                         "and %s new cells took %.4f seconds.",

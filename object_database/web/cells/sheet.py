@@ -13,6 +13,41 @@
 #   limitations under the License.
 from object_database.web.cells.cell import FocusableCell
 
+import threading
+
+
+class RowsPromise:
+    """Clients can return this object, in lieu of actual rows.
+
+    Then can fill out the result when data becomes available."""
+
+    def __init__(self):
+        self.results = None
+        self.sheet = None
+        self.reason = None
+        self.range = None
+        self.lock = threading.RLock()
+
+    def setResult(self, rows):
+        with self.lock:
+            self.results = rows
+            if self.sheet is not None:
+                self.sheet.cells.scheduleCallback(self.sendData)
+
+    def setSheet(self, sheet, range, reason):
+        with self.lock:
+            self.sheet = sheet
+            self.reason = reason
+            self.range = range
+
+            if self.results:
+                self.sheet.cells.scheduleCallback(self.sendData)
+
+    def sendData(self):
+        return self.sheet.scheduleMessage(
+            {"data": self.results, "range": self.range, "reason": self.reason}
+        )
+
 
 class Sheet(FocusableCell):
     def __init__(
@@ -43,6 +78,9 @@ class Sheet(FocusableCell):
         self.numLockRows = numLockRows
         self.numLockColumns = numLockColumns
 
+    def getPromise(self):
+        return RowsPromise()
+
     def recalculate(self):
         self.exportData["numLockRows"] = self.numLockRows
         self.exportData["numLockColumns"] = self.numLockColumns
@@ -66,6 +104,13 @@ class Sheet(FocusableCell):
                 rng[1][0],
             )
 
-            response = {"data": rows_to_send, "range": rng, "reason": msgFrame.get('reason')}
+            if isinstance(rows_to_send, RowsPromise):
+                rows_to_send.setSheet(self, rng, msgFrame.get("reason"))
+            else:
+                response = {
+                    "data": rows_to_send,
+                    "range": rng,
+                    "reason": msgFrame.get("reason"),
+                }
 
-            self.scheduleMessage(response)
+                self.scheduleMessage(response)

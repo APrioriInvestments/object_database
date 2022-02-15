@@ -18,6 +18,17 @@ from object_database.web.cells.computing_cell_context import ComputingCellContex
 from object_database.util import Timer
 
 
+class DummyCell:
+    def __init__(self, cells):
+        self.cells = cells
+
+    def onWatchingSlot(self, slot):
+        pass
+
+    def subscribedSlotChanged(self, slot):
+        pass
+
+
 def wrapCallback(callback):
     """Make a version of callback that will run on the main cells ui thread when invoked.
 
@@ -26,7 +37,11 @@ def wrapCallback(callback):
     cells = ComputingCellContext.get().cells
 
     def realCallback(*args, **kwargs):
-        cells.scheduleCallback(lambda: callback(*args, **kwargs))
+        def innerCallback():
+            with ComputingCellContext(DummyCell(cells)):
+                callback(*args, **kwargs)
+
+        cells.scheduleCallback(innerCallback)
 
     realCallback.__name__ = callback.__name__
 

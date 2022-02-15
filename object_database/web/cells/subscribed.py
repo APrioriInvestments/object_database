@@ -53,7 +53,8 @@ class Subscribed(Cell):
     def onRemovedFromTree(self):
         if self.onRemovedCallback is not None:
             try:
-                self.onRemovedCallback()
+                with self.view():
+                    self.onRemovedCallback()
             except Exception:
                 logging.exception("Subscribed onRemoved callback failed.")
 

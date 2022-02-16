@@ -5,7 +5,32 @@ let scrollbarPadding = 2;
 let lockedCellColor = "#EEEEEE";
 let charWidthPx = 8;
 let minCharsInCell = 10;
-let maxFloatPrecision = 12;
+let maxFloatPrecision = 10;
+
+let toPrecision = (flt, precision) => {
+    let res = flt.toPrecision(precision);
+
+    // no decimal? we're done
+    if (res.indexOf('.') == -1) {
+        return res;
+    }
+
+    // don't worry about exponentials yet
+    if (res.indexOf('e') >= 0) {
+        return res;
+    }
+
+    let i = res.length - 1;
+    while (i > 0 && res[i] == '0') {
+        i--;
+    }
+
+    if (i > 0 && res[i] == '.') {
+        i--;
+    }
+
+    return res.slice(0, i + 1);
+};
 
 class SheetRenderingConfig {
     constructor(sheetState, width, height, isFocused, rightScrollbar, bottomScrollbar) {
@@ -187,12 +212,7 @@ class SheetState {
         }
 
         if (typeof(contents) == 'number' && applyFormatting) {
-            let rep = contents.toString();
-            let rep2 = contents.toPrecision(maxFloatPrecision);
-
-            if (rep.length > rep2.length) {
-                rep = rep2;
-            }
+            let rep = toPrecision(contents, maxFloatPrecision);
 
             let dotIx = rep.indexOf('.');
             if (dotIx == -1) {
@@ -202,7 +222,16 @@ class SheetState {
                 dotIx = rep.length;
             }
 
-            return ' '.repeat(Math.max(this.columnMaxLeftPrecisionRequired[i] - dotIx, 0)) + rep;
+            let extra = 0;
+            if (this.columnMaxLeftPrecisionRequired[i] + this.columnMaxRightPrecisionRequired[i] + 1 < minCharsInCell) {
+                extra = Math.floor(
+                    (minCharsInCell - (
+                        this.columnMaxLeftPrecisionRequired[i] + this.columnMaxRightPrecisionRequired[i] + 1
+                    )) / 2
+                );
+            }
+
+            return ' '.repeat(Math.max(this.columnMaxLeftPrecisionRequired[i] - dotIx, 0) + extra) + rep;
         }
 
         return '' + contents;
@@ -213,7 +242,7 @@ class SheetState {
             if (typeof(s) == 'number') {
                 return Math.min(
                     s.toString().length,
-                    s.toPrecision(maxFloatPrecision).length
+                    toPrecision(s, maxFloatPrecision).length
                 ) + 1;
             }
 
@@ -228,12 +257,6 @@ class SheetState {
             for (let xOff = 0; xOff < row.length; xOff++) {
                 let widthOfCell = Math.min(widthOf(row[xOff]), 500);
 
-                // upsize the column widths
-                if (this.columnCharWidths[x + xOff] === undefined || this.columnCharWidths[x + xOff] < widthOfCell) {
-                    this.columnCharWidths[x + xOff] = widthOfCell;
-                    this.cumulativeColumnWidths = null;
-                }
-
                 if (this.cellContents[x + xOff] === undefined) {
                     this.cellContents[x + xOff] = {};
                 }
@@ -243,12 +266,7 @@ class SheetState {
                 if (typeof(row[xOff]) == 'number') {
                     // this is going to get shown as a number. Calculate the number
                     // of digits to the left and right of the decimal.
-                    let rep = row[xOff].toString();
-                    let rep2 = row[xOff].toPrecision(maxFloatPrecision);
-
-                    if (rep.length > rep2.length) {
-                        rep = rep2;
-                    }
+                    let rep = toPrecision(row[xOff], maxFloatPrecision);
 
                     let dotIx = rep.indexOf('.')
                     let leftOf = 0;
@@ -280,6 +298,21 @@ class SheetState {
                             rightOf, this.columnMaxRightPrecisionRequired[col]
                         );
                     }
+
+                    let worstWidth = (
+                        this.columnMaxRightPrecisionRequired[col] +
+                        this.columnMaxLeftPrecisionRequired[col] + 1
+                    );
+
+                    if (worstWidth > widthOfCell) {
+                        widthOfCell = worstWidth;
+                    }
+                }
+
+                // upsize the column widths
+                if (this.columnCharWidths[x + xOff] === undefined || this.columnCharWidths[x + xOff] < widthOfCell) {
+                    this.columnCharWidths[x + xOff] = widthOfCell;
+                    this.cumulativeColumnWidths = null;
                 }
             }
         }

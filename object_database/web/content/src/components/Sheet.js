@@ -177,15 +177,7 @@ class Sheet extends ConcreteCell {
             if (event.key == 'Enter') {
                 event.stopPropagation();
                 event.preventDefault();
-                this.showOverlay = true;
-                this.requestAnimationFrame();
-                return true;
-            }
-
-            if (event.key == 'Escape') {
-                event.stopPropagation();
-                event.preventDefault();
-                this.showOverlay = false;
+                this.showOverlay = !this.showOverlay;
                 this.requestAnimationFrame();
                 return true;
             }

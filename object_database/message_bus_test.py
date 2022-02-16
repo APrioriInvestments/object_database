@@ -12,11 +12,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import unittest
+import os
 import queue
 import threading
 import time
-import os
+import unittest
 
 from flaky import flaky
 from object_database.message_bus import MessageBus
@@ -77,6 +77,19 @@ class TestMessageBus(unittest.TestCase):
             )
             messageBus3.start()
             messageBus3.stop(timeout=TIMEOUT)
+
+    def test_socket_loop_doesnt_quit(self):
+        self.messageBus1._socketToBytesNeedingWrite[0.0] = bytearray()  # wrong kind of key
+        time.sleep(1.0)
+        connId = self.messageBus1.connect(("localhost", 8001))
+        self.messageBus1.sendMessage(connId, "Msg")
+
+        time.sleep(1.0)
+        del self.messageBus1._socketToBytesNeedingWrite[0.0]
+
+        assert self.messageQueue1.get(timeout=TIMEOUT).matches.OutgoingConnectionEstablished
+        assert self.messageQueue2.get(timeout=TIMEOUT).matches.NewIncomingConnection
+        assert self.messageQueue2.get(timeout=TIMEOUT).message == "Msg"
 
     @flaky(max_runs=3, min_passes=1)
     def test_worker_can_send_messages(self):
@@ -144,13 +157,15 @@ class TestMessageBus(unittest.TestCase):
             connId = self.messageBus1.connect(("localhost", 8001))
             self.messageBus1.sendMessage(connId, "Msg")
 
-            assert self.messageQueue1.get(TIMEOUT).matches.OutgoingConnectionEstablished
-            assert self.messageQueue2.get(TIMEOUT).matches.NewIncomingConnection
-            assert self.messageQueue2.get(TIMEOUT).message == "Msg"
+            assert self.messageQueue1.get(
+                timeout=TIMEOUT
+            ).matches.OutgoingConnectionEstablished
+            assert self.messageQueue2.get(timeout=TIMEOUT).matches.NewIncomingConnection
+            assert self.messageQueue2.get(timeout=TIMEOUT).message == "Msg"
 
             self.messageBus1.closeConnection(connId)
-            assert self.messageQueue1.get(TIMEOUT).matches.OutgoingConnectionClosed
-            assert self.messageQueue2.get(TIMEOUT).matches.IncomingConnectionClosed
+            assert self.messageQueue1.get(timeout=TIMEOUT).matches.OutgoingConnectionClosed
+            assert self.messageQueue2.get(timeout=TIMEOUT).matches.IncomingConnectionClosed
 
         assert len(self.messageBus1._connIdPendingOutgoingConnection) == 0
         assert len(self.messageBus1._currentlyClosingConnections) == 0

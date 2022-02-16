@@ -92,7 +92,6 @@ class Editor extends ConcreteCell {
         this.onMousedown = this.onMousedown.bind(this);
         this.onPreventMousedown = this.onPreventMousedown.bind(this);
         this.onGutterMousedown = this.onGutterMousedown.bind(this);
-        this.onDoubleClick = this.onDoubleClick.bind(this);
         this.onWheel = this.onWheel.bind(this);
         this.installResizeObserver = this.installResizeObserver.bind(this);
         this.sendEventToServer = this.sendEventToServer.bind(this);
@@ -111,6 +110,10 @@ class Editor extends ConcreteCell {
         this.focusOnCreate = false;
         this.animationFrameRequested = false;
         this.currentDragHelper = null;
+        this.lastClickTs = null;
+        this.lastClickPos = null;
+        this.isDoubleClick = false;
+
         this.lastAutoscrollTs = null;
         this.lastAutoscrollPoint = null;
         this.lastSentSelectionState = null;
@@ -239,21 +242,6 @@ class Editor extends ConcreteCell {
         }
     }
 
-    onDoubleClick(event) {
-        event.preventDefault();
-
-        this.focusReceived();
-        this.div.focus();
-
-        // start a mouse click
-        let pos = this.mouseEventToPos([event.pageX, event.pageY]);
-
-        this.dataModel.startClick(pos.lineOffset, pos.colOffset, event.ctrlKey, event.shiftKey);
-        this.dataModel.cursors[this.dataModel.cursors.length - 1].selectWord(this.dataModel.lines);
-
-        this.requestAnimationFrame();
-    }
-
     onGutterMousedown(event) {
         event.preventDefault();
         event.stopPropagation();
@@ -357,11 +345,31 @@ class Editor extends ConcreteCell {
         let isShift = event.shiftKey;
 
         let pos = this.mouseEventToPos([event.pageX, event.pageY]);
+
+        this.isDoubleClick = false;
+        if (Date.now() - this.lastClickTs < 300 && !isCtrl && !isShift) {
+            if (pos.lineOffset == this.lastClickPos.lineOffset &&
+                Math.abs(pos.colOffset - this.lastClickPos.colOffset) < 3
+            ) {
+                this.isDoubleClick = true;
+            }
+        }
+
         this.dataModel.startClick(pos.lineOffset, pos.colOffset, isCtrl, isShift);
+
+        if (this.isDoubleClick) {
+            this.dataModel.cursors[this.dataModel.cursors.length - 1].selectWord(
+                this.dataModel.lines
+            );
+        }
+
         this.requestAnimationFrame();
 
         this.lastAutoscrollTs = null;
         this.lastAutoscrollPoint = null;
+
+        this.lastClickTs = Date.now();
+        this.lastClickPos = pos;
 
         this.currentDragHelper = new DragHelper(event,
             (event, startPoint, lastPoint,  curPoint) => {
@@ -385,7 +393,7 @@ class Editor extends ConcreteCell {
 
                 } else {
                     let pos = this.mouseEventToPos(curPoint);
-                    this.dataModel.continueClick(pos.lineOffset, pos.colOffset);
+                    this.dataModel.continueClick(pos.lineOffset, pos.colOffset, this.isDoubleClick);
                     this.renderModel.ensureTopCursorOnscreen(true);
                     this.requestAnimationFrame();
                     this.lastAutoscrollTs = null;
@@ -787,7 +795,6 @@ class Editor extends ConcreteCell {
             {
                 class: "editor-mouse-event-div",
                 onmousedown: this.onMousedown,
-                ondblclick: this.onDoubleClick,
                 onwheel: this.onWheel,
             }
         )

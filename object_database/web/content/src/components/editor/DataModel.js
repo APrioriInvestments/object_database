@@ -643,11 +643,20 @@ class DataModel {
         this.cursors[this.cursors.length-1].ensureValid(this.lines);
     }
 
-    continueClick(lineOffset, colOffset) {
+    continueClick(lineOffset, colOffset, isDoubleClick) {
         let curs = this.cursors[this.cursors.length - 1];
 
         curs.colOffset = colOffset;
         curs.lineOffset = lineOffset;
+
+        let isToRight = (curs.lineOffset > curs.tailLineOffset ||
+            curs.lineOffset == curs.tailLineOffset && curs.colOffset > curs.tailColOffset
+        );
+
+        if (isDoubleClick) {
+            curs.offsetWord(this.lines, isToRight);
+        }
+
         curs.touch();
         curs.ensureValid(this.lines);
     }

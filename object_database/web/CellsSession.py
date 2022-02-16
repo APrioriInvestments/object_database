@@ -272,13 +272,21 @@ class CellsSession:
                 self.lastDumpTimeSpentCalculating += time.time() - t0
 
                 if time.time() - t0 > 0.0:
-                    logging.info(
-                        "Rendering message packet with %s updates "
-                        "and %s new cells took %.4f seconds.",
-                        sum(len(message.get("nodesUpdated", ())) for message in messages),
-                        sum(len(message.get("nodesCreated", ())) for message in messages),
-                        time.time() - t0,
+                    updateCount = sum(
+                        len(message.get("nodesUpdated", ())) for message in messages
                     )
+                    createCount = sum(
+                        len(message.get("nodesCreated", ())) for message in messages
+                    )
+
+                    if updateCount or createCount:
+                        logging.info(
+                            "Rendering message packet with %s updates "
+                            "and %s new cells took %.4f seconds.",
+                            updateCount,
+                            createCount,
+                            time.time() - t0,
+                        )
 
                 if messages:
                     for message in messages:

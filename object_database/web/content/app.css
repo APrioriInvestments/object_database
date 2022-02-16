@@ -961,7 +961,10 @@ pre {
     position: relative;
 }
 
-.sheet:focus { outline: none; }
+.sheet-main-display {
+    position: absolute;
+}
+.sheet-main-display:focus { outline: none; }
 
 .sheet-cell-layer {
     position: absolute;
@@ -988,6 +991,40 @@ pre {
     white-space: pre;
     padding-top: 4px;
     padding-left: 4px;
+}
+
+.sheet-header {
+    border-left: 1px solid #BBBBBB;
+    border-top: 1px solid #BBBBBB;
+    border-right: 1px solid #BBBBBB;
+    border-bottom: 1px solid #BBBBBB;
+}
+
+.sheet-header-bar-guide {
+    border-right: 1px solid #BBBBBB;
+    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    border-right: 1px solid #BBBBBB;
+    white-space: pre;
+    padding-top: 4px;
+    padding-left: 4px;
+    overflow: hidden;
+    position: absolute;
+}
+
+.sheet-currently-selected-contents {
+    position: absolute;
+    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    white-space: pre-wrap;
+    padding-top: 4px;
+    padding-left: 4px;
+    padding-bottom: 4px;
+    z-index: 1;
+    overflow: hidden;
+
+    border-left: 1px solid #BBBBBB;
+    border-top: 1px solid #BBBBBB;
+    border-right: 1px solid #BBBBBB;
+    border-bottom: 1px solid #BBBBBB;
 }
 
 .sheet-grid-cell {

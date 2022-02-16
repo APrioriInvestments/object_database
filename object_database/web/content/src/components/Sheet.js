@@ -17,7 +17,11 @@ class Sheet extends ConcreteCell {
         this.animationFrameRequested = false;
         this.lastWidth = null;
         this.lastHeight = null;
+
         this.div = null;
+        this.sheetDiv = null;
+        this.sheetHeaderDiv = null;
+
         this.showOverlay = false;
         this.focusOnCreate = false;
         this.currentDragHelper = null;
@@ -137,7 +141,7 @@ class Sheet extends ConcreteCell {
         event.stopPropagation();
 
         this.focusReceived();
-        this.div.focus();
+        this.sheetDiv.focus();
 
         if (this.currentDragHelper) {
             this.currentDragHelper.teardown();
@@ -192,6 +196,8 @@ class Sheet extends ConcreteCell {
             }
         }
 
+        this.sheetState.ensureCWCache(this.lastWidth);
+
         if (this.sheetState.handleKeyDown(event, this.lastHeight, this.lastWidth)) {
             event.stopPropagation();
             event.preventDefault();
@@ -202,7 +208,7 @@ class Sheet extends ConcreteCell {
 
     onFirstInstalled(){
         if (this.focusOnCreate) {
-            this.div.focus();
+            this.sheetDiv.focus();
             this.focusOnCreate = false;
         }
 
@@ -219,7 +225,7 @@ class Sheet extends ConcreteCell {
                 this.sheetState.buildRenderingConfig(
                     this.lastWidth,
                     this.lastHeight,
-                    document.activeElement === this.div
+                    document.activeElement === this.sheetDiv
                 )
             );
         }
@@ -252,12 +258,12 @@ class Sheet extends ConcreteCell {
             this.requestAnimationFrame();
         });
 
-        observer.observe(this.div);
+        observer.observe(this.sheetDiv);
     }
 
     serverKnowsAsFocusedCell() {
-        if (this.div !== null) {
-            this.div.focus();
+        if (this.sheetDiv !== null) {
+            this.sheetDiv.focus();
         } else {
             this.focusOnCreate = true;
         }
@@ -299,7 +305,7 @@ class Sheet extends ConcreteCell {
     }
 
     render() {
-        let isFocused = document.activeElement === this.div;
+        let isFocused = document.activeElement === this.sheetDiv;
 
         this.sheetState.ensureCWCache(this.lastWidth);
 
@@ -334,6 +340,11 @@ class Sheet extends ConcreteCell {
                 this.lastHeight,
                 isFocused
             )
+        );
+
+        replaceChildren(
+            this.sheetHeaderDiv,
+            this.sheetState.renderHeaderDivs(this.lastWidth, this.lastHeight, this.showOverlay)
         );
 
         this.sheetState.getBlockRangesToRequest(renderingConfig).forEach((block) => {
@@ -488,20 +499,37 @@ class Sheet extends ConcreteCell {
             ]
         )
 
-        this.div = h('div', {
-            id: this.getElementId(),
-            class: 'cell sheet',
-            'data-cell-id': this.identity,
-            'data-cell-type': 'Sheet',
-            'onkeydown': this.onKeydown,
-            'onfocus': this.focusReceived,
-            'onblur': this.focusLost,
-            'tabindex': 0
+        this.sheetDiv = h('div', {
+            class: 'sheet-main-display',
+            style: 'height:calc(100% - ' + (this.props.rowHeight + 2) + "px);"
+                + 'width:100%;position:absolute;'
+                + 'top:' + (this.props.rowHeight + 2) + 'px;'
+                + 'left:0px;',
+            onkeydown: this.onKeydown,
+            onfocus: this.focusReceived,
+            onblur: this.focusLost,
+            tabindex: 0
         }, [
             this.sheetContentHolder,
             this.sheetRightScrollbarHolder,
             this.sheetBottomScrollbarHolder,
             this.visibleOverlayDiv
+        ]);
+
+        this.sheetHeaderDiv = h('div', {
+            class: 'sheet-header',
+            style: 'height:' + (this.props.rowHeight + 2) + "px;"
+                + 'width:100%;position:absolute;top:0px;left:0px'
+        }, []);
+
+        this.div = h('div', {
+            id: this.getElementId(),
+            class: 'cell sheet',
+            'data-cell-id': this.identity,
+            'data-cell-type': 'Sheet',
+        }, [
+            this.sheetHeaderDiv,
+            this.sheetDiv
         ]);
 
         return this.div;

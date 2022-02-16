@@ -6,6 +6,7 @@ let lockedCellColor = "#EEEEEE";
 let charWidthPx = 8;
 let minCharsInCell = 10;
 let maxFloatPrecision = 10;
+let headerBarGuideWidthPx = 240;
 
 let toPrecision = (flt, precision) => {
     let res = flt.toPrecision(precision);
@@ -87,6 +88,9 @@ class SheetState {
         this.ensureCursorOnscreen = this.ensureCursorOnscreen.bind(this);
         this.offsetSelection = this.offsetSelection.bind(this);
         this.renderCellDivs = this.renderCellDivs.bind(this);
+        this.renderGridlineDivs = this.renderGridlineDivs.bind(this);
+        this.renderHeaderDivs = this.renderHeaderDivs.bind(this);
+
         this.renderDivs = this.renderDivs.bind(this);
         this.renderSelectionDivs = this.renderSelectionDivs.bind(this);
         this.renderCell = this.renderCell.bind(this);
@@ -360,8 +364,8 @@ class SheetState {
         let visibleCols = this.xPixelToColumn(this.columnOffset(this.corner[0]) + width) - this.corner[0] + 1;
 
         // return a list of ranges we should request, and mark them as requested
-        let x = this.selection[1][0];
-        let y = this.selection[1][1];
+        let x = this.corner[0];
+        let y = this.corner[1];
 
         let x0 = Math.max(0, Math.floor((x - visibleCols * 2) / this.blockSize[0]));
         let x1 = Math.max(0, Math.ceil((x + visibleCols * 2) / this.blockSize[0]));
@@ -693,6 +697,48 @@ class SheetState {
     renderCellDivs(width, height, isFocused) {
         return this.renderDivs(width, height, isFocused, (x, y) => this.renderCell(x, y));
     }
+
+    renderHeaderDivs(width, height, isShowingFullOverlay) {
+        let rep = '(' + (this.selection[0][0] + 1) + ", " + (this.selection[0][1] + 1) + ")";
+        rep += " of (" + this.columnCt + ", " + this.rowCt + ")";
+
+        let x = this.selection[1][0];
+        let y = this.selection[1][1];
+
+        let contents = this.getContentsFor(
+            x, y, false
+        );
+
+        // don't show a summary in the header if we're showing the full overlay
+        if (isShowingFullOverlay) {
+            contents = ""
+        }
+
+        return [
+            h('div', {
+                'class': 'sheet-header-bar-guide',
+                'style':
+                    'height:' + this.cellHeight + "px;"
+                  + 'width:' + headerBarGuideWidthPx + "px;"
+                  + 'background-color:' + lockedCellColor + ";"
+
+            }, [rep]),
+            h('div', {
+                'class': 'sheet-currently-selected-contents',
+                'style': 'width: calc(100% - ' + (headerBarGuideWidthPx - 2) + "px);"
+                    + 'left:' + (headerBarGuideWidthPx - 1) + "px;"
+                    + 'background-color:' + lockedCellColor + ";"
+                  + 'z-index: 1;'
+                  + 'top: -1px;'
+                  + 'max-height: ' + (height - this.cellHeight * 2) + "px;"
+                  + 'min-height: ' + (this.cellHeight + 2) + "px;"
+                },
+                [contents]
+            )
+        ]
+    }
+
+
 
     renderGridlineDivs(width, height, isFocused) {
         return this.renderDivs(width, height, isFocused, (x, y) => this.renderGridCell(x, y));

@@ -1014,10 +1014,10 @@ pre {
 .sheet-currently-selected-contents {
     position: absolute;
     font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    line-height: 120%;
     white-space: pre-wrap;
     padding-top: 4px;
     padding-left: 4px;
-    padding-bottom: 4px;
     z-index: 1;
     overflow: hidden;
 

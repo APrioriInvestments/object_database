@@ -540,13 +540,16 @@ class SheetState {
     }
 
     // produce a correctly-placed div for a single cell
-    renderBoxDiv(i, j, properties, children, background=false) {
+    renderBoxDiv(i, j, frameLeft, frameTop, properties, children, background=false) {
         let leftPx = this.columnOffset(i);
-        let topPx = j * this.cellHeight;
+        let widthPx = this.columnOffset(i + 1) - leftPx;
+        leftPx -= this.columnOffset(frameLeft);
+
+        let topPx = (j - frameTop) * this.cellHeight;
 
         let style = (
             'left:' + leftPx + "px;top:" + topPx + "px;"
-            +"width:" + (this.columnOffset(i + 1) - leftPx) + "px;"
+            +"width:" + widthPx + "px;"
             +"height:" + this.cellHeight + "px;"
         )
 
@@ -566,7 +569,7 @@ class SheetState {
         return h('div', props, children);
     }
 
-    renderCell(i, j) {
+    renderCell(i, j, frameLeft, frameTop) {
         if (i >= this.columnCt || j >= this.rowCt) {
             return null;
         }
@@ -606,11 +609,11 @@ class SheetState {
             );
         }
 
-        return this.renderBoxDiv(i, j, {class: 'sheet-cell'}, divs);
+        return this.renderBoxDiv(i, j, frameLeft, frameTop, {class: 'sheet-cell'}, divs);
     }
 
-    renderGridCell(i, j) {
-        let res = this.renderBoxDiv(i, j, {class: 'sheet-grid-cell'}, [], true);
+    renderGridCell(i, j, frameLeft, frameTop) {
+        let res = this.renderBoxDiv(i, j, frameLeft, frameTop, {class: 'sheet-grid-cell'}, [], true);
 
         if (i >= this.columnCt) {
             res.style['border-top'] = '0px';
@@ -638,9 +641,9 @@ class SheetState {
             [
                 h('div', {
                     class: 'sheet-restriction-panel',
-                    style: `left:${-upperLeft[0]-corner[0]}px;top:${-upperLeft[1]-corner[1]}px;`
-                        +  `width:${lowerRight[0]+corner[0]+1}px;`
-                        +  `height:${lowerRight[1]+corner[1]+1}px;`
+                    style: `left:${-upperLeft[0]}px;top:${-upperLeft[1]}px;`
+                        +  `width:${lowerRight[0]+1}px;`
+                        +  `height:${lowerRight[1]+1}px;`
                     },
                     divs.filter((x) => x !== null)
                 )
@@ -664,25 +667,25 @@ class SheetState {
         // body
         for (let i = Math.floor(Math.max(this.corner[0], this.lockColumns)); i <= maxColumn && i <= this.columnCt; i++) {
             for (let j = Math.floor(Math.max(this.corner[1], this.lockRows)); j <= Math.ceil(this.corner[1] + rows) && j <= this.rowCt; j++) {
-                bodyDivs.push(renderFun(i, j));
+                bodyDivs.push(renderFun(i, j, this.corner[0], this.corner[1]));
             }
         }
 
         for (let i = 0; i < this.lockColumns; i++) {
             for (let j = 0; j < this.lockRows; j++) {
-                cornerDivs.push(renderFun(i, j));
+                cornerDivs.push(renderFun(i, j, 0, 0));
             }
         }
 
         for (let i = Math.max(this.lockColumns, Math.floor(this.corner[0])); i <= maxColumn && i <= this.columnCt; i++) {
             for (let j = 0; j < this.lockRows; j++) {
-                leftDivs.push(renderFun(i, j));
+                leftDivs.push(renderFun(i, j, this.corner[0], 0));
             }
         }
 
         for (let i = 0; i < this.lockColumns; i++) {
             for (let j = Math.max(this.lockRows, Math.floor(this.corner[1])); j <= Math.ceil(this.corner[1] + rows) && j <= this.rowCt; j++) {
-                topDivs.push(renderFun(i, j));
+                topDivs.push(renderFun(i, j, 0, this.corner[1]));
             }
         }
 
@@ -695,7 +698,8 @@ class SheetState {
     }
 
     renderCellDivs(width, height, isFocused) {
-        return this.renderDivs(width, height, isFocused, (x, y) => this.renderCell(x, y));
+        return this.renderDivs(width, height, isFocused,
+            (x, y, frameLeft, frameTop) => this.renderCell(x, y, frameLeft, frameTop));
     }
 
     renderHeaderDivs(width, height, isShowingFullOverlay) {
@@ -738,20 +742,19 @@ class SheetState {
         ]
     }
 
-
-
     renderGridlineDivs(width, height, isFocused) {
-        return this.renderDivs(width, height, isFocused, (x, y) => this.renderGridCell(x, y));
+        return this.renderDivs(width, height, isFocused,
+            (x, y, frameLeft, frameTop) => this.renderGridCell(x, y, frameLeft, frameTop));
     }
 
     renderSelectionDivs(width, height, isFocused) {
         let lockPoint = [this.columnOffset(this.lockColumns), this.lockRows * this.cellHeight];
         let cornerPoint = [this.columnOffset(this.corner[0]), this.corner[1] * this.cellHeight];
 
-        let cornerDivs = this.renderSelectionDivsInner(isFocused, true, true);
-        let bodyDivs = this.renderSelectionDivsInner(isFocused, false, false);
-        let leftDivs = this.renderSelectionDivsInner(isFocused, true, false);
-        let topDivs = this.renderSelectionDivsInner(isFocused, false, true);
+        let cornerDivs = this.renderSelectionDivsInner(isFocused, 0, 0);
+        let bodyDivs = this.renderSelectionDivsInner(isFocused, this.corner[0], this.corner[1]);
+        let leftDivs = this.renderSelectionDivsInner(isFocused, 0, this.corner[1]);
+        let topDivs = this.renderSelectionDivsInner(isFocused, this.corner[0], 0);
 
         return [
             this.makeViewOf([0, 0], [0, 0], lockPoint, cornerDivs),
@@ -761,16 +764,18 @@ class SheetState {
         ]
     }
 
-    renderSelectionDivsInner(isFocused) {
+    renderSelectionDivsInner(isFocused, frameLeft, frameTop) {
         let res = [];
 
         let selectionBounds = this.computeSelectionBounds();
 
-        let leftPx = this.columnOffset(selectionBounds[0][0]);
-        let widthPx = this.columnOffset(selectionBounds[1][0] + 1) - leftPx + 1;
+        let leftPx = this.columnOffset(Math.max(selectionBounds[0][0], frameLeft - 10000));
+        let widthPx = this.columnOffset(Math.min(selectionBounds[1][0], frameLeft + 10000) + 1) - leftPx + 1;
 
-        let topPx = (selectionBounds[0][1]) * this.cellHeight;
-        let heightPx = (selectionBounds[1][1] - selectionBounds[0][1] + 1) * this.cellHeight + 1;
+        leftPx -= this.columnOffset(frameLeft);
+
+        let topPx = (Math.max(selectionBounds[0][1], frameTop - 10000) - frameTop) * this.cellHeight;
+        let heightPx = (Math.min(selectionBounds[1][1] - selectionBounds[0][1], 30000) + 1) * this.cellHeight + 1;
 
         res.push(
             h('div',
@@ -790,6 +795,8 @@ class SheetState {
                 this.renderBoxDiv(
                     this.selection[1][0],
                     this.selection[1][1],
+                    frameLeft,
+                    frameTop,
                     {'class': 'sheet-selection-active-element'},
 
                 )

@@ -282,10 +282,11 @@ class CellsSession:
                     if updateCount or createCount:
                         logging.info(
                             "Rendering message packet with %s updates "
-                            "and %s new cells took %.4f seconds.",
+                            "and %s new cells took %.4f seconds. Bytecount is %.2f kb",
                             updateCount,
                             createCount,
                             time.time() - t0,
+                            sum(len(json.dumps(x)) for x in messages) / 1024.0,
                         )
 
                 if messages:

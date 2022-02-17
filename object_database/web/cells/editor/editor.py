@@ -820,6 +820,8 @@ class Editor(FocusableCell):
         # keep track of what we first told the editor was the state of the system
         self.sentEventIndex = initData["topEventIndex"]
 
+        logging.info("Creating editor with %s events", len(initData['events']))
+
         if self.userSelectionSlot:
             self.exportData[
                 "userSelectionData"

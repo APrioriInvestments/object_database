@@ -877,6 +877,7 @@ pre {
     right: 3px;
     width: 6px;
     height: 100%;
+    cursor: pointer;
 }
 
 .editor-content-and-split-holder {
@@ -894,6 +895,7 @@ pre {
     left: 0px;
     top: 0px;
     overflow: hidden;
+    cursor: text;
 }
 .editor-section-splitter {
     position: absolute;

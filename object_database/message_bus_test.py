@@ -14,6 +14,7 @@
 
 import os
 import queue
+import resource
 import threading
 import time
 import unittest
@@ -24,6 +25,20 @@ from object_database.bytecount_limited_queue import BytecountLimitedQueue
 
 
 TIMEOUT = 5.0
+
+
+def waitUntil(predicate, *, timeout=10.0):
+    """ Returns True if the predicate became True within timeout secounds. """
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        if predicate():
+            return True
+        time.sleep(0.1)
+    return False
+
+
+def numFds():
+    return len(os.listdir(f"/proc/{os.getpid()}/fd"))
 
 
 class TestMessageBus(unittest.TestCase):
@@ -62,6 +77,41 @@ class TestMessageBus(unittest.TestCase):
     def tearDown(self):
         self.messageBus1.stop(timeout=TIMEOUT)
         self.messageBus2.stop(timeout=TIMEOUT)
+
+    def test_fileno_cleanup_with_many_connections(self):
+        softLimit, hardLimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (4096, hardLimit))
+
+        try:
+            initialFdCount = numFds()
+
+            busCount = 3
+
+            def newBus():
+                nonlocal busCount
+                bus = MessageBus(
+                    f"bus{busCount}",
+                    None,
+                    str,
+                    str,
+                    self.messageQueue2.put,
+                    certPath="testcert.cert",
+                )
+                busCount += 1
+                bus.start()
+                connId = bus.connect(("localhost", 8000))
+                bus.sendMessage(connId, bus.busIdentity)
+                return bus, connId
+
+            busObjects = [newBus() for ix in range(400)]
+
+            for bus, connId in busObjects:
+                bus.stop()
+
+            waitUntil(lambda: numFds() <= initialFdCount)
+        finally:
+            # restore limits
+            resource.setrlimit(resource.RLIMIT_NOFILE, (softLimit, hardLimit))
 
     def test_starting_and_stopping(self):
         for _ in range(100):

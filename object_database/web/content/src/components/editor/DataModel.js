@@ -608,7 +608,7 @@ class DataModel {
         let lines = clipboardText.split("\n")
         if (this.cursors.length > 1 && this.cursors.length == lines.length) {
             for (let i = 0; i < this.cursors.length; i++) {
-                this.replaceText(cursors[i], lines[i]);
+                this.replaceText(this.cursors[i], lines[i]);
             }
         } else {
             this.cursors.map((cursor) => { this.replaceText(cursor, clipboardText); });

@@ -78,6 +78,79 @@ class TestMessageBus(unittest.TestCase):
         self.messageBus1.stop(timeout=TIMEOUT)
         self.messageBus2.stop(timeout=TIMEOUT)
 
+    def test_lack_of_filenos_doest_bring_bus_down(self):
+        connId = self.messageBus1.connect(self.messageBus2.listeningEndpoint)
+        self.messageBus1.sendMessage(connId, self.messageBus1.busIdentity)
+        initialFdCount = numFds()
+        print("initial FD count =", initialFdCount)
+
+        assert waitUntil(lambda: self.messageQueue1.qsize() == 1, timeout=1.0)
+        self.messageQueue1.get()
+
+        assert waitUntil(lambda: self.messageQueue2.qsize() == 2, timeout=1.0)
+
+        def getLastQ2Message():
+            while self.messageQueue2.qsize() > 1:
+                self.messageQueue2.get()
+
+            try:
+                return self.messageQueue2.get(timeout=0.0)
+
+            except queue.Empty:
+                return None
+
+        assert getLastQ2Message().message == self.messageBus1.busIdentity
+        assert self.messageQueue2.qsize() == 0
+
+        softLimit, hardLimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (initialFdCount, hardLimit))
+        assert resource.getrlimit(resource.RLIMIT_NOFILE) == (initialFdCount, hardLimit)
+
+        try:
+            busObjs = []
+            try:
+                for ix in range(100):
+                    bus = MessageBus(
+                        "XD", None, str, str, lambda x: None, certPath="testcert.cert"
+                    )
+                    bus.start()
+                    connId = bus.connect(self.messageBus2.listeningEndpoint)
+                    busObjs.append((bus, connId))
+
+                    if ix % 10 == 0:
+                        print("FD count = ", numFds(), "(ix=%d)" % ix)
+
+            except OSError:
+                print(f"[EXPECTED FAILURE]: INFO: Failed at iteration {ix}")
+                pass
+            else:
+                print(f"Failed to exhaust file descriptors as desired: FD = {numFds()}")
+                assert False, "Failed to exhaust file descriptors as desired"
+
+            # Existing connections should still work
+            self.messageBus1.sendMessage(connId, self.messageBus1.busIdentity)
+            assert waitUntil(
+                lambda: self.messageQueue2.qsize() >= 1, timeout=1.0
+            ), f"Messge queue size after timeout = {self.messageQueue2.qsize()}"
+
+            assert self.messageBus1.busIdentity is not None
+
+            def findSentMessage():
+                msg = getLastQ2Message()
+                if hasattr(msg, "message"):
+                    return msg.message == self.messageBus1.busIdentity
+                else:
+                    return False
+
+            assert waitUntil(findSentMessage, timeout=1.0)
+
+        finally:
+            # restore limits
+            resource.setrlimit(resource.RLIMIT_NOFILE, (softLimit, hardLimit))
+            # clean up message busses
+            for bus, connId in busObjs:
+                bus.stop()
+
     def test_fileno_cleanup_with_many_connections(self):
         softLimit, hardLimit = resource.getrlimit(resource.RLIMIT_NOFILE)
         resource.setrlimit(resource.RLIMIT_NOFILE, (4096, hardLimit))

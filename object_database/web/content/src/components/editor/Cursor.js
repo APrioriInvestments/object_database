@@ -381,14 +381,10 @@ class Cursor {
         if (seekWhitespaceFirst) {
             let firstWhitespace = firstWhitespaceIx(lines[this.lineOffset]);
 
-            if (this.colOffset == 0) {
-                this.colOffset = firstWhitespace;
+            if (this.colOffset == firstWhitespace) {
+                this.colOffset = 0;
             } else {
-                if (this.colOffset <= firstWhitespace) {
-                    this.colOffset = 0;
-                } else {
-                    this.colOffset = firstWhitespace;
-                }
+                this.colOffset = firstWhitespace;
             }
         } else {
             this.colOffset = 0;

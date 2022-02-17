@@ -47,10 +47,100 @@ class SheetRenderingConfig {
     }
 };
 
+// object to let us show a "view" of a collection of divs indexed by a key.
+// the view consists of placing a rectangle in the subspace indexed by
+// 'upperLeft' and 'extent' at 'screenPos' in the parent view.
 
-// everything we know about the sheet:
-//     current corner cell, (x,y), zero based
-//     cell contents: xBlock->yBlock->[[values]]
+// because the browser gets confused by large pixel offsets, we manually maintain
+// the desired position of each div, and then reposition each child when we reposition
+// the view. This means that actual top/left coordinates in the divs are tractable numbers
+// which prevents the browser from overflowing its coordinates.
+class SheetView {
+    constructor() {
+        this.screenPos = [0, 0];
+        this.upperLeft = [0, 0];
+        this.extent = [0, 0];
+
+        this.childDivs = {};
+        this.childPositions = {};
+
+        this.setChild = this.setChild.bind(this);
+        this.hasChild = this.hasChild.bind(this);
+        this.removeChild = this.removeChild.bind(this);
+        this.children = this.children.bind(this);
+        this.resetView = this.resetView.bind(this);
+        this.clear = this.clear.bind(this);
+
+        this.mainDiv = h('div', {
+            class: 'sheet-restriction-panel',
+            style: `left:${this.screenPos[0]}px;top:${this.screenPos[1]}px;`
+                +  `width:${this.extent[0]}px;`
+                +  `height:${this.extent[1]}px;`
+
+            },
+            []
+        );
+    }
+
+    // place childDiv named by 'key' at 'pos' in our space
+    setChild(key, childDiv, pos) {
+        if (pos === undefined) {
+            throw new Error("pos can't be undefined");
+        }
+
+        if (this.childDivs[key] !== undefined) {
+            this.removeChild(key);
+        }
+
+        this.childDivs[key] = childDiv;
+        this.childPositions[key] = pos;
+
+        childDiv.style.left = (pos[0] - this.upperLeft[0]) + "px";
+        childDiv.style.top = (pos[1] - this.upperLeft[1]) + "px";
+
+        this.mainDiv.appendChild(childDiv);
+    }
+
+    removeChild(key) {
+        this.mainDiv.removeChild(this.childDivs[key]);
+        delete this.childDivs[key];
+        delete this.childPositions[key];
+    }
+
+    hasChild(key) {
+        return this.childDivs[key] !== undefined;
+    }
+
+    children() {
+        return Object.keys(this.childDivs).map((x) => x);
+    }
+
+    resetView(screenPos, upperLeft, extent) {
+        this.screenPos = screenPos;
+        this.upperLeft = upperLeft;
+        this.extent = extent;
+
+        Object.keys(this.childDivs).forEach((childKey) => {
+            let pos = this.childPositions[childKey];
+            let div = this.childDivs[childKey];
+
+            div.style.left = (pos[0] - this.upperLeft[0]) + 'px';
+            div.style.top = (pos[1] - this.upperLeft[1]) + 'px';
+        });
+
+        this.mainDiv.style = (
+            `left:${screenPos[0]}px;top:${screenPos[1]}px;`
+            +  `width:${extent[0]}px;`
+            +  `height:${extent[1]}px;`
+        );
+    }
+
+    clear() {
+        this.children().forEach((childKey) => {
+            this.removeChild(childKey);
+        });
+    }
+}
 
 class SheetState {
     constructor(cellWidth, cellHeight, columns, rows, lockColumns, lockRows) {
@@ -60,6 +150,41 @@ class SheetState {
         // blockX -> blockY -> true if data is already known
         this.blocksRequested = {};
         this.blockSize = [100, 100];
+
+        // rendered cells
+        this.subblockSize = [10, 10];
+
+        // the four individual views
+        this.blockViews = null;
+
+        this.sheetViews = {
+            gridLines: {
+                body: new SheetView(),
+                corner: new SheetView(),
+                left: new SheetView(),
+                top: new SheetView(),
+            },
+            cellData: {
+                body: new SheetView(),
+                corner: new SheetView(),
+                left: new SheetView(),
+                top: new SheetView(),
+            }
+        };
+
+        this.cellGridLayer = h('div', {class: 'sheet-cell-layer sheet-cell-data-layer'}, [
+            this.sheetViews.gridLines.body.mainDiv,
+            this.sheetViews.gridLines.corner.mainDiv,
+            this.sheetViews.gridLines.left.mainDiv,
+            this.sheetViews.gridLines.top.mainDiv,
+        ]);
+
+        this.cellDataLayer = h('div', {class: 'sheet-cell-layer sheet-cell-gridlines-layer'}, [
+            this.sheetViews.cellData.body.mainDiv,
+            this.sheetViews.cellData.corner.mainDiv,
+            this.sheetViews.cellData.left.mainDiv,
+            this.sheetViews.cellData.top.mainDiv,
+        ]);
 
         // zero-based corner of the current view. note that this can be a float
         this.corner = [0, 0];
@@ -87,11 +212,9 @@ class SheetState {
         this.ensureSelectionInBounds = this.ensureSelectionInBounds.bind(this);
         this.ensureCursorOnscreen = this.ensureCursorOnscreen.bind(this);
         this.offsetSelection = this.offsetSelection.bind(this);
-        this.renderCellDivs = this.renderCellDivs.bind(this);
-        this.renderGridlineDivs = this.renderGridlineDivs.bind(this);
         this.renderHeaderDivs = this.renderHeaderDivs.bind(this);
 
-        this.renderDivs = this.renderDivs.bind(this);
+        // divs holding our main panels
         this.renderSelectionDivs = this.renderSelectionDivs.bind(this);
         this.renderCell = this.renderCell.bind(this);
 
@@ -116,7 +239,21 @@ class SheetState {
         this.ensureCWCache = this.ensureCWCache.bind(this);
         this.columnWidth = this.columnWidth.bind(this);
 
+        this.resetSubblockCache = this.resetSubblockCache.bind(this);
+        this.updateCellAndGridlines = this.updateCellAndGridlines.bind(this);
+
         this.makeViewOf = this.makeViewOf.bind(this);
+    }
+
+
+    resetSubblockCache() {
+        // completely clear the caches. We could do better than this, but for most surfing
+        // the lag is not detectible.
+        ['corner', 'body', 'left', 'top'].forEach((which) => {
+            this.sheetViews.gridLines[which].clear();
+            this.sheetViews.cellData[which].clear();
+        });
+
     }
 
     ensureCWCache(sheetWidth) {
@@ -242,6 +379,8 @@ class SheetState {
     }
 
     absorbCellContents(x, y, data) {
+        this.resetSubblockCache();
+
         let widthOf = (s) => {
             if (typeof(s) == 'number') {
                 return Math.min(
@@ -316,6 +455,7 @@ class SheetState {
                 // upsize the column widths
                 if (this.columnCharWidths[x + xOff] === undefined || this.columnCharWidths[x + xOff] < widthOfCell) {
                     this.columnCharWidths[x + xOff] = widthOfCell;
+                    // clear our cache
                     this.cumulativeColumnWidths = null;
                 }
             }
@@ -629,77 +769,128 @@ class SheetState {
         return res;
     }
 
-    // render 'divs' in a view where we show 'upperLeft/lowerRight' (in screen coords) with
-    // the upper left corner of the screen at 'corner'
-    makeViewOf(corner, upperLeft, lowerRight, divs) {
-        return h('div', {
-            class: 'sheet-restriction-panel',
-            style: `left:${upperLeft[0]}px;top:${upperLeft[1]}px;`
-                +  `width:${lowerRight[0] - upperLeft[0]}px;`
-                +  `height:${lowerRight[1] - upperLeft[1]}px;`
-            },
-            [
-                h('div', {
-                    class: 'sheet-restriction-panel',
-                    style: `left:${-upperLeft[0]}px;top:${-upperLeft[1]}px;`
-                        +  `width:${lowerRight[0]+1}px;`
-                        +  `height:${lowerRight[1]+1}px;`
-                    },
-                    divs.filter((x) => x !== null)
-                )
-            ]
-        )
+    renderDivBlock(x, y, renderFun) {
+        let cornerX = x * this.subblockSize[0];
+        let cornerY = y * this.subblockSize[1];
+
+        let divs = [];
+
+        for (let i = cornerX; i < cornerX + this.subblockSize[0] && i <= this.columnCt; i++) {
+            for (let j = cornerY; j < cornerY + this.subblockSize[1] && j <= this.rowCt; j++) {
+                divs.push(renderFun(i, j, cornerX, cornerY));
+            }
+        }
+
+        return h('div', {class: 'sheet-block-group'}, divs);
     }
 
-    renderDivs(width, height, isFocused, renderFun) {
-        let res = [];
+    updateCellAndGridlines(width, height) {
+        // for each of our views, compute the set of subblocks we're going to show
+        let xys = {};
+
+        xys.body = [];
+        xys.corner = [];
+        xys.left = [];
+        xys.top = [];
+
         let maxColumn = Math.ceil(this.xPixelToColumn(this.columnOffset(this.corner[0]) + width)) + 1;
         let rows = Math.ceil(height / this.cellHeight) + 1;
 
-        let lockPoint = [this.columnOffset(this.lockColumns), this.lockRows * this.cellHeight];
-        let cornerPoint = [this.columnOffset(this.corner[0]), this.corner[1] * this.cellHeight];
-
-        let bodyDivs = [];
-        let leftDivs = [];
-        let topDivs = [];
-        let cornerDivs = [];
-
-        // body
-        for (let i = Math.floor(Math.max(this.corner[0], this.lockColumns)); i <= maxColumn && i <= this.columnCt; i++) {
-            for (let j = Math.floor(Math.max(this.corner[1], this.lockRows)); j <= Math.ceil(this.corner[1] + rows) && j <= this.rowCt; j++) {
-                bodyDivs.push(renderFun(i, j, this.corner[0], this.corner[1]));
+        for (let i = Math.floor(Math.max(this.corner[0], this.lockColumns) / this.subblockSize[0]);
+            i <= Math.ceil(Math.min(maxColumn, this.columnCt) / this.subblockSize[1]);
+            i++
+        ) {
+            for (let j = Math.floor(Math.max(this.corner[1], this.lockRows) / this.subblockSize[1]);
+                j <= Math.ceil(Math.min(this.corner[1] + rows, this.rowCt) / this.subblockSize[1]); j++
+            ) {
+                xys.body.push([i, j]);
             }
         }
 
-        for (let i = 0; i < this.lockColumns; i++) {
-            for (let j = 0; j < this.lockRows; j++) {
-                cornerDivs.push(renderFun(i, j, 0, 0));
+        for (let i = 0; i <= this.lockColumns / this.subblockSize[0]; i++) {
+            for (let j = 0; j <= this.lockRows / this.subblockSize[1]; j++) {
+                xys.corner.push([i, j]);
             }
         }
 
-        for (let i = Math.max(this.lockColumns, Math.floor(this.corner[0])); i <= maxColumn && i <= this.columnCt; i++) {
-            for (let j = 0; j < this.lockRows; j++) {
-                leftDivs.push(renderFun(i, j, this.corner[0], 0));
+        for (let i = Math.floor(Math.max(this.lockColumns, Math.floor(this.corner[0])) / this.subblockSize[0]);
+                i <= Math.ceil(Math.min(maxColumn, this.columnCt) / this.subblockSize[1]); i++) {
+            for (let j = 0; j <= this.lockRows / this.subblockSize[1]; j++) {
+                xys.top.push([i, j]);
             }
         }
 
-        for (let i = 0; i < this.lockColumns; i++) {
-            for (let j = Math.max(this.lockRows, Math.floor(this.corner[1])); j <= Math.ceil(this.corner[1] + rows) && j <= this.rowCt; j++) {
-                topDivs.push(renderFun(i, j, 0, this.corner[1]));
+        for (let i = 0; i <= this.lockColumns / this.subblockSize[1]; i++) {
+            for (let j = Math.floor(Math.max(this.lockRows, this.corner[1]) / this.subblockSize[0]);
+                    j <= Math.ceil(Math.min(this.corner[1] + rows, this.rowCt) / this.subblockSize[1]); j++) {
+                xys.left.push([i, j]);
             }
         }
 
-        return [
-            this.makeViewOf([0,0], [0, 0], lockPoint, cornerDivs),
-            this.makeViewOf(cornerPoint, lockPoint, [width + 1, height + 1], bodyDivs),
-            this.makeViewOf([cornerPoint[0], 0], [lockPoint[0], 0], [width + 1, lockPoint[1]], leftDivs),
-            this.makeViewOf([0, cornerPoint[1]], [0, lockPoint[1]], [lockPoint[0], height + 1], topDivs),
-        ];
-    }
+        // then, for each one, place the subblocks where they go
+        ['body', 'corner', 'top', 'left'].forEach((kind) => {
+            let isContained = {};
 
-    renderCellDivs(width, height, isFocused) {
-        return this.renderDivs(width, height, isFocused,
-            (x, y, frameLeft, frameTop) => this.renderCell(x, y, frameLeft, frameTop));
+            // add any subblocks we don't have
+            xys[kind].forEach((xy) => {
+                isContained[xy] = true;
+
+                if (!this.sheetViews.gridLines[kind].hasChild(xy)) {
+                    this.sheetViews.gridLines[kind].setChild(
+                        xy,
+                        this.renderDivBlock(xy[0], xy[1], this.renderGridCell),
+                        [
+                            this.columnOffset(xy[0] * this.subblockSize[0]),
+                            xy[1] * this.subblockSize[1] * this.cellHeight
+                        ]
+                    );
+                }
+
+                if (!this.sheetViews.cellData[kind].hasChild(xy)) {
+                    this.sheetViews.cellData[kind].setChild(
+                        xy,
+                        this.renderDivBlock(xy[0], xy[1], this.renderCell),
+                        [
+                            this.columnOffset(xy[0] * this.subblockSize[0]),
+                            xy[1] * this.subblockSize[1] * this.cellHeight
+                        ]
+                    );
+                }
+            });
+
+            // remove any ones not visible anymore
+            this.sheetViews.gridLines[kind].children().forEach((childKey) => {
+                if (isContained[childKey] === undefined) {
+                    this.sheetViews.gridLines[kind].removeChild(childKey);
+                }
+            });
+
+            this.sheetViews.cellData[kind].children().forEach((childKey) => {
+                if (isContained[childKey] === undefined) {
+                    this.sheetViews.cellData[kind].removeChild(childKey);
+                }
+            });
+        });
+
+        // set the visible size of each of our grids
+        ['gridLines', 'cellData'].forEach((kind) => {
+            let lockPoint = [
+                this.columnOffset(this.lockColumns),
+                this.lockRows * this.cellHeight
+            ];
+
+            let cornerPoint = [
+                this.columnOffset(this.corner[0]) + lockPoint[0],
+                this.corner[1] * this.cellHeight + lockPoint[1]
+            ];
+
+            let bodyExtent = [width - lockPoint[0], height - lockPoint[1]];
+
+            this.sheetViews[kind].corner.resetView([0, 0], [0, 0], lockPoint);
+            this.sheetViews[kind].body.resetView(lockPoint, cornerPoint, bodyExtent);
+            this.sheetViews[kind].left.resetView([0, lockPoint[1]], [0, cornerPoint[1]], [lockPoint[0], bodyExtent[1]]);
+            this.sheetViews[kind].top.resetView([lockPoint[0], 0], [cornerPoint[0], 0], [bodyExtent[0], lockPoint[1]]);
+        });
     }
 
     renderHeaderDivs(width, height, isShowingFullOverlay) {
@@ -742,11 +933,6 @@ class SheetState {
         ]
     }
 
-    renderGridlineDivs(width, height, isFocused) {
-        return this.renderDivs(width, height, isFocused,
-            (x, y, frameLeft, frameTop) => this.renderGridCell(x, y, frameLeft, frameTop));
-    }
-
     renderSelectionDivs(width, height, isFocused) {
         let lockPoint = [this.columnOffset(this.lockColumns), this.lockRows * this.cellHeight];
         let cornerPoint = [this.columnOffset(this.corner[0]), this.corner[1] * this.cellHeight];
@@ -762,6 +948,28 @@ class SheetState {
             this.makeViewOf([cornerPoint[0], 0], [lockPoint[0], 0], [width + 1, lockPoint[1]], topDivs),
             this.makeViewOf([0, cornerPoint[1]], [0, lockPoint[1]], [lockPoint[0], height + 1], leftDivs),
         ]
+    }
+
+    // render 'divs' in a view where we show 'upperLeft/lowerRight' (in screen coords) with
+    // the upper left corner of the screen at 'corner'
+    makeViewOf(corner, upperLeft, lowerRight, divs) {
+       return h('div', {
+           class: 'sheet-restriction-panel',
+           style: `left:${upperLeft[0]}px;top:${upperLeft[1]}px;`
+               +  `width:${lowerRight[0] - upperLeft[0]}px;`
+               +  `height:${lowerRight[1] - upperLeft[1]}px;`
+           },
+           [
+               h('div', {
+                   class: 'sheet-restriction-panel',
+                   style: `left:${-upperLeft[0]}px;top:${-upperLeft[1]}px;`
+                       +  `width:${lowerRight[0]+1}px;`
+                       +  `height:${lowerRight[1]+1}px;`
+                   },
+                   divs.filter((x) => x !== null)
+               )
+           ]
+       );
     }
 
     renderSelectionDivsInner(isFocused, frameLeft, frameTop) {

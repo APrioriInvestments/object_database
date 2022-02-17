@@ -49,7 +49,7 @@ class Sheet extends ConcreteCell {
             this.props.numLockRows
         );
 
-        if (this.props.initialState !== null) {
+        if (this.props.initialState !== null && this.props.initialState !== undefined) {
             this.sheetState.absorbCellContents(0, 0, this.props.initialState);
         }
     }
@@ -319,26 +319,11 @@ class Sheet extends ConcreteCell {
         );
 
         this.sheetState.ensureCornerValid(renderingConfig);
+        this.sheetState.updateCellAndGridlines(this.lastWidth, this.lastHeight);
 
-        replaceChildren(
-            this.sheetCellDataLayer,
-            this.sheetState.renderCellDivs(
-                this.lastWidth,
-                this.lastHeight,
-                isFocused
-            )
-        );
         replaceChildren(
             this.sheetSelectionLayer,
             this.sheetState.renderSelectionDivs(
-                this.lastWidth,
-                this.lastHeight,
-                isFocused
-            )
-        );
-        replaceChildren(
-            this.sheetCellGridLayer,
-            this.sheetState.renderGridlineDivs(
                 this.lastWidth,
                 this.lastHeight,
                 isFocused
@@ -458,8 +443,8 @@ class Sheet extends ConcreteCell {
             return this.div;
         }
 
-        this.sheetCellGridLayer = h('div', {class: 'sheet-cell-layer'}, []);
-        this.sheetCellDataLayer = h('div', {class: 'sheet-cell-layer'}, []);
+        this.sheetCellGridLayer = this.sheetState.cellGridLayer;
+        this.sheetCellDataLayer = this.sheetState.cellDataLayer;
         this.sheetSelectionLayer = h('div', {class: 'sheet-cell-layer'}, []);
         this.visibleOverlayDiv = h('div', {class: 'sheet-visible-overlay-layer'}, [])
 

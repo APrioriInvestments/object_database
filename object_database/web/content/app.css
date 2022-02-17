@@ -962,7 +962,9 @@ pre {
     overflow: hidden;
     position: relative;
 }
-
+.sheet-block-group {
+    position: absolute;
+}
 .sheet-main-display {
     position: absolute;
 }

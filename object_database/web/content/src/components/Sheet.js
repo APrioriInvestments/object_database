@@ -49,6 +49,9 @@ class Sheet extends ConcreteCell {
             this.props.numLockRows
         );
 
+        if (this.props.initialState !== null) {
+            this.sheetState.absorbCellContents(0, 0, this.props.initialState);
+        }
     }
 
     focusReceived() {

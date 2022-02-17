@@ -77,6 +77,7 @@ class Sheet(FocusableCell):
 
         self.numLockRows = numLockRows
         self.numLockColumns = numLockColumns
+        self.everCalculated = False
 
     def getPromise(self):
         return RowsPromise()
@@ -88,6 +89,23 @@ class Sheet(FocusableCell):
         self.exportData["totalRows"] = self.totalRows
         self.exportData["colWidth"] = self.colWidth
         self.exportData["rowHeight"] = self.rowHeight
+
+        if not self.everCalculated:
+            self.everCalculated = True
+            with self.view():
+                rows = self.rowFun(0, 99, 0, 30)
+
+            if isinstance(rows, RowsPromise):
+                if rows.results is not None:
+                    self.exportData["initialState"] = rows.results
+                else:
+                    self.exportData["initialState"] = None
+            elif rows is not None:
+                assert isinstance(rows, list), type(rows)
+                self.exportData["initialState"] = rows
+            else:
+                self.exportData["initialState"] = None
+
 
     def onMessage(self, msgFrame):
         if msgFrame["event"] == "sheet_needs_data":

@@ -246,7 +246,7 @@ class CellHandler {
                 console.log(
                     "Updating " + (Object.keys(message.nodesUpdated).length) + " nodes "
                     + "and creating " + (Object.keys(message.nodesCreated).length) + " nodes "
-                    + "at " + (Date.now() % 1000))
+                    + "at ms%1000 == " + (Date.now() % 1000))
             }
 
             // indicate to each cell that's going out of scope that we're

@@ -1,6 +1,7 @@
 import {makeDomElt as h} from '../Cell';
 import {ConcreteCell} from '../ConcreteCell';
 import {Cursor} from './Cursor';
+import {ViewOfDivs} from '../util/ViewOfDivs';
 
 let reservedWordRegex = new RegExp("\\b(and|as|assert|async|await|break|continue|del|"
     + "elif|else|except|False|finally|for|from|global|if|import|in|is|"
@@ -416,8 +417,13 @@ class RenderingModel {
         this.backgroundLayer = h('div', {'class': 'editor-background-layer',
             'style': "background-color:" + constants.backgroundColor
             }, []);
+
+        this.linesView = new ViewOfDivs();
         this.lineLayer = h('div', {'class': 'editor-line-layer', 'style': 'font-size:'
-                + constants.fontSize + "px;color:" + constants.textColor}, [])
+                + constants.fontSize + "px;color:" + constants.textColor}, [
+            this.linesView.mainDiv
+        ])
+
         this.selectionLayer = h('div', {'class': 'editor-selection-layer'}, []);
         this.otherSelectionLayer = h('div', {'class': 'editor-selection-layer'}, []);
         this.cursorLayer = h('div', {'class': 'editor-cursor-layer'}, []);
@@ -442,7 +448,6 @@ class RenderingModel {
         this.syntaxCache = {};
 
         this.renderedCursors = [];
-        this.renderedLines = [];
         this.renderedOtherCursors = [];
 
         this.divs = [this.backgroundLayer,
@@ -477,7 +482,7 @@ class RenderingModel {
     }
 
     setViewSizePixels(viewWidthPixels, viewHeightPixels) {
-        this.viewWidthPixels = this.viewWidthPixels;
+        this.viewWidthPixels = viewWidthPixels;
 
         if (this.viewHeightPixels == viewHeightPixels) {
             return;
@@ -532,21 +537,39 @@ class RenderingModel {
     }
 
     buildRenderedLines() {
-        this.renderedLines = [];
+        this.linesView.resetTouched();
 
         var i = this.topLineNumber;
         while (i < this.topLineNumber + this.viewHeight + 1 && i < this.dataModel.lines.length) {
-            this.renderedLines.push(
-                new RenderedLine(
+            let key = i + "_" + this.dataModel.getIsInMultilineString()[i] + "_" + this.dataModel.lines[i];
+
+            this.linesView.touch(key);
+
+            if (!this.linesView.hasChild(key)) {
+                let renderer = new RenderedLine(
                     i,
                     this.dataModel.lines[i],
                     // ' ' if we're not in a multiline string, '"' if we're in a """, "'" if
                     // we're in a ''' string.
                     this.dataModel.getIsInMultilineString()[i]
-                )
-            );
+                );
+
+                this.linesView.setChild(
+                    key,
+                    renderer.render(this.constants, this.syntaxCache),
+                    [0, i * this.constants.lineHeight]
+                );
+            }
+
             i += 1;
         }
+
+        this.linesView.removeUntouched();
+        this.linesView.resetView(
+            [0, 0],
+            [0, this.topLineNumber * this.constants.lineHeight],
+            [this.viewWidthPixels, this.viewHeightPixels]
+        );
     }
 
     buildRenderedCursors() {
@@ -608,9 +631,11 @@ class RenderingModel {
     }
 
     render() {
+        let t0 = Date.now();
+
         // compute the offset
         let offsetStyle = '-' + (this.topLineNumber * this.constants.lineHeight) + "px";
-        this.lineLayer.style.top = offsetStyle;
+
         this.selectionLayer.style.top = offsetStyle;
         this.cursorLayer.style.top = offsetStyle;
         this.otherCursorLayer.style.top = offsetStyle;
@@ -620,13 +645,6 @@ class RenderingModel {
         this.buildRenderedLines();
         this.buildRenderedCursors();
         this.buildRenderedOtherCursors();
-
-        ConcreteCell.replaceChildren(
-            this.lineLayer,
-            this.renderedLines.map(
-                (line) => line.render(this.constants, this.syntaxCache)
-            )
-        );
 
         ConcreteCell.replaceChildren(
             this.cursorLayer,

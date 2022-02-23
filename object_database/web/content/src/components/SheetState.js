@@ -190,6 +190,8 @@ class SheetState {
 
                 offset += Math.min(cwPx, maxColumnWidth);
             }
+
+            this.resetSubblockCache();
         }
     }
 

@@ -176,7 +176,11 @@ class Server:
 
         self.logInterval = 10.0
         self.fieldTransactionsSinceLastLog = {}
+        self.fieldBroadcastsSinceLastLog = {}
+
         self.transactionsSinceLastLogEvent = 0
+        self.transactionLagSinceLastLogEvent = 0
+
         self.lastLogEvent = time.time()
 
         self.MAX_NORMAL_TO_SEND_SYNCHRONOUSLY = 1000
@@ -857,6 +861,8 @@ class Server:
             connectedChannel.handleTransactionData(msg)
         elif msg.matches.CompleteTransaction:
             try:
+                transStartTime = time.time()
+
                 data = connectedChannel.extractTransactionData(msg.transaction_guid)
 
                 with self._lock:
@@ -868,6 +874,7 @@ class Server:
                         data["key_versions"],
                         data["index_versions"],
                         msg.as_of_version,
+                        transStartTime=transStartTime,
                     )
             except Exception:
                 self._logger.exception("Unknown error committing transaction:")
@@ -1010,6 +1017,7 @@ class Server:
         keys_to_check_versions,
         indices_to_check_versions,
         as_of_version,
+        transStartTime=None,
     ):
         self._cur_transaction_num += 1
         transaction_id = self._cur_transaction_num
@@ -1170,6 +1178,13 @@ class Server:
             if i in self._id_to_channel:
                 channelsTriggered.update(self._id_to_channel[i])
 
+        # keep track of the broadcast multiple each field is getting sent to
+        for fieldId in fieldIdsWriting:
+            if fieldId not in self.fieldBroadcastsSinceLastLog:
+                self.fieldBroadcastsSinceLastLog[fieldId] = 0
+
+            self.fieldBroadcastsSinceLastLog[fieldId] += len(channelsTriggered)
+
         for channel in channelsTriggeredForPriors:
             channel.sendTransaction(ServerToClient.LazyTransactionPriors(writes=priorValues))
 
@@ -1201,6 +1216,8 @@ class Server:
             )
 
         self.transactionsSinceLastLogEvent += 1
+        if transStartTime is not None:
+            self.transactionLagSinceLastLogEvent += time.time() - transStartTime
 
         if time.time() - self.lastLogEvent > self.logInterval:
             msg = []
@@ -1209,19 +1226,27 @@ class Server:
             )[:20]:
                 fieldDef = self._currentTypeMap().fieldIdToDef.get(fieldId)
 
+                broadcast = self.fieldBroadcastsSinceLastLog.get(fieldId, 0)
+
                 msg.append(
-                    f"{count:05d} -- {fieldDef.schema}"
+                    f"{count:05d} / {broadcast:05d} -- {fieldDef.schema}"
                     f".{fieldDef.typename}.{fieldDef.fieldname}"
                 )
 
             self._logger.info(
-                "In the last %s seconds, %s transactions:\n%s",
+                "In the last %s seconds, %s transactions with avg lag of %.2f:\n%s",
                 time.time() - self.lastLogEvent,
                 self.transactionsSinceLastLogEvent,
+                self.transactionLagSinceLastLogEvent
+                / (self.transactionsSinceLastLogEvent + 1e-6),
                 "\n".join(msg),
             )
             self.fieldTransactionsSinceLastLog = {}
+            self.fieldBroadcastsSinceLastLog = {}
+
             self.transactionsSinceLastLogEvent = 0
+            self.transactionLagSinceLastLogEvent = 0
+
             self.lastLogEvent = time.time()
 
         self._garbage_collect()

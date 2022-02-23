@@ -1,4 +1,5 @@
 import {makeDomElt as h, replaceChildren} from './Cell';
+import {ViewOfDivs} from './util/ViewOfDivs';
 
 let scrollbarWidthPx = 8;
 let scrollbarPadding = 2;
@@ -47,101 +48,6 @@ class SheetRenderingConfig {
     }
 };
 
-// object to let us show a "view" of a collection of divs indexed by a key.
-// the view consists of placing a rectangle in the subspace indexed by
-// 'upperLeft' and 'extent' at 'screenPos' in the parent view.
-
-// because the browser gets confused by large pixel offsets, we manually maintain
-// the desired position of each div, and then reposition each child when we reposition
-// the view. This means that actual top/left coordinates in the divs are tractable numbers
-// which prevents the browser from overflowing its coordinates.
-class SheetView {
-    constructor() {
-        this.screenPos = [0, 0];
-        this.upperLeft = [0, 0];
-        this.extent = [0, 0];
-
-        this.childDivs = {};
-        this.childPositions = {};
-
-        this.setChild = this.setChild.bind(this);
-        this.hasChild = this.hasChild.bind(this);
-        this.removeChild = this.removeChild.bind(this);
-        this.children = this.children.bind(this);
-        this.resetView = this.resetView.bind(this);
-        this.clear = this.clear.bind(this);
-
-        this.mainDiv = h('div', {
-            class: 'sheet-restriction-panel',
-            style: `left:${this.screenPos[0]}px;top:${this.screenPos[1]}px;`
-                +  `width:${this.extent[0]}px;`
-                +  `height:${this.extent[1]}px;`
-
-            },
-            []
-        );
-    }
-
-    // place childDiv named by 'key' at 'pos' in our space
-    setChild(key, childDiv, pos) {
-        if (pos === undefined) {
-            throw new Error("pos can't be undefined");
-        }
-
-        if (this.childDivs[key] !== undefined) {
-            this.removeChild(key);
-        }
-
-        this.childDivs[key] = childDiv;
-        this.childPositions[key] = pos;
-
-        childDiv.style.left = (pos[0] - this.upperLeft[0]) + "px";
-        childDiv.style.top = (pos[1] - this.upperLeft[1]) + "px";
-
-        this.mainDiv.appendChild(childDiv);
-    }
-
-    removeChild(key) {
-        this.mainDiv.removeChild(this.childDivs[key]);
-        delete this.childDivs[key];
-        delete this.childPositions[key];
-    }
-
-    hasChild(key) {
-        return this.childDivs[key] !== undefined;
-    }
-
-    children() {
-        return Object.keys(this.childDivs).map((x) => x);
-    }
-
-    resetView(screenPos, upperLeft, extent) {
-        this.screenPos = screenPos;
-        this.upperLeft = upperLeft;
-        this.extent = extent;
-
-        Object.keys(this.childDivs).forEach((childKey) => {
-            let pos = this.childPositions[childKey];
-            let div = this.childDivs[childKey];
-
-            div.style.left = (pos[0] - this.upperLeft[0]) + 'px';
-            div.style.top = (pos[1] - this.upperLeft[1]) + 'px';
-        });
-
-        this.mainDiv.style = (
-            `left:${screenPos[0]}px;top:${screenPos[1]}px;`
-            +  `width:${extent[0]}px;`
-            +  `height:${extent[1]}px;`
-        );
-    }
-
-    clear() {
-        this.children().forEach((childKey) => {
-            this.removeChild(childKey);
-        });
-    }
-}
-
 class SheetState {
     constructor(cellWidth, cellHeight, columns, rows, lockColumns, lockRows) {
         // x -> y -> data. will be 'null' if server declined to produce
@@ -159,16 +65,16 @@ class SheetState {
 
         this.sheetViews = {
             gridLines: {
-                body: new SheetView(),
-                corner: new SheetView(),
-                left: new SheetView(),
-                top: new SheetView(),
+                body: new ViewOfDivs(),
+                corner: new ViewOfDivs(),
+                left: new ViewOfDivs(),
+                top: new ViewOfDivs(),
             },
             cellData: {
-                body: new SheetView(),
-                corner: new SheetView(),
-                left: new SheetView(),
-                top: new SheetView(),
+                body: new ViewOfDivs(),
+                corner: new ViewOfDivs(),
+                left: new ViewOfDivs(),
+                top: new ViewOfDivs(),
             }
         };
 
@@ -829,11 +735,13 @@ class SheetState {
 
         // then, for each one, place the subblocks where they go
         ['body', 'corner', 'top', 'left'].forEach((kind) => {
-            let isContained = {};
+            this.sheetViews.gridLines[kind].resetTouched();
+            this.sheetViews.cellData[kind].resetTouched();
 
             // add any subblocks we don't have
             xys[kind].forEach((xy) => {
-                isContained[xy] = true;
+                this.sheetViews.gridLines[kind].touch(xy);
+                this.sheetViews.cellData[kind].touch(xy);
 
                 if (!this.sheetViews.gridLines[kind].hasChild(xy)) {
                     this.sheetViews.gridLines[kind].setChild(
@@ -858,18 +766,8 @@ class SheetState {
                 }
             });
 
-            // remove any ones not visible anymore
-            this.sheetViews.gridLines[kind].children().forEach((childKey) => {
-                if (isContained[childKey] === undefined) {
-                    this.sheetViews.gridLines[kind].removeChild(childKey);
-                }
-            });
-
-            this.sheetViews.cellData[kind].children().forEach((childKey) => {
-                if (isContained[childKey] === undefined) {
-                    this.sheetViews.cellData[kind].removeChild(childKey);
-                }
-            });
+            this.sheetViews.gridLines[kind].removeUntouched();
+            this.sheetViews.cellData[kind].removeUntouched();
         });
 
         // set the visible size of each of our grids

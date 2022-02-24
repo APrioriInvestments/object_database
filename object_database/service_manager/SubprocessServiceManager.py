@@ -213,7 +213,7 @@ class SubprocessServiceManager(ServiceManager):
 
                 self._logger.info(
                     f"Started service_entrypoint.py subprocess with PID={process.pid} "
-                    "logging to {logfileName}"
+                    f"logging to {logfileName}"
                 )
 
                 self.serviceProcesses[instanceIdentity] = process

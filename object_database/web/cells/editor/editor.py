@@ -503,13 +503,9 @@ class Editor(FocusableCell):
 
         newFirstLine = self.firstLineSlot.get()
         lastLine = self.lastLineSlot.get() or (newFirstLine + 2)
+        height = lastLine - newFirstLine
 
-        if pos[0] < self.firstLineSlot.get():
-            newFirstLine = max(pos[0] - 2, 0)
-        elif pos[0] > lastLine:
-            screenHeight = max(lastLine - self.firstLineSlot.get(), 2)
-
-            newFirstLine = max(0, pos[0] - screenHeight + 2)
+        newFirstLine = max(pos[0] - height // 2, 0)
 
         self.firstLineSlot.set(newFirstLine)
 
@@ -820,7 +816,7 @@ class Editor(FocusableCell):
         # keep track of what we first told the editor was the state of the system
         self.sentEventIndex = initData["topEventIndex"]
 
-        logging.info("Creating editor with %s events", len(initData['events']))
+        logging.info("Creating editor with %s events", len(initData["events"]))
 
         if self.userSelectionSlot:
             self.exportData[

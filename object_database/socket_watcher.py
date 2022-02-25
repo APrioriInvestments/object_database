@@ -8,8 +8,12 @@ class SocketWatcher:
     def __init__(self):
         self._logger = logging.getLogger(__name__)
         self._epoll = select.epoll()
+
+        #  _sockets: dict(sockOrFd -> tuple(fd: int, canRead: bool, canWrite: bool))
+        self._sockets = {}
+
+        # _fdToSocketObj: dict(fd: int -> sockOrFd)
         self._fdToSocketObj = {}
-        self._socketToFd = {}
 
     @staticmethod
     def fdForSockOrFd(sockOrFd):
@@ -25,29 +29,29 @@ class SocketWatcher:
         return readMask | writeMask
 
     def canRead(self, sockOrFd) -> bool:
-        if sockOrFd in self._socketToFd:
-            fd, canRead, canWrite = self._socketToFd[sockOrFd]
+        if sockOrFd in self._sockets:
+            fd, canRead, canWrite = self._sockets[sockOrFd]
             return canRead
 
         else:
             return False
 
     def canWrite(self, sockOrFd) -> bool:
-        if sockOrFd in self._socketToFd:
-            fd, canRead, canWrite = self._socketToFd[sockOrFd]
+        if sockOrFd in self._sockets:
+            fd, canRead, canWrite = self._sockets[sockOrFd]
             return canWrite
 
         else:
             return False
 
     def __contains__(self, sockOrFd):
-        return sockOrFd in self._socketToFd
+        return sockOrFd in self._sockets
 
     def gc(self):
         """ Garbage-Collect any closed sockets. """
         sockets = []
 
-        for sock in list(self._socketToFd.keys()):
+        for sock in list(self._sockets.keys()):
             if self.fdForSockOrFd(sock) < 0:
                 self.discard(sock, True, True)
                 sockets.append(sock)
@@ -62,12 +66,12 @@ class SocketWatcher:
         """
         fd = self.fdForSockOrFd(sockOrFd)
         if fd < 0:
-            if sockOrFd in self._socketToFd:
+            if sockOrFd in self._sockets:
                 self.discard(sockOrFd, True, True)
 
             return False
 
-        if sockOrFd not in self._socketToFd:
+        if sockOrFd not in self._sockets:
             try:
                 self._epoll.register(fd, self.eventMask(forRead, forWrite))
 
@@ -78,12 +82,12 @@ class SocketWatcher:
                 return False
 
             else:
-                self._socketToFd[sockOrFd] = (fd, forRead, forWrite)
+                self._sockets[sockOrFd] = (fd, forRead, forWrite)
                 self._fdToSocketObj[fd] = sockOrFd
                 return True
 
         else:
-            currFd, currRead, currWrite = self._socketToFd[sockOrFd]
+            currFd, currRead, currWrite = self._sockets[sockOrFd]
 
             if fd != currFd:
                 self.discard(sockOrFd, True, True)
@@ -103,7 +107,7 @@ class SocketWatcher:
                         return False
 
                     else:
-                        self._socketToFd[sockOrFd] = (fd, forRead, forWrite)
+                        self._sockets[sockOrFd] = (fd, forRead, forWrite)
                         return True
 
     def addForRead(self, socketOrFd) -> bool:
@@ -137,15 +141,15 @@ class SocketWatcher:
         return self.discard(socketOrFd, False, True)
 
     def discard(self, sockOrFd, forRead: bool, forWrite: bool) -> bool:
-        if sockOrFd in self._socketToFd:
-            curFd, currRead, currWrite = self._socketToFd[sockOrFd]
+        if sockOrFd in self._sockets:
+            curFd, currRead, currWrite = self._sockets[sockOrFd]
             forRead = currRead and not forRead
             forWrite = currWrite and not forWrite
             fd = self.fdForSockOrFd(sockOrFd)
 
             if fd < 0 or (not forRead and not forWrite):
                 # remove socker completely
-                self._socketToFd.pop(sockOrFd)
+                self._sockets.pop(sockOrFd)
                 self._fdToSocketObj.pop(curFd)
 
                 try:
@@ -159,7 +163,7 @@ class SocketWatcher:
 
             elif forRead != currRead or forWrite != currWrite:
                 # modify socket
-                self._socketToFd[sockOrFd] = (curFd, forRead, forWrite)
+                self._sockets[sockOrFd] = (curFd, forRead, forWrite)
 
                 try:
                     self._epoll.modify(curFd, self.eventMask(forRead, forWrite))

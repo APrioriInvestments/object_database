@@ -142,7 +142,7 @@ class TestMessageBus(unittest.TestCase):
                 else:
                     return False
 
-            assert waitUntil(findSentMessage, timeout=1.0)
+            assert waitUntil(findSentMessage, timeout=2.5)
 
         finally:
             # restore limits

@@ -267,6 +267,7 @@ def main(argv=None):
         help="path to (self-signed) SSL certificate",
     )
     parser.add_argument("--redis_port", type=int, default=None, required=False)
+    parser.add_argument("--fd-limit", type=int, default=4096, required=False)
 
     parser.add_argument("--max_gb_ram", type=float, default=None, required=False)
     parser.add_argument("--max_cores", type=int, default=None, required=False)
@@ -347,7 +348,18 @@ def main(argv=None):
     signal.signal(signal.SIGINT, shutdownCleanly)
     signal.signal(signal.SIGTERM, shutdownCleanly)
 
-    resource.setrlimit(resource.RLIMIT_NOFILE, (2048, 4096))
+    softLimit, hardLimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+    if parsedArgs.fd_limit <= hardLimit:
+        fdLimit = parsedArgs.fd_limit
+    else:
+        fdLimit = hardLimit
+        logger.warning(
+            "Requested FD count (%s) is higher than the hard limit (%s).",
+            parsedArgs.fd_limit,
+            hardLimit,
+        )
+
+    resource.setrlimit(resource.RLIMIT_NOFILE, (fdLimit, hardLimit))
 
     databaseServer = None
     serviceManager = None

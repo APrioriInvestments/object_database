@@ -106,7 +106,6 @@ class Sheet(FocusableCell):
             else:
                 self.exportData["initialState"] = None
 
-
     def onMessage(self, msgFrame):
         if msgFrame["event"] == "sheet_needs_data":
             rng = msgFrame.get("range")

@@ -296,9 +296,7 @@ class MessageBus(object):
         # socket -> bytes that need to be written
         self._socketToBytesNeedingWrite = {}
         self._socketsWithSslWantWrite = set()
-
-        # set of sockets currently readable
-        self._allSockets = None
+        self._allSockets = None  # SocketWatcher
 
         # dict from 'socket' object to MessageBuffer
         self._incomingSocketBuffers = {}
@@ -1075,10 +1073,12 @@ class MessageBus(object):
                     _, callback = self._pendingTimedCallbacks.pop(0)
                     if callback is not None:
                         self._eventQueue.put(callback)
+
+                elif self._pendingTimedCallbacks:
+                    return max(self._pendingTimedCallbacks[0][0] - t0, 0.0)
+
                 else:
-                    if self._pendingTimedCallbacks:
-                        return max(self._pendingTimedCallbacks[0][0] - t0, 0.0)
-                    return
+                    return None
 
     def _eventThreadLoop(self):
         while True:

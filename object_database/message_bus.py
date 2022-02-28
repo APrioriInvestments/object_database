@@ -619,32 +619,40 @@ class MessageBus(object):
     def _handleReadReadySocket(self, socketWithData):
         """Our select loop indicated 'socketWithData' has data pending."""
         if socketWithData is self._acceptSocket:
-            newSocket, newSocketSource = socketWithData.accept()
-            newSocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
-            newSocket.setblocking(False)
+            try:
+                newSocket, newSocketSource = socketWithData.accept()
 
-            with self._lock:
-                connId = self._newConnectionId()
+            except OSError:
+                # e.g., OSError: [Errno 24] Too many open files
+                return False
 
-            with self._lock:
-                if self._authToken is not None:
-                    self._unauthenticatedConnections.add(connId)
-                self._connIdToIncomingSocket[connId] = newSocket
-                self._socketToIncomingConnId[newSocket] = connId
-                self._connIdToIncomingEndpoint[connId] = newSocketSource
-                self._allSockets.addForRead(newSocket)
+            else:
+                newSocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
+                newSocket.setblocking(False)
 
-                self._incomingSocketBuffers[newSocket] = MessageBuffer(
-                    self.extraMessageSizeCheck
+                with self._lock:
+                    connId = self._newConnectionId()
+
+                with self._lock:
+                    if self._authToken is not None:
+                        self._unauthenticatedConnections.add(connId)
+                    self._connIdToIncomingSocket[connId] = newSocket
+                    self._socketToIncomingConnId[newSocket] = connId
+                    self._connIdToIncomingEndpoint[connId] = newSocketSource
+                    self._allSockets.addForRead(newSocket)
+
+                    self._incomingSocketBuffers[newSocket] = MessageBuffer(
+                        self.extraMessageSizeCheck
+                    )
+
+                self._fireEvent(
+                    self.eventType.NewIncomingConnection(
+                        source=Endpoint(newSocketSource), connectionId=connId
+                    )
                 )
 
-            self._fireEvent(
-                self.eventType.NewIncomingConnection(
-                    source=Endpoint(newSocketSource), connectionId=connId
-                )
-            )
+                return True
 
-            return True
         elif socketWithData in self._allSockets:
             try:
                 bytesReceived = socketWithData.recv(MSG_BUF_SIZE)
@@ -690,6 +698,7 @@ class MessageBus(object):
                         break
 
                 return True
+
         else:
             self._logger.warning(
                 "MessageBus got data on a socket it didn't know about: %s", socketWithData

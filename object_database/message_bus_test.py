@@ -89,17 +89,20 @@ class TestMessageBus(unittest.TestCase):
 
         assert waitUntil(lambda: self.messageQueue2.qsize() == 2, timeout=1.0)
 
-        def getLastQ2Message():
-            while self.messageQueue2.qsize() > 1:
-                self.messageQueue2.get()
-
+        def findSentMessage(match):
             try:
-                return self.messageQueue2.get(timeout=0.0)
+                msg = self.messageQueue2.get(timeout=0.0)
 
             except queue.Empty:
-                return None
+                return False
 
-        assert getLastQ2Message().message == self.messageBus1.busIdentity
+            else:
+                if hasattr(msg, "message"):
+                    return msg.message == match
+                else:
+                    return False
+
+        assert waitUntil(lambda: findSentMessage(self.messageBus1.busIdentity), timeout=1.0)
         assert self.messageQueue2.qsize() == 0
 
         softLimit, hardLimit = resource.getrlimit(resource.RLIMIT_NOFILE)
@@ -135,14 +138,9 @@ class TestMessageBus(unittest.TestCase):
 
             assert self.messageBus1.busIdentity is not None
 
-            def findSentMessage():
-                msg = getLastQ2Message()
-                if hasattr(msg, "message"):
-                    return msg.message == self.messageBus1.busIdentity
-                else:
-                    return False
-
-            assert waitUntil(findSentMessage, timeout=2.5)
+            assert waitUntil(
+                lambda: findSentMessage(self.messageBus1.busIdentity), timeout=2.5
+            )
 
         finally:
             # restore limits

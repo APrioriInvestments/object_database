@@ -523,11 +523,13 @@ class MessageBus(object):
         self._putOnSendQueue(connectionId, TriggerDisconnect)
 
     def _newConnectionId(self):
+        """ Accessed by: user threads & socketThread """
         with self._lock:
             self._connectionIdCounter += 1
             return ConnectionId(id=self._connectionIdCounter)
 
-    def _bytesPerMsg(self, msg):
+    @staticmethod
+    def _bytesPerMsg(msg):
         if not isinstance(msg, tuple):
             return 0
 
@@ -537,11 +539,15 @@ class MessageBus(object):
         return len(msg[1])
 
     def _scheduleEvent(self, event):
-        """Schedule an event to get sent to the onEvent callback on the input loop"""
+        """Schedule an event to get sent to the onEvent callback on the input loop
+
+        Accessed by: user threads & socketThread
+        """
         self._eventsToFireQueue.put(event)
         assert os.write(self._eventToFireWakePipe[1], b" ") == 1
 
     def _setupAcceptSocket(self):
+        """ Accessed by: user threads via bus.start() """
         assert not self.started
 
         if self._listeningEndpoint is None:
@@ -584,6 +590,7 @@ class MessageBus(object):
             return True
 
     def _scheduleBytesForWrite(self, connId, bytes):
+        """ Accessed by: socketThread """
         if not bytes:
             return
 
@@ -617,7 +624,10 @@ class MessageBus(object):
             self._socketToBytesNeedingWrite[sslSock].extend(bytes)
 
     def _handleReadReadySocket(self, socketWithData):
-        """Our select loop indicated 'socketWithData' has data pending."""
+        """ Our select loop indicated 'socketWithData' has data pending.
+
+        Accessed by: socketThread
+        """
         if socketWithData is self._acceptSocket:
             try:
                 newSocket, newSocketSource = socketWithData.accept()
@@ -818,17 +828,21 @@ class MessageBus(object):
                 time.sleep(1.0)
 
     def _handleMessageToSendWakePipe(self):
+        """ Accessed by: socketThread """
         for receivedMsgTrigger in os.read(self._messageToSendWakePipe[0], MSG_BUF_SIZE):
             self._handleMessageToSend()
 
     def _handleEventToFireWakePipe(self):
+        """ Accessed by: socketThread """
         for receivedMsgTrigger in os.read(self._eventToFireWakePipe[0], MSG_BUF_SIZE):
             self._handleEventToFire()
 
     def _handleGeneralWakePipe(self):
+        """ Accessed by: socketThread """
         os.read(self._generalWakePipe[0], MSG_BUF_SIZE)
 
     def _handleMessageToSend(self):
+        """ Accessed by: socketThread """
         connectionAndMsg = self._messagesToSendQueue.get(timeout=0.0)
 
         if connectionAndMsg is Disconnected or connectionAndMsg is None:
@@ -863,6 +877,7 @@ class MessageBus(object):
             self._scheduleBytesForWrite(connId, msg)
 
     def _handleEventToFire(self):
+        """ Accessed by: the socketThread """
         # one message should be on the queue for each "E" msg trigger on the
         # thread pipe
         readMessage = self._eventsToFireQueue.get_nowait()
@@ -899,7 +914,10 @@ class MessageBus(object):
                     )
 
     def _handleWriteReadySocket(self, writeable):
-        """Socket 'writeable' can accept more bytes."""
+        """ Socket 'writeable' can accept more bytes.
+
+        Accessed by: the socketThread
+        """
         if writeable not in self._socketToBytesNeedingWrite:
             return
 
@@ -942,12 +960,14 @@ class MessageBus(object):
             return True
 
     def _ensureSocketClosed(self, sock):
+        """ Accessed by: user threads & the socketThread"""
         try:
             sock.close()
         except OSError:
             pass
 
     def _markSocketClosed(self, socket):
+        """ Accessed by: the socketThread """
         toFire = []
 
         with self._lock:
@@ -976,6 +996,7 @@ class MessageBus(object):
             return connId in self._unauthenticatedConnections
 
     def _handleIncomingMessage(self, serializedMessage, socket):
+        """ Accessed by: socketThread """
         if socket in self._socketToIncomingConnId:
             connId = self._socketToIncomingConnId[socket]
         elif socket in self._socketToOutgoingConnId:
@@ -1015,6 +1036,7 @@ class MessageBus(object):
             return True
 
     def _fireEvent(self, event):
+        """ Accessed by: the socketThread """
         self._eventQueue.put(event)
 
     def _connectTo(self, connId: ConnectionId):
@@ -1023,6 +1045,8 @@ class MessageBus(object):
         This should never get called from the thread-loop because its
         a blocking call (the wrap_socket ssl code can block) and may
         introduce a deadlock.
+
+        Accessed by: socketThread
         """
         try:
             endpoint = self._connIdToOutgoingEndpoint[connId]
@@ -1073,6 +1097,8 @@ class MessageBus(object):
         Returns:
             None if no additional callbacks are pending, or the amount of time
             to the next scheduled callback.
+
+        Accessed by: the socketThread
         """
         with self._lock:
             while True:

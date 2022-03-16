@@ -24,6 +24,7 @@ from object_database.web.cells import (
     Span,
     Text,
     Slot,
+    HeaderBar,
     ensureSubscribedType,
     registerDisplay,
 )
@@ -429,3 +430,8 @@ class CellsTests(unittest.TestCase):
         self.assertTrue(self.cells.findChildrenByTag("large display 1"))
         self.assertTrue(self.cells.findChildrenByTag("sized display 2"))
         self.assertTrue(self.cells.findChildrenByTag("display 3"))
+
+    def test_header_bar(self):
+        self.cells.withRoot(HeaderBar([]))
+
+        self.cells.renderMessages()

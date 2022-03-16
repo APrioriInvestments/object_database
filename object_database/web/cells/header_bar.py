@@ -17,7 +17,7 @@ from object_database.web.cells.cell import Cell
 
 
 class HeaderBar(Cell):
-    def __init__(self, leftItems, centerItems=(), rightItems=()):
+    def __init__(self, leftItems, centerItems=None, rightItems=None):
         super().__init__()
         self.leftItems = leftItems
         self.centerItems = centerItems

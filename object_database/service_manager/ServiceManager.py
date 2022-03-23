@@ -109,7 +109,7 @@ class ServiceManager(object):
         return False
 
     @staticmethod
-    def inferCodebase(moduleName, extensions=(".py")):
+    def inferCodebase(moduleName, extensions=(".py",)):
         # find the root of the codebase
         module = sys.modules[moduleName]
 
@@ -131,7 +131,7 @@ class ServiceManager(object):
         gbRamUsed=None,
         inferCodebase=True,
         codebase=None,
-        extensions=(".py"),
+        extensions=(".py",),
     ):
         if isinstance(serviceClassOrName, str):
             assert (

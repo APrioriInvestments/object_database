@@ -13,8 +13,12 @@
 #   limitations under the License.
 
 import os
+import pytest
 import queue
 import resource
+import socket
+import ssl
+import struct
 import threading
 import time
 import unittest
@@ -475,6 +479,43 @@ class TestMessageBus(unittest.TestCase):
 
         self.assertTrue(self.messageQueue2.get(timeout=TIMEOUT).NewIncomingConnection)
         self.assertEqual(self.messageQueue2.get(timeout=TIMEOUT).message, "msg_good")
+
+        # now connect to bus1 but with a naked socket
+        naked_socket = socket.create_connection(self.messageBus2.listeningEndpoint)
+
+        # disable the Nagle algorithm because we're sensitive to latency
+        naked_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
+
+        def _writeBytes(socket, data: bytes):
+            soFar = 0
+            while soFar < len(data):
+                written = socket.send(data[soFar:])
+                if written == 0:
+                    raise BrokenPipeError()
+                soFar += written
+
+        def writeMessage(socket, data: bytes):
+            _writeBytes(socket, struct.pack("i", len(data)))
+            _writeBytes(socket, data)
+
+        # not an SSL socket -> MB will close the socket.
+        writeMessage(naked_socket, "auth_token".encode("utf-8"))
+        time.sleep(0.1)
+
+        with pytest.raises(ConnectionResetError, match="reset by peer"):
+            writeMessage(naked_socket, b"Hello World")
+
+        naked_socket = socket.create_connection(self.messageBus2.listeningEndpoint)
+        naked_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
+        context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        secure_sock = context.wrap_socket(naked_socket)
+
+        writeMessage(secure_sock, "auth_token".encode("utf-8"))
+        self.assertTrue(self.messageQueue2.get(timeout=TIMEOUT).NewIncomingConnection)
+        time.sleep(0.1)
+
+        with pytest.raises(OSError, match="Bad file descriptor"):
+            writeMessage(naked_socket, b"Help!")
 
     def test_message_throttles(self):
         self.messageBus1.setMaxWriteQueueSize(1024 * 1024)

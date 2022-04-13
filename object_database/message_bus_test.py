@@ -425,34 +425,34 @@ class TestMessageBus(unittest.TestCase):
         )
         self.messageBus1.start()
 
-        # # connecting to the other bus fails. Note that this will
-        # # trigger an 'Invalid wire type encountered' deserialization error
-        # # which makes sense because we're sending an auth message when none is
-        # # required, and the receiver will attempt to deserialize it as a Message
-        # self.messageBus1.connect(("localhost", 8001))
+        # connecting to the other bus fails. Note that this will
+        # trigger an 'Invalid wire type encountered' deserialization error
+        # which makes sense because we're sending an auth message when none is
+        # required, and the receiver will attempt to deserialize it as a Message
+        self.messageBus1.connect(self.messageBus2.listeningEndpoint)
 
-        # self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).OutgoingConnectionEstablished)
-        # self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).OutgoingConnectionClosed)
+        self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).OutgoingConnectionEstablished)
+        self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).OutgoingConnectionClosed)
 
         # now bus2 requires auth, but different auth
-        # self.messageBus2.stop(timeout=TIMEOUT)
-        # self.messageQueue2 = queue.Queue()
-        # self.messageBus2 = MessageBus(
-        #     "bus2",
-        #     ("localhost", 8001),
-        #     str,
-        #     str,
-        #     self.messageQueue2.put,
-        #     "auth_token_other",
-        #     None,
-        #     "testcert.cert",
-        # )
-        # self.messageBus2.start()
+        self.messageBus2.stop(timeout=TIMEOUT)
+        self.messageQueue2 = queue.Queue()
+        self.messageBus2 = MessageBus(
+            "bus2",
+            ("localhost", 8001),
+            str,
+            str,
+            self.messageQueue2.put,
+            "auth_token_other",
+            None,
+            "testcert.cert",
+        )
+        self.messageBus2.start()
 
-        # # connecting to the other bus fails
-        # self.messageBus1.connect(("localhost", 8001))
-        # self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).OutgoingConnectionEstablished)
-        # self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).OutgoingConnectionClosed)
+        # connecting to the other bus fails
+        self.messageBus1.connect(self.messageBus2.listeningEndpoint)
+        self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).OutgoingConnectionEstablished)
+        self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).OutgoingConnectionClosed)
 
         # but if they have the same token it works
         self.messageBus2.stop(timeout=TIMEOUT)
@@ -469,7 +469,7 @@ class TestMessageBus(unittest.TestCase):
         )
         self.messageBus2.start()
 
-        conn = self.messageBus1.connect(("localhost", 8001))
+        conn = self.messageBus1.connect(self.messageBus2.listeningEndpoint)
         self.messageBus1.sendMessage(conn, "msg_good")
         self.assertTrue(self.messageQueue1.get(timeout=TIMEOUT).OutgoingConnectionEstablished)
 

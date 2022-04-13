@@ -140,7 +140,7 @@ class SocketWatcher:
     def discardForWrite(self, socketOrFd) -> bool:
         return self.discard(socketOrFd, False, True)
 
-    def discard(self, sockOrFd, forRead: bool, forWrite: bool) -> bool:
+    def discard(self, sockOrFd, forRead: bool = True, forWrite: bool = True) -> bool:
         if sockOrFd in self._sockets:
             curFd, currRead, currWrite = self._sockets[sockOrFd]
             forRead = currRead and not forRead

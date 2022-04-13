@@ -293,7 +293,6 @@ class TestMessageBus(unittest.TestCase):
             assert self.messageQueue2.get(timeout=TIMEOUT).matches.IncomingConnectionClosed
 
         assert len(self.messageBus1._connIdPendingOutgoingConnection) == 0
-        assert len(self.messageBus1._currentlyClosingConnections) == 0
 
     def test_closing_incoming(self):
         self.messageBus1.connect(("localhost", 8001))

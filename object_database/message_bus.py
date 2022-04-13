@@ -273,9 +273,6 @@ class MessageBus(object):
         self._eventToFireWakePipe = None
         self._generalWakePipe = None
 
-        # set of ConnectionId, while we are closing them
-        self._currentlyClosingConnections = set()
-
         # how many bytes do we actually have in our deserialized pump loop
         # waiting to be sent down the wire.
         self.totalBytesPendingInOutputLoop = 0
@@ -437,15 +434,29 @@ class MessageBus(object):
 
         endpoint = Endpoint(endpoint)
 
-        connId = self._newConnectionId()
-
         with self._lock:
+            connId = self._newConnectionId()
             self._connIdToOutgoingEndpoint[connId] = endpoint
             self._connIdPendingOutgoingConnection.add(connId)
 
+        # Doing this on the socketThread allows for less locking
         self._putOnSendQueue(connId, TriggerConnect)
 
         return connId
+
+    def closeConnection(self, connectionId):
+        """Trigger a connection close."""
+        if self._isDefinitelyDead(connectionId):
+            return
+
+        self._putOnSendQueue(connectionId, TriggerDisconnect)
+
+    def _isDefinitelyDead(self, connectionId):
+        with self._lock:
+            return (
+                connectionId not in self._connIdToOutgoingEndpoint
+                and connectionId not in self._connIdToIncomingEndpoint
+            )
 
     def _putOnSendQueue(self, connectionId, msg):
         self._messagesToSendQueue.put((connectionId, msg))
@@ -517,20 +528,6 @@ class MessageBus(object):
 
         return True
 
-    def _isDefinitelyDead(self, connectionId):
-        with self._lock:
-            return (
-                connectionId not in self._connIdToOutgoingEndpoint
-                and connectionId not in self._connIdToIncomingEndpoint
-            )
-
-    def closeConnection(self, connectionId):
-        """Trigger a connection close."""
-        if self._isDefinitelyDead(connectionId):
-            return
-
-        self._putOnSendQueue(connectionId, TriggerDisconnect)
-
     def _newConnectionId(self):
         """ Accessed by: user threads & socketThread """
         with self._lock:
@@ -598,17 +595,22 @@ class MessageBus(object):
         else:
             return True
 
-    def _scheduleBytesForWrite(self, connId, bytes):
-        """ Accessed by: socketThread """
-        if not bytes:
+    def _scheduleBytesForWrite(self, connId, msg):
+        """ Accessed by: socketThread and eventThread
+
+        It is called under self._lock when called by the eventThread (through _connectTo)
+        and not under self._lock when called from the socketThread
+
+        """
+        if not msg:
             return
 
-        if connId in self._currentlyClosingConnections:
-            return
         if connId in self._connIdToOutgoingSocket:
             sslSock = self._connIdToOutgoingSocket.get(connId)
+
         elif connId in self._connIdToIncomingSocket:
             sslSock = self._connIdToIncomingSocket.get(connId)
+
         else:
             # we're not connected yet, so we can't put this on the buffer
             # so instead, put it on a pending buffer.
@@ -618,19 +620,20 @@ class MessageBus(object):
 
             with self._lock:
                 self._messagesForUnconnectedOutgoingConnection.setdefault(connId, []).append(
-                    bytes
+                    msg
                 )
 
             return
 
-        bytes = MessageBuffer.encode(bytes, self.extraMessageSizeCheck)
+        bytes = MessageBuffer.encode(msg, self.extraMessageSizeCheck)
 
-        self.totalBytesPendingInOutputLoop += len(bytes)
+        with self._lock:
+            self.totalBytesPendingInOutputLoop += len(bytes)
 
-        if sslSock not in self._socketToBytesNeedingWrite:
-            self._socketToBytesNeedingWrite[sslSock] = bytearray(bytes)
-        else:
-            self._socketToBytesNeedingWrite[sslSock].extend(bytes)
+            if sslSock not in self._socketToBytesNeedingWrite:
+                self._socketToBytesNeedingWrite[sslSock] = bytearray(bytes)
+            else:
+                self._socketToBytesNeedingWrite[sslSock].extend(bytes)
 
     def _handleReadReadySocket(self, socketWithData):
         """ Our select loop indicated 'socketWithData' has data pending.
@@ -650,19 +653,17 @@ class MessageBus(object):
                 newSocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
                 newSocket.setblocking(False)
 
-                connId = self._newConnectionId()
-
                 with self._lock:
+                    connId = self._newConnectionId()
                     if self._authToken is not None:
                         self._unauthenticatedConnections.add(connId)
                     self._connIdToIncomingSocket[connId] = newSocket
                     self._socketToIncomingConnId[newSocket] = connId
                     self._connIdToIncomingEndpoint[connId] = newSocketSource
-                    self._allSockets.addForRead(newSocket)
-
                     self._incomingSocketBuffers[newSocket] = MessageBuffer(
                         self.extraMessageSizeCheck
                     )
+                    self._allSockets.addForRead(newSocket)
 
                 self._fireEvent(
                     self.eventType.NewIncomingConnection(
@@ -689,7 +690,7 @@ class MessageBus(object):
                 # do nothing
                 pass
             elif bytesReceived == b"":
-                self._closeIncomingConnection(socketWithData)
+                self._markSocketClosed(socketWithData)
                 return True
             else:
                 self.totalBytesRead += len(bytesReceived)
@@ -706,7 +707,7 @@ class MessageBus(object):
                         self._logger.error(
                             f"Closing connection {connId} due to corrupted message stream."
                         )
-                    self._closeIncomingConnection(socketWithData)
+                    self._markSocketClosed(socketWithData)
                     return True
 
                 self.totalBytesPendingInInputLoop += (
@@ -721,7 +722,7 @@ class MessageBus(object):
 
                 for m in newMessages:
                     if not self._handleIncomingMessage(m, socketWithData):
-                        self._closeIncomingConnection(socketWithData)
+                        self._markSocketClosed(socketWithData)
                         break
 
                 return True
@@ -730,12 +731,6 @@ class MessageBus(object):
             self._logger.warning(
                 "MessageBus got data on a socket it didn't know about: %s", socketWithData
             )
-
-    def _closeIncomingConnection(self, socket):
-        """ Acessed by: socketThread """
-        self._markSocketClosed(socket)
-        self._allSockets.discardForRead(socket)
-        del self._incomingSocketBuffers[socket]
 
     def _socketThreadLoop(self):
         t0 = time.time()
@@ -825,7 +820,7 @@ class MessageBus(object):
                     self._socketsWithSslWantWrite.clear()
                     for writeable in socketsWithSslWantWrite:
                         self._allSockets.discardForWrite(writeable)
-                        if self._hadleWriteReadySocket(writeable):
+                        if self._handleWriteReadySocket(writeable):
                             didSomething = True
 
                     # if we're just spinning making no progress, don't bother
@@ -874,27 +869,21 @@ class MessageBus(object):
         connId, msg = connectionAndMsg
 
         if msg is TriggerDisconnect:
-            # take this message, and make sure we never put this
-            # socket in the selectloop again.
-            if connId in self._socketToBytesNeedingWrite:
-                self._allSockets.discardForWrite(connId)
-                del self._socketToBytesNeedingWrite[connId]
+            if connId in self._connIdPendingOutgoingConnection:
+                self.scheduleCallback(lambda: self._putOnSendQueue(connId, msg), delay=0.1)
+                return
 
-            self._currentlyClosingConnections.add(connId)
-
-            # # Then trigger the socket loop to remove it and gracefully close it.
-            # self._scheduleEvent((connId, TriggerDisconnect))
-            connIdToClose = connId
-            if connIdToClose in self._connIdToIncomingSocket:
-                socket = self._connIdToIncomingSocket[connIdToClose]
-            elif connIdToClose in self._connIdToOutgoingSocket:
-                socket = self._connIdToOutgoingSocket[connIdToClose]
             else:
-                socket = None
+                if connId in self._connIdToOutgoingSocket:
+                    self._markSocketClosed(self._connIdToOutgoingSocket[connId])
 
-            if socket is not None:
-                self._closeIncomingConnection(socket)
-                self._currentlyClosingConnections.discard(connIdToClose)
+                elif connId in self._connIdToIncomingSocket:
+                    self._markSocketClosed(self._connIdToIncomingSocket[connId])
+
+                else:
+                    self._logger.error(
+                        f"Internal Error: can't find socket for connection ID {connId}"
+                    )
 
         elif msg is TriggerConnect:
             # we're supposed to connect to this worker. We have to do
@@ -903,6 +892,7 @@ class MessageBus(object):
             # preschedule the auth token write. When we connect we'll send it
             # immediately
             if self._authToken is not None:
+
                 self._scheduleBytesForWrite(connId, self._authToken.encode("utf8"))
 
             self.scheduleCallback(lambda: self._connectTo(connId))
@@ -930,57 +920,66 @@ class MessageBus(object):
 
             elif readMessage.matches.OutgoingConnectionEstablished:
                 sock = self._connIdToOutgoingSocket.get(readMessage.connectionId)
-                if sock is not None:
-                    self._allSockets.addForRead(sock)
-                    self._incomingSocketBuffers[sock] = MessageBuffer(
-                        self.extraMessageSizeCheck
-                    )
+                assert sock
+                self._allSockets.addForRead(sock)
 
     def _handleWriteReadySocket(self, writeable):
         """ Socket 'writeable' can accept more bytes.
 
         Accessed by: the socketThread
+
+        Returns (bool) didSomething
         """
         if writeable not in self._socketToBytesNeedingWrite:
             return
 
         try:
             bytesWritten = writeable.send(self._socketToBytesNeedingWrite[writeable])
+
         except ssl.SSLWantReadError:
             bytesWritten = -1
+
         except ssl.SSLWantWriteError:
             self._socketsWithSslWantWrite.add(writeable)
             bytesWritten = -1
-        except OSError:
-            bytesWritten = 0
-        except BrokenPipeError:
-            bytesWritten = 0
+
         except Exception:
+            # FIXME: don't log for OSError and BrokenPipeError
             self._logger.exception(
                 "MessageBus write socket shutting down because of exception"
             )
             bytesWritten = 0
 
-        if bytesWritten > 0:
-            self.totalBytesPendingInOutputLoop -= bytesWritten
-            self.totalBytesWritten += bytesWritten
-
         if bytesWritten == 0:
             # the primary socket close pathway is in the socket handler.
             self._allSockets.discardForWrite(writeable)
-            del self._socketToBytesNeedingWrite[writeable]
-        elif bytesWritten == -1:
-            # do nothing
-            pass
-        else:
-            self._socketToBytesNeedingWrite[writeable][:bytesWritten] = b""
 
-            if not self._socketToBytesNeedingWrite[writeable]:
-                # we have no bytes to flush
-                self._allSockets.discardForWrite(writeable)
+            with self._lock:
                 del self._socketToBytesNeedingWrite[writeable]
 
             return True
+
+        elif bytesWritten == -1:
+            # do nothing
+            return False
+
+        elif bytesWritten > 0:
+            with self._lock:
+                self.totalBytesPendingInOutputLoop -= bytesWritten
+                self.totalBytesWritten += bytesWritten
+
+                self._socketToBytesNeedingWrite[writeable][:bytesWritten] = b""
+
+                if not self._socketToBytesNeedingWrite[writeable]:
+                    # we have no bytes to flush
+                    self._allSockets.discardForWrite(writeable)
+                    del self._socketToBytesNeedingWrite[writeable]
+
+            return True
+
+        else:
+            self._logger.error(f"Internal Error: bytesWritten = {bytesWritten}")
+            return False
 
     def _ensureSocketClosed(self, sock):
         """ Accessed by: user threads & the socketThread"""
@@ -996,23 +995,28 @@ class MessageBus(object):
         with self._lock:
             if socket in self._socketToIncomingConnId:
                 connId = self._socketToIncomingConnId[socket]
-                del self._socketToIncomingConnId[socket]
-                del self._connIdToIncomingSocket[connId]
-                del self._connIdToIncomingEndpoint[connId]
                 self._unauthenticatedConnections.discard(connId)
+                del self._connIdToIncomingSocket[connId]
+                del self._socketToIncomingConnId[socket]
+                del self._connIdToIncomingEndpoint[connId]
+                del self._incomingSocketBuffers[socket]
                 toFire.append(self.eventType.IncomingConnectionClosed(connectionId=connId))
 
             elif socket in self._socketToOutgoingConnId:
                 connId = self._socketToOutgoingConnId[socket]
+                del self._connIdToOutgoingEndpoint[connId]
+
                 del self._socketToOutgoingConnId[socket]
                 del self._connIdToOutgoingSocket[connId]
-                del self._connIdToOutgoingEndpoint[connId]
+                if socket in self._socketToBytesNeedingWrite:
+                    del self._socketToBytesNeedingWrite[socket]
                 toFire.append(self.eventType.OutgoingConnectionClosed(connectionId=connId))
 
         for event in toFire:
             self._fireEvent(event)
 
         self._ensureSocketClosed(socket)
+        self._allSockets.discard(socket)
 
     def isUnauthenticated(self, connId):
         with self._lock:
@@ -1084,19 +1088,16 @@ class MessageBus(object):
             naked_socket = socket.create_connection((endpoint.host, endpoint.port))
 
             if self._wantsSSL:
-                ssl_socket = self._sslContext.wrap_socket(naked_socket)
+                sock = self._sslContext.wrap_socket(naked_socket)
             else:
-                ssl_socket = naked_socket
+                sock = naked_socket
 
-            ssl_socket.setblocking(False)
+            sock.setblocking(False)
 
             with self._lock:
-                self._socketToOutgoingConnId[ssl_socket] = connId
-                self._connIdToOutgoingSocket[connId] = ssl_socket
-
-                # this message notifies the socket loop that it needs to pay attention to this
-                # connection.
-                self._scheduleEvent(self.eventType.OutgoingConnectionEstablished(connId))
+                self._socketToOutgoingConnId[sock] = connId
+                self._connIdToOutgoingSocket[connId] = sock
+                self._incomingSocketBuffers[sock] = MessageBuffer(self.extraMessageSizeCheck)
 
                 if connId in self._messagesForUnconnectedOutgoingConnection:
                     messages = self._messagesForUnconnectedOutgoingConnection.pop(connId)
@@ -1106,9 +1107,14 @@ class MessageBus(object):
 
                 self._connIdPendingOutgoingConnection.discard(connId)
 
+            # this message notifies the socket loop that it needs to pay attention to this
+            # connection.
+            self._scheduleEvent(self.eventType.OutgoingConnectionEstablished(connId))
+
             return True
 
-        except Exception:
+        except Exception as e:
+            self._logger.exception(f"INFO: {str(e)}")
             # we failed to connect. cleanup after ourselves.
             with self._lock:
                 if connId in self._connIdToOutgoingEndpoint:

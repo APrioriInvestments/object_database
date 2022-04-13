@@ -102,7 +102,7 @@ jobs:
         python --version
         pip --version
         pip freeze
-        pip install -v git+git://github.com/APrioriInvestments/object_database.git@${GITHUB_SHA}
+        pip install -v git+https://github.com/APrioriInvestments/object_database.git@${GITHUB_SHA}
 
     - name: import object_database
       timeout-minutes: 1  # Runs in <10 sec

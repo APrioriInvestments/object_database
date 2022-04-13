@@ -650,8 +650,7 @@ class MessageBus(object):
                 newSocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
                 newSocket.setblocking(False)
 
-                with self._lock:
-                    connId = self._newConnectionId()
+                connId = self._newConnectionId()
 
                 with self._lock:
                     if self._authToken is not None:
@@ -733,6 +732,7 @@ class MessageBus(object):
             )
 
     def _closeIncomingConnection(self, socket):
+        """ Acessed by: socketThread """
         self._markSocketClosed(socket)
         self._allSockets.discardForRead(socket)
         del self._incomingSocketBuffers[socket]
@@ -882,8 +882,19 @@ class MessageBus(object):
 
             self._currentlyClosingConnections.add(connId)
 
-            # Then trigger the socket loop to remove it and gracefully close it.
-            self._scheduleEvent((connId, TriggerDisconnect))
+            # # Then trigger the socket loop to remove it and gracefully close it.
+            # self._scheduleEvent((connId, TriggerDisconnect))
+            connIdToClose = connId
+            if connIdToClose in self._connIdToIncomingSocket:
+                socket = self._connIdToIncomingSocket[connIdToClose]
+            elif connIdToClose in self._connIdToOutgoingSocket:
+                socket = self._connIdToOutgoingSocket[connIdToClose]
+            else:
+                socket = None
+
+            if socket is not None:
+                self._closeIncomingConnection(socket)
+                self._currentlyClosingConnections.discard(connIdToClose)
 
         elif msg is TriggerConnect:
             # we're supposed to connect to this worker. We have to do
@@ -905,18 +916,10 @@ class MessageBus(object):
         readMessage = self._eventsToFireQueue.get_nowait()
 
         if isinstance(readMessage, tuple) and readMessage[1] is TriggerDisconnect:
-            connIdToClose = readMessage[0]
+            raise BaseException(
+                "Not Implemented Error: TriggerDisconnect no longer handled here."
+            )
 
-            if connIdToClose in self._connIdToIncomingSocket:
-                socket = self._connIdToIncomingSocket[connIdToClose]
-            elif connIdToClose in self._connIdToOutgoingSocket:
-                socket = self._connIdToOutgoingSocket[connIdToClose]
-            else:
-                socket = None
-
-            if socket is not None:
-                self._closeIncomingConnection(socket)
-                self._currentlyClosingConnections.discard(connIdToClose)
         else:
             assert isinstance(readMessage, self.eventType)
             self._fireEvent(readMessage)

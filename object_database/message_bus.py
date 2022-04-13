@@ -632,8 +632,9 @@ class MessageBus(object):
             try:
                 newSocket, newSocketSource = socketWithData.accept()
 
-            except OSError:
+            except OSError as exc:
                 # e.g., OSError: [Errno 24] Too many open files
+                self._logger.info(f"Failed to accept incoming socket: {exc}")
                 return False
 
             else:
@@ -1042,11 +1043,11 @@ class MessageBus(object):
     def _connectTo(self, connId: ConnectionId):
         """Actually form an outgoing connection.
 
-        This should never get called from the thread-loop because its
+        This should never get called from the socket thread-loop because its
         a blocking call (the wrap_socket ssl code can block) and may
         introduce a deadlock.
 
-        Accessed by: socketThread
+        Accessed by: eventThread
         """
         try:
             endpoint = self._connIdToOutgoingEndpoint[connId]

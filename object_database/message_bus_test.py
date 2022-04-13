@@ -505,17 +505,28 @@ class TestMessageBus(unittest.TestCase):
         with pytest.raises(ConnectionResetError, match="reset by peer"):
             writeMessage(naked_socket, b"Hello World")
 
+        # a valid SSL socket
         naked_socket = socket.create_connection(self.messageBus2.listeningEndpoint)
         naked_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         secure_sock = context.wrap_socket(naked_socket)
 
+        # put some data on the wire. This will trigger the NewIncomingConnection event
+        # on the MessageBus, but because we didn't send the message size check after
+        # the message itself, the MessageBus considers the message incomplete and
+        # is sitting waiting.
         writeMessage(secure_sock, "auth_token".encode("utf-8"))
         self.assertTrue(self.messageQueue2.get(timeout=TIMEOUT).NewIncomingConnection)
+
+        # now we try to put on the next message and this fails the message size check
+        # so the MessageBus closes the socket.
+        writeMessage(secure_sock, b"Help!")
+        self.assertTrue(self.messageQueue2.get(timeout=TIMEOUT).IncomingConnectionClosed)
         time.sleep(0.1)
 
-        with pytest.raises(OSError, match="Bad file descriptor"):
-            writeMessage(naked_socket, b"Help!")
+        # now the socket should be dead.
+        with pytest.raises(ConnectionResetError, match="reset by peer"):
+            writeMessage(secure_sock, b"Help!")
 
     def test_message_throttles(self):
         self.messageBus1.setMaxWriteQueueSize(1024 * 1024)

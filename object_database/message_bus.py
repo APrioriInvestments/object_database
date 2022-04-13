@@ -43,9 +43,20 @@ class MessageBusLoopExit(Exception):
     pass
 
 
+class CorruptMessageStream(Exception):
+    pass
+
+
 class MessageBuffer:
     def __init__(self, extraMessageSizeCheck: bool):
-        # the buffer we're reading
+        """ The buffer we're reading
+
+        Args:
+            extraMessageSizeCheck (bool): when True, each message is not only
+                preceeded by an integer value (4 bytes) that corresponds to the
+                number of bytes of the message, but it is also followed by the
+                same integer value.
+        """
         self.buffer = bytearray()
         self.messagesEver = 0
         self.extraMessageSizeCheck = extraMessageSizeCheck
@@ -93,18 +104,16 @@ class MessageBuffer:
                 if len(self.buffer) >= self.curMessageLen + MESSAGE_LEN_BYTES:
                     messages.append(bytes(self.buffer[: self.curMessageLen]))
                     self.messagesEver += 1
-                    checkSize = struct.unpack(
-                        "i",
-                        self.buffer[
-                            self.curMessageLen : self.curMessageLen + MESSAGE_LEN_BYTES
-                        ],
-                    )[0]
-                    assert (
-                        checkSize == self.curMessageLen
-                    ), f"Corrupt message stream: {checkSize} != {self.curMessageLen}"
+                    msgLen = self.curMessageLen
+                    sizeCheckBytes = self.buffer[msgLen : msgLen + MESSAGE_LEN_BYTES]
+                    sizeCheck = struct.unpack("i", sizeCheckBytes)[0]
 
-                    self.buffer[: self.curMessageLen + MESSAGE_LEN_BYTES] = b""
+                    self.buffer[: msgLen + MESSAGE_LEN_BYTES] = b""
                     self.curMessageLen = None
+
+                    if sizeCheck != msgLen:
+                        raise CorruptMessageStream(f"{sizeCheck} != {msgLen}")
+
                 else:
                     return messages
             else:
@@ -681,15 +690,25 @@ class MessageBus(object):
                 # do nothing
                 pass
             elif bytesReceived == b"":
-                self._markSocketClosed(socketWithData)
-                self._allSockets.discardForRead(socketWithData)
-                del self._incomingSocketBuffers[socketWithData]
+                self._closeIncomingConnection(socketWithData)
                 return True
             else:
                 self.totalBytesRead += len(bytesReceived)
 
-                oldBytecount = self._incomingSocketBuffers[socketWithData].pendingBytecount()
-                newMessages = self._incomingSocketBuffers[socketWithData].write(bytesReceived)
+                messageBuffer = self._incomingSocketBuffers[socketWithData]
+                oldBytecount = messageBuffer.pendingBytecount()
+
+                try:
+                    newMessages = messageBuffer.write(bytesReceived)
+
+                except CorruptMessageStream:
+                    connId = self._getConnectionIdFromSocket(socketWithData)
+                    if connId is not None:
+                        self._logger.error(
+                            f"Closing connection {connId} due to corrupted message stream."
+                        )
+                    self._closeIncomingConnection(socketWithData)
+                    return True
 
                 self.totalBytesPendingInInputLoop += (
                     self._incomingSocketBuffers[socketWithData].pendingBytecount()
@@ -703,9 +722,7 @@ class MessageBus(object):
 
                 for m in newMessages:
                     if not self._handleIncomingMessage(m, socketWithData):
-                        self._markSocketClosed(socketWithData)
-                        self._allSockets.discardForRead(socketWithData)
-                        del self._incomingSocketBuffers[socketWithData]
+                        self._closeIncomingConnection(socketWithData)
                         break
 
                 return True
@@ -714,6 +731,11 @@ class MessageBus(object):
             self._logger.warning(
                 "MessageBus got data on a socket it didn't know about: %s", socketWithData
             )
+
+    def _closeIncomingConnection(self, socket):
+        self._markSocketClosed(socket)
+        self._allSockets.discardForRead(socket)
+        del self._incomingSocketBuffers[socket]
 
     def _socketThreadLoop(self):
         t0 = time.time()
@@ -858,8 +880,7 @@ class MessageBus(object):
                 self._allSockets.discardForWrite(connId)
                 del self._socketToBytesNeedingWrite[connId]
 
-            with self._lock:
-                self._currentlyClosingConnections.add(connId)
+            self._currentlyClosingConnections.add(connId)
 
             # Then trigger the socket loop to remove it and gracefully close it.
             self._scheduleEvent((connId, TriggerDisconnect))
@@ -894,9 +915,7 @@ class MessageBus(object):
                 socket = None
 
             if socket is not None:
-                self._markSocketClosed(socket)
-                self._allSockets.discardForRead(socket)
-                del self._incomingSocketBuffers[socket]
+                self._closeIncomingConnection(socket)
                 self._currentlyClosingConnections.discard(connIdToClose)
         else:
             assert isinstance(readMessage, self.eventType)
@@ -996,13 +1015,19 @@ class MessageBus(object):
         with self._lock:
             return connId in self._unauthenticatedConnections
 
-    def _handleIncomingMessage(self, serializedMessage, socket):
+    def _getConnectionIdFromSocket(self, socket):
         """ Accessed by: socketThread """
         if socket in self._socketToIncomingConnId:
-            connId = self._socketToIncomingConnId[socket]
+            return self._socketToIncomingConnId[socket]
         elif socket in self._socketToOutgoingConnId:
-            connId = self._socketToOutgoingConnId[socket]
+            return self._socketToOutgoingConnId[socket]
         else:
+            return None
+
+    def _handleIncomingMessage(self, serializedMessage, socket):
+        """ Accessed by: socketThread """
+        connId = self._getConnectionIdFromSocket(socket)
+        if connId is None:
             return False
 
         if connId in self._unauthenticatedConnections:
@@ -1012,6 +1037,7 @@ class MessageBus(object):
                     return False
 
                 self._unauthenticatedConnections.discard(connId)
+                self._logger.info(f"Connection {connId} authenticated successfully.")
                 return True
 
             except Exception:

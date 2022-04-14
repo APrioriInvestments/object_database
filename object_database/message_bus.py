@@ -1053,7 +1053,7 @@ class MessageBus(object):
                     return False
 
                 self._unauthenticatedConnections.discard(connId)
-                self._logger.info(f"Connection {connId} authenticated successfully.")
+                self._logger.debug(f"Connection {connId} authenticated successfully.")
                 return True
 
             except Exception:
@@ -1123,7 +1123,7 @@ class MessageBus(object):
             return True
 
         except Exception as e:
-            self._logger.error(f"Failed to Connect: {str(e)}")
+            self._logger.debug(f"Failed to Connect to {endpoint}: {str(e)}")
             # we failed to connect. cleanup after ourselves.
             with self._lock:
                 if connId in self._connIdToOutgoingEndpoint:

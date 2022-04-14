@@ -439,7 +439,11 @@ class MessageBus(object):
             self._connIdToOutgoingEndpoint[connId] = endpoint
             self._connIdPendingOutgoingConnection.add(connId)
 
-        self._scheduleEvent((connId, TriggerConnect))
+        # TriggerConnect must go on the sendQueue and not the EventQueue
+        # in order for the auth_token to be sent (if necessary) before
+        # any subsequent sendMessage calls schedule messages on the connection.
+        # self._scheduleEvent((connId, TriggerConnect))
+        self._putOnSendQueue(connId, TriggerConnect)
 
         return connId
 
@@ -867,7 +871,18 @@ class MessageBus(object):
 
         connId, msg = connectionAndMsg
 
-        self._scheduleBytesForWrite(connId, msg)
+        if msg is TriggerConnect:
+            # preschedule the auth token write. When we connect we'll send it
+            # immediately
+            if self._authToken is not None:
+                self._scheduleBytesForWrite(connId, self._authToken.encode("utf8"))
+
+            # we're supposed to connect to this worker. We have to do
+            # this in a background.
+            self.scheduleCallback(lambda: self._connectTo(connId))
+
+        else:
+            self._scheduleBytesForWrite(connId, msg)
 
     def _handleEventToFire(self):
         """ Accessed by: the socketThread """
@@ -892,17 +907,6 @@ class MessageBus(object):
                     self._logger.error(
                         f"Internal Error: can't find socket for connection ID {connId}"
                     )
-
-        elif isinstance(readMessage, tuple) and readMessage[1] is TriggerConnect:
-            connId = readMessage[0]
-            # preschedule the auth token write. When we connect we'll send it
-            # immediately
-            if self._authToken is not None:
-                self._scheduleBytesForWrite(connId, self._authToken.encode("utf8"))
-
-            # we're supposed to connect to this worker. We have to do
-            # this in a background.
-            self.scheduleCallback(lambda: self._connectTo(connId))
 
         else:
             assert isinstance(readMessage, self.eventType)
@@ -1021,11 +1025,11 @@ class MessageBus(object):
                     del self._socketToBytesNeedingWrite[socket]
                 toFire.append(self.eventType.OutgoingConnectionClosed(connectionId=connId))
 
-        for event in toFire:
-            self._fireEvent(event)
-
         self._ensureSocketClosed(socket)
         self._allSockets.discard(socket)
+
+        for event in toFire:
+            self._fireEvent(event)
 
     def isUnauthenticated(self, connId):
         with self._lock:

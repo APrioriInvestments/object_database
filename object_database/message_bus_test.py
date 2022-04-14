@@ -58,7 +58,7 @@ class TestMessageBus(unittest.TestCase):
             str,
             str,
             self.messageQueue1.put,
-            None,
+            "auth_token",
             None,
             "testcert.cert",
         )
@@ -70,7 +70,7 @@ class TestMessageBus(unittest.TestCase):
             str,
             str,
             self.messageQueue2.put,
-            None,
+            "auth_token",
             None,
             "testcert.cert",
         )
@@ -412,21 +412,22 @@ class TestMessageBus(unittest.TestCase):
         self.assertGreater(read1[0], 100)
         self.assertGreater(read2[0], 100)
 
+    @flaky(max_runs=30, min_passes=30)
     def test_auth(self):
-        # bus1 requires auth
-        self.messageBus1.stop(timeout=TIMEOUT)
-        self.messageQueue1 = queue.Queue()
-        self.messageBus1 = MessageBus(
-            "bus1",
-            ("localhost", 8000),
+        # bus1 requires auth but bus2 does not
+        self.messageBus2.stop(timeout=TIMEOUT)
+        self.messageQueue2 = queue.Queue()
+        self.messageBus2 = MessageBus(
+            "bus2",
+            ("localhost", 8001),
             str,
             str,
-            self.messageQueue1.put,
-            "auth_token",
+            self.messageQueue2.put,
+            None,
             None,
             "testcert.cert",
         )
-        self.messageBus1.start()
+        self.messageBus2.start()
 
         # connecting to the other bus fails. Note that this will
         # trigger an 'Invalid wire type encountered' deserialization error
@@ -521,10 +522,9 @@ class TestMessageBus(unittest.TestCase):
         # so the MessageBus closes the socket.
         writeMessage(secure_sock, b"Help!")
         self.assertTrue(self.messageQueue2.get(timeout=TIMEOUT).IncomingConnectionClosed)
-        time.sleep(0.1)
 
         # now the socket should be dead.
-        with pytest.raises(ConnectionResetError, match="reset by peer"):
+        with pytest.raises((ConnectionResetError, BrokenPipeError)):
             writeMessage(secure_sock, b"Help!")
 
     def test_message_throttles(self):
@@ -539,7 +539,7 @@ class TestMessageBus(unittest.TestCase):
                 self.messageQueue2.put(event.message)
 
         self.messageBus2 = MessageBus(
-            "bus2", ("localhost", 8001), str, str, onEvent, None, None, "testcert.cert"
+            "bus2", ("localhost", 8001), str, str, onEvent, "auth_token", None, "testcert.cert"
         )
         self.messageBus2.start()
 
@@ -568,3 +568,17 @@ class TestMessageBus(unittest.TestCase):
             self.assertLess(writeCount[0], readCount[0] + 25)
 
         thread.join()
+
+    @flaky(max_runs=30, min_passes=30)
+    def test_connect_send(self):
+        """ connect and immediately send: the send should never
+        be processed before the connect which scheduled the auth_token
+        to be written to the socket as the very first step.
+        """
+        connId = self.messageBus1.connect(self.messageBus2.listeningEndpoint)
+        self.messageBus1.sendMessage(connId, "asdf")
+        assert self.messageQueue2.get().matches.NewIncomingConnection
+
+        msg = self.messageQueue2.get()
+        assert msg.matches.IncomingMessage
+        assert msg.message == "asdf"

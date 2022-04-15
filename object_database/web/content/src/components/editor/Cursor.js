@@ -533,11 +533,19 @@ class Cursor {
         }
     }
 
-    offsetWord(lines, toRight) {
+    // offset the cursor by a single word (e.g. "ctrl->arrow")
+    // skipWordAfterSpacePolicy - if true, then if we are on whitespace, skip that and then
+    //      continue to skip. Otherwise, if we're on whitespace just stop after that.
+    //      if null, then do the standard thing (true on the right, false on the left)
+    offsetWord(lines, toRight, skipWordAfterSpacePolicy=null) {
         let line = lines[this.lineOffset];
         let co = this.colOffset;
 
         if (toRight) {
+            if (skipWordAfterSpacePolicy === null) {
+                skipWordAfterSpacePolicy = true;
+            }
+
             if (co >= line.length) {
                 if (this.lineOffset + 1 < lines.length) {
                     this.colOffset = 0;
@@ -552,6 +560,13 @@ class Cursor {
             if (isSpace(line[co])) {
                 while (co < line.length && isSpace(line[co])) {
                     co++;
+                }
+
+                if (!skipWordAfterSpacePolicy) {
+                    this.colOffset = co;
+                    this.desiredColOffset = co;
+                    this.touch();
+                    return;
                 }
             }
 
@@ -581,6 +596,10 @@ class Cursor {
             this.touch();
             return;
         } else {
+            if (skipWordAfterSpacePolicy === null) {
+                skipWordAfterSpacePolicy = false;
+            }
+
             if (co == 0) {
                 if (this.lineOffset > 0) {
                     this.lineOffset--;
@@ -595,6 +614,13 @@ class Cursor {
             if (co > 0 && isSpace(line[co - 1])) {
                 while (co > 0 && isSpace(line[co - 1])) {
                     co--;
+                }
+
+                if (!skipWordAfterSpacePolicy) {
+                    this.colOffset = co;
+                    this.desiredColOffset = co;
+                    this.touch();
+                    return;
                 }
             }
 

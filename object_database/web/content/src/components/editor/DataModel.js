@@ -831,7 +831,9 @@ class DataModel {
                 }
 
                 if (event.ctrlKey) {
-                    cursor.offsetWord(this.lines, true);
+                    cursor.offsetWord(
+                        this.lines, true, false /* never delete whitespace and also a word */
+                    );
                     this.clearCursorOverlap(cursor);
                 } else {
                     this.deleteChar(cursor, 1);
@@ -851,7 +853,9 @@ class DataModel {
                 }
 
                 if (event.ctrlKey) {
-                    cursor.offsetWord(this.lines, false);
+                    cursor.offsetWord(
+                        this.lines, false, false /* never delete whitespace and also a word */
+                    );
                     this.clearCursorOverlap(cursor);
                     return;
                 }

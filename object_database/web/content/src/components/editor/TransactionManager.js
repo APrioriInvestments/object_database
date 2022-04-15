@@ -131,14 +131,16 @@ class TransactionManager {
         if (this.events.length) {
             // see if this is our event
             if (event.editSessionId == this.editSessionId) {
-                // it is - we can just pop our event off the front of the queue.
-                this.topEventIndex++;
-                this.priorEvents.push(this.events[0]);
-                this.events.splice(0, 1);
-                return false;
+                if (this.events.length && JSON.stringify(event) == JSON.stringify(this.events[0])) {
+                    // it is - we can just pop our event off the front of the queue.
+                    this.topEventIndex++;
+                    this.priorEvents.push(this.events[0]);
+                    this.events.splice(0, 1);
+                    return false;
+                }
             }
 
-            // its not our event!
+            // its not our top event!
             // for the moment, just roll back our edits - you have to do them
             // in reverse.
 
@@ -148,6 +150,7 @@ class TransactionManager {
                     this.reverseEvent(event)
                 );
             });
+
             let eventsToRebase = this.events.reverse();
             this.events = [];
 
@@ -187,7 +190,11 @@ class TransactionManager {
             }
         } else {
             this.priorEvents.push(event);
-            this.dataModel.pushEventButRetainCursors(event);
+            if (event.editSessionId == this.editSessionId) {
+                this.dataModel.pushEvent(event);
+            } else {
+                this.dataModel.pushEventButRetainCursors(event);
+            }
             this.topEventIndex += 1;
         }
 

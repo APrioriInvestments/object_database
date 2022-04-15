@@ -26,6 +26,11 @@ import uuid
 
 
 def eventsAreInSameUndoStream(e1, e2):
+    """Determine if events e1 and e2 should be undone/redone as a group.
+
+    Generally, we want two events to "go together" if they are a sequence of keystrokes
+    that didn't create a newline and where their cursors are contiguous.
+    """
     if e1["newCursors"] != e2["startCursors"]:
         return False
 
@@ -121,6 +126,33 @@ def collapseEvents(e1, e2):
     )
 
 
+def reverseChange(c):
+    return dict(
+        oldLines=c['newLines'],
+        newLines=c['oldLines'],
+        lineIndex=c['lineIndex']
+    )
+
+
+def reverseEvent(event, isForUndo, curEditSessionId=None):
+    undoState = None
+    if isForUndo:
+        if event.get('undoState') == 'undo':
+            undoState = 'redo'
+        else:
+            undoState = 'undo'
+
+    return dict(
+        changes=[reverseChange(c) for c in reversed(event['changes'])],
+        startCursors=event['newCursors'],
+        newCursors=event['startCursors'],
+        timestamp=time.time() if isForUndo else event['timestamp'],
+        undoState=undoState,
+        editSessionId=curEditSessionId if isForUndo else event['editSessionId'],
+        reason=event['reason']
+    )
+
+
 def eventsAreOnSameLine(e1, e2):
     lines1 = set()
     lines2 = set()
@@ -135,6 +167,98 @@ def eventsAreOnSameLine(e1, e2):
             return False
 
     return lines1 == lines2
+
+
+def computeNextUndoIx(events, pendingUndos=1):
+    i = len(events) - 1
+
+    while i >= 0 and pendingUndos > 0:
+        if events[i]['undoState'] is None:
+            i -= 1
+            pendingUndos -= 1
+        elif events[i]['undoState'] == 'undo':
+            i -= 1
+            pendingUndos += 1
+        elif events[i]['undoState'] == 'redo':
+            i -= 1
+            pendingUndos -= 1
+
+    if pendingUndos > 0:
+        return None
+
+    return i + 1
+
+
+def computeNextRedoIx(events, pendingRedos=1):
+    i = len(events) - 1
+
+    while i >= 0 and pendingRedos:
+        if events[i]['undoState'] is None:
+            return None
+        elif events[i]['undoState'] == 'undo':
+            i -= 1
+            pendingRedos -= 1
+        elif events[i]['undoState'] == 'redo':
+            i -= 1
+            pendingRedos += 1
+
+    if pendingRedos:
+        return None
+
+    return i + 1
+
+
+def computeUndoEvents(events, curEditSessionId):
+    """Given a stream of events, return an event that "undoes" the top event."""
+    i = computeNextUndoIx(events)
+
+    res = []
+
+    if i is None:
+        return res
+
+    res.append(reverseEvent(events[i], True, curEditSessionId))
+
+    while True:
+        i2 = computeNextUndoIx(events, 1 + len(res))
+
+        if i2 is None:
+            return res
+
+        assert i2 < i
+
+        if not eventsAreInSameUndoStream(events[i2], events[i]):
+            return res
+
+        res.append(reverseEvent(events[i2], True, curEditSessionId))
+
+        i = i2
+
+
+def computeRedoEvents(events, curEditSessionId):
+    i = computeNextRedoIx(events)
+
+    if i is None:
+        return []
+
+    res = []
+
+    res.append(reverseEvent(events[i], True, curEditSessionId))
+
+    while True:
+        i2 = computeNextRedoIx(events, 1 + len(res))
+
+        if i2 is None:
+            return res
+
+        assert i2 < i
+
+        if not eventsAreInSameUndoStream(events[i2], events[i]):
+            return res
+
+        res.append(reverseEvent(events[i2], True, curEditSessionId))
+
+        i = i2
 
 
 def compressState(state, maxTimestamp, maxWordUndos=1000, maxLineUndos=10000):
@@ -193,6 +317,17 @@ def computeStateFromEvents(lines, events):
             lines[ix : ix + len(change["oldLines"])] = change["newLines"]
 
     return "\n".join(lines)
+
+
+def collapseStateToTopmost(state):
+    lines = list(state['lines'])
+
+    for event in state['events']:
+        for change in event["changes"]:
+            ix = change["lineIndex"]
+            lines[ix : ix + len(change["oldLines"])] = change["newLines"]
+
+    return dict(lines=lines, events=(), topEventIndex=state['topEventIndex'])
 
 
 class EditorStateBase:
@@ -577,7 +712,7 @@ class Editor(FocusableCell):
 
         if self.sentEventIndex > serverState["topEventIndex"]:
             # somehow we got into a bad state
-            self.scheduleMessage({"resetState": serverState})
+            self.scheduleMessage({"resetState": collapseStateToTopmost(serverState)})
             self.sentEventIndex = serverState["topEventIndex"]
             logging.warning("Client %s completely resetting state", self.editSessionId)
 
@@ -617,7 +752,33 @@ class Editor(FocusableCell):
 
                     self.sentEventIndex = serverState["topEventIndex"]
 
+    def triggerUndoOrRedo(self, isUndo):
+        currentState = self.getCurrentState()
+
+        if isUndo:
+            newEvents = computeUndoEvents(currentState['events'], self.editSessionId)
+        else:
+            newEvents = computeRedoEvents(currentState['events'], self.editSessionId)
+
+        if newEvents:
+            currentState = dict(currentState)
+            currentState["events"] = currentState["events"] + tuple(newEvents)
+            currentState["topEventIndex"] += 1
+
+            logging.info(
+                "Pushing an %s event: %s",
+                "undo" if isUndo else "redo",
+                newEvents
+            )
+
+            self.stateSlot.set(currentState)
+        else:
+            logging.info("Can't build an %s event", "undo" if isUndo else "redo")
+
     def onMessage(self, messageFrame):
+        if messageFrame.get("msg") == "triggerRedo" or messageFrame.get("msg") == "triggerUndo":
+            self.triggerUndoOrRedo(messageFrame.get("msg") == "triggerUndo")
+
         if messageFrame.get("msg") == "selectionState":
             self.firstLineSlot.set(messageFrame.get("topLineNumber"), "server")
             self.lastLineSlot.set(messageFrame.get("bottomLineNumber"), "server")
@@ -801,7 +962,7 @@ class Editor(FocusableCell):
 
     def doFirstCalc(self):
         # figure out the initial state of the editor
-        initData = self.getCurrentState()
+        initData = collapseStateToTopmost(self.getCurrentState())
 
         if self.firstLineSlot is None:
             self.firstLineSlot = ComputedSlot(

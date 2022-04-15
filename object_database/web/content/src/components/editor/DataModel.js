@@ -86,6 +86,7 @@ class DataModel {
         this.toggleComment = this.toggleComment.bind(this);
         this.pageBy = this.pageBy.bind(this);
         this.getIsInMultilineString = this.getIsInMultilineString.bind(this);
+        this.updateCursorAtLastCheckpoint = this.updateCursorAtLastCheckpoint.bind(this);
 
         // handle a keystroke
         this.handleKey = this.handleKey.bind(this);
@@ -130,6 +131,10 @@ class DataModel {
         this.isInMultilineString.push(curState);
 
         return this.isInMultilineString;
+    }
+
+    updateCursorAtLastCheckpoint() {
+        this.cursorAtLastCheckpoint = this.cursors.map((cursor) => cursor.toJson());
     }
 
     // return a canonical 'event' giving the difference between

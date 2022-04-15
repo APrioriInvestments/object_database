@@ -644,6 +644,8 @@ class Editor extends ConcreteCell {
             return;
         }
 
+        this.dataModel.updateCursorAtLastCheckpoint();
+
         // see if the main model wants to handle it
         if (this.dataModel.handleKey(event)) {
             event.preventDefault();

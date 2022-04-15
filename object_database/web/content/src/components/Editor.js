@@ -715,9 +715,19 @@ class Editor extends ConcreteCell {
         if (event.ctrlKey && !event.metaKey && !event.altKey) {
             if (event.key == 'z' || event.key == 'Z') {
                 if (event.shiftKey) {
-                    this.transactionManager.redo();
+                    // see if we can redo. If not, ask the server to try, since it
+                    // may have a longer history than we do
+                    if (!this.transactionManager.redo()) {
+                        this.sendMessage({'msg': 'triggerRedo'});
+                        return;
+                    }
                 } else {
-                    this.transactionManager.undo();
+                    // see if we can undo. If not, ask the server to try, since it
+                    // may have a longer history than we do
+                    if (!this.transactionManager.undo()) {
+                        this.sendMessage({'msg': 'triggerUndo'});
+                        return;
+                    }
                 }
 
                 this.renderModel.sync();

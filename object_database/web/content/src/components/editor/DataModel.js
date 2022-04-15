@@ -605,6 +605,8 @@ class DataModel {
     }
 
     pasteText(clipboardText) {
+        clipboardText = clipboardText.replace("\t", "    ");
+
         let lines = clipboardText.split("\n")
         if (this.cursors.length > 1 && this.cursors.length == lines.length) {
             for (let i = 0; i < this.cursors.length; i++) {

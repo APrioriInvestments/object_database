@@ -67,6 +67,7 @@ class Cursor {
         this.offsetWord = this.offsetWord.bind(this);
         this.offsetSections = this.offsetSections.bind(this);
         this.selectWord = this.selectWord.bind(this);
+        this.nontrivialSelectedRange = this.nontrivialSelectedRange.bind(this);
     }
 
     toJson() {
@@ -113,6 +114,29 @@ class Cursor {
 
     hasTail() {
         return this.tailLineOffset != this.lineOffset || this.tailColOffset != this.colOffset;
+    }
+
+    // return a pair of line indices that are ordered, where we drop the last line if we
+    // don't have anything selected in it
+    nontrivialSelectedRange(lines) {
+        if (this.tailLineOffset > this.lineOffset || this.tailLineOffset == this.lineOffset && this.tailColOffset > this.colOffset) {
+            let a = this.lineOffset;
+            let b = this.tailLineOffset;
+            if (this.tailColOffset == 0 && this.tailLineOffset > this.lineOffset) {
+                b -= 1;
+            }
+
+            return [a, b];
+        } else {
+            let a = this.tailLineOffset;
+            let b = this.lineOffset;
+
+            if (this.colOffset == 0 && this.lineOffset > this.tailLineOffset) {
+                b -= 1;
+            }
+
+            return [a, b];
+        }
     }
 
     ensureOrdered() {

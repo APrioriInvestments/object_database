@@ -83,8 +83,7 @@ class DataModel {
         this.collapseCommonCursors = this.collapseCommonCursors.bind(this);
         this.pasteText = this.pasteText.bind(this);
         this.tabKey = this.tabKey.bind(this);
-        this.addComment = this.addComment.bind(this);
-        this.uncomment = this.uncomment.bind(this);
+        this.toggleComment = this.toggleComment.bind(this);
         this.pageBy = this.pageBy.bind(this);
         this.getIsInMultilineString = this.getIsInMultilineString.bind(this);
 
@@ -496,60 +495,66 @@ class DataModel {
         });
     }
 
-    addComment(constants) {
-        let linesToComment = {};
+    toggleComment(constants) {
         this.cursors.map((cursor) => {
-            cursor.selectedRanges(this.lines, false).map((range) => {
-                linesToComment[range[0]] = true;
-            });
-            linesToComment[cursor.lineOffset] = true;
-        });
+            // toggle comments for this cursor
+            let [topLine, bottomLine] = cursor.nontrivialSelectedRange(this.lines);
 
-        linesToComment = Object.keys(linesToComment).map((x) => parseInt(x)).sort();
+            let lineIsCommented = (ix) => {
+                if (ix < 0 || ix >= this.lines.length) {
+                    return true;
+                }
 
-        let blocks = [];
-        let curBlock = 0;
-        for (let i = 0; i < linesToComment.length; i++) {
-            if (i + 1 >= linesToComment.length || linesToComment[i + 1] != linesToComment[i] + 1) {
-                blocks.push([linesToComment[curBlock], linesToComment[i]]);
-                curBlock = i + 1;
+                let wsIx = firstWhitespaceIx(this.lines[ix]);
+                if (wsIx < this.lines[ix].length) {
+                    if (this.lines[ix][wsIx] == '#') {
+                        return true;
+                    }
+                    return false;
+                }
+
+                return true;
+            };
+
+            let rangeIsCommented = () => {
+                for (let i = topLine; i <= bottomLine; i++) {
+                    if (!lineIsCommented(i)) {
+                        return false;
+                    }
+                }
+
+                return true;
             }
-        }
 
-        blocks.forEach((block) => {
-            let startLineIx = block[0];
-            let endLineIx = block[1];
+            if (rangeIsCommented()) {
+                for (let i = topLine; i <= bottomLine; i++) {
+                    let firstWS = firstWhitespaceIx(this.lines[i]);
 
-            let minWs = firstWhitespaceIx(this.lines[startLineIx]);
+                    if (firstWS < this.lines[i].length && this.lines[i][firstWS] == '#') {
+                        this.deleteRange(i, firstWS, firstWS + 1);
+                    }
+                }
+            } else {
+                let minWs = -1;
 
-            for (let i = startLineIx + 1; i <= endLineIx; i++) {
-                minWs = Math.min(minWs, firstWhitespaceIx(this.lines[i]));
+                for (let i = topLine; i <= bottomLine; i++) {
+                    let ws = firstWhitespaceIx(this.lines[i]);
+                    if (ws < this.lines[i].length) {
+                        if (minWs == -1 || ws < minWs) {
+                            minWs = ws;
+                        }
+                    }
+                }
+
+                if (minWs >= 0) {
+                    for (let i = topLine; i <= bottomLine; i++) {
+                        if (firstWhitespaceIx(this.lines[i]) < this.lines[i].length) {
+                            this.insertCharOnRange(i, minWs, '#')
+                        }
+                    }
+                }
             }
-
-            for (let i = startLineIx; i <= endLineIx; i++) {
-                this.insertCharOnRange(i, minWs, '#')
-            }
-        });
-    }
-
-    uncomment(constants) {
-        let linesToUncomment = {};
-        this.cursors.map((cursor) => {
-            cursor.selectedRanges(this.lines, false).map((range) => {
-                linesToUncomment[range[0]] = true;
-            });
-            linesToUncomment[cursor.lineOffset] = true;
-        });
-
-        linesToUncomment = Object.keys(linesToUncomment).map((x) => parseInt(x)).sort();
-
-        linesToUncomment.forEach((lineIx) => {
-            let firstWS = firstWhitespaceIx(this.lines[lineIx]);
-
-            if (firstWS < this.lines[lineIx].length && this.lines[lineIx][firstWS] == '#') {
-                this.deleteRange(lineIx, firstWS, firstWS + 1);
-            }
-        });
+        })
     }
 
     tabKey(wasShift, constants) {
@@ -698,12 +703,7 @@ class DataModel {
         }
 
         if (event.ctrlKey && !event.metaKey && !event.altKey && event.key == '/') {
-            this.addComment(this.constants);
-            return true;
-        }
-
-        if (event.ctrlKey && !event.metaKey && !event.altKey && event.key == '?') {
-            this.uncomment(this.constants);
+            this.toggleComment(this.constants);
             return true;
         }
 

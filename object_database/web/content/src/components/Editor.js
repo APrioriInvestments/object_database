@@ -116,7 +116,7 @@ class Editor extends ConcreteCell {
 
         this.lastAutoscrollTs = null;
         this.lastAutoscrollPoint = null;
-        this.lastSentSelectionState = null;
+        this.lastSentSelectionStateString = null;
         this.commitDelay = this.props.commitDelay;
         this.editSessionId = this.props.editSessionId;
 
@@ -177,9 +177,9 @@ class Editor extends ConcreteCell {
             splitFraction: this.splitFraction
         };
 
-        if (JSON.stringify(newState) != JSON.stringify(this.lastSentSelectionState)) {
+        if (JSON.stringify(newState) != this.lastSentSelectionStateString) {
+            this.lastSentSelectionStateString = JSON.stringify(newState);
             this.sendMessage(newState);
-            this.lastSentSelectionState = newState;
         }
     }
 

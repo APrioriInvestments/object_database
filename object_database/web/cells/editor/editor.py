@@ -443,6 +443,15 @@ class Editor(FocusableCell):
 
         # storage for the username
         self.username = username
+
+        # user-selection-slot data. This holds a dictionary from "editSessionId"
+        # to a representation of each cursor that's active in the current document including
+        #    lastUpdateTimestamp - the timestamp when this selection was last changed
+        #    connId - the connection id associated. If this connection gets removed, then
+        #           we can GC the selection
+        #    selectionState - a json representation of the current set of cursors for this
+        #           user
+        #    username - the username associated. We'll display this in the editor.
         self.userSelectionSlot = self.editorState.getUserSelectionStateSlot()
         self.userSelectionSlot.addListener(self.onUserSelectionSlotChanged)
 
@@ -625,6 +634,7 @@ class Editor(FocusableCell):
 
                 curSlotContents = dict(curSlotContents)
                 curSlotContents[self.editSessionId] = dict(
+                    lastUpdateTimestamp=time.time(),
                     connId=self.cells.db.connectionObject._identity,
                     selectionState=messageFrame.get("currentCursors"),
                     username=self.username,

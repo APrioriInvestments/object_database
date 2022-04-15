@@ -17,6 +17,9 @@ const makeDomElt = (divstyle, props, children) => {
     res.cellsProperties = props;
 
     for (var key in props) {
+        if (key == 'onrender') {
+            props[key](res);
+        } else
         if (props.hasOwnProperty(key)) {
             if (typeof(props[key]) === "function") {
                 res[key] = props[key];

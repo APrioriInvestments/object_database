@@ -9,6 +9,9 @@ let reservedWordRegex = new RegExp("\\b(and|as|assert|async|await|break|continue
     "g"
 );
 
+let SECONDS_UNTIL_CURSOR_BLURS = 30;
+let SECONDS_TO_BLUR_CURSOR = 3;
+
 let keywordRegex = new RegExp("\\b("
     + "lambda|def|class"
     + "|ArithmeticError|AssertionError|AttributeError|BaseException"
@@ -35,9 +38,10 @@ let keywordRegex = new RegExp("\\b("
 );
 
 class RenderedCursor {
-    constructor(renderModel, cursor, username=null, isPrimaryCursor=false) {
+    constructor(renderModel, cursor, username=null, isPrimaryCursor=false, lastUpdateTimestamp=null) {
         this.renderModel = renderModel;
         this.cursor = cursor;
+        this.lastUpdateTimestamp = lastUpdateTimestamp;
         this.username = username;
         this.isPrimaryCursor = isPrimaryCursor;
 
@@ -63,7 +67,7 @@ class RenderedCursor {
             'class': isOtherCursor ? 'editor-cursor-other-user' : 'editor-cursor',
             'style': 'left: ' + leftPx + "px;top: " + topPx + "px;"
                 + 'width:' + widthPx + "px;height:" + heightPx + "px;"
-                + 'background-color: ' + (isOtherCursor ? constants.cursorColorOther : constants.cursorColor)
+                + 'background-color: ' + (isOtherCursor ? constants.cursorColorOther : constants.cursorColor),
         })];
 
         if (isOtherCursor) {
@@ -134,6 +138,49 @@ class RenderedCursor {
                         }, [])
                     )
                 }
+            }
+
+            if (this.lastUpdateTimestamp !== null) {
+                let curTimestamp = Date.now() / 1000.0;
+
+                if (curTimestamp - this.lastUpdateTimestamp > SECONDS_TO_BLUR_CURSOR + SECONDS_UNTIL_CURSOR_BLURS) {
+                    return [];
+                }
+
+                let startOpacity = Math.min(1.0,
+                    (1.0 - (curTimestamp - this.lastUpdateTimestamp - SECONDS_UNTIL_CURSOR_BLURS) / SECONDS_TO_BLUR_CURSOR)
+                );
+
+                let delaySec = Math.max(
+                    0,
+                    SECONDS_UNTIL_CURSOR_BLURS - (curTimestamp - this.lastUpdateTimestamp)
+                );
+
+                let durationSec = Math.min(
+                    SECONDS_UNTIL_CURSOR_BLURS + SECONDS_TO_BLUR_CURSOR - (curTimestamp - this.lastUpdateTimestamp),
+                    SECONDS_TO_BLUR_CURSOR
+                );
+
+                // trigger the transition to not opaque once we're rendered in an actual div
+                let onRender = (div) => {
+                    window.requestAnimationFrame(() => {
+                        div.style.opacity=0;
+                    })
+                };
+
+                res = [
+                    h('div', {
+                        'class': 'editor-cursor-transition-layer',
+                        'style': `opacity: ${startOpacity}`,
+                    }, [
+                        h('div', {
+                            'class': 'editor-cursor-transition-layer',
+                            'style': `transition: opacity ${durationSec}s linear ${delaySec}s`,
+                            'onrender': onRender
+                        }, res)
+                    ]
+                    )
+                ];
             }
         }
 
@@ -588,13 +635,14 @@ class RenderingModel {
         Object.keys(this.otherCursors).forEach((sessionId) => {
             let jsonCursorRep = this.otherCursors[sessionId].selectionState;
             let username = this.otherCursors[sessionId].username;
+            let lastUpdateTimestamp = this.otherCursors[sessionId].lastUpdateTimestamp;
 
             jsonCursorRep.forEach((cursorJson) => {
                 let cursor = Cursor.fromJson(cursorJson);
                 cursor.ensureValid(this.dataModel.lines);
 
                 this.renderedOtherCursors.push(
-                    new RenderedCursor(this, cursor, username)
+                    new RenderedCursor(this, cursor, username, false, lastUpdateTimestamp)
                 );
             });
         });

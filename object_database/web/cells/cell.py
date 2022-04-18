@@ -366,6 +366,11 @@ class FocusableCell(Cell):
         else:
             self.cells.changeFocus(self)
 
+    def isFocused(self):
+        if self.cells is None:
+            return False
+        return self.cells.focusedCell.get() is self
+
 
 def context(contextKey):
     """During cell evaluation, lookup context from our parent cell by name."""

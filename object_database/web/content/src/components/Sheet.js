@@ -35,6 +35,7 @@ class Sheet extends ConcreteCell {
         this.onKeydown = this.onKeydown.bind(this);
         this.installResizeObserver = this.installResizeObserver.bind(this);
         this.requestAnimationFrame = this.requestAnimationFrame.bind(this);
+        this.updateServerUiState = this.updateServerUiState.bind(this);
         this.render = this.render.bind(this);
         this.focusLost = this.focusLost.bind(this);
         this.triggerCopy = this.triggerCopy.bind(this);
@@ -51,6 +52,32 @@ class Sheet extends ConcreteCell {
 
         if (this.props.initialState !== null && this.props.initialState !== undefined) {
             this.sheetState.absorbCellContents(0, 0, this.props.initialState);
+        }
+
+        this.sheetState.corner = this.props.initVisibleCorner;
+        this.sheetState.selection = this.props.initSelection;
+
+        this.lastSentUiState = JSON.stringify({
+            visibleCorner: this.sheetState.corner,
+            selection: this.sheetState.selection
+        });
+    }
+
+    updateServerUiState() {
+        let toSend = {
+            visibleCorner: this.sheetState.corner,
+            selection: this.sheetState.selection
+        };
+
+        if (JSON.stringify(toSend) != this.lastSentUiState) {
+            // note that we don't store the object itself, since
+            // the SheetState modifies the internals, nor do we put the
+            // SheetState's internals on the wire directly.
+            this.lastSentUiState = JSON.stringify(toSend);
+            this.sendMessage(            {
+                event: 'ui_state_changed',
+                uiState: JSON.parse(this.lastSentUiState)
+            });
         }
     }
 
@@ -223,6 +250,8 @@ class Sheet extends ConcreteCell {
     }
 
     requestAnimationFrame(forceCursorOnscreen=false) {
+        this.updateServerUiState();
+
         if (forceCursorOnscreen) {
             this.sheetState.ensureCursorOnscreen(
                 this.sheetState.buildRenderingConfig(

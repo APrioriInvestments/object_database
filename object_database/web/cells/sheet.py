@@ -12,6 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 from object_database.web.cells.cell import FocusableCell
+from object_database.web.cells.session_state import sessionState
+from object_database.web.cells.computed_slot import ComputedSlot
 
 import threading
 
@@ -79,6 +81,8 @@ class Sheet(FocusableCell):
         self.numLockColumns = numLockColumns
         self.everCalculated = False
 
+        self.uiStateSlot = None
+
     def getPromise(self):
         return RowsPromise()
 
@@ -92,6 +96,24 @@ class Sheet(FocusableCell):
 
         if not self.everCalculated:
             self.everCalculated = True
+
+            # holds a dict {
+            #   'visibleCorner': (float, float),
+            #   'selection': ((x0,y0), (x1,y1))
+            # }
+            self.uiStateSlot = ComputedSlot(
+                sessionState().slotFor(self.identityPath + ("SheetUiState",)).get,
+                sessionState().slotFor(self.identityPath + ("SheetUiState",)).set,
+            )
+
+            curUiState = self.uiStateSlot.get()
+            if curUiState is None:
+                self.exportData["initVisibleCorner"] = (0.0, 0.0)
+                self.exportData["initSelection"] = ((0, 0), (0, 0))
+            else:
+                self.exportData["initVisibleCorner"] = curUiState["visibleCorner"]
+                self.exportData["initSelection"] = curUiState["selection"]
+
             with self.view():
                 rows = self.rowFun(0, 99, 0, 30)
 
@@ -131,3 +153,11 @@ class Sheet(FocusableCell):
                 }
 
                 self.scheduleMessage(response)
+
+        if msgFrame["event"] == "ui_state_changed":
+            newState = msgFrame["uiState"]
+
+            assert "visibleCorner" in newState
+            assert "selection" in newState
+
+            self.uiStateSlot.set(newState, reason="client update")

@@ -568,7 +568,7 @@ class SheetState {
             }
         }
 
-        if (!event.metaKey && !event.ctrlKey) {
+        if (!event.metaKey && !event.ctrlKey && !event.altKey) {
             if (event.key == "PageDown" || event.key == "PageUp") {
                 let sign = event.key == "PageDown" ? 1 : -1;
                 let visibleRows = Math.ceil(height / this.cellHeight) * sign;

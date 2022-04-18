@@ -333,9 +333,19 @@ class Cell:
         self.context[key] = val
         return self
 
-    def getContext(self, contextKey):
+    def getContext(self, contextKey, exact=False):
+        """Determine the value of context variable 'contextKey'.
+
+        Args:
+            contextKey - anything hashable that identifies a piece of tree
+                -based context.
+            exact - if True, then don't search our parents.
+        """
         if contextKey in self.context:
             return self.context[contextKey]
+
+        if exact:
+            return None
 
         if self.parent:
             return self.parent.getContext(contextKey)

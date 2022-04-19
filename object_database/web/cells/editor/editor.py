@@ -657,17 +657,9 @@ class Editor(FocusableCell):
         newSelSlot = [dict(pos=pos, tail=tail, desiredCol=pos[1])]
 
         self.selectionSlot.set(newSelSlot)
-
-        newFirstLine = self.firstLineSlot.get()
-        lastLine = self.lastLineSlot.get() or (newFirstLine + 2)
-        height = lastLine - newFirstLine
-
-        newFirstLine = max(pos[0] - height // 2, 0)
-
-        self.firstLineSlot.set(newFirstLine)
-
         self.onSelectionSlotChanged(None, newSelSlot, "navigateTo")
-        self.onFirstLineSlotChanged(None, newFirstLine, "navigateTo")
+
+        self.ensureVisible(pos[0], 10)
 
     def setContents(self, newContents, reason="server-push"):
         event = computeDeltaEvent(self.getCurrentContents(), newContents, reason)

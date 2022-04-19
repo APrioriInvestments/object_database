@@ -386,7 +386,12 @@ class FocusableCell(Cell):
 
     def isFocused(self):
         if self.cells is None:
-            return False
+            cur = ComputingCellContext.get()
+            if cur is None or cur.cells is None:
+                return False
+            else:
+                return cur.cells.focusedCell.get() is self
+
         return self.cells.focusedCell.get() is self
 
 

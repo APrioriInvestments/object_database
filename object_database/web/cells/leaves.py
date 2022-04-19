@@ -47,7 +47,7 @@ class Badge(Cell):
         self.children["inner"] = self.inner
 
 
-class Text(FocusableCell):
+class Text(Cell):
     def __init__(
         self,
         text,

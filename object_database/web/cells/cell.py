@@ -333,6 +333,14 @@ class Cell:
         self.context[key] = val
         return self
 
+    def isAncestorOf(self, child):
+        while child is not None:
+            if child is self:
+                return True
+            child = child.parent
+
+        return False
+
     def getContext(self, contextKey, exact=False):
         """Determine the value of context variable 'contextKey'.
 

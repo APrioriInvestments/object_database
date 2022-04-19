@@ -435,11 +435,12 @@ class DataModel {
         let colIx = cursor.colOffset;
 
         this.insertLine(lineIx + 1, rightPart);
-        this.replaceLine(lineIx, leftPart);
 
         this.cursors.map((c) => {
             c.newlineInserted(this.lines, lineIx, colIx);
         });
+
+        this.replaceLine(lineIx, leftPart);
 
         if (andAlsoWhitespace) {
             let leftPartWs = leftPart.length - 1;
@@ -453,7 +454,7 @@ class DataModel {
             if (leftPartWs >= 0 && leftPart[leftPartWs] == ':') {
                 wsToAdd = Math.floor((wsToAdd + 4) / 4) * 4;
             }
-            
+
             this.insertChar(
                 cursor,
                 ' '.repeat(wsToAdd)

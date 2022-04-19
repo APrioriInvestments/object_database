@@ -127,29 +127,25 @@ def collapseEvents(e1, e2):
 
 
 def reverseChange(c):
-    return dict(
-        oldLines=c['newLines'],
-        newLines=c['oldLines'],
-        lineIndex=c['lineIndex']
-    )
+    return dict(oldLines=c["newLines"], newLines=c["oldLines"], lineIndex=c["lineIndex"])
 
 
 def reverseEvent(event, isForUndo, curEditSessionId=None):
     undoState = None
     if isForUndo:
-        if event.get('undoState') == 'undo':
-            undoState = 'redo'
+        if event.get("undoState") == "undo":
+            undoState = "redo"
         else:
-            undoState = 'undo'
+            undoState = "undo"
 
     return dict(
-        changes=[reverseChange(c) for c in reversed(event['changes'])],
-        startCursors=event['newCursors'],
-        newCursors=event['startCursors'],
-        timestamp=time.time() if isForUndo else event['timestamp'],
+        changes=[reverseChange(c) for c in reversed(event["changes"])],
+        startCursors=event["newCursors"],
+        newCursors=event["startCursors"],
+        timestamp=time.time() if isForUndo else event["timestamp"],
         undoState=undoState,
-        editSessionId=curEditSessionId if isForUndo else event['editSessionId'],
-        reason=event['reason']
+        editSessionId=curEditSessionId if isForUndo else event["editSessionId"],
+        reason=event["reason"],
     )
 
 
@@ -173,13 +169,13 @@ def computeNextUndoIx(events, pendingUndos=1):
     i = len(events) - 1
 
     while i >= 0 and pendingUndos > 0:
-        if events[i]['undoState'] is None:
+        if events[i]["undoState"] is None:
             i -= 1
             pendingUndos -= 1
-        elif events[i]['undoState'] == 'undo':
+        elif events[i]["undoState"] == "undo":
             i -= 1
             pendingUndos += 1
-        elif events[i]['undoState'] == 'redo':
+        elif events[i]["undoState"] == "redo":
             i -= 1
             pendingUndos -= 1
 
@@ -193,12 +189,12 @@ def computeNextRedoIx(events, pendingRedos=1):
     i = len(events) - 1
 
     while i >= 0 and pendingRedos:
-        if events[i]['undoState'] is None:
+        if events[i]["undoState"] is None:
             return None
-        elif events[i]['undoState'] == 'undo':
+        elif events[i]["undoState"] == "undo":
             i -= 1
             pendingRedos -= 1
-        elif events[i]['undoState'] == 'redo':
+        elif events[i]["undoState"] == "redo":
             i -= 1
             pendingRedos += 1
 
@@ -320,14 +316,14 @@ def computeStateFromEvents(lines, events):
 
 
 def collapseStateToTopmost(state):
-    lines = list(state['lines'])
+    lines = list(state["lines"])
 
-    for event in state['events']:
+    for event in state["events"]:
         for change in event["changes"]:
             ix = change["lineIndex"]
             lines[ix : ix + len(change["oldLines"])] = change["newLines"]
 
-    return dict(lines=lines, events=(), topEventIndex=state['topEventIndex'])
+    return dict(lines=lines, events=(), topEventIndex=state["topEventIndex"])
 
 
 class EditorStateBase:
@@ -615,6 +611,23 @@ class Editor(FocusableCell):
 
         self.splitFractionSlot = splitFractionSlot
 
+    def scrollTo(self, firstLine):
+        """Scroll so that 'firstLine' is the first visible line"""
+        self.firstLineSlot.set(firstLine)
+        self.onFirstLineSlotChanged(None, firstLine, "navigateTo")
+
+    def ensureVisible(self, lineNumber, buffer=1):
+        """Ensure that lineNumber is visible with at least 'buffer' lines above/below it."""
+        firstLine = self.firstLineSlot.get()
+        lastLine = self.lastLineSlot.get() or (firstLine + 2)
+
+        height = lastLine - firstLine
+
+        if lineNumber < firstLine:
+            self.scrollTo(max(lineNumber - buffer, 0))
+        elif lineNumber > lastLine:
+            self.scrollTo(max(lineNumber - height + buffer, 0))
+
     def navigateTo(self, pos, tail=None):
         """Set the selection to point at headPt and make sure its onscreen.
 
@@ -756,27 +769,26 @@ class Editor(FocusableCell):
         currentState = self.getCurrentState()
 
         if isUndo:
-            newEvents = computeUndoEvents(currentState['events'], self.editSessionId)
+            newEvents = computeUndoEvents(currentState["events"], self.editSessionId)
         else:
-            newEvents = computeRedoEvents(currentState['events'], self.editSessionId)
+            newEvents = computeRedoEvents(currentState["events"], self.editSessionId)
 
         if newEvents:
             currentState = dict(currentState)
             currentState["events"] = currentState["events"] + tuple(newEvents)
             currentState["topEventIndex"] += 1
 
-            logging.info(
-                "Pushing an %s event: %s",
-                "undo" if isUndo else "redo",
-                newEvents
-            )
+            logging.info("Pushing an %s event: %s", "undo" if isUndo else "redo", newEvents)
 
             self.stateSlot.set(currentState)
         else:
             logging.info("Can't build an %s event", "undo" if isUndo else "redo")
 
     def onMessage(self, messageFrame):
-        if messageFrame.get("msg") == "triggerRedo" or messageFrame.get("msg") == "triggerUndo":
+        if (
+            messageFrame.get("msg") == "triggerRedo"
+            or messageFrame.get("msg") == "triggerUndo"
+        ):
             self.triggerUndoOrRedo(messageFrame.get("msg") == "triggerUndo")
 
         if messageFrame.get("msg") == "selectionState":

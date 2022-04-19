@@ -442,9 +442,21 @@ class DataModel {
         });
 
         if (andAlsoWhitespace) {
+            let leftPartWs = leftPart.length - 1;
+
+            while (leftPartWs >= 0 && leftPart[leftPartWs] == ' ') {
+                leftPartWs -= 1;
+            }
+
+            let wsToAdd = Math.min(firstWhitespaceIx(curLine), colIx);
+
+            if (leftPartWs >= 0 && leftPart[leftPartWs] == ':') {
+                wsToAdd = Math.floor((wsToAdd + 4) / 4) * 4;
+            }
+            
             this.insertChar(
                 cursor,
-                curLine.substring(0, Math.min(firstWhitespaceIx(curLine), colIx))
+                ' '.repeat(wsToAdd)
             );
         }
     }

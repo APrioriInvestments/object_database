@@ -58,7 +58,7 @@ class SocketWatcher:
 
         return sockets
 
-    def add(self, sockOrFd, forRead: bool, forWrite: bool) -> bool:
+    def add(self, sockOrFd, addRead: bool, addWrite: bool) -> bool:
         """Start watching the given socket or filedescriptor.
 
         Args:
@@ -73,7 +73,7 @@ class SocketWatcher:
 
         if sockOrFd not in self._sockets:
             try:
-                self._epoll.register(fd, self.eventMask(forRead, forWrite))
+                self._epoll.register(fd, self.eventMask(addRead, addWrite))
 
             except Exception as e:
                 self._logger.error(
@@ -82,7 +82,7 @@ class SocketWatcher:
                 return False
 
             else:
-                self._sockets[sockOrFd] = (fd, forRead, forWrite)
+                self._sockets[sockOrFd] = (fd, addRead, addWrite)
                 self._fdToSocketObj[fd] = sockOrFd
                 return True
 
@@ -91,12 +91,12 @@ class SocketWatcher:
 
             if fd != currFd:
                 self.discard(sockOrFd, True, True)
-                return self.add(sockOrFd, forRead, forWrite)
+                return self.add(sockOrFd, addRead, addWrite)
 
             else:
                 # we may be adding read or write to a socket
-                forRead |= currRead
-                forWrite |= currWrite
+                forRead = addRead or currRead
+                forWrite = addWrite or currWrite
 
                 if currRead != forRead or currWrite != forWrite:
                     try:
@@ -140,15 +140,15 @@ class SocketWatcher:
     def discardForWrite(self, socketOrFd) -> bool:
         return self.discard(socketOrFd, False, True)
 
-    def discard(self, sockOrFd, forRead: bool = True, forWrite: bool = True) -> bool:
+    def discard(self, sockOrFd, discardRead: bool = True, discardWrite: bool = True) -> bool:
         if sockOrFd in self._sockets:
             curFd, currRead, currWrite = self._sockets[sockOrFd]
-            forRead = currRead and not forRead
-            forWrite = currWrite and not forWrite
+            forRead = False if discardRead else currRead
+            forWrite = False if discardWrite else currWrite
             fd = self.fdForSockOrFd(sockOrFd)
 
             if fd < 0 or (not forRead and not forWrite):
-                # remove socker completely
+                # remove socket completely
                 self._sockets.pop(sockOrFd)
                 self._fdToSocketObj.pop(curFd)
 
@@ -177,6 +177,8 @@ class SocketWatcher:
 
     def teardown(self):
         self._epoll.close()
+        self._sockets = {}
+        self._fdToSocketObj = {}
 
     def __len__(self):
         return len(self._fdToSocketObj)

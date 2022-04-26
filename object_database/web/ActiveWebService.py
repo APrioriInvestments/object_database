@@ -187,6 +187,10 @@ class ActiveWebService(ServiceBase):
                 ],
                 config={"company_name": parsedArgs.company_name},
             )
+        else:
+            ActiveWebService.setLoginPlugin(
+                db, serviceObject, LoginIpPlugin, [None], config={"company_name": ""}
+            )
 
     def initialize(self):
         # dict from session id (cookie really) to a a list of

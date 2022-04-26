@@ -35,7 +35,10 @@ def findGitParent(p_root):
             raise Exception("Can't find a git worktree at " + p_root)
 
 
-def main(argv):
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
     with tempfile.TemporaryDirectory() as tf:
         object_database.service_manager.Codebase.setCodebaseInstantiationDirectory(tf)
         return _main(argv)
@@ -197,7 +200,7 @@ def _main(argv):
                         str(s.codebase),
                         s.service_module_name,
                         s.service_class_name,
-                        s.placement,
+                        str(s.validPlacementGroups),
                         str(s.target_count),
                         s.coresUsed,
                         s.gbRamUsed,

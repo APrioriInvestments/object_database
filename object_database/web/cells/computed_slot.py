@@ -110,13 +110,13 @@ class ComputedSlot(Slot):
     def subscribedOdbValueChanged(self, key):
         self._valueUpToDate = False
 
-        if self._subscribedCells:
+        if self._subscribedCells or self._listeners:
             self.cells.computedSlotDirty(self)
 
     def subscribedSlotChanged(self, slot):
         self._valueUpToDate = False
 
-        if self._subscribedCells:
+        if self._subscribedCells or self._listeners:
             self.cells.computedSlotDirty(self)
 
     def ensureCalculated(self):

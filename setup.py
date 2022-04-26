@@ -98,6 +98,7 @@ setuptools.setup(
         "console_scripts": [
             "object_database_webtest=object_database.frontends.object_database_webtest:main",
             "object_database_service_manager=object_database.frontends.service_manager:main",
+            "object_database_service_config=object_database.frontends.service_config:main",
         ]
     },
     include_package_data=True,

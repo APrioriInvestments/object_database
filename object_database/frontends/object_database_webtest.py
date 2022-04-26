@@ -31,7 +31,7 @@ from object_database.web.LoginPlugin import LoginIpPlugin
 
 
 def main(argv=None):
-    if argv is not None:
+    if argv is None:
         argv = sys.argv
 
     token = genToken()

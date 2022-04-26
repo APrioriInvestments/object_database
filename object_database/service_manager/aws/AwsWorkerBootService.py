@@ -100,8 +100,14 @@ valid_instance_types = {
     "c3.2xlarge": {"RAM": 15, "CPU": 8, "COST": 0.42},
     "c3.4xlarge": {"RAM": 30, "CPU": 16, "COST": 0.84},
     "c3.8xlarge": {"RAM": 60, "CPU": 32, "COST": 1.68},
-    "g2.2xlarge": {"RAM": 15, "CPU": 8, "COST": 0.65},
-    "g2.8xlarge": {"RAM": 60, "CPU": 32, "COST": 2.6},
+    "g5.xlarge": {"CPU": 4, "RAM": 16, "COST": 1.006},
+    "g5.2xlarge": {"CPU": 8, "RAM": 32, "COST": 1.212},
+    "g5.4xlarge": {"CPU": 16, "RAM": 64, "COST": 1.624},
+    "g5.8xlarge": {"CPU": 32, "RAM": 128, "COST": 2.448},
+    "g5.16xlarge": {"CPU": 64, "RAM": 256, "COST": 4.096},
+    "g5.12xlarge": {"CPU": 48, "RAM": 192, "COST": 5.672},
+    "g5.24xlarge": {"CPU": 96, "RAM": 384, "COST": 8.144},
+    "g5.48xlarge": {"CPU": 192, "RAM": 768, "COST": 16.288},
     "cr1.8xlarge": {"RAM": 244, "CPU": 32, "COST": 3.5},
     "x1.16xlarge": {"RAM": 976, "CPU": 64, "COST": 6.669},
     "x1.32xlarge": {"RAM": 1952, "CPU": 128, "COST": 13.338},
@@ -160,7 +166,7 @@ instance_types_to_show = set(
         x
         for x in valid_instance_types
         if ("xlarge" in x and ".xlarge" not in x)
-        and x.split(".")[0] in ["m4", "m5", "c4", "c5", "r4", "r5", "i3", "g2", "x1"]
+        and x.split(".")[0] in ["m4", "m5", "c4", "c5", "r4", "r5", "i3", "g5", "x1"]
     ]
 )
 
@@ -638,104 +644,110 @@ class AwsWorkerBootService(ServiceBase):
             return f
 
         return cells.Tabs(
-            requests=cells.Grid(
-                colFun=lambda: [
-                    "Instance Type",
-                    "PlacementGroup",
-                    "COST",
-                    "RAM",
-                    "CPU",
-                    "Booted",
-                    "Desired",
-                    "SpotBooted",
-                    "SpotDesired",
-                    "ObservedLimit",
-                    "CapacityConstrained",
-                    "Spot-us-east-1",
-                    "a",
-                    "b",
-                    "c",
-                    "d",
-                    "e",
-                    "f",
-                ],
-                rowFun=lambda: sorted(
-                    [
-                        x
-                        for x in State.lookupAll()
-                        if x.instance_type in instance_types_to_show
+            requests=cells.VScrollable(
+                cells.Grid(
+                    colFun=lambda: [
+                        "Instance Type",
+                        "PlacementGroup",
+                        "COST",
+                        "RAM",
+                        "CPU",
+                        "Booted",
+                        "Desired",
+                        "SpotBooted",
+                        "SpotDesired",
+                        "ObservedLimit",
+                        "CapacityConstrained",
+                        "Spot-us-east-1",
+                        "a",
+                        "b",
+                        "c",
+                        "d",
+                        "e",
+                        "f",
                     ],
-                    key=lambda s: s.instance_type,
-                ),
-                headerFun=lambda x: x,
-                rowLabelFun=None,
-                rendererFun=lambda s, field: cells.Subscribed(
-                    lambda: s.instance_type
-                    if field == "Instance Type"
-                    else s.placementGroup
-                    if field == "PlacementGroup"
-                    else s.booted
-                    if field == "Booted"
-                    else cells.Dropdown(
-                        s.desired,
+                    rowFun=lambda: sorted(
                         [
-                            (str(ct), bootCountSetter(s, ct))
-                            for ct in list(range(10)) + list(range(10, 101, 10))
+                            x
+                            for x in State.lookupAll()
+                            if x.instance_type in instance_types_to_show
                         ],
-                    )
-                    if field == "Desired"
-                    else s.spot_booted
-                    if field == "SpotBooted"
-                    else cells.Dropdown(
-                        s.spot_desired,
-                        [
-                            (str(ct), bootCountSetterSpot(s, ct))
-                            for ct in list(range(10)) + list(range(10, 101, 10))
-                        ],
-                    )
-                    if field == "SpotDesired"
-                    else ("" if s.observedLimit is None else s.observedLimit)
-                    if field == "ObservedLimit"
-                    else ("Yes" if s.capacityConstrained else "")
-                    if field == "CapacityConstrained"
-                    else valid_instance_types[s.instance_type]["COST"]
-                    if field == "COST"
-                    else valid_instance_types[s.instance_type]["RAM"]
-                    if field == "RAM"
-                    else valid_instance_types[s.instance_type]["CPU"]
-                    if field == "CPU"
-                    else s.spotPrices.get("us-east-1" + field, "")
-                    if field in "abcdef"
-                    else ""
-                ),
+                        key=lambda s: s.instance_type,
+                    ),
+                    headerFun=lambda x: x,
+                    rowLabelFun=None,
+                    rendererFun=lambda s, field: cells.Subscribed(
+                        lambda: s.instance_type
+                        if field == "Instance Type"
+                        else s.placementGroup
+                        if field == "PlacementGroup"
+                        else s.booted
+                        if field == "Booted"
+                        else cells.Dropdown(
+                            s.desired,
+                            [
+                                (str(ct), bootCountSetter(s, ct))
+                                for ct in list(range(10)) + list(range(10, 101, 10))
+                            ],
+                        )
+                        if field == "Desired"
+                        else s.spot_booted
+                        if field == "SpotBooted"
+                        else cells.Dropdown(
+                            s.spot_desired,
+                            [
+                                (str(ct), bootCountSetterSpot(s, ct))
+                                for ct in list(range(10)) + list(range(10, 101, 10))
+                            ],
+                        )
+                        if field == "SpotDesired"
+                        else ("" if s.observedLimit is None else s.observedLimit)
+                        if field == "ObservedLimit"
+                        else ("Yes" if s.capacityConstrained else "")
+                        if field == "CapacityConstrained"
+                        else valid_instance_types[s.instance_type]["COST"]
+                        if field == "COST"
+                        else valid_instance_types[s.instance_type]["RAM"]
+                        if field == "RAM"
+                        else valid_instance_types[s.instance_type]["CPU"]
+                        if field == "CPU"
+                        else s.spotPrices.get("us-east-1" + field, "")
+                        if field in "abcdef"
+                        else ""
+                    ),
+                )
             ),
-            instances=cells.Grid(
-                colFun=lambda: [
-                    "InstanceId",
-                    "InstanceType",
-                    "PlacementGroup",
-                    "IsSpot",
-                    "Ip",
-                    "State",
-                ],
-                rowFun=lambda: sorted(RunningInstance.lookupAll(), key=lambda i: i.instanceId),
-                headerFun=lambda x: x,
-                rowLabelFun=None,
-                rendererFun=lambda i, field: cells.Subscribed(
-                    lambda: i.instanceId
-                    if field == "InstanceId"
-                    else i.instance_type
-                    if field == "InstanceType"
-                    else i.placementGroup
-                    if field == "PlacementGroup"
-                    else i.isSpot
-                    if field == "IsSpot"
-                    else i.hostname
-                    if field == "Ip"
-                    else i.state
-                    if field == "State"
-                    else ""
-                ),
+            instances=cells.VScrollable(
+                cells.Grid(
+                    colFun=lambda: [
+                        "InstanceId",
+                        "InstanceType",
+                        "PlacementGroup",
+                        "IsSpot",
+                        "Ip",
+                        "State",
+                    ],
+                    rowFun=lambda: sorted(
+                        RunningInstance.lookupAll(), key=lambda i: i.instanceId
+                    ),
+                    headerFun=lambda x: x,
+                    rowLabelFun=None,
+                    rendererFun=lambda i, field: cells.Subscribed(
+                        lambda: i.instanceId
+                        if field == "InstanceId"
+                        else i.instance_type
+                        if field == "InstanceType"
+                        else i.placementGroup
+                        if field == "PlacementGroup"
+                        else i.isSpot
+                        if field == "IsSpot"
+                        else i.hostname
+                        if field == "Ip"
+                        else i.state
+                        if field == "State"
+                        else ""
+                    ),
+                )
             ),
             config=cells.Card(
                 cells.Text("db_hostname = " + str(c.db_hostname))

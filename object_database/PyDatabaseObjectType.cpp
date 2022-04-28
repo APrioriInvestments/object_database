@@ -807,7 +807,24 @@ PyObject* PyDatabaseObjectType::pySetModule(PyObject *databaseType, PyObject* ar
         return NULL;
     }
 
+    std::string newName = obType->typeObj.tp_name;
+
+    if (!PyUnicode_Check(moduleName)) {
+        PyErr_Format(PyExc_TypeError, "moduleName must be a string");
+        return NULL;
+    }
+
+    newName = std::string(PyUnicode_AsUTF8(moduleName)) + "." + newName;
+
+    // note that we deliberately leak the storage for the string
+    obType->typeObj.tp_name = (new std::string(newName))->c_str();
+
     return translateExceptionToPyObject([&] {
+        PyDict_SetItemString(
+            ((PyTypeObject*)obType)->tp_dict,
+            "__module__",
+            moduleName
+        );
         PyDict_SetItemString(
             ((PyTypeObject*)obType)->tp_dict,
             "__typed_python_module__",

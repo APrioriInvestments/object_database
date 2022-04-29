@@ -83,6 +83,10 @@ class Sheet(FocusableCell):
 
         self.uiStateSlot = None
 
+    def onRemovedFromTree(self):
+        self.uiStateSlot = None
+        self.everCalculated = False
+
     def getPromise(self):
         return RowsPromise()
 
@@ -106,7 +110,7 @@ class Sheet(FocusableCell):
                 sessionState().slotFor(self.identityPath + ("SheetUiState",)).set,
             )
 
-            curUiState = self.uiStateSlot.get()
+            curUiState = self.uiStateSlot.getWithoutRegisteringDependency()
             if curUiState is None:
                 self.exportData["initVisibleCorner"] = (0.0, 0.0)
                 self.exportData["initSelection"] = ((0, 0), (0, 0))

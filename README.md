@@ -19,3 +19,7 @@ Use the included `docker-compose` file to quickly spin up a container to try out
 N.B. if installing docker for the first time (at least on mac) you may need to:
 a) startup the docker desktop app (it will download some more things and set vars)
 b) run a container such as the example one docker run -d -p 80:80 docker/getting-started
+
+# Support matrix
+
+As of 2022-04-28, only python 3.6-3.8 is supported (due to typed_python not working for 3.9/3.10)

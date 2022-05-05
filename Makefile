@@ -15,11 +15,11 @@ NODE_ENV ?= .nodeenv
 TP_SRC_PATH ?= ../typed_python/typed_python
 ODB_SRC_PATH ?= object_database
 
-TP_BUILD_PATH ?= build/temp.linux-x86_64-3.6/typed_python
-TP_LIB_PATH ?= build/lib.linux-x86_64-3.6/typed_python
+ODB_BUILD_PATH ?= build/temp.linux-x86_64/object_database
+ODB_LIB_PATH ?= build/lib.linux-x86_64/object_database
 
-ODB_BUILD_PATH ?= build/temp.linux-x86_64-3.6/object_database
-ODB_LIB_PATH ?= build/lib.linux-x86_64-3.6/object_database
+TYPES_SO_NAME = $(shell python3 -c 'import _ssl; import os; print(os.path.split(_ssl.__file__)[1].replace("_ssl", "_types"))')
+TYPES_O_NAME = $(shell python3 -c 'import _ssl; import os; print(os.path.split(_ssl.__file__)[1].replace("_ssl", "_types")[:-2] + "o")')
 
 TP_BUILD_OPT_LEVEL ?= 2
 
@@ -33,8 +33,6 @@ CPP_FLAGS = -std=c++14  -O$(TP_BUILD_OPT_LEVEL)  -Wall  -pthread  -DNDEBUG  -g  
             -Wno-cpp                                                        \
             -Wformat  -Werror=format-security  -Wdate-time -Wno-reorder     \
             -Wno-sign-compare  -Wno-narrowing  -Wno-int-in-bool-context     \
-            -I$(VIRTUAL_ENV)/include/python3.6m                             \
-            -I$(VIRTUAL_ENV)/lib/python3.6/site-packages/numpy/core/include \
             -I../typed_python                                               \
             -I$(PYINCLUDE)                                       			\
             -I$(NUMPYINCLUDE)											    \
@@ -49,7 +47,6 @@ SHAREDLIB_FLAGS = -pthread -shared -g -fstack-protector-strong \
                   -D_FORTIFY_SOURCE=2
 
 UNICODEPROPS = $(TP_SRC_PATH)/UnicodeProps.hpp
-TP_O_FILES = $(TP_BUILD_PATH)/all.o
 ODB_O_FILES = $(ODB_BUILD_PATH)/all.o
 DT_SRC_PATH = $(TP_SRC_PATH)/direct_types
 TESTTYPES = $(DT_SRC_PATH)/GeneratedTypes1.hpp
@@ -149,7 +146,7 @@ cells-demo:
 		./object_database/frontends/object_database_webtest.py
 
 .PHONY: lib
-lib: object_database/_types.cpython-36m-x86_64-linux-gnu.so
+lib: object_database/$(TYPES_SO_NAME)
 
 .PHONY: docker-build
 docker-build:
@@ -189,7 +186,7 @@ generatetesttypes: $(DT_SRC_PATH)/generate_types.py
 .PHONY: clean
 clean:
 	rm -rf build/
-	rm -f object_database/_types.cpython-*.so
+	rm -f object_database/$(TYPES_SO_NAME)
 	rm -f testcert.cert testcert.key
 	rm -rf $(VIRTUAL_ENV) .env
 	rm -rf .nodeenv
@@ -215,22 +212,16 @@ $(VIRTUAL_ENV): $(PYTHON) .env
 $(ODB_BUILD_PATH)/all.o: $(ODB_SRC_PATH)/*.hpp $(ODB_SRC_PATH)/*.cpp $(TP_SRC_PATH)/*.hpp
 	$(CC) $(CPP_FLAGS) -c $(ODB_SRC_PATH)/all.cpp $ -o $@
 
-object_database/_types.cpython-36m-x86_64-linux-gnu.so: $(ODB_LIB_PATH)/_types.cpython-36m-x86_64-linux-gnu.so
-	cp $(ODB_LIB_PATH)/_types.cpython-36m-x86_64-linux-gnu.so  object_database
+object_database/$(TYPES_SO_NAME): $(ODB_LIB_PATH)/$(TYPES_SO_NAME)
+	cp $(ODB_LIB_PATH)/$(TYPES_SO_NAME)  object_database
 
-$(ODB_LIB_PATH)/_types.cpython-36m-x86_64-linux-gnu.so: $(ODB_LIB_PATH) $(ODB_BUILD_PATH) $(ODB_O_FILES)
+$(ODB_LIB_PATH)/$(TYPES_SO_NAME): $(ODB_LIB_PATH) $(ODB_BUILD_PATH) $(ODB_O_FILES)
 	$(CXX) $(SHAREDLIB_FLAGS) $(LINKER_FLAGS) \
 		$(ODB_O_FILES) \
-		-o $(ODB_LIB_PATH)/_types.cpython-36m-x86_64-linux-gnu.so $(LINK_FLAGS_POST)
-
-$(TP_BUILD_PATH):
-	mkdir --parents $(TP_BUILD_PATH)
+		-o $(ODB_LIB_PATH)/$(TYPES_SO_NAME) $(LINK_FLAGS_POST)
 
 $(ODB_BUILD_PATH):
 	mkdir --parents $(ODB_BUILD_PATH)
-
-$(TP_LIB_PATH):
-	mkdir --parents $(TP_LIB_PATH)
 
 $(ODB_LIB_PATH):
 	mkdir --parents $(ODB_LIB_PATH)

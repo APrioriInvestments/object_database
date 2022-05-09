@@ -3,7 +3,7 @@
 This file takes us through a very simple example of setting up an ODB/cells project
 from start to finish.  Note that object_database requires typed python, which doesn't
 run on windows right now, so you'll have to run this on linux (preferable) or MacOS (
-ought to work, but not as thorougly tested in the wild).
+ought to work, but not as thoroughly tested in the wild).
 
 
 ## Installation

@@ -17,6 +17,8 @@ manages launching and shutdown of AWS ec2 instances.
 
 ### Task Services
 
+**DEPRECATED**: Task Services are no longer used in production and may be phased on in the future. 
+
 A special pair of services is responsible for distributed task execution in odb.
 [TaskDispatchService](../object_database/service_manager/Task.py) manages TaskWorkers and subscribes to changes in TaskStatus.
 New tasks are assigned to workers round-robin. The tasks are executed by the 
@@ -34,7 +36,6 @@ execution, the `TaskContext` containing the db, storage, and the codebase is pas
 
 Subtasks are defined as Tasks with a parent Task. TaskStatus is separately updated for each subtask.
 The parent task is reset to Unassigned status when all subtasks are DoneCalculating.
-
 
 ### TaskStatus
 

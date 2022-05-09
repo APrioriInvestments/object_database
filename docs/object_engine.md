@@ -46,10 +46,51 @@ And you should see the consumer print out new messages like:
 
 ## Major components
 
-### Objects
+### Schemas
 
-### Comms 
+A [Schema](../object_database/schema.py) is a collection of types used to access the ODB instance.
+the `define` method on a schema instance is used to register new object type. Internally
+the Schema will convert the specified python class into a typed_python NamedTuple.
+
+### Connections
+
+A [DatabaseConnection](../object_database/database_connection.py) is used to connect to the database
+which is launched using a [server](../object_database/server.py) instance (e.g., TcpServer).
+The server uses SSL connections and token authentication. Client-server communications are
+supported by a [strongly-typed message bus](../object_database/message_bus.py) over sockets.
 
 ### Transactions
 
+A [transaction](../object_database/database_connection.py) is required to read/write data to
+ODB. A read-write transaction can be created by calling the `transaction` method on a `DatabaseConnection`.
+A read-only transaction can be created by calling the `view` method instead.
+
+A simple example looks something like this:
+```python
+from object_database import connect, Schema
+
+schema = Schema("hello_world")
+
+@schema.define
+class Message:
+    message = str
+
+db = connect('localhost', 8000, 'TOKEN')
+db.subscribeToSchema(schema)
+
+with db.transaction():
+    message = Message(message='message')
+```
+
+When you create a new object instance of a defined schema, that object is automatically
+synced to the odb server. All ODB object creation must be done inside a transaction.
+
+These transactions allow multiple clients to read/write using optimistic locking and a
+write only fails if a conflict arises.
+
+To create a read-only transaction, use `db.view()` instead.
+
 ### Persistence
+
+ODB objects can be [persisted](../object_database/persistence.py) either in an in-memory store or in redis.
+If in-memory is selected, then objects do not survive process restart.

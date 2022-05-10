@@ -3,10 +3,12 @@ import time
 
 schema = Schema("hello_world")
 
+
 @schema.define
 class Message:
     timestamp = float
     message = str
+
 
 db = connect('localhost', 8000, 'TOKEN')
 db.subscribeToSchema(schema)

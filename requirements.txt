@@ -12,12 +12,12 @@ gevent-websocket
 hiredis
 ldap3
 nodeenv
-numpy < 1.20
+numpy
 psutil
 pytz
 pyyaml
 redis
 requests
 sortedcontainers
-typed_python >= 0.2.4
+typed_python == 0.2.6
 wtforms

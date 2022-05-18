@@ -96,16 +96,10 @@ class ComputedSlot(Slot):
         if not self._onSet:
             raise Exception("This ComputedSlot is not settable.")
 
-        priorValue = self._value
         self._onSet(val)
 
         # make sure we know we might be dirty in case we immediately read
-        self._value = val
-        self._valueUpToDate = True
-
-        if priorValue != val:
-            self._triggerListeners()
-            self._fireListenerCallbacks(priorValue, self._value, reason)
+        self._valueUpToDate = False
 
     def subscribedOdbValueChanged(self, key):
         self._valueUpToDate = False
@@ -132,6 +126,8 @@ class ComputedSlot(Slot):
 
         while True:
             try:
+                triggerListeners = False
+
                 with ComputingCellContext(self):
                     with MaskView():
                         with self.cells.db.transaction() as v:
@@ -153,8 +149,11 @@ class ComputedSlot(Slot):
                             self._valueUpToDate = True
 
                             if oldValue != self._value:
-                                self._triggerListeners()
-                                self._fireListenerCallbacks(oldValue, self._value, "recompute")
+                                triggerListeners = True
+
+                if triggerListeners:
+                    self._triggerListeners()
+                    self._fireListenerCallbacks(oldValue, self._value, "recompute")
 
                 return
             except RevisionConflictException:

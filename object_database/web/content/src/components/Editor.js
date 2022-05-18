@@ -467,6 +467,8 @@ class Editor extends ConcreteCell {
                     message.resetState.lines
                 );
 
+                console.log("Resetting state to event " + message.resetState.topEventIndex);
+
                 this.transactionManager = new TransactionManager(
                     this.dataModel, this.constants, this.sendEventToServer, this.editSessionId,
                     message.resetState.topEventIndex - message.resetState.events.length
@@ -718,14 +720,26 @@ class Editor extends ConcreteCell {
                     // see if we can redo. If not, ask the server to try, since it
                     // may have a longer history than we do
                     if (!this.transactionManager.redo()) {
-                        this.sendMessage({'msg': 'triggerRedo'});
+                        if (this.commitDelay) {
+                            setTimeout(() => {
+                                this.sendMessage({'msg': 'triggerRedo'})
+                            }, this.commitDelay);
+                        } else {
+                            this.sendMessage({'msg': 'triggerRedo'})
+                        }
                         return;
                     }
                 } else {
                     // see if we can undo. If not, ask the server to try, since it
                     // may have a longer history than we do
                     if (!this.transactionManager.undo()) {
-                        this.sendMessage({'msg': 'triggerUndo'});
+                        if (this.commitDelay) {
+                            setTimeout(() => {
+                                this.sendMessage({'msg': 'triggerUndo'})
+                            }, this.commitDelay);
+                        } else {
+                            this.sendMessage({'msg': 'triggerUndo'})
+                        }
                         return;
                     }
                 }

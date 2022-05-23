@@ -154,6 +154,7 @@ class TransactionManager {
             let eventsToRebase = this.events.reverse();
             this.events = [];
 
+            this.priorEvents.push(event);
             this.dataModel.pushEventButRetainCursors(event);
             this.topEventIndex += 1;
 

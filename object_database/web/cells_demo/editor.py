@@ -22,7 +22,7 @@ class EditorDemo(CellsTestPage):
 
         edState = cells.SlotEditorState()
 
-        e1 = cells.Editor(editorState=edState, commitDelay=1000, username="A")
+        e1 = cells.Editor(editorState=edState, commitDelay=2000, username="A")
 
         def makeEd2():
             ed2 = cells.Editor(

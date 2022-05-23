@@ -481,6 +481,7 @@ class Editor extends ConcreteCell {
 
                 this.dataModel.cursors = oldCursors;
                 this.dataModel.cursors.forEach((cursor) => { cursor.ensureValid(this.dataModel.lines) });
+                this.requestAnimationFrame();
             }
 
             if (message.userSelectionSlotChanged !== undefined) {

@@ -465,7 +465,7 @@ class DataModel {
     /***** non-editing interface ********/
     // apply an 'event' which is a record of a state change
     // this doesn't create any new events
-    pushEvent(event, retainOwnCursors=false) {
+    pushEvent(event) {
         if (this.changesSinceLastCheckpoint.length) {
             throw new Error('DataModel has changes. cant accept an event');
         }
@@ -486,6 +486,25 @@ class DataModel {
         this.cursors = event.newCursors.map(
             (json) => Cursor.fromJson(json)
         );
+
+        if (this.lines.length == 0) {
+            throw new Error("DataModel ended up with no lines somehow");
+        }
+
+        this.cursors.forEach(cursor => {
+            if (cursor.lineOffset < 0 || cursor.lineOffset >= this.lines.length) {
+                throw new Error("DataModel ended up with a bad cursor.");
+            }
+            if (cursor.colOffset < 0 || cursor.colOffset > this.lines[cursor.lineOffset].length) {
+                throw new Error("DataModel ended up with a bad cursor.");
+            }
+            if (cursor.tailLineOffset < 0 || cursor.tailLineOffset >= this.lines.length) {
+                throw new Error("DataModel ended up with a bad cursor.");
+            }
+            if (cursor.tailColOffset < 0 || cursor.tailColOffset > this.lines[cursor.tailLineOffset].length) {
+                throw new Error("DataModel ended up with a bad cursor.");
+            }
+        });
 
         this.cursorAtLastCheckpoint = event.newCursors;
     }

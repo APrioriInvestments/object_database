@@ -636,6 +636,12 @@ class Editor(FocusableCell):
                             )
 
                     self.stateSlot.set(newState)
+            else:
+                logging.warning(
+                    "Dropping event %s from %s on the ground",
+                    topEventIndex,
+                    self.editSessionId,
+                )
 
     def getCurrentState(self):
         state = self.stateSlot.getWithoutRegisteringDependency()

@@ -79,3 +79,38 @@ If you head to [http://localhost:8080/services/ServiceBase](http://localhost:808
 
 
 #### Running a more interesting web app ####
+
+Take a look at [cells.py]('./examples/cells.py'). You'll see we made a subclass of `ServiceBase` and overrode its `.serviceDisplay` method. There is card with a header and some buttons which all route you to the corresponding URI (in our case the list of services we have running), plus a little bit of styling. 
+
+Lets install our more interesting app like above:
+```
+object_database_service_config install --class docs.examples.cells.SomethingMoreInteresting --placement Master
+object_database_service_config start SomethingMoreInteresting
+```
+
+Note: when you make changes to `SomethingMoreInteresting` you need to reinstall it, with the above command. If you see a message like `Cannot set codebase of locked service 'SomethingMoreInteresting'` then click the "Locked" icon in [http://localhost:8080/services]([http://localhost:8080/services) to unlock it, then reinstall.
+
+
+You can learn more about cells by perusing the [cells](https://github.com/APrioriInvestments/object_database/tree/dev/object_database/web/cells) directory or taking a look at the [cells test example](https://github.com/APrioriInvestments/object_database/blob/dev/object_database/web/CellsTestService.py#L63)
+
+#### Running an ODB web app ####
+
+But before we wrap up, we should really build a cells examples which works with Object Database, since that's the main point here.
+
+I am going to skip over details of how ODB works. Please here [here](https://github.com/APrioriInvestments/object_database/blob/dev/docs/object_engine.md) for an introduction. 
+
+We'll be building an `AnODBService` which you can find [here](https://github.com/APrioriInvestments/object_database/blob/daniel-examples/docs/examples/cells_odb.py). You'll see we need to define 
+* a [schema](https://github.com/APrioriInvestments/object_database/blob/daniel-examples/docs/examples/cells_odb.py#L12)
+* how our app will [interact with ODB](https://github.com/APrioriInvestments/object_database/blob/daniel-examples/docs/examples/cells_odb.py#L23)
+* and the [UI](https://github.com/APrioriInvestments/object_database/blob/daniel-examples/docs/examples/cells_odb.py#L40) for the app itself. 
+
+The app will send and recieve messages from the database, and update the UI which consists largely of a Panel and Table cell. The key departure here from the previous examples is the lambda functions passed to the cells. Instead of returning something like a string (which then tells the service to route to the correponding URI), these interact with the DB via the `Message` class. 
+
+As before we'll need to install and start the service:
+Lets install our more interesting app like above:
+```
+object_database_service_config install --class docs.examples.cells_db.AnODBService --placement Master
+object_database_service_config start AnODBService
+```
+
+We'll learn more about cells and how to develop them in the upcoming `cells_dev.md` doc. 

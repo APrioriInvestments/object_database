@@ -9,6 +9,10 @@ In order to get ourselves up and running we'll need a few things:
 
 * Object Database installed (see the [installation docs](../INSTALLATION.md) for more details)
 * an object_database engine service instance (see [here](./object_engine.md) for more information)
+* build the bundle for the services landing page
+  * `cd object_database/object_database/web/content`
+  * create a node environment and source it
+  * run `npm install && npm run build`
 * a configured and installed web service instance, which will be responsible for building and serving the web application
 * and an installed instance of the service we'd like to run
 
@@ -61,7 +65,11 @@ Run the following in your virtual environment:
 
 ```
 object_database_service_config install --class object_database.service_manager.ServiceBase.ServiceBase --placement Master
-
+# check to see it is installed
+object_database_service_config list
+# start
+object_database_service_config start ServiceBase
+# check to see it is running
 object_database_service_config instances
 ```
 

@@ -16,7 +16,8 @@
 from object_database.web.cells.cell import Cell
 from object_database.web.cells.leaves import Traceback
 from object_database.web.cells.children import Children
-from object_database.web.cells.subscribed import SubscribeAndRetry, augmentToBeUnique
+from object_database.web.cells.util import SubscribeAndRetry
+from object_database.web.cells.subscribed import Subscribed, augmentToBeUnique
 
 
 import traceback
@@ -41,30 +42,22 @@ class Grid(Cell):
     def prepareForReuse(self):
         if not self.garbageCollected:
             return False
-        self._clearSubscriptions()
         self.existingItems = {}
         self.rows = []
         self.cols = []
         super().prepareForReuse()
 
     def recalculate(self):
-        with self.transaction() as v:
-            try:
-                self.rows = augmentToBeUnique(self.rowFun())
-            except SubscribeAndRetry:
-                raise
-            except Exception:
-                self._logger.exception("Row fun calc threw an exception:")
-                self.rows = []
-            try:
-                self.cols = augmentToBeUnique(self.colFun())
-            except SubscribeAndRetry:
-                raise
-            except Exception:
-                self._logger.exception("Col fun calc threw an exception:")
-                self.cols = []
+        oldRows = self.rows
+        oldCols = self.cols
 
-            self._resetSubscriptionsToViewReads(v)
+        try:
+            self.rows = augmentToBeUnique(self.rowFun())
+            self.cols = augmentToBeUnique(self.colFun())
+        except Exception:
+            self.rows = oldRows
+            self.cols = oldCols
+            raise
 
         new_named_children = {"headers": [], "rowLabels": [], "dataCells": []}
         seen = set()
@@ -76,7 +69,7 @@ class Grid(Cell):
                     new_named_children["headers"].append(self.existingItems[(None, col)])
                 else:
                     try:
-                        headerCell = Cell.makeCell(self.headerFun(col[0]))
+                        headerCell = Subscribed.bind(self.headerFun, col[0])
                         self.existingItems[(None, col)] = headerCell
                         new_named_children["headers"].append(headerCell)
                     except SubscribeAndRetry:
@@ -94,7 +87,7 @@ class Grid(Cell):
                     new_named_children["rowLabels"].append(rowLabelCell)
                 else:
                     try:
-                        rowLabelCell = Cell.makeCell(self.rowLabelFun(row[0]))
+                        rowLabelCell = Subscribed.bind(self.rowLabelFun, row[0])
                         self.existingItems[(row, None)] = rowLabelCell
                         new_named_children["rowLabels"].append(rowLabelCell)
                     except SubscribeAndRetry:
@@ -114,7 +107,7 @@ class Grid(Cell):
                     new_named_children_column.append(self.existingItems[(row, col)])
                 else:
                     try:
-                        dataCell = Cell.makeCell(self.rendererFun(row[0], col[0]))
+                        dataCell = Subscribed.bind(self.rendererFun, row[0], col[0])
                         self.existingItems[(row, col)] = dataCell
                         new_named_children_column.append(dataCell)
                     except SubscribeAndRetry:

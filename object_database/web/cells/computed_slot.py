@@ -1,4 +1,4 @@
-#   Copyright 2017-2021 object_database Authors
+#   Copyright 2017-2022 object_database Authors
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,17 +13,11 @@
 #   limitations under the License.
 
 
-from object_database.web.cells.computing_cell_context import ComputingCellContext
-from object_database.web.cells.slot import Slot
-from object_database.web.cells.util import SubscribeAndRetry
-from object_database import MaskView, RevisionConflictException
+from object_database.web.cells.cells_context import CellsContext
+from object_database.web.cells.dependency_context import DependencyContext
 
 
-import logging
-import traceback
-
-
-class ComputedSlot(Slot):
+class ComputedSlot:
     """Models a value that's computed from other Slot and ODB values.
 
     This lets us stash expensive computations in the Slot and re-use them
@@ -46,132 +40,74 @@ class ComputedSlot(Slot):
     def __init__(self, valueFunction, onSet=None):
         self._valueFunction = valueFunction
         self._onSet = onSet
-        self._value = None
+        self._valueAndIsException = None
         self._valueUpToDate = False
-        self._subscribedCells = set()
-        self._slotsWatching = set()  # the slots we are watching
-        self._listeners = []
-        self.subscriptions = set()
         self.cells = None
-        self.garbageCollected = False
+
+    def orphan(self):
+        """This slot is no longer being used by the cells tree."""
+        self._valueUpToDate = False
+        self._valueAndIsException = None
+        self.cells = None
 
     def getWithoutRegisteringDependency(self):
+        if self.cells is None and CellsContext.get():
+            self.cells = CellsContext.get()
+
         self.ensureCalculated()
 
-        return self._value
-
-    def onWatchingSlot(self, slot):
-        self._slotsWatching.add(slot)
-
-    def orphanSelfIfUnused(self):
-        """Check if nobody is using us and if so, mark ourselves as 'garbageCollected'
-
-        In this case, we also unhook ourselves from our subscriptions so that we don't
-        recalculate.
-
-        This should only get called _after_ the graph has settled down fully, so that
-        we know everything is OK.
-        """
-        if not self._subscribedCells:
-            self.garbageCollected = True
-
-            for s in self.subscriptions:
-                self.cells.unsubscribeCell(self, s)
-            self.subscriptions = set()
-
-            for s in self._slotsWatching:
-                s.slotGoingAway(self)
-
-            return True
+        if self._valueAndIsException[0]:
+            raise self._valueAndIsException[1]
+        else:
+            return self._valueAndIsException[1]
 
     def get(self):
-        if self.cells is None and ComputingCellContext.get():
-            self.cells = ComputingCellContext.get().cells
+        if self.cells is None and CellsContext.get():
+            self.cells = CellsContext.get()
 
         self.ensureCalculated()
 
-        return super().get()
+        curContext = DependencyContext.get()
 
-    def set(self, val, reason=None):
+        # don't allow direct modifications outside of the context
+        if curContext is None:
+            raise Exception("You can't read a ComputedSlot outside of a DependencyContext")
+
+        curContext.slotRead(self)
+
+        if self._valueAndIsException[0]:
+            raise self._valueAndIsException[1]
+        else:
+            return self._valueAndIsException[1]
+
+    def set(self, val):
         if not self._onSet:
             raise Exception("This ComputedSlot is not settable.")
 
+        # this just passes through to the setter function. if it modifies anything in ODB
+        # or the slot state we'll see it immediately.
         self._onSet(val)
 
-        # make sure we know we might be dirty in case we immediately read
+    def markDirty(self):
         self._valueUpToDate = False
-
-    def subscribedOdbValueChanged(self, key):
-        self._valueUpToDate = False
-
-        if self._subscribedCells or self._listeners:
-            self.cells.computedSlotDirty(self)
-
-    def subscribedSlotChanged(self, slot):
-        self._valueUpToDate = False
-
-        if self._subscribedCells or self._listeners:
-            self.cells.computedSlotDirty(self)
 
     def ensureCalculated(self):
-        if self.cells is None and ComputingCellContext.get():
-            self.cells = ComputingCellContext.get().cells
+        if self.cells is None and CellsContext.get():
+            self.cells = CellsContext.get()
 
         if self._valueUpToDate:
             return
 
-        self._slotsWatching = set()
+        if not self.cells:
+            raise Exception("Can't calculate a ComputedSlot without a cells instance.")
 
-        revisionConflicts = 0
+        context = DependencyContext(self.cells.db, readOnly=True)
 
-        while True:
-            try:
-                triggerListeners = False
+        oldVal = self._valueAndIsException
+        self._valueAndIsException = context.calculate(self._valueFunction)
+        self._valueUpToDate = True
 
-                with ComputingCellContext(self):
-                    with MaskView():
-                        with self.cells.db.transaction() as v:
-                            oldValue = self._value
+        self.cells._dependencies.updateDependencies(self, context)
 
-                            try:
-                                self._value = self._valueFunction()
-                            except SubscribeAndRetry:
-                                raise
-                            except Exception:
-                                logging.warn(
-                                    "Computed slot threw an exception: %s",
-                                    traceback.format_exc(),
-                                )
-                                self._value = None
-
-                            self._resetSubscriptionsToViewReads(v)
-
-                            self._valueUpToDate = True
-
-                            if oldValue != self._value:
-                                triggerListeners = True
-
-                if triggerListeners:
-                    self._triggerListeners()
-                    self._fireListenerCallbacks(oldValue, self._value, "recompute")
-
-                return
-            except RevisionConflictException:
-                revisionConflicts += 1
-                logging.warn("ComputedSlot threw revision conflict #%s", revisionConflicts)
-                if revisionConflicts > 100:
-                    logging.error("ComputedSlot threw so many conflicts we're just bailing")
-                return
-            except SubscribeAndRetry as e:
-                e.callback(self.cells.db)
-
-    def _resetSubscriptionsToViewReads(self, view):
-        new_subscriptions = set(view.getFieldReads()).union(set(view.getIndexReads()))
-
-        for k in new_subscriptions.difference(self.subscriptions):
-            self.cells.subscribeCell(self, k)
-
-        for k in self.subscriptions.difference(new_subscriptions):
-            self.cells.unsubscribeCell(self, k)
-
-        self.subscriptions = new_subscriptions
+        if oldVal != self._valueAndIsException:
+            self.cells._dependencies.markSlotsDirty([self])

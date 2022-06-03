@@ -15,6 +15,7 @@
 from object_database.web.cells import (
     Cell,
     Cells,
+    Effect,
     Subscribed,
     Card,
     Container,
@@ -36,7 +37,6 @@ from object_database.frontends.service_manager import (
 from object_database.test_util import currentMemUsageMb, log_cells_stats
 
 import logging
-import pytest
 import unittest
 import threading
 
@@ -130,50 +130,37 @@ class CellsTests(unittest.TestCase):
 
         self.cells.renderMessages()
 
-        assert aSlot.garbageCollected
-        assert aSlot2.garbageCollected
+        assert aSlot.cells is None
+        assert aSlot2.cells is None
 
         with self.db.transaction():
             Thing(x=1, k=1)
             Thing(x=2, k=2)
 
-    def test_slot_and_computed_slot_interaction(self):
-        slot = Slot(None)
+    def test_cant_change_data_in_readers_slot(self):
+        slot = Slot(0)
 
-        counts = []
+        def calculateIt():
+            slot.set(1)
+            return "1"
 
-        cs1 = ComputedSlot(slot.get, slot.set)
-        cs2 = ComputedSlot(slot.get, slot.set)
-
-        cs1._name = "cs1"
-        cs2._name = "cs2"
-
-        cs1.addListener(lambda *args: counts.append((1,) + args))
-        cs2.addListener(lambda *args: counts.append((2,) + args))
-
-        s1 = Subscribed(lambda: cs1.get())
-        s2 = Subscribed(lambda: cs2.get())
-
-        self.cells.withRoot(s1 + s2)
-
+        self.cells.withRoot(Subscribed(calculateIt))
         self.cells.renderMessages()
 
-        assert len(counts) == 0
-        assert len(slot._subscribedCells) == 2
+        assert self.cells.childrenWithExceptions()
 
-        cs1.set(10)
+    def test_cant_change_data_in_readers_odb(self):
+        with self.db.transaction():
+            t = Thing(x=1)
+
+        def calculateIt():
+            t.x = 2
+            return "1"
+
+        self.cells.withRoot(Subscribed(calculateIt))
         self.cells.renderMessages()
 
-        assert len(counts) == 2
-        assert len(slot._subscribedCells) == 2
-
-        cs1.set(20)
-        self.cells.renderMessages()
-        assert len(counts) == 4
-
-        cs2.set(30)
-        self.cells.renderMessages()
-        assert len(counts) == 6
+        assert self.cells.childrenWithExceptions()
 
     def test_cells_reusable(self):
         c1 = Card(Text("HI"))
@@ -183,10 +170,14 @@ class CellsTests(unittest.TestCase):
         self.cells.withRoot(Subscribed(lambda: c1 if slot.get() else c2))
 
         self.cells.renderMessages()
-        slot.set(1)
+
+        self.cells.scheduleCallback(lambda: slot.set(1))
         self.cells.renderMessages()
-        slot.set(0)
+        assert slot.getWithoutRegisteringDependency() == 1
+
+        self.cells.scheduleCallback(lambda: slot.set(0))
         self.cells.renderMessages()
+        assert slot.getWithoutRegisteringDependency() == 0
 
         self.assertFalse(self.cells.childrenWithExceptions())
 
@@ -352,50 +343,23 @@ class CellsTests(unittest.TestCase):
 
         self.helper_memory_leak(cell, initFn, workFn, 1)
 
-    @pytest.mark.skip(
-        reason="Test is failing oddly, but it's not clear what test is trying to do"
-    )
-    def test_cells_memory_leak2(self):
-        cell = SubscribedSequence(
-            lambda: Thing.lookupAll(k=0),
-            lambda thing: Subscribed(lambda: Span("Thing(k=%s).x = %s" % (thing.k, thing.x))),
-        ) + SubscribedSequence(
-            lambda: Thing.lookupAll(k=1),
-            lambda thing: Subscribed(lambda: Span("Thing(k=%s).x = %s" % (thing.k, thing.x))),
-        )
-
-        def workFn(db, cells, iterations=5000):
-            with db.view():
-                thing = Thing.lookupAny(k=0)
-                self.assertTrue(thing)
-                self.assertTrue(Thing.lookupAny())
-
-            for counter in range(iterations):
-                with db.transaction():
-                    if counter % 3 == 0:
-                        thing.k = 1 - thing.k
-                        thing.delete()
-                        thing = Thing(x=counter, k=0)
-
-                    self.assertTrue(Thing.lookupAny())
-                    all_things = Thing.lookupAll()
-                    self.assertEqual(len(all_things), 1)
-                    for anything in all_things:
-                        anything.x = anything.x + 1
-
-                cells.renderMessages()
-
-        def initFn(db, cells):
-            with db.transaction():
-                Thing(x=1, k=0)
-
-            cells.renderMessages()
-
-            workFn(db, cells, iterations=500)
-
-        self.helper_memory_leak(cell, initFn, workFn, 3)
-
     def test_header_bar(self):
         self.cells.withRoot(HeaderBar([]))
+
+        self.cells.renderMessages()
+
+    def test_cells_effect(self):
+        # build a set of effects and see that they execute until they are quiet
+        s0 = Slot(0)
+        s1 = Slot(10)
+
+        e1 = Effect(lambda: s0.set(min(s0.get() + 1, s1.get())))
+
+        self.cells.withRoot(e1)
+        self.cells.renderMessages()
+
+        assert s0.getWithoutRegisteringDependency() == 10
+
+        self.cells.scheduleCallback(lambda: s1.set(20))
 
         self.cells.renderMessages()

@@ -15,6 +15,8 @@
 
 from object_database.web.cells.cell import FocusableCell
 from object_database.web.cells.slot import Slot
+from object_database.web.cells.computed_slot import ComputedSlot
+from object_database.web.cells.reactor import SlotWatcher
 
 
 class SingleLineTextBox(FocusableCell):
@@ -48,9 +50,12 @@ class SingleLineTextBox(FocusableCell):
         if isinstance(initialText, str):
             self.currentText = Slot(initialText)
         else:
+            assert isinstance(initialText, (Slot, ComputedSlot))
             self.currentText = initialText
 
-        self.currentText.addListener(self.slotValueChanged)
+        self.currentTextWatcher = SlotWatcher(self.currentText, self.onSlotValueChanged)
+
+        self.reactors.add(self.currentTextWatcher)
 
         self.onTextChanged = onTextChanged
         self.onEnter = onEnter
@@ -58,9 +63,8 @@ class SingleLineTextBox(FocusableCell):
         self.font = font
         self.textSize = textSize
 
-    def slotValueChanged(self, oldValue, newValue, reason):
-        if reason != "client-message":
-            self.scheduleMessage({"event": "textChanged", "text": newValue})
+    def onSlotValueChanged(self, oldValue, newValue):
+        self.scheduleMessage({"event": "textChanged", "text": newValue})
 
     def selectAll(self):
         self.scheduleMessage({"event": "selectAll"})
@@ -75,7 +79,7 @@ class SingleLineTextBox(FocusableCell):
 
     def onMessage(self, msgFrame):
         if msgFrame.get("event") == "userEdit":
-            self.currentText.set(msgFrame.get("text"), "client-message")
+            self.currentTextWatcher.setWithoutChange(msgFrame.get("text"))
 
             if self.onTextChanged:
                 self.onTextChanged(msgFrame.get("text"))

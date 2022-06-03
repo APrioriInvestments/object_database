@@ -53,6 +53,10 @@ const copyNodeInto = (sourceNode, destNode) => {
         sourceNode.children
     );
 
+    if (sourceNode.children.length == 0 && sourceNode.innerHTML.length > 0) {
+        destNode.innerHTML = sourceNode.innerHTML;
+    }
+
     // we muck with 'class' all over the place, so use what's
     // actually on the DOM for that
     sourceNode.cellsProperties.class = sourceNode.getAttribute('class');
@@ -194,6 +198,17 @@ class Cell {
         return replaceChildren(domElt, children);
     }
 
+    static renderErrorDiv(msg) {
+        return makeDomElt(
+            'textarea',
+            {
+                class: 'alert alert-primary cell-exception',
+                disabled: true
+            },
+            [msg]
+        );
+    }
+
     getScrollableDomElt() {
         return this.domElement;
     }
@@ -222,12 +237,14 @@ class Cell {
     // as it can. Similarly for fill-space-vertical.
     // But when the spaces are infinite, we need to make sure we do something
     // that makes sense. In this case, we apply aspect ratios.
-    applySpacePreferencesToClassList(domElement) {
+    applySpacePreferencesToClassList(domElement, sp=null) {
         if (!domElement) {
             return;
         }
 
-        let sp = this.getFillSpacePreferences();
+        if (sp === null) {
+            sp = this.getFillSpacePreferences();
+        }
 
         let spaceIsInfinite = (
             this.parent ? this.parent.allotedSpaceIsInfinite(this) : {horizontal:false, vertical:false}

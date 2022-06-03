@@ -7,7 +7,7 @@
    is stable.
  */
 
-import {Cell, copyNodeInto, makeDomElt} from './Cell';
+import {Cell, copyNodeInto, makeDomElt as h} from './Cell';
 
 class ConcreteCell extends Cell {
     constructor(props, ...args){
@@ -85,9 +85,16 @@ class ConcreteCell extends Cell {
         this.childNameToDomElt = {};
         this.cellIdToChildName = {};
 
-        let newDomElt = this.build();
+        let newDomElt = null;
 
-        this.applySpacePreferencesToClassList(newDomElt);
+        if (this.props.exception) {
+            newDomElt = Cell.renderErrorDiv(this.props.exception);
+
+            this.applySpacePreferencesToClassList(newDomElt, {horizontal: true, vertical: true});
+        } else {
+            newDomElt = this.build();
+            this.applySpacePreferencesToClassList(newDomElt);
+        }
 
         copyNodeInto(newDomElt, this.domElement);
     }
@@ -103,7 +110,14 @@ class ConcreteCell extends Cell {
 
     buildDomElementInner() {
         if (this.domElement === null) {
-            this.domElement = this.build();
+            if (this.props.exception) {
+                this.domElement = Cell.renderErrorDiv(this.props.exception);
+                this.applySpacePreferencesToClassList(this.domElement, {horizontal: true, vertical: true});
+
+                return this.domElement;
+            } else {
+                this.domElement = this.build();
+            }
         }
 
         this.applySpacePreferencesToClassList(this.domElement);
@@ -195,7 +209,7 @@ class ConcreteCell extends Cell {
         let div = child.buildDomElement();
 
         if (div === null) {
-            return makeDomElt('div', {
+            return h('div', {
                 'style': 'display:none;'
             }, []);
         }

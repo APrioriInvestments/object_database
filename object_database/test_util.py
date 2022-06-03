@@ -77,12 +77,12 @@ def log_cells_stats(cells, logger, indentation=0):
 
     log("#####################################################")
     log("#  Cells structure DEBUG Log")
-    log("#  - dirty: {}".format(len(cells._dirtyNodes)))
+    log("#  - dirty: {}".format(len(cells._dependencies._dirtyNodes)))
     log("#  - need bcast: {}".format(len(cells._nodesToBroadcast)))
     log("#  - cells: {}".format(len(cells._cells)))
     log("#  - known children: {}".format(len(cells._cellsKnownChildren)))
     log("#  - to discard: {}".format(len(cells._nodeIdsToDiscard)))
-    log("#  - subscribed-to keys: {}".format(len(cells._subscribedCells)))
+    log("#  - subscribed-to keys: {}".format(len(cells._dependencies._subscribedCells)))
     log("#####################################################")
 
 

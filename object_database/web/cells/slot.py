@@ -12,82 +12,53 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import logging
-
-from object_database.web.cells.computing_cell_context import ComputingCellContext
+from object_database.web.cells.dependency_context import DependencyContext
 
 
 class Slot:
-    """Represents a piece of session-specific interface state. Any cells
-    that call 'get' will be recalculated if the value changes. UX is allowed
-    to change the state (say, because of a button call), thereby causing any
-    cells that depend on the Slot to recalculate.
+    """Represents a piece of session-specific interface state. Any cells or computed slots
+    that call 'get' will be recalculated in subsequent frames if the value changes.
     """
 
     def __init__(self, value=None):
         self._value = value
-        self._subscribedCells = set()
-        self._listeners = []
 
-    def addListener(self, listener):
-        """Add a listener who will get notified any time a slot's value gets set.
+        curContext = DependencyContext.get()
 
-        Listeners will get called with (oldValue, newValue, reason)
-        """
-        self._listeners.append(listener)
-
-    def removeListener(self, listener):
-        self._listeners.remove(listener)
+        if curContext:
+            curContext.slotCreated(self)
 
     def setter(self, val):
         return lambda: self.set(val)
-
-    def onWatchingSlot(self, slot):
-        pass
-
-    def slotGoingAway(self, subSlot):
-        self._subscribedCells.discard(subSlot)
 
     def getWithoutRegisteringDependency(self):
         return self._value
 
     def get(self):
         """Get the value of the Slot, and register a dependency on the calling cell."""
+        curContext = DependencyContext.get()
 
-        # we can only create a dependency if we're being read
-        # as part of a cell's state recalculation.
-        curCell = ComputingCellContext.get()
+        if curContext is None:
+            raise Exception("Can't read a Slot outside of a DependencyContext")
 
-        if curCell is not None and not ComputingCellContext.isProcessingMessage():
-            self._subscribedCells.add(curCell)
-            curCell.onWatchingSlot(self)
+        curContext.slotRead(self)
 
         return self._value
 
-    def set(self, val, reason=None):
+    def set(self, val):
         """Write to a slot."""
-        if val == self._value:
+        curContext = DependencyContext.get()
+
+        # don't allow direct modifications outside of the context
+        if curContext is None:
+            raise Exception("You can't modify a Slot outside of a DependencyContext")
+
+        if self._value == val:
             return
 
-        oldValue = self._value
+        curContext.slotSet(self, self._value)
+
         self._value = val
-
-        self._triggerListeners()
-        self._fireListenerCallbacks(oldValue, val, reason)
-
-    def _fireListenerCallbacks(self, oldValue, val, reason):
-        for listener in self._listeners:
-            try:
-                listener(oldValue, val, reason)
-            except Exception:
-                logging.exception("Unexpected exception in slot callback")
-
-    def _triggerListeners(self):
-        toTrigger = self._subscribedCells
-        self._subscribedCells = set()
-
-        for c in toTrigger:
-            c.subscribedSlotChanged(self)
 
     def toggle(self):
         self.set(not self.get())

@@ -1,21 +1,21 @@
 import object_database
-import time
 import logging
 import types
 
 
 from object_database.web.cells.children import Children
-from object_database.web.cells.computing_cell_context import ComputingCellContext
-from object_database.view import RevisionConflictException
+from object_database.web.cells.recomputing_cell_context import RecomputingCellContext
+from object_database.web.cells.cells_context import CellsContext
+from object_database.web.cells.computed_slot import ComputedSlot
 
 
 MAX_TIMEOUT = 1.0
 MAX_TRIES = 10
 
 
-class Cell:
+class Cell(object):
     """Base class for all Cell instances."""
-
+    EFFECT = False
     FOCUSABLE = False
 
     def __init__(self):
@@ -27,21 +27,26 @@ class Cell:
         self.level = None
         self.children = Children()
         self.contents = ""  # some contents containing a local node def
-        self.shouldDisplay = True  # Whether or not this is a cell that will be displayed
         self.isRoot = False
         self._identity = None  # None, or a string
         self._tag = None
         self.garbageCollected = False
-        self.subscriptions = set()
         self.context = {}
-
         self._messagesToSendOnInstall = []
-
-        # This is for interim JS refactoring.
-        # Cells provide extra data that JS
-        # components will need to know about
-        # when composing DOM.
         self.exportData = {}
+        self.reactors = set()
+
+    def sessionStateSlot(self, subfield):
+        from object_database.web.cells.session_state import sessionState
+
+        return ComputedSlot(
+            lambda: sessionState(self)
+            .slotFor(self.identityPath + (subfield,))
+            .get(),
+            lambda value: sessionState(self)
+            .slotFor(self.identityPath + (subfield,))
+            .set(value),
+        )
 
     def childHadUserAction(self, directChild, deepChild):
         """Called if one of our children had a user-interface action like a button click.
@@ -69,10 +74,6 @@ class Cell:
     def onRemovedFromTree(self):
         """Called when a cell is removed from the tree. This shouldn't update any slots,
         but may schedule callbacks."""
-        pass
-
-    def onWatchingSlot(self, slot):
-        """Called when we become tied to the value of a slot."""
         pass
 
     def treeToString(self, indent=0):
@@ -150,16 +151,6 @@ class Cell:
         """
         return decorator(self)
 
-    def evaluateWithDependencies(self, fun):
-        """Evaluate function within a view and add dependencies for whatever
-        we read."""
-        with self.transaction() as v:
-            result = fun()
-
-            self._resetSubscriptionsToViewReads(v)
-
-            return result
-
     def tagged(self, tag):
         """Give a tag to the cell, which can help us find interesting cells during test."""
         self._tag = tag
@@ -205,67 +196,14 @@ class Cell:
 
     def childrenWithExceptions(self):
         return self.findChildrenMatching(
-            lambda cell: isinstance(cell, object_database.web.cells.leaves.Traceback)
+            lambda cell:
+                isinstance(cell, object_database.web.cells.leaves.Traceback)
+                or ('exception' in cell.exportData)
         )
 
-    def onMessageWithCellContext(self, *args):
-        """ Call our inner 'onMessage' function with a transaction in a retry loop. """
-        with ComputingCellContext(self, isProcessingMessage=True):
-            try:
-                self.onMessage(*args)
-            except Exception:
-                logging.exception(
-                    "Exception processing message %s to cell %s logic:", args, self
-                )
-                return
-
-    def onMessageWithTransaction(self, *args):
-        """ Call our inner 'onMessage' function with a transaction in a retry loop. """
-        tries = 0
-        t0 = time.time()
-        while True:
-            with ComputingCellContext(self, isProcessingMessage=True):
-                try:
-                    with self.transaction():
-                        self.onMessage(*args)
-                        return
-                except RevisionConflictException:
-                    tries += 1
-                    if tries > MAX_TRIES or time.time() - t0 > MAX_TIMEOUT:
-                        logging.error("OnMessage timed out. This should really fail.")
-                        return
-                except Exception:
-                    logging.exception(
-                        "Exception processing message %s to cell %s logic:", args, self
-                    )
-                    return
-
-    def _clearSubscriptions(self):
-        if self.cells:
-            for sub in self.subscriptions:
-                self.cells.unsubscribeCell(self, sub)
-
-        self.subscriptions = set()
-
-    def _resetSubscriptionsToViewReads(self, view):
-        new_subscriptions = set(view.getFieldReads()).union(set(view.getIndexReads()))
-
-        for k in new_subscriptions.difference(self.subscriptions):
-            self.cells.subscribeCell(self, k)
-
-        for k in self.subscriptions.difference(new_subscriptions):
-            self.cells.unsubscribeCell(self, k)
-
-        self.subscriptions = new_subscriptions
-
-    def view(self):
-        return self.cells.db.view()
-
-    def transaction(self):
-        return self.cells.db.transaction()
-
     def prepare(self):
-        pass
+        """Prepare for recalculation."""
+        self.exportData.pop("exception", None)
 
     def sortsAs(self):
         return None
@@ -302,6 +240,19 @@ class Cell:
 
     def recalculate(self):
         pass
+
+    def onError(self, exception, stacktrace):
+        """Called if recalculate throws an exception."""
+        logging.error(
+            "Cell %s had exception: %s\n\n%s",
+            self,
+            type(exception).__name__ + ": " + str(exception),
+            stacktrace
+        )
+
+        self.exportData['exception'] = (
+            type(exception).__name__ + ": " + str(exception) + "\n\n" + stacktrace
+        )
 
     @staticmethod
     def makeCell(x):
@@ -388,18 +339,18 @@ class FocusableCell(Cell):
 
     def isFocused(self):
         if self.cells is None:
-            cur = ComputingCellContext.get()
-            if cur is None or cur.cells is None:
+            cur = CellsContext.get()
+            if cur is None:
                 return False
             else:
-                return cur.cells.focusedCell.get() is self
+                return cur.focusedCell.get() is self
 
         return self.cells.focusedCell.get() is self
 
 
 def context(contextKey):
     """During cell evaluation, lookup context from our parent cell by name."""
-    if ComputingCellContext.get() is None:
-        raise Exception("Please call 'context' from within a message or cell update function.")
+    if not RecomputingCellContext.get():
+        raise Exception("Please call 'context' from within a cell update function.")
 
-    return ComputingCellContext.get().getContext(contextKey)
+    return RecomputingCellContext.get().getContext(contextKey)

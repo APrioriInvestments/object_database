@@ -36,7 +36,7 @@ def test_clickable_displays(headless_browser):
 
 
 def test_clickable_clicking_works(headless_browser):
-    demo_root = headless_browser.get_demo_root()
+    demo_root = headless_browser.get_demo_root_for(ClickableText)
     query = "{} > *".format(headless_browser.demo_root_selector)
     subscribed = headless_browser.find_by_css(query)
     assert subscribed.text == "You've clicked on this text 0 times"

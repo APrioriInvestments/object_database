@@ -132,3 +132,31 @@ class TableNoScrollWithAndWithoutFlex(CellsTestPage):
             "You should see a table with two columns, "
             "two pages of 50 rows and all fields saying 'hi'"
         )
+
+
+class TableWithErrorInColFun(CellsTestPage):
+    def cell(self):
+        hasError = cells.Slot(True)
+
+        def colFun():
+            if hasError.get():
+                raise Exception("Col error")
+            return [f"Col{i+1}" for i in range(10)]
+
+        return cells.Button("toggle error", hasError.toggle) + cells.Scrollable(
+            cells.Table(
+                colFun=colFun,
+                rowFun=lambda: list(range(10)),
+                headerFun=lambda x: x,
+                rendererFun=lambda w, field: cells.Popover(f"{field} {w}", "title", "detail"),
+                maxRowsPerPage=50,
+                sortColumn="Col1",
+                sortColumnAscending=True,
+            )
+        )
+
+    def text(self):
+        return (
+            "You should see a button and an error. Toggling the button should replace the "
+            "error with a table."
+        )

@@ -9,7 +9,7 @@ class Text extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
 
-        this.style = "display:inline-block";
+        this.style = "display:inline-block;user-select:none";
         this.extraClasses = "";
 
         if (this.props.textColor) {

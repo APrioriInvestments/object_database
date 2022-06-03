@@ -62,13 +62,18 @@ class ModalWithUpdateField(CellsTestPage):
 
         textBox = cells.SingleLineTextBox(editContent, onEnter=onOK, onEsc=onCancel)
 
-        def showingChanged(old, new, reason):
-            if new and not old:
+        lastShowing = cells.Slot(False)
+
+        def checkShowing():
+            if isShowing.get() and not lastShowing.get():
                 textBox.focus()
 
-        isShowing.addListener(showingChanged)
+            lastShowing.set(isShowing.get())
 
-        modal = cells.ButtonModal(isShowing, "Text Updater", textBox, ok=onOK, cancel=onCancel)
+        modal = (
+            cells.ButtonModal(isShowing, "Text Updater", textBox, ok=onOK, cancel=onCancel)
+            + cells.Effect(checkShowing)
+        )
 
         return cells.Card(button + textDisplay + modal)
 

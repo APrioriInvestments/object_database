@@ -62,24 +62,21 @@ class multiScrollable(CellsTestPage):
 
 class CodeEditorNextToScrollable(CellsTestPage):
     def cell(self):
-        contents = cells.Slot("Text\n" * 100)
-
-        def onTextChange(content, selection):
-            contents.set(content)
+        edState = cells.SlotEditorState("Text\n" * 100)
 
         return cells.HorizontalSequence(
             [
-                cells.CodeEditor(
-                    onTextChange=onTextChange, textToDisplayFunction=contents.get
+                cells.Editor(edState),
+                cells.Panel(
+                    cells.Scrollable(cells.Code(cells.Subscribed(edState.getCurrentState)))
                 ),
-                cells.Panel(cells.Scrollable(cells.Code(cells.Subscribed(contents.get)))),
             ]
         )
 
     def text(self):
         return (
-            "Should see a CodeEditor and its content "
-            "next to it. If you have to much content, it should scroll."
+            "Should see an Editor and its content "
+            "next to it. If you have too much content, it should scroll."
         )
 
 
@@ -138,9 +135,9 @@ class ScrollableVWithSeveralPlots(CellsTestPage):
 class ScrollableWithSeveralCodeEditors(CellsTestPage):
     def cell(self):
         return cells.Scrollable(
-            (cells.CodeEditor() >> cells.CodeEditor() >> cells.CodeEditor())
-            + (cells.CodeEditor() >> cells.CodeEditor() >> cells.CodeEditor())
-            + (cells.CodeEditor() >> cells.CodeEditor() >> cells.CodeEditor())
+            (cells.Editor() >> cells.Editor() >> cells.Editor())
+            + (cells.Editor() >> cells.Editor() >> cells.Editor())
+            + (cells.Editor() >> cells.Editor() >> cells.Editor())
         )
 
     def text(self):
@@ -150,11 +147,11 @@ class ScrollableWithSeveralCodeEditors(CellsTestPage):
 class ScrollableHWithSeveralCodeEditors(CellsTestPage):
     def cell(self):
         return cells.HScrollable(
-            cells.CodeEditor()
-            >> cells.CodeEditor()
-            >> cells.CodeEditor()
-            >> cells.CodeEditor()
-            >> cells.CodeEditor()
+            cells.Editor()
+            >> cells.Editor()
+            >> cells.Editor()
+            >> cells.Editor()
+            >> cells.Editor()
         )
 
     def text(self):
@@ -164,11 +161,11 @@ class ScrollableHWithSeveralCodeEditors(CellsTestPage):
 class ScrollableVWithSeveralCodeEditors(CellsTestPage):
     def cell(self):
         return cells.VScrollable(
-            cells.CodeEditor()
-            + cells.CodeEditor()
-            + cells.CodeEditor()
-            + cells.CodeEditor()
-            + cells.CodeEditor()
+            cells.Editor()
+            + cells.Editor()
+            + cells.Editor()
+            + cells.Editor()
+            + cells.Editor()
         )
 
     def text(self):
@@ -187,7 +184,10 @@ class ScrollableScrollChildToView(CellsTestPage):
         return cells.SingleLineTextBox(onTextChanged=change) + scrollable
 
     def text(self):
-        return "Should see several plots stacked horizontally."
+        return (
+            "Should see a text editor and a bunch of numbers. Whatever number you "
+            "type into the editor should get scrolled into view."
+        )
 
 
 class ScrollableSequenceOfCardAndPlot(CellsTestPage):

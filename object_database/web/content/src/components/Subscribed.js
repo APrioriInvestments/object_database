@@ -2,7 +2,7 @@
  * Subscribed Cell Cell
  * -------------------------
  */
-import {Cell, render, makeDomElt} from './Cell';
+import {Cell, render, makeDomElt as h} from './Cell';
 
 
 class Subscribed extends Cell {
@@ -15,7 +15,10 @@ class Subscribed extends Cell {
     }
 
     buildDomElementInner() {
-        if (this.contentIsEmpty) {
+        if (this.props.exception) {
+            return Cell.renderErrorDiv(this.props.exception);
+        }
+        else if (this.contentIsEmpty) {
             return null;
         } else {
             return this.namedChildren['content'].buildDomElement();
@@ -23,6 +26,10 @@ class Subscribed extends Cell {
     }
 
     _computeFillSpacePreferences() {
+        if (this.props.exception) {
+            return {horizontal: true, vertical: true};
+        }
+
         if (this.contentIsEmpty) {
             return {horizontal: false, vertical: false};
         }
@@ -40,9 +47,14 @@ class Subscribed extends Cell {
     }
 
     buildDomSequenceChildren(horizontal) {
-        if (this.contentIsEmpty) {
-            return []
+        if (this.props.exception) {
+            return [this.buildDomElementInner()];
         }
+
+        if (this.contentIsEmpty) {
+            return [];
+        }
+
         return this.namedChildren['content'].buildDomSequenceChildren(horizontal)
     }
 
@@ -54,6 +66,10 @@ class Subscribed extends Cell {
         // Return true only if the
         // child content is undefined, null,
         // or otherwise empty.
+        if (this.props.exception) {
+            return false;
+        }
+
         if (this.namedChildren.content) {
             return false;
         }

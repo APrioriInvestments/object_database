@@ -29,13 +29,13 @@ class Expands(Cell):
 
     @property
     def isExpanded(self):
-        isExpandedSlot = sessionState().slotFor(self.identityPath + ("ExpandsState",))
+        isExpandedSlot = sessionState(self).slotFor(self.identityPath + ("ExpandsState",))
 
         return isExpandedSlot.get() or False
 
     @isExpanded.setter
     def isExpanded(self, isExpanded):
-        isExpandedSlot = sessionState().slotFor(self.identityPath + ("ExpandsState",))
+        isExpandedSlot = sessionState(self).slotFor(self.identityPath + ("ExpandsState",))
 
         isExpandedSlot.set(bool(isExpanded))
 
@@ -45,7 +45,7 @@ class Expands(Cell):
         return self.closed.sortsAs()
 
     def recalculate(self):
-        isExpanded = self.evaluateWithDependencies(lambda: self.isExpanded)
+        isExpanded = self.isExpanded
 
         self.children.addFromDict(
             {

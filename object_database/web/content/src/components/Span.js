@@ -20,6 +20,7 @@ class Span extends ConcreteCell {
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
                 "data-cell-type": "Span",
+                'style': 'user-select: none',
                 class: "cell"
             }, [this.props.text])
         );

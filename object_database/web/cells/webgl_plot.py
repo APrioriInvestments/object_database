@@ -15,14 +15,10 @@
 from typed_python import ListOf, Float32, NamedTuple, UInt8, Entrypoint, OneOf
 
 from object_database.web.cells.cell import Cell
-from object_database.web.cells.highlighted import Highlighted
 from object_database.web.cells.slot import Slot
-from object_database.web.cells.scrollable import Scrollable
-from object_database.web.cells.subscribed import Subscribed, SubscribeAndRetry
-from object_database.web.cells.leaves import Traceback
+from object_database.web.cells.reactor import SlotWatcher
 
 import math
-import traceback
 import logging
 
 
@@ -862,20 +858,17 @@ class WebglPlot(Cell):
         self.mousePosition = Slot()
         self.screenRectangle = Slot()
         self.mouseoverContents = Slot()
-        self.error = Slot()
-        self.mouseoverContents.addListener(self.onMouseoverContentsChanged)
-        self.mousePosition.addListener(self.onMousePositionChanged)
+        self.mousoverContentsWatcher = SlotWatcher(
+            self.mouseoverContents,
+            self.onMouseoverContentsChanged
+        )
+        self.mousePositionWatcher = SlotWatcher(
+            self.mousePosition,
+            self.onMousePositionChanged
+        )
         self.mouseoverFunction = None
 
-        self.children["errorCell"] = Subscribed(
-            lambda: None
-            if self.error.get() is None
-            else Highlighted(
-                Scrollable(Traceback(self.error.get())), color="rgba(255,255,255,.9)"
-            )
-        )
-
-    def onMousePositionChanged(self, old, new, reason):
+    def onMousePositionChanged(self, old, new):
         if self.mouseoverFunction is None:
             self.mouseoverContents.set(None)
             return
@@ -905,7 +898,7 @@ class WebglPlot(Cell):
         else:
             self.mouseoverContents.set(None)
 
-    def onMouseoverContentsChanged(self, oldValue, newValue, reason):
+    def onMouseoverContentsChanged(self, oldValue, newValue):
         def encodeMouseoverContents(value):
             if value is None:
                 return
@@ -937,41 +930,31 @@ class WebglPlot(Cell):
         )
 
     def calculateErrorAndPlotData(self):
-        with self.transaction() as v:
-            self.packets.resetTouched()
+        self.packets.resetTouched()
 
-            try:
-                plot = self.plotDataGenerator()
+        try:
+            plot = self.plotDataGenerator()
 
-                if not isinstance(plot, Plot):
-                    return f"plotDataGenerator returned {type(plot)}, not Plot", None
+            if not isinstance(plot, Plot):
+                return f"plotDataGenerator returned {type(plot)}, not Plot", None
 
-                self.mouseoverFunction = plot.mouseoverFunction
+            self.mouseoverFunction = plot.mouseoverFunction
 
-                self.onMousePositionChanged(
-                    None, self.mousePosition.getWithoutRegisteringDependency(), None
-                )
+            self.onMousePositionChanged(
+                None, self.mousePosition.getWithoutRegisteringDependency()
+            )
 
-                response = self.packets.encode(plot)
+            response = self.packets.encode(plot)
 
-                return None, response
-            except SubscribeAndRetry:
-                raise
-            except Exception:
-                logging.exception("Exception in plot recalculation")
-
-                return traceback.format_exc(), None
-            finally:
-                self.packets.eraseUntouched()
-                self._resetSubscriptionsToViewReads(v)
+            return response
+        finally:
+            self.packets.eraseUntouched()
 
     def recalculate(self):
         if self.packets is None:
             self.packets = Packets(self.cells)
 
-        error, plotData = self.calculateErrorAndPlotData()
-
-        self.error.set(error)
+        plotData = self.calculateErrorAndPlotData()
 
         if plotData == self.exportData.get("plotData"):
             return
@@ -985,21 +968,20 @@ class WebglPlot(Cell):
 
             self.screenRectangle.set(
                 Rectangle(bottom=p[1], left=p[0], top=p[1] + s[1], right=p[0] + s[0]),
-                "client-message",
             )
             self.onMousePositionChanged(
-                None, self.mousePosition.getWithoutRegisteringDependency(), None
+                None, self.mousePosition.getWithoutRegisteringDependency()
             )
 
         if message.get("event") == "mouseenter":
             self.mousePosition.set(
-                {"x": message["x"], "y": message["y"], "mouseInside": True}, "client-message"
+                {"x": message["x"], "y": message["y"], "mouseInside": True}
             )
         if message.get("event") == "mouseleave":
             self.mousePosition.set(
-                {"x": message["x"], "y": message["y"], "mouseInside": False}, "client-message"
+                {"x": message["x"], "y": message["y"], "mouseInside": False}
             )
         if message.get("event") == "mousemove":
             self.mousePosition.set(
-                {"x": message["x"], "y": message["y"], "mouseInside": True}, "client-message"
+                {"x": message["x"], "y": message["y"], "mouseInside": True}
             )

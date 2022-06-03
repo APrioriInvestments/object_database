@@ -17,6 +17,10 @@
     align-items: stretch;
 }
 
+.seq-flex-wrap {
+    flex-wrap: wrap;
+}
+
 .sequence-vertical > .fill-space-vertical {
     flex: 1 1;
 }

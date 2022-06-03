@@ -18,7 +18,6 @@ import {CardTitle} from './components/CardTitle';
 import {CircleLoader} from './components/CircleLoader';
 import {Clickable} from './components/Clickable';
 import {Code} from './components/Code';
-import {CodeEditor} from './components/CodeEditor';
 import {CollapsiblePanel} from './components/CollapsiblePanel';
 import {Columns} from './components/Columns';
 import {ContextMenu} from './components/ContextMenu';
@@ -71,7 +70,6 @@ const ComponentRegistry = {
     CircleLoader,
     Clickable,
     Code,
-    CodeEditor,
     CollapsiblePanel,
     Columns,
     ConcreteCell,

@@ -731,9 +731,7 @@ class WebglPlot extends ConcreteCell {
         this.errorDiv = h('div',
             {
                 'style': 'position:absolute;height:100%;width:100%;top:0;left:0;pointer-events:none',
-                'class': 'allow-child-to-fill-space'
-            },
-            [this.renderChildNamed('errorCell')]
+            }
         );
 
         this.dragDiv = h(
@@ -846,6 +844,18 @@ class WebglPlot extends ConcreteCell {
 
     rebuildDomElement() {
         this.loadPacketIfNecessary();
+        this.rebuildErrorDisplay();
+    }
+
+    rebuildErrorDisplay() {
+        if (this.props.exception) {
+            ConcreteCell.replaceChildren(
+                this.errorDiv,
+                Cell.renderErrorDiv(this.props.exception)
+            );
+        } else {
+            ConcreteCell.replaceChildren(this.errorDiv, [])
+        }
     }
 
     loadPacketIfNecessary() {

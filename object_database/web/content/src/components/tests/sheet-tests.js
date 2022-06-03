@@ -37,7 +37,6 @@ let makeUpdateMessage = (compDescription) => {
     return Object.assign({}, compDescription, {
         channel: "#main",
         type: "#cellUpdated",
-        shouldDisplay: true
     });
 };
 
@@ -45,7 +44,6 @@ let makeCreateMessage = (compDescription) => {
     return Object.assign({}, compDescription, {
         channel: "#main",
         type: "#cellUpdated",
-        shouldDisplay: true
     });
 };
 

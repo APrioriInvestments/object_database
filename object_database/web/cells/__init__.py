@@ -2,6 +2,7 @@ from object_database.web.cells.cells import Cells
 from object_database.web.cells.cell import Cell, context
 from object_database.web.cells.main import Main
 from object_database.web.cells.root_cell import RootCell
+from object_database.web.cells.effect import Effect
 from object_database.web.cells.scrollable import (
     Scrollable,
     VScrollable,
@@ -39,7 +40,7 @@ from object_database.web.cells.container import Container
 from object_database.web.cells.deprecated import LargePendingDownloadDisplay
 from object_database.web.cells.panel import CollapsiblePanel, Panel
 from object_database.web.cells.non_builtin_cell import NonBuiltinCell
-
+from object_database.web.cells.cells_context import CellsContext
 from object_database.web.cells.popover import Popover
 from object_database.web.cells.tabs import Tabs
 from object_database.web.cells.sized import Sized
@@ -74,7 +75,6 @@ from object_database.web.cells.single_line_text_box import SingleLineTextBox
 from object_database.web.cells.slot import Slot
 from object_database.web.cells.computed_slot import ComputedSlot
 from object_database.web.cells.views.split_view import SplitView
-from object_database.web.cells.code_editor import CodeEditor
 from object_database.web.cells.editor.editor import Editor, OdbEditorState, SlotEditorState
 from object_database.web.cells.table import Table
 from object_database.web.cells.padding import Padding

@@ -175,7 +175,7 @@ class CellsSession:
                 cell = self.cells[cell_id]
 
                 if cell is not None:
-                    cell.onMessageWithCellContext(jsonMsg)
+                    cell.onMessage(jsonMsg)
 
             logging.info("Processed callback in cell with lag of %s", time.time() - t0)
 

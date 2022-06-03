@@ -172,9 +172,6 @@ class SessionState(object):
 
         return self._slots[name]
 
-    def setdefault(self, name, value):
-        self._odbStateFor(name, value)
-
     def set(self, name, value):
         self._odbStateFor(name).value = value
 
@@ -211,5 +208,13 @@ class SessionStateSlot:
                 return self.sessionState.get(self.name)
 
 
-def sessionState():
-    return context(SessionState)
+def sessionState(cell=None):
+    """Determine the current sessionState.
+
+    If cell is None then we must be in a recalculating cell. Otherwise, you may pass the
+    cell and we will return its session state.
+    """
+    if cell is None:
+        return context(SessionState)
+    else:
+        return cell.getContext(SessionState)

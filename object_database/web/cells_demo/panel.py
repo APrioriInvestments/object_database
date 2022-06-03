@@ -25,8 +25,8 @@ class BasicPanel(CellsTestPage):
 
     def text(self):
         return (
-            "Should see Text and Button Vert Sequence inside of a bordered panel,",
-            " taking up greedy space in both dimensions",
+            "Should see Text and Button Vert Sequence inside of a bordered panel,"
+            " taking up greedy space in both dimensions"
         )
 
 
@@ -43,8 +43,8 @@ class BasicPanelInFlexSequence(CellsTestPage):
 
     def text(self):
         return (
-            "Should see a flex parent vert sequence where the Panel is flexing as",
-            " the child, no longer taking up 100% in both dimensions (since we are flexing)",
+            "Should see a flex parent vert sequence where the Panel is flexing as"
+            " the child, no longer taking up 100% in both dimensions (since we are flexing)"
         )
 
 
@@ -56,9 +56,9 @@ class NestedVertFlexPanel(CellsTestPage):
 
     def text(self):
         return (
-            "Should see vertical sequence of two panels, the second is ",
+            "Should see vertical sequence of two panels, the second is "
             "flexed, first is shrinkwrapped vertically, and both expand "
-            "fully on horizontal axis",
+            "fully on horizontal axis"
         )
 
 
@@ -70,8 +70,8 @@ class NestedVertHorizPanel(CellsTestPage):
 
     def text(self):
         return (
-            "Should see horizontal sequence of two panels, the second is flexed,",
-            " first is shrinkwrapped horizontally, and both expand fully on horizontal axis",
+            "Should see horizontal sequence of two panels, the second is flexed,"
+            " first is shrinkwrapped horizontally, and both expand fully on horizontal axis"
         )
 
 
@@ -135,7 +135,7 @@ class PanelAndNestedFlexWithSwitching(CellsTestPage):
                         cells.Subscribed(
                             lambda: cells.Panel(
                                 cells.Subscribed(
-                                    lambda: cells.CodeEditor() if isSequence.get() else None
+                                    lambda: cells.Editor() if isSequence.get() else None
                                 )
                             )
                         )
@@ -147,7 +147,9 @@ class PanelAndNestedFlexWithSwitching(CellsTestPage):
                         cells.Subscribed(
                             lambda: cells.Panel(
                                 cells.Subscribed(
-                                    cells.WebglPlot(lambda: Plot.create([1, 2, 3], [1, 2, 3]))
+                                    lambda: cells.WebglPlot(
+                                        lambda: Plot.create([1, 2, 3], [1, 2, 3])
+                                    )
                                     if isSequence.get()
                                     else None
                                 )
@@ -172,7 +174,7 @@ def test_panel_and_nested_flex_handle_changed_child_size_correctly(headless_brow
     toggle_btn.click()
 
     def codeEditorHasSize(*args):
-        code_editor = headless_browser.find_by_css('[data-cell-type="CodeEditor"]')
+        code_editor = headless_browser.find_by_css('[data-cell-type="Editor"]')
 
         return code_editor.size["height"] > 10
 

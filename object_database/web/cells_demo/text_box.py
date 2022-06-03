@@ -1,6 +1,6 @@
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
-from object_database.web.cells.computing_cell_context import ComputingCellContext
+from object_database.web.cells.cells_context import CellsContext
 
 
 class SingleLineTextBox(CellsTestPage):
@@ -37,7 +37,7 @@ class MultifocusTextBox(CellsTestPage):
         box3 = cells.SingleLineTextBox("box3", textSize=28)
 
         def currentlyShowing():
-            focusedCell = ComputingCellContext.get().cells.focusedCell
+            focusedCell = CellsContext.get().focusedCell
 
             if focusedCell.get() is None:
                 return "Nothing Focused"
@@ -45,8 +45,8 @@ class MultifocusTextBox(CellsTestPage):
             if isinstance(focusedCell.get(), cells.SingleLineTextBox):
                 return "SingleLineTextBox holding " + focusedCell.get().currentText.get()
 
-            if isinstance(focusedCell.get(), cells.CodeEditor):
-                return "CodeEditor"
+            if isinstance(focusedCell.get(), cells.Editor):
+                return "Editor"
 
         box1Showing = cells.Slot(True)
         box2Showing = cells.Slot(True)

@@ -12,13 +12,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from object_database.web.cells.computing_cell_context import ComputingCellContext
 from object_database.web.cells.computed_slot import ComputedSlot
 from object_database.web.cells.cell import FocusableCell
 from object_database.web.cells.subscribed import Subscribed
 from object_database.web.cells.slot import Slot
+from object_database.web.cells.reactor import SlotWatcher
 from object_database.core_schema import core_schema
-from object_database.web.cells.session_state import sessionState
 from object_database.web.cells.editor.event_model import (
     eventsAreOnSameLine,
     eventsAreInSameUndoStream,
@@ -135,7 +134,7 @@ class EditorStateBase:
                     sectionNumber -= 1
                 else:
                     for j in range(i + 1, len(lines)):
-                        if lines[j].startswith("#-"):
+                        if lines[j].startswith("# - "):
                             return (i, j)
 
                     return (i, len(lines))
@@ -328,16 +327,36 @@ class Editor(FocusableCell):
         super().__init__()
 
         if editorState is not None:
+            assert isinstance(editorState, EditorStateBase)
             self.editorState = editorState
         else:
             self.editorState = SlotEditorState()
 
         self.stateSlot = self.editorState.getStateSlot()
-        self.stateSlot.addListener(self.onStateSlotChanged)
+        self.stateSlotWatcher = SlotWatcher(self.stateSlot, self.onStateSlotChanged)
+        self.reactors.add(self.stateSlotWatcher)
 
-        self.firstLineSlot = firstLineSlot
         self.lastLineSlot = lastLineSlot or Slot()
-        self.selectionSlot = selectionSlot
+
+        self.firstLineSlot = (
+            firstLineSlot or self.sessionStateSlot("EditorStateFirstVisibleRow")
+        )
+        self.firstLineSlotWatcher = SlotWatcher(
+            self.firstLineSlot,
+            self.onFirstLineSlotChanged
+        )
+        self.reactors.add(self.firstLineSlotWatcher)
+
+        self.selectionSlot = (
+            selectionSlot or self.sessionStateSlot("EditorStateSelectionState")
+        )
+        self.selectionSlotWatcher = SlotWatcher(
+            self.selectionSlot,
+            self.onSelectionSlotChanged
+        )
+        self.reactors.add(self.selectionSlotWatcher)
+
+        self.splitFractionSlot = splitFractionSlot or self.sessionStateSlot("SplitFraction")
 
         # storage for the username
         self.username = username
@@ -351,7 +370,10 @@ class Editor(FocusableCell):
         #           user
         #    username - the username associated. We'll display this in the editor.
         self.userSelectionSlot = self.editorState.getUserSelectionStateSlot()
-        self.userSelectionSlot.addListener(self.onUserSelectionSlotChanged)
+        self.userSelectionSlotWatcher = SlotWatcher(
+            self.userSelectionSlot, self.onUserSelectionSlotChanged
+        )
+        self.reactors.add(self.userSelectionSlotWatcher)
 
         self.sentEventIndex = None
 
@@ -376,12 +398,9 @@ class Editor(FocusableCell):
 
         self.sectionDisplayFun = sectionDisplayFun
 
-        self.splitFractionSlot = splitFractionSlot
-
     def scrollTo(self, firstLine):
         """Scroll so that 'firstLine' is the first visible line"""
         self.firstLineSlot.set(firstLine)
-        self.onFirstLineSlotChanged(None, firstLine, "navigateTo")
 
     def ensureVisible(self, lineNumber, buffer=1):
         """Ensure that lineNumber is visible with at least 'buffer' lines above/below it."""
@@ -428,13 +447,13 @@ class Editor(FocusableCell):
 
         self.ensureVisible(pos[0], 10)
 
-    def setContents(self, newContents, reason="server-push"):
-        event = computeDeltaEvent(self.getCurrentContents(), newContents, reason)
+    def setContents(self, newContents):
+        event = computeDeltaEvent(self.getCurrentContents(), newContents, "server-push")
 
         if event is None:
             return
 
-        curState = dict(self.getCurrentState())
+        curState = dict(self._getCurrentState())
 
         if not eventIsValidInContextOfLines(event, curState["lines"], curState["events"]):
             raise Exception("Computed an invalid event somehow")
@@ -446,10 +465,9 @@ class Editor(FocusableCell):
 
     def onRemovedFromTree(self):
         if self.userSelectionSlot is not None:
-
             def removeSelf():
                 content = dict(self.userSelectionSlot.get())
-                content.pop(self.editSessionId)
+                content.pop(self.editSessionId, None)
                 self.userSelectionSlot.set(content)
 
             self.cells.scheduleCallback(removeSelf)
@@ -467,10 +485,7 @@ class Editor(FocusableCell):
 
         return "\n".join(lines)
 
-    def onUserSelectionSlotChanged(self, oldVal, val, reason):
-        if not self.everCalculated:
-            return
-
+    def onUserSelectionSlotChanged(self, oldVal, val):
         # send this up to the client
         if val:
             self.scheduleMessage(
@@ -480,11 +495,8 @@ class Editor(FocusableCell):
                 )
             )
 
-    def onStateSlotChanged(self, oldVal, val, reason):
-        if not self.everCalculated:
-            return
-
-        serverState = self.getCurrentState()
+    def onStateSlotChanged(self, oldVal, val):
+        serverState = self._getCurrentState()
 
         if self.sentEventIndex > serverState["topEventIndex"]:
             # somehow we got into a bad state
@@ -529,7 +541,7 @@ class Editor(FocusableCell):
                     self.sentEventIndex = serverState["topEventIndex"]
 
     def triggerUndoOrRedo(self, isUndo):
-        currentState = self.getCurrentState()
+        currentState = self._getCurrentState()
 
         if isUndo:
             newEvents = computeUndoEvents(currentState["events"], self.editSessionId)
@@ -560,12 +572,10 @@ class Editor(FocusableCell):
             self.triggerUndoOrRedo(messageFrame.get("msg") == "triggerUndo")
 
         if messageFrame.get("msg") == "selectionState":
-            self.firstLineSlot.set(messageFrame.get("topLineNumber"), "server")
-            self.lastLineSlot.set(messageFrame.get("bottomLineNumber"), "server")
-            self.selectionSlot.set(messageFrame.get("currentCursors"), "server")
-
-            if self.splitFractionSlot is not None:
-                self.splitFractionSlot.set(messageFrame.get("splitFraction"))
+            self.firstLineSlotWatcher.setWithoutChange(messageFrame.get("topLineNumber"))
+            self.lastLineSlot.set(messageFrame.get("bottomLineNumber"))
+            self.selectionSlotWatcher.setWithoutChange(messageFrame.get("currentCursors"))
+            self.splitFractionSlot.set(messageFrame.get("splitFraction"))
 
             # tell the world about our selection!
             if self.userSelectionSlot is not None and self.username is not None:
@@ -600,7 +610,7 @@ class Editor(FocusableCell):
             for change in event["changes"]:
                 assert isinstance(change["lineIndex"], int), change["lineIndex"]
 
-            currentState = self.getCurrentState()
+            currentState = self._getCurrentState()
 
             isValidIndex = topEventIndex == currentState["topEventIndex"]
 
@@ -643,7 +653,7 @@ class Editor(FocusableCell):
                     self.editSessionId,
                 )
 
-    def getCurrentState(self):
+    def _getCurrentState(self):
         state = self.stateSlot.getWithoutRegisteringDependency()
 
         if state is None:
@@ -684,7 +694,7 @@ class Editor(FocusableCell):
         sectionKeys = set()
 
         # indices of each section header that's visible to us
-        sectionLineIndices = [ix for ix in range(0, lastLine) if state[ix].startswith("#-")]
+        sectionLineIndices = [ix for ix in range(0, lastLine) if state[ix].startswith("# - ")]
 
         for sectionIx, lineIx in enumerate(sectionLineIndices):
             sectionName = state[lineIx]
@@ -721,61 +731,35 @@ class Editor(FocusableCell):
         )
 
     def recalculate(self):
-        with ComputingCellContext(self):
-            with self.transaction() as v:
-                if self.userSelectionSlot:
-                    self.userSelectionSlot.get()
-                self.stateSlot.get()
-                self.contentsSlot.get()
+        if self.userSelectionSlot:
+            self.userSelectionSlot.get()
+        self.stateSlot.get()
+        self.contentsSlot.get()
 
-                if not self.everCalculated:
-                    # because our comms protocol with the client is
-                    # not as tight as we'd like, we need to be careful
-                    # not to leave the 'exportData' in place (since it might
-                    # be large), because we send it on every frame. the javascript
-                    # on the other side is careful to see this only on first render
-                    # and then take deltas only from messages.
-                    self.doFirstCalc()
-                    self.everCalculated = True
-                else:
-                    self.exportData.clear()
+        if not self.everCalculated:
+            # because our comms protocol with the client is
+            # not as tight as we'd like, we need to be careful
+            # not to leave the 'exportData' in place (since it might
+            # be large), because we send it on every frame. the javascript
+            # on the other side is careful to see this only on first render
+            # and then take deltas only from messages.
+            self.doFirstCalc()
+            self.everCalculated = True
+        else:
+            self.exportData.clear()
 
-                if self.sectionDisplayFun or self.overlayDisplayFun:
-                    self.recalculateSections()
+        if self.sectionDisplayFun or self.overlayDisplayFun:
+            self.recalculateSections()
 
-            self._resetSubscriptionsToViewReads(v)
+    def onFirstLineSlotChanged(self, oldVal, newVal):
+        self.scheduleMessage(dict(firstLine=newVal))
 
-    def onFirstLineSlotChanged(self, oldVal, newVal, reason):
-        if reason != "server":
-            self.scheduleMessage(dict(firstLine=newVal))
-
-    def onSelectionSlotChanged(self, oldVal, newVal, reason):
-        if reason != "server":
-            self.scheduleMessage(dict(selectionState=newVal))
+    def onSelectionSlotChanged(self, oldVal, newVal):
+        self.scheduleMessage(dict(selectionState=newVal))
 
     def doFirstCalc(self):
         # figure out the initial state of the editor
-        initData = collapseStateToTopmost(self.getCurrentState())
-
-        if self.firstLineSlot is None:
-            self.firstLineSlot = ComputedSlot(
-                sessionState()
-                .slotFor(self.identityPath + ("EditorStateFirstVisibleRow",))
-                .get,
-                sessionState()
-                .slotFor(self.identityPath + ("EditorStateFirstVisibleRow",))
-                .set,
-            )
-
-        self.firstLineSlot.addListener(self.onFirstLineSlotChanged)
-
-        if self.selectionSlot is None:
-            self.selectionSlot = ComputedSlot(
-                sessionState().slotFor(self.identityPath + ("EditorStateSelectionState",)).get,
-                sessionState().slotFor(self.identityPath + ("EditorStateSelectionState",)).set,
-            )
-
-        self.selectionSlot.addListener(self.onSelectionSlotChanged)
+        initData = collapseStateToTopmost(self._getCurrentState())
 
         # keep track of what we first told the editor was the state of the system
         self.sentEventIndex = initData["topEventIndex"]
@@ -801,8 +785,6 @@ class Editor(FocusableCell):
         self.exportData["readOnly"] = self.readOnly
         self.exportData["splitFraction"] = (
             (self.splitFractionSlot.getWithoutRegisteringDependency() or 0.5)
-            if self.splitFractionSlot is not None
-            else 0.5
         )
         self.exportData["darkMode"] = self.darkMode
         self.exportData["hasSectionHeaders"] = bool(

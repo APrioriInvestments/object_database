@@ -77,16 +77,18 @@ class DelayedRemoval(CellsTestPage):
         sub = cells.Subscribed(lambda: popover if slot.get() else cells.Text("empty"))
         text_sub = cells.Subscribed(lambda: cells.Text(text_slot.get()))
 
-        def worker(event):
-            event.wait(2)
-            slot.set(False)
+        curCells = cells.CellsContext.get()
+        import time
+
+        def worker():
+            time.sleep(2)
+            curCells.scheduleCallback(lambda: slot.set(False))
 
         def toggle():
             if slot.get():
                 event = threading.Event()
                 thread = threading.Thread(target=worker, args=(event,))
                 thread.start()
-                # slot.set(False)
                 text_slot.set("Off")
             else:
                 slot.set(True)

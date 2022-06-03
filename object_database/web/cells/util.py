@@ -14,19 +14,8 @@
 
 import time
 from object_database.view import current_transaction
-from object_database.web.cells.computing_cell_context import ComputingCellContext
+from object_database.web.cells.cells_context import CellsContext
 from object_database.util import Timer
-
-
-class DummyCell:
-    def __init__(self, cells):
-        self.cells = cells
-
-    def onWatchingSlot(self, slot):
-        pass
-
-    def subscribedSlotChanged(self, slot):
-        pass
 
 
 def wrapCallback(callback):
@@ -34,11 +23,11 @@ def wrapCallback(callback):
 
     This must be called from within a 'cell' or message update.
     """
-    cells = ComputingCellContext.get().cells
+    cells = CellsContext.get()
 
     def realCallback(*args, **kwargs):
         def innerCallback():
-            with ComputingCellContext(DummyCell(cells)):
+            with CellsContext(cells):
                 callback(*args, **kwargs)
 
         cells.scheduleCallback(innerCallback)

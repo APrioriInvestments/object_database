@@ -18,7 +18,7 @@ from object_database.web.cells.padding import Padding
 from object_database.web.cells.card import Card
 from object_database.web.cells.slot import Slot
 from object_database.web.cells.computed_slot import ComputedSlot
-from object_database.web.cells.subscribed import Subscribed, SubscribeAndRetry
+from object_database.web.cells.subscribed import Subscribed
 from object_database.web.cells.button import Clickable, Button
 from object_database.web.cells.single_line_text_box import SingleLineTextBox
 from object_database.web.cells.leaves import Octicon, Text
@@ -33,7 +33,7 @@ class TableHeader(Cell):
 
     def __init__(
         self,
-        colFun,
+        columnsSlot,
         headerFun,
         sortColumnSlot,
         sortAscendingSlot,
@@ -44,7 +44,7 @@ class TableHeader(Cell):
     ):
         super().__init__()
 
-        self.colFun = colFun
+        self.columnsSlot = columnsSlot
 
         self.sortColumnSlot = sortColumnSlot
         self.sortAscendingSlot = sortAscendingSlot
@@ -104,16 +104,7 @@ class TableHeader(Cell):
         return Card(Left(pageCell >> Padding() >> leftCell >> rightCell), padding=1)
 
     def recalculate(self):
-        with self.transaction() as v:
-            try:
-                self.cols = list(self.colFun())
-            except SubscribeAndRetry:
-                raise
-            except Exception:
-                logging.exception("Col fun calc threw an exception:")
-                self.cols = []
-
-            self._resetSubscriptionsToViewReads(v)
+        self.cols = self.columnsSlot.get()
 
         self.children["cells"] = [Subscribed(lambda: self.buildPageWidget())] + [
             self.makeHeaderCell(i) for i in range(len(self.cols))
@@ -171,32 +162,21 @@ class TableHeader(Cell):
 class TableRow(Cell):
     """A single row in a table."""
 
-    def __init__(self, colFun, rendererFun, rowKey):
+    def __init__(self, columnsSlot, rendererFun, rowKey):
         super().__init__()
 
-        self.colFun = colFun
+        self.columnsSlot = columnsSlot
         self.rendererFun = rendererFun
         self.rowKey = rowKey
         self.cols = []
 
     def recalculate(self):
-        with self.transaction() as v:
-            try:
-                self.cols = list(self.colFun())
-            except SubscribeAndRetry:
-                raise
-            except Exception:
-                logging.exception("Col fun calc threw an exception:")
-                self.cols = []
+        self.cols = self.columnsSlot.get()
 
-            self._resetSubscriptionsToViewReads(v)
-
-            def makeRenderSubscribed(col):
-                return Subscribed(lambda: Cell.makeCell(self.rendererFun(self.rowKey, col)))
-
-            self.children["cells"] = [Text("")] + [
-                makeRenderSubscribed(col) for col in self.cols
-            ]
+        self.children["cells"] = [Text("")] + [
+            Subscribed.bind(self.rendererFun, self.rowKey, col)
+            for col in self.cols
+        ]
 
 
 def sortedRowsComputedSlot(
@@ -303,6 +283,10 @@ class Table(Cell):
         # should we sort ascending or descending
         self.sortColumnAscendingSlot = Slot(sortColumnAscending)
 
+        self.columnsComputedSlot = ComputedSlot(
+            lambda: list(self.colFun())
+        )
+
         self.sortedRowsSlot = sortedRowsComputedSlot(
             self.rowFun,
             self.rendererFun,
@@ -312,7 +296,7 @@ class Table(Cell):
         )
 
         self.children["header"] = TableHeader(
-            self.colFun,
+            self.columnsComputedSlot,
             self.headerFun,
             self.sortColumnSlot,
             self.sortColumnAscendingSlot,
@@ -329,32 +313,23 @@ class Table(Cell):
         if not self.garbageCollected:
             return False
 
-        self._clearSubscriptions()
-
         self.rowDict = {}
         self.curPageSlot.set(0)
 
         super().prepareForReuse()
 
     def recalculate(self):
+        # check that this isn't throwing an exception.
+        self.columnsComputedSlot.get()
+
         # first, determine what the _set_ of rows we're going to use is
-        with self.transaction() as v:
-            try:
-                rowKeys = self.sortedRowsSlot.get()
+        rowKeys = self.sortedRowsSlot.get()
 
-                # now filter them for the current page
-                rowMin = self.curPageSlot.get() * self.maxRowsPerPage
-                rowMax = (self.curPageSlot.get() + 1) * self.maxRowsPerPage
+        # now filter them for the current page
+        rowMin = self.curPageSlot.get() * self.maxRowsPerPage
+        rowMax = (self.curPageSlot.get() + 1) * self.maxRowsPerPage
 
-                self.rowKeys = rowKeys[rowMin:rowMax]
-
-            except SubscribeAndRetry:
-                raise
-            except Exception:
-                logging.exception("Row fun calc threw an exception:")
-                self.rowKeys = []
-
-            self._resetSubscriptionsToViewReads(v)
+        self.rowKeys = rowKeys[rowMin:rowMax]
 
         # build a list of row cells
         rowCells = []
@@ -362,7 +337,11 @@ class Table(Cell):
 
         for rowKey in self.rowKeys:
             if rowKey not in self.rowDict:
-                self.rowDict[rowKey] = TableRow(self.colFun, self.rendererFun, rowKey)
+                self.rowDict[rowKey] = TableRow(
+                    self.columnsComputedSlot,
+                    self.rendererFun,
+                    rowKey
+                )
 
             rowCells.append(self.rowDict[rowKey])
 

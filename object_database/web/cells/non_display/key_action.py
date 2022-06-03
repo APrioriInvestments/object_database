@@ -65,7 +65,6 @@ class KeyAction(Cell):
         preventDefault=False,
     ):
         super().__init__()
-        self.shouldDisplay = False
         self.keyCmd = keyCmd
         self.callback = callback
         self.stopPropagation = stopPropagation

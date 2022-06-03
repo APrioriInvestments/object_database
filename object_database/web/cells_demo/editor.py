@@ -58,14 +58,17 @@ class EditorDemo(CellsTestPage):
         )
 
     def text(self):
-        return "You should see text editor."
+        return (
+            "You should see two text editors each of which has a 'commitDelay'. You should "
+            "be able to type in either of them and get consistent results despite the delay."
+        )
 
 
 class EditorSectionDemo(CellsTestPage):
     def cell(self):
         slotState = cells.Slot(0)
 
-        edState = cells.SlotEditorState("#-asdf\n\n#-bsdf\n\n")
+        edState = cells.SlotEditorState("# - asdf\n\n# - bsdf\n\n")
 
         def sectionDisplayFun(sectionName, sectionNumber):
             if slotState.get() % 3 == 0:
@@ -81,4 +84,7 @@ class EditorSectionDemo(CellsTestPage):
         )
 
     def text(self):
-        return "You should see text editor."
+        return (
+            "You should see a text editor with a 'sections' display to the right. "
+            "There should be a section for every line starting with '# - '."
+        )

@@ -153,7 +153,7 @@ def isValidEvent(event):
     if event["undoState"] not in (None, "undo", "redo"):
         return False
 
-    if not isinstance(event["editSessionId"], str):
+    if not isinstance(event["editSessionId"], str) and event["editSessionId"] is not None:
         return False
 
     if not isinstance(event["reason"], (str, dict)):

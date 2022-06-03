@@ -68,7 +68,6 @@ class NonBuiltinCellDemo(CellsTestPage):
 
 
 def test_nonbuiltin_cells(headless_browser):
-    # Click the button, then see if the CodeEditor shows
     headless_browser.load_demo_page(NonBuiltinCellDemo)
 
     location = (headless_browser.by.CSS_SELECTOR, '[data-cell-type="MakePink"]')
@@ -89,7 +88,7 @@ class NonBuiltinPacketCellDemo(CellsTestPage):
         import textwrap
 
         class SendAPacket(cells.NonBuiltinCell):
-            def __init__(self, subcell):
+            def __init__(self):
                 super().__init__()
 
             def recalculate(self):
@@ -109,19 +108,18 @@ class NonBuiltinPacketCellDemo(CellsTestPage):
                                 super(props, ... args);
                             }
                             build() {
+                                this.subdiv = Cell.makeDomElt('div', {}, []);
+
                                 if (this.props.packetId) {
                                     this.requestPacket(this.props.packetId,
                                         (packetId, response) => {
-                                            console.log(response);
+                                            this.subdiv.innerText =
+                                                "Packet returned buffer: " + response;
                                         }
                                     )
                                 }
 
-                                return Cell.makeDomElt(
-                                    'div',
-                                    {class: 'pink-cell'},
-                                    [this.renderChildNamed('child')]
-                                );
+                                return this.subdiv;
                             }
                         }
 
@@ -134,7 +132,7 @@ class NonBuiltinPacketCellDemo(CellsTestPage):
             def getCssRules(cls):
                 return ""
 
-        return SendAPacket("some pink text")
+        return SendAPacket()
 
     def text(self):
-        return "You should see some text in pink."
+        return "You should see some text indicating that we can load a packet."

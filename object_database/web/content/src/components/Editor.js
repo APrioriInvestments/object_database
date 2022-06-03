@@ -34,7 +34,7 @@ class Constants {
         this.autoscrollDelayMs = 50;
 
         this.renderSections = true;
-        this.sectionStarter = '#-';
+        this.sectionStarter = '# - ';
 
         this.stringColor = '#777777';
         this.commentColor = '#777777';

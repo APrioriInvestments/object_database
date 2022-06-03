@@ -97,8 +97,9 @@ class CellsTestService(ServiceBase):
 
                 return cell
 
-            contentsBuffer = cells.Slot(sourcePageContents)
-            contentsToEvaluate = cells.Slot(contentsBuffer.getWithoutRegisteringDependency())
+            edState = cells.SlotEditorState(sourcePageContents)
+
+            contentsToEvaluate = cells.Slot(sourcePageContents)
 
             def actualDisplay():
                 if contentsToEvaluate.get() is not None:
@@ -115,15 +116,16 @@ class CellsTestService(ServiceBase):
 
                 return page.cell.tagged("demo_root")
 
-            def onEnter(buffer, selection):
-                contentsToEvaluate.set(buffer)
+            def onEnter(event):
+                contentsToEvaluate.set(edState.getCurrentState())
 
-            ed = cells.CodeEditor(
-                keybindings={"Enter": onEnter},
-                noScroll=True,
-                minLines=20,
-                onTextChange=lambda buffer, selection: contentsBuffer.set(buffer),
-                textToDisplayFunction=lambda: contentsBuffer.get(),
+            ed = cells.Editor(
+                editorState=edState
+            ) + cells.KeyAction(
+                "ctrlKey+Enter",
+                onEnter,
+                stopPropagation=True,
+                preventDefault=True
             )
 
             description = page.text()

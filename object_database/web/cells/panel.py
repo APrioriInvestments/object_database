@@ -66,7 +66,8 @@ class CollapsiblePanel(Cell):
         return self.content.sortsAs()
 
     def recalculate(self):
-        expanded = self.evaluateWithDependencies(self.isExpanded)
+        expanded = self.isExpanded()
+
         self.exportData["isExpanded"] = expanded
         self.children["content"] = self.content
         if expanded:

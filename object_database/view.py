@@ -111,6 +111,9 @@ class View(object):
     def getIndexReads(self):
         return self._view.extractIndexReads()
 
+    def getIndexWrites(self):
+        return set(self._view.extractSetAdds()) | set(self._view.extractSetRemoves())
+
     def commit(self):
         if not self._writeable:
             raise Exception("Views are static. Please open a transaction.")

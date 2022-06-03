@@ -106,8 +106,8 @@ class Sheet(FocusableCell):
             #   'selection': ((x0,y0), (x1,y1))
             # }
             self.uiStateSlot = ComputedSlot(
-                sessionState().slotFor(self.identityPath + ("SheetUiState",)).get,
-                sessionState().slotFor(self.identityPath + ("SheetUiState",)).set,
+                sessionState(self).slotFor(self.identityPath + ("SheetUiState",)).get,
+                sessionState(self).slotFor(self.identityPath + ("SheetUiState",)).set,
             )
 
             curUiState = self.uiStateSlot.getWithoutRegisteringDependency()
@@ -118,8 +118,7 @@ class Sheet(FocusableCell):
                 self.exportData["initVisibleCorner"] = curUiState["visibleCorner"]
                 self.exportData["initSelection"] = curUiState["selection"]
 
-            with self.view():
-                rows = self.rowFun(0, 99, 0, 30)
+            rows = self.rowFun(0, 99, 0, 30)
 
             if isinstance(rows, RowsPromise):
                 if rows.results is not None:
@@ -164,4 +163,4 @@ class Sheet(FocusableCell):
             assert "visibleCorner" in newState
             assert "selection" in newState
 
-            self.uiStateSlot.set(newState, reason="client update")
+            self.uiStateSlot.set(newState)

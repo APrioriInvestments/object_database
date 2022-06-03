@@ -2,7 +2,7 @@
  * Sequence Cell Cell
  */
 
-import {Cell, replaceChildren, makeDomElt} from './Cell';
+import {Cell, replaceChildren, makeDomElt as h} from './Cell';
 
 class Sequence extends Cell {
     constructor(props, ...args) {
@@ -38,6 +38,10 @@ class Sequence extends Cell {
     }
 
     _computeFillSpacePreferences() {
+        if (this.props.exception) {
+            return {horizontal: true, vertical: true};
+        }
+
         var children = this.namedChildren['elements'];
 
         let horiz = false;
@@ -138,7 +142,7 @@ class Sequence extends Cell {
         this.domChildren = null;
 
         if (this.domElement === null) {
-            this.domElement = makeDomElt('div', {
+            this.domElement = h('div', {
                 class: this.makeClass(),
                 id: this.getElementId(),
                 "data-cell-id": this.identity,
@@ -173,16 +177,20 @@ class Sequence extends Cell {
     makeElements(){
         let result = [];
 
-        this.namedChildren['elements'].forEach(childCell => {
-            // we're vertical. Get ask our child cells to unpack themselves.
-            let domElts = childCell.buildDomSequenceChildren(this.props.orientation == 'horizontal');
+        if (this.props.exception) {
+            result.push(Cell.renderErrorDiv(this.props.exception));
+        } else {
+            this.namedChildren['elements'].forEach(childCell => {
+                // we're vertical. Get ask our child cells to unpack themselves.
+                let domElts = childCell.buildDomSequenceChildren(this.props.orientation == 'horizontal');
 
-            domElts.forEach(childDom => {
-                if (childDom !== null) {
-                    result.push(childDom);
-                }
+                domElts.forEach(childDom => {
+                    if (childDom !== null) {
+                        result.push(childDom);
+                    }
+                });
             });
-        });
+        }
 
         return result;
     }

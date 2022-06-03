@@ -1,4 +1,3 @@
-//import {langTools} from 'ace/ext/language_tools';
 import {CellHandler} from './CellHandler';
 import {CellSocket} from './CellSocket';
 import {ComponentRegistry} from './ComponentRegistry';
@@ -9,7 +8,6 @@ import {Cell, render} from './components/Cell';
 /**
  * Globals
  **/
-window.langTools = ace.require("ace/ext/language_tools");
 window.keyRegistry = new KeyRegistry();
 
 // disable 'tab' from flowing through

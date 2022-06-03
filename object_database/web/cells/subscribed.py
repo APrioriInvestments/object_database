@@ -14,10 +14,7 @@
 
 
 from object_database.web.cells.cell import Cell
-from object_database.web.cells.cells import SubscribeAndRetry
-from object_database.web.cells.leaves import Traceback
 
-import traceback
 import logging
 
 
@@ -50,6 +47,10 @@ class Subscribed(Cell):
         self.childIdentity = childIdentity
         self.onRemovedCallback = onRemoved
 
+    @staticmethod
+    def bind(func, *args, **kwargs):
+        return Subscribed(lambda: func(*args, **kwargs))
+
     def onRemovedFromTree(self):
         if self.onRemovedCallback is not None:
             try:
@@ -64,7 +65,6 @@ class Subscribed(Cell):
     def prepareForReuse(self):
         if not self.garbageCollected:
             return False
-        self._clearSubscriptions()
         return super().prepareForReuse()
 
     def __repr__(self):
@@ -90,23 +90,8 @@ class Subscribed(Cell):
         return Cell.makeCell(self.cellFactory()).sortsAs()
 
     def recalculate(self):
-        with self.transaction() as v:
-            try:
-                newCell = Cell.makeCell(self.cellFactory())
-
-                if newCell.cells is not None:
-                    newCell.prepareForReuse()
-
-                self.children["content"] = newCell
-
-            except SubscribeAndRetry:
-                raise
-            except Exception:
-                tracebackCell = Traceback(traceback.format_exc())
-                self.children["content"] = tracebackCell
-                logging.exception("Subscribed inner function threw exception:")
-
-            self._resetSubscriptionsToViewReads(v)
+        newCell = Cell.makeCell(self.cellFactory())
+        self.children["content"] = newCell
 
 
 class SubscribedSequence(Cell):
@@ -162,7 +147,7 @@ class SubscribedSequence(Cell):
         self.itemsFun = itemsFun
         self.rendererFun = rendererFun
         self.existingItems = {}
-        self.items = []
+        self.keysAndCounts = []
 
         assert orientation in ("horizontal", "vertical")
 
@@ -172,59 +157,28 @@ class SubscribedSequence(Cell):
     def cellJavascriptClassName(self):
         return "Sequence"
 
-    def makeCell(self, item):
-        """Makes a Cell instance from an object.
-        Note that we also wrap this in a
-        `Subscribed` instance.
-
-        Parameters
-        ----------
-        item: object
-            An item that will be turned into a Cell
-
-        Returns
-        -------
-        A Cell instance
-        """
-        return Cell.makeCell(self.rendererFun(item))
-
     def recalculate(self):
-        with self.transaction() as v:
-            self._getItems()
-            self._resetSubscriptionsToViewReads(v)
-            self._updateExistingItems()
-            self._updateChildren()
+        self.exportData['orientation'] = self.orientation
 
-            self.exportData["orientation"] = self.orientation
+        self.keysAndCounts = augmentToBeUnique(
+            self.itemsFun()
+        )
 
-    def _updateChildren(self):
-        """Updates the stored children and namedChildren
+        # walk over each item and remove it from the existing items if we already have it
+        newKeysAndCounts = set(self.keysAndCounts)
 
-        Notes
-        -----
-        First we check to ensure that any new item
-        hasn't already been made into a Cell via
-        the existingItems cache.
-        Otherwise we use makeCell to create a new
-        instance.
-        """
+        for item in list(self.existingItems):
+            if item not in newKeysAndCounts:
+                del self.existingItems[item]
+
+        # then build children for each item internally as well
         new_children = []
-        current_child = None
-        for item in self.items:
+        for item in self.keysAndCounts:
             if item in self.existingItems:
                 current_child = self.existingItems[item]
             else:
-                try:
-                    # the items in 'existingItems' are pairs of (key, timesKeySeen)
-                    # which we created using 'augmentToBeUnique', so that we have a separate
-                    # unique key for each cell we create (since the 'itemsFun' might produce
-                    # duplicate values.)
-                    current_child = self.makeCell(item[0])
-                    self.existingItems[item] = current_child
-                except SubscribeAndRetry:
-                    raise
-                except Exception:
-                    current_child = Traceback(traceback.format_exc())
+                current_child = Subscribed.bind(self.rendererFun, item[0])
+                self.existingItems[item] = current_child
 
             new_children.append(current_child)
 
@@ -233,28 +187,6 @@ class SubscribedSequence(Cell):
     def sortsAs(self):
         if len(self.children["elements"]):
             return self.children["elements"][0].sortsAs()
-
-    def _getItems(self):
-        """Retrieves the items using itemsFunc
-        and updates this object's internal items
-        list"""
-        try:
-            self.items = augmentToBeUnique(self.itemsFun())
-        except SubscribeAndRetry:
-            raise
-        except Exception:
-            logging.exception("SubscribedSequence itemsFun threw exception:")
-            self.items = []
-
-    def _updateExistingItems(self):
-        """Updates the dict storing cached
-        Cells that were already created.
-        Note that we might need to remove
-        some entries that no longer apply"""
-        itemSet = set(self.items)
-        for item in list(self.existingItems):
-            if item not in itemSet:
-                del self.existingItems[item]
 
 
 def HorizontalSubscribedSequence(itemsFun, rendererFun):

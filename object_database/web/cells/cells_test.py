@@ -137,6 +137,44 @@ class CellsTests(unittest.TestCase):
             Thing(x=1, k=1)
             Thing(x=2, k=2)
 
+    def test_slot_and_computed_slot_interaction(self):
+        slot = Slot(None)
+
+        counts = []
+
+        cs1 = ComputedSlot(slot.get, slot.set)
+        cs2 = ComputedSlot(slot.get, slot.set)
+
+        cs1._name = "cs1"
+        cs2._name = "cs2"
+
+        cs1.addListener(lambda *args: counts.append((1,) + args))
+        cs2.addListener(lambda *args: counts.append((2,) + args))
+
+        s1 = Subscribed(lambda: cs1.get())
+        s2 = Subscribed(lambda: cs2.get())
+
+        self.cells.withRoot(s1 + s2)
+
+        self.cells.renderMessages()
+
+        assert len(counts) == 0
+        assert len(slot._subscribedCells) == 2
+
+        cs1.set(10)
+        self.cells.renderMessages()
+
+        assert len(counts) == 2
+        assert len(slot._subscribedCells) == 2
+
+        cs1.set(20)
+        self.cells.renderMessages()
+        assert len(counts) == 4
+
+        cs2.set(30)
+        self.cells.renderMessages()
+        assert len(counts) == 6
+
     def test_cells_reusable(self):
         c1 = Card(Text("HI"))
         c2 = Card(Text("HI2"))

@@ -1,3 +1,10 @@
+from object_database.web.cells.editor.event_model import (
+    isValidEvent,
+    eventIsValidInContextOfLines,
+    applyEventsToLines,
+    computeUndoEvents,
+    computeRedoEvents,
+)
 from object_database.web.cells.editor.editor import compressState, computeStateFromEvents
 import numpy.random
 
@@ -9,9 +16,24 @@ class EditorModel:
         self.events = []
         self.topEventIndex = 0
 
+    def pushEvent(self, event):
+        assert isValidEvent(event)
+        assert eventIsValidInContextOfLines(event, self.lines, [])
+        self.events.append(event)
+        self.topEventIndex += 1
+
+        applyEventsToLines(self.lines, [event])
+
+    def undo(self):
+        for e in computeUndoEvents(self.events, "session"):
+            self.pushEvent(e)
+
+    def redo(self):
+        for e in computeRedoEvents(self.events, "session"):
+            self.pushEvent(e)
+
     def insertLine(self, index, value, reason):
-        self.lines[index:index] = [value]
-        self.events.append(
+        self.pushEvent(
             dict(
                 changes=[dict(lineIndex=index, oldLines=[], newLines=[value])],
                 startCursors=[],
@@ -22,10 +44,9 @@ class EditorModel:
                 reason=reason,
             )
         )
-        self.topEventIndex += 1
 
     def removeLine(self, index, reason):
-        self.events.append(
+        self.pushEvent(
             dict(
                 changes=[dict(lineIndex=index, oldLines=[self.lines[index]], newLines=[])],
                 startCursors=[],
@@ -36,11 +57,9 @@ class EditorModel:
                 reason=reason,
             )
         )
-        self.lines[index : index + 1] = []
-        self.topEventIndex += 1
 
     def editLine(self, index, newValue, reason):
-        self.events.append(
+        self.pushEvent(
             dict(
                 changes=[
                     dict(lineIndex=index, oldLines=[self.lines[index]], newLines=[newValue])
@@ -53,8 +72,6 @@ class EditorModel:
                 reason=reason,
             )
         )
-        self.lines[index] = newValue
-        self.topEventIndex += 1
 
     def compress(self, maxTimestamp=None, maxWordUndos=0, maxLineUndos=10000):
         assert computeStateFromEvents(self.initLines, self.events) == "\n".join(self.lines)
@@ -112,3 +129,30 @@ def test_compression_random():
             em.editLine(lineIndex, em.lines[lineIndex] + char, reason={"keystroke": char})
 
         em.compress(maxWordUndos=20, maxLineUndos=200)
+
+
+def test_undo():
+    em = EditorModel()
+    em.editLine(0, "a", {"keystroke": "a"})
+    em.insertLine(1, "", {"keystroke": "Enter"})
+    em.editLine(1, "b", {"keystroke": "b"})
+    em.insertLine(2, "", {"keystroke": "Enter"})
+    em.editLine(2, "c", {"keystroke": "c"})
+    em.undo()
+
+    print(em.lines)
+    em.undo()
+
+    print(em.lines)
+    em.undo()
+
+    print(em.lines)
+    em.undo()
+
+    print(em.lines)
+    em.undo()
+
+    print(em.lines)
+    em.undo()
+
+    print(em.lines)

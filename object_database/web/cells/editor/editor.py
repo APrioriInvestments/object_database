@@ -19,242 +19,20 @@ from object_database.web.cells.subscribed import Subscribed
 from object_database.web.cells.slot import Slot
 from object_database.core_schema import core_schema
 from object_database.web.cells.session_state import sessionState
+from object_database.web.cells.editor.event_model import (
+    eventsAreOnSameLine,
+    eventsAreInSameUndoStream,
+    collapseEvents,
+    computeUndoEvents,
+    computeRedoEvents,
+    eventIsValidInContextOfLines,
+    eventsAreValidInContextOfLines,
+    computeStateFromEvents,
+)
 
 import logging
 import time
 import uuid
-
-
-def eventsAreInSameUndoStream(e1, e2):
-    """Determine if events e1 and e2 should be undone/redone as a group.
-
-    Generally, we want two events to "go together" if they are a sequence of keystrokes
-    that didn't create a newline and where their cursors are contiguous.
-    """
-    if e1["newCursors"] != e2["startCursors"]:
-        return False
-
-    if "reason" not in e1 or "reason" not in e2:
-        return False
-
-    if "keystroke" not in e1["reason"] or "keystroke" not in e2["reason"]:
-        return False
-
-    stroke1 = e1["reason"]["keystroke"]
-    stroke2 = e2["reason"]["keystroke"]
-
-    stroke1Cat = "space" if stroke1 == " " else "newline" if stroke1 == "Enter" else "char"
-    stroke2Cat = "space" if stroke2 == " " else "newline" if stroke2 == "Enter" else "char"
-
-    return stroke1Cat == stroke2Cat
-
-
-def collapseChanges(changes):
-    # a very simple change-collapsing algorithm - only collapse those things that are
-    # consecutive
-    changes = list(changes)
-
-    i = 0
-
-    while i + 1 < len(changes):
-        # determine the range affected on the set of lines that are shared
-        # (the set of lines after change[i] and before [i + 1])
-        l0 = changes[i]["lineIndex"]
-        l1 = changes[i]["lineIndex"] + len(changes[i]["newLines"])
-
-        r0 = changes[i + 1]["lineIndex"]
-        r1 = changes[i + 1]["lineIndex"] + len(changes[i + 1]["oldLines"])
-
-        mergedChange = None
-
-        if l0 <= r1 and r0 <= l1:
-            oldLines = changes[i]["oldLines"]
-
-            if r0 < l0:
-                oldLines = changes[i + 1]["oldLines"][: l0 - r0] + oldLines
-
-            if r1 > l1:
-                oldLines = oldLines + changes[i + 1]["oldLines"][-(r1 - l1) :]
-
-            newLines = changes[i + 1]["newLines"]
-
-            if l0 < r0:
-                newLines = changes[i]["newLines"][: r0 - l0] + newLines
-
-            if l1 > r1:
-                newLines = newLines + changes[i]["newLines"][-(l1 - r1) :]
-
-            mergedChange = dict(
-                lineIndex=min(changes[i]["lineIndex"], changes[i + 1]["lineIndex"]),
-                oldLines=oldLines,
-                newLines=newLines,
-            )
-
-        if mergedChange is not None:
-            changes[i] = None
-            changes[i + 1] = mergedChange
-        else:
-            # over time this acts like a bubble sort, moving changes together
-            # that could be merged
-            if changes[i + 1]["lineIndex"] < changes[i]["lineIndex"]:
-                # they're out of order and disjoint, so we can swap them
-                c1 = dict(changes[i])
-                c2 = dict(changes[i + 1])
-
-                c1["lineIndex"] += len(c2["newLines"]) - len(c2["oldLines"])
-
-                changes[i] = c2
-                changes[i + 1] = c1
-
-        i += 1
-
-    return list(x for x in changes if x is not None)
-
-
-def collapseEvents(e1, e2):
-    changes = e1["changes"] + e2["changes"]
-    newChanges = collapseChanges(changes)
-
-    return dict(
-        changes=newChanges,
-        startCursors=e1["startCursors"],
-        newCursors=e2["newCursors"],
-        timestamp=e2["timestamp"],
-        undoState=e2["undoState"],
-        editSessionId=e2["editSessionId"],
-        reason=e2["reason"],
-    )
-
-
-def reverseChange(c):
-    return dict(oldLines=c["newLines"], newLines=c["oldLines"], lineIndex=c["lineIndex"])
-
-
-def reverseEvent(event, isForUndo, curEditSessionId=None):
-    undoState = None
-    if isForUndo:
-        if event.get("undoState") == "undo":
-            undoState = "redo"
-        else:
-            undoState = "undo"
-
-    return dict(
-        changes=[reverseChange(c) for c in reversed(event["changes"])],
-        startCursors=event["newCursors"],
-        newCursors=event["startCursors"],
-        timestamp=time.time() if isForUndo else event["timestamp"],
-        undoState=undoState,
-        editSessionId=curEditSessionId if isForUndo else event["editSessionId"],
-        reason=event["reason"],
-    )
-
-
-def eventsAreOnSameLine(e1, e2):
-    lines1 = set()
-    lines2 = set()
-    for c in e1["changes"]:
-        lines1.add(c["lineIndex"])
-        if len(c["oldLines"]) != 1 or len(c["newLines"]) != 1:
-            return False
-
-    for c in e2["changes"]:
-        lines2.add(c["lineIndex"])
-        if len(c["oldLines"]) != 1 or len(c["newLines"]) != 1:
-            return False
-
-    return lines1 == lines2
-
-
-def computeNextUndoIx(events, pendingUndos=1):
-    i = len(events) - 1
-
-    while i >= 0 and pendingUndos > 0:
-        if events[i]["undoState"] is None:
-            i -= 1
-            pendingUndos -= 1
-        elif events[i]["undoState"] == "undo":
-            i -= 1
-            pendingUndos += 1
-        elif events[i]["undoState"] == "redo":
-            i -= 1
-            pendingUndos -= 1
-
-    if pendingUndos > 0:
-        return None
-
-    return i + 1
-
-
-def computeNextRedoIx(events, pendingRedos=1):
-    i = len(events) - 1
-
-    while i >= 0 and pendingRedos:
-        if events[i]["undoState"] is None:
-            return None
-        elif events[i]["undoState"] == "undo":
-            i -= 1
-            pendingRedos -= 1
-        elif events[i]["undoState"] == "redo":
-            i -= 1
-            pendingRedos += 1
-
-    if pendingRedos:
-        return None
-
-    return i + 1
-
-
-def computeUndoEvents(events, curEditSessionId):
-    """Given a stream of events, return an event that "undoes" the top event."""
-    i = computeNextUndoIx(events)
-
-    res = []
-
-    if i is None:
-        return res
-
-    res.append(reverseEvent(events[i], True, curEditSessionId))
-
-    while True:
-        i2 = computeNextUndoIx(events, 1 + len(res))
-
-        if i2 is None:
-            return res
-
-        assert i2 < i
-
-        if not eventsAreInSameUndoStream(events[i2], events[i]):
-            return res
-
-        res.append(reverseEvent(events[i2], True, curEditSessionId))
-
-        i = i2
-
-
-def computeRedoEvents(events, curEditSessionId):
-    i = computeNextRedoIx(events)
-
-    if i is None:
-        return []
-
-    res = []
-
-    res.append(reverseEvent(events[i], True, curEditSessionId))
-
-    while True:
-        i2 = computeNextRedoIx(events, 1 + len(res))
-
-        if i2 is None:
-            return res
-
-        assert i2 < i
-
-        if not eventsAreInSameUndoStream(events[i2], events[i]):
-            return res
-
-        res.append(reverseEvent(events[i2], True, curEditSessionId))
-
-        i = i2
 
 
 def compressState(state, maxTimestamp, maxWordUndos=1000, maxLineUndos=10000):
@@ -302,17 +80,6 @@ def compressState(state, maxTimestamp, maxWordUndos=1000, maxLineUndos=10000):
     assert state1 == state2, (state1, state2)
 
     return dict(lines=lines, topEventIndex=state["topEventIndex"], events=events)
-
-
-def computeStateFromEvents(lines, events):
-    lines = list(lines)
-
-    for event in events:
-        for change in event["changes"]:
-            ix = change["lineIndex"]
-            lines[ix : ix + len(change["oldLines"])] = change["newLines"]
-
-    return "\n".join(lines)
 
 
 def collapseStateToTopmost(state):
@@ -668,6 +435,10 @@ class Editor(FocusableCell):
             return
 
         curState = dict(self.getCurrentState())
+
+        if not eventIsValidInContextOfLines(event, curState["lines"], curState["events"]):
+            raise Exception("Computed an invalid event somehow")
+
         curState["events"] = curState["events"] + (event,)
         curState["topEventIndex"] += 1
 
@@ -766,6 +537,11 @@ class Editor(FocusableCell):
             newEvents = computeRedoEvents(currentState["events"], self.editSessionId)
 
         if newEvents:
+            if not eventsAreValidInContextOfLines(
+                newEvents, currentState["lines"], currentState["events"]
+            ):
+                raise Exception("Computed invalid undo events")
+
             currentState = dict(currentState)
             currentState["events"] = currentState["events"] + tuple(newEvents)
             currentState["topEventIndex"] += 1
@@ -836,23 +612,30 @@ class Editor(FocusableCell):
                     isValidIndex = True
 
             if isValidIndex:
-                newState = dict(
-                    lines=currentState["lines"],
-                    topEventIndex=currentState["topEventIndex"] + 1,
-                    events=currentState["events"] + (event,),
-                )
+                if not eventIsValidInContextOfLines(
+                    event, currentState["lines"], currentState["events"]
+                ):
+                    self.scheduleMessage({"resetState": collapseStateToTopmost(currentState)})
+                    self.sentEventIndex = currentState["topEventIndex"]
+                    logging.warning("Client %s completely resetting state", self.editSessionId)
+                else:
+                    newState = dict(
+                        lines=currentState["lines"],
+                        topEventIndex=currentState["topEventIndex"] + 1,
+                        events=currentState["events"] + (event,),
+                    )
 
-                if len(newState["events"]) % 100 == 0:
-                    t0 = time.time()
-                    newState = compressState(newState, time.time() - 10)
-                    if time.time() - t0 > 0.01:
-                        logging.info(
-                            "Spent %s compressing editor state to %s events",
-                            time.time() - t0,
-                            len(newState["events"]),
-                        )
+                    if len(newState["events"]) % 100 == 0:
+                        t0 = time.time()
+                        newState = compressState(newState, time.time() - 10)
+                        if time.time() - t0 > 0.01:
+                            logging.info(
+                                "Spent %s compressing editor state to %s events",
+                                time.time() - t0,
+                                len(newState["events"]),
+                            )
 
-                self.stateSlot.set(newState)
+                    self.stateSlot.set(newState)
 
     def getCurrentState(self):
         state = self.stateSlot.getWithoutRegisteringDependency()

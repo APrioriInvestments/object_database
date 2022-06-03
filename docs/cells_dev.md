@@ -96,4 +96,95 @@ class Button extends ConcreteCell {
 
 Of course you could add more logic, as well as change things beoynd styling (the DOM element itself, event handling and so on). 
 
+### Making a new cell ###
 
+If the current collections of cells is not sufficient for you can make a new one. 
+
+There are three steps here:
+* create a Python cells class
+* create the corresponding JS cells class
+* register the classes at the object database system and module levels, as well as with the web bundle
+
+Lets create an `OurNewCell` cell that displays some text with a few basic options.
+
+Create a file `our_new_cell.py` in the [cells directory](https://github.com/APrioriInvestments/object_database/tree/dev/object_database/web/cells) with the following code:
+
+```
+from object_database.web.cells.cell import Cell
+
+class OurNewCell(Cell):
+    def __init__(self, text,  makeBold=False):
+        super().__init__()
+        self.text = test
+        self.bold = makeBold
+
+    def recalculate(self):
+        self.exportData["text"] = self.text
+        self.exportData["bold"] = self.bold
+```
+
+Create a file `OurNewCell.js` in the js [components directory](https://github.com/APrioriInvestments/object_database/tree/dev/object_database/web/content/src/components) with the following code:
+
+```
+import {ConcreteCell} from './ConcreteCell';
+import {makeDomElt as h} from './Cell';
+
+class OurNewCell extends ConcreteCell {
+    constructor(props, ...args){
+        super(props, ...args);
+		this.bold = props.bold;
+		this.text = props.text;
+    }
+
+    build() {
+		let style = "text-align: center";
+		if(this.bold){
+			style += "; font-weight: bold";
+		};
+        let res = h(
+            'div',
+			{style: style},
+            [this.text]
+        );
+        return res;
+    }
+}
+
+export {OurNewCell, OurNewCell as default};
+```
+
+Update the various registers with your new cells class:
+* [JS components registry](https://github.com/APrioriInvestments/object_database/blob/b20b6c280b09f7381c9ac9900945a33e234eb621/object_database/web/content/ComponentRegistry.js)
+* [object database module init](https://github.com/APrioriInvestments/object_database/blob/dev/object_database/web/cells/__init__.py)
+
+Now lets update our [cells.py](./examples/cells.py) examples we used in [cells.md](./cells.md) to use our new cell:
+```
+import object_database.web.cells as cells
+from object_database import ServiceBase
+
+
+class SomethingMoreInteresting(ServiceBase):
+    def initialize(self):
+        self.buttonName = "click me"
+        return
+
+    @staticmethod
+    def serviceDisplay(serviceObject, instance=None, objType=None, queryArgs=None):
+        return cells.Card(
+            cells.Panel(
+                cells.OurNewCell("This is our new cell", makeBold=True) +
+                cells.Button("Reload", lambda: "") +
+                cells.Button("Service Base", lambda: "ServiceBase") +
+                cells.Button("Active Web Service", lambda: "ActiveWebService")
+            ),
+            header="This is a 'card' cell with some buttons",
+            padding="10px"
+        )
+```
+
+The last step is to rebuild the bundle `npm run build` in the [componentsi](https://github.com/APrioriInvestments/object_database/tree/dev/object_database/web/content/src/components) directory and then reinstall our service like so:
+```
+object_database_service_config install --class docs.examples.cells.SomethingMoreInteresting --placement Master
+```
+
+You should see your new cell appear when you click on the `SomethingMoreInteresting` service.

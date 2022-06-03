@@ -73,7 +73,6 @@ from object_database.web.cells.button import Clickable, Button, ButtonGroup
 from object_database.web.cells.single_line_text_box import SingleLineTextBox
 from object_database.web.cells.slot import Slot
 from object_database.web.cells.computed_slot import ComputedSlot
-from object_database.web.cells.contextual_display import ContextualDisplay, registerDisplay
 from object_database.web.cells.views.split_view import SplitView
 from object_database.web.cells.code_editor import CodeEditor
 from object_database.web.cells.editor.editor import Editor, OdbEditorState, SlotEditorState

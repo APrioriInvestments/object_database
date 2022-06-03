@@ -314,7 +314,9 @@ class Cell:
         if isinstance(x, Cell):
             return x
 
-        return object_database.web.cells.contextual_display.ContextualDisplay(x)
+        return object_database.web.cells.Traceback(
+            f"Can't convert instance of type {type(x)} to a cell."
+        )
 
     def __add__(self, other):
         return object_database.web.cells.sequence.Sequence([self, Cell.makeCell(other)])

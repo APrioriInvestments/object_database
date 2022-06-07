@@ -50,7 +50,7 @@ def anon_name(py_type):
 # implementation comment:
 # this is an awkward way to keep track of prerequisites
 def cpp_type(py_type) -> TupleType[str, dict]:
-    """ Given a python Type, returns its C++ type name and a dict of prerequisites.
+    """Given a python Type, returns its C++ type name and a dict of prerequisites.
 
     examples:
         given int return "int64_t"
@@ -123,7 +123,7 @@ def cpp_type(py_type) -> TupleType[str, dict]:
 
 
 def avoid_cpp_keywords(w):
-    """ Return a modified word if it's a C++ keyword, or the word itself. """
+    """Return a modified word if it's a C++ keyword, or the word itself."""
     keywords = ["typename", "class"]
     if w in keywords:
         return w + "0"

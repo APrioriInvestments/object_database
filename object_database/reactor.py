@@ -317,7 +317,7 @@ class Reactor:
             raise DeadlockException(f"Reactor on {self.reactorFunction} would block forever.")
 
         curTime = time.time()
-        finalTime = curTime + (timeout if timeout is not None else 10 ** 8)
+        finalTime = curTime + (timeout if timeout is not None else 10**8)
         if nextWakeup is not None and finalTime > nextWakeup:
             finalTime = nextWakeup
 

@@ -4,7 +4,7 @@ import pytz
 
 
 class TimezonedFormatter(logging.Formatter):
-    """ Allows to override the system timezone. """
+    """Allows to override the system timezone."""
 
     def __init__(self, *args, timezone=None, **kwargs):
         if timezone is None:
@@ -17,7 +17,7 @@ class TimezonedFormatter(logging.Formatter):
         self.timezone = timezone
 
     def converter(self, timestamp):
-        """ Returns a timezone-aware datetime.datetime object. """
+        """Returns a timezone-aware datetime.datetime object."""
         return datetime.datetime.fromtimestamp(timestamp, self.timezone)
 
     def formatTime(self, record, datefmt=None):

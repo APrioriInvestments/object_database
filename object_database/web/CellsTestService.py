@@ -119,13 +119,8 @@ class CellsTestService(ServiceBase):
             def onEnter(event):
                 contentsToEvaluate.set(edState.getCurrentState())
 
-            ed = cells.Editor(
-                editorState=edState
-            ) + cells.KeyAction(
-                "ctrlKey+Enter",
-                onEnter,
-                stopPropagation=True,
-                preventDefault=True
+            ed = cells.Editor(editorState=edState) + cells.KeyAction(
+                "ctrlKey+Enter", onEnter, stopPropagation=True, preventDefault=True
             )
 
             description = page.text()

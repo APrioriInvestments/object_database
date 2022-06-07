@@ -21,15 +21,15 @@ import psutil
 
 def currentMemUsageMb(residentOnly=True):
     if residentOnly:
-        return psutil.Process().memory_info().rss / 1024 ** 2
+        return psutil.Process().memory_info().rss / 1024**2
     else:
-        return psutil.Process().memory_info().vms / 1024 ** 2
+        return psutil.Process().memory_info().vms / 1024**2
 
 
 def gc_object_types_histogram():
-    """ Returns a map of types to the cound of how many such objects the GC is managing.
+    """Returns a map of types to the cound of how many such objects the GC is managing.
 
-        Return Type: defaultdict( ObjectType: type -> count: int )
+    Return Type: defaultdict( ObjectType: type -> count: int )
     """
     dd = defaultdict(int)
     gc_objects = gc.get_objects()
@@ -43,7 +43,7 @@ def gc_object_types_histogram():
 
 
 def diff_object_types_histograms(new_histo, old_histo):
-    """ Returns a new histogram that is the difference of it inputs """
+    """Returns a new histogram that is the difference of it inputs"""
     all_keys = set(new_histo.keys()).union(old_histo.keys())
 
     dd = {k: new_histo[k] - old_histo[k] for k in all_keys if new_histo[k] - old_histo[k] != 0}
@@ -51,10 +51,10 @@ def diff_object_types_histograms(new_histo, old_histo):
 
 
 def sort_by_value(histogram, topK=None, filterFn=None):
-    """ Return a sorted list of (value, tag) pairs from a given histogram.
+    """Return a sorted list of (value, tag) pairs from a given histogram.
 
-        If filter is specified the results are filtered using that function
-        If topK is specified, only return topK results
+    If filter is specified the results are filtered using that function
+    If topK is specified, only return topK results
     """
     res = reversed(
         sorted([(val, tag) for tag, val in histogram.items()], key=lambda pair: pair[0])

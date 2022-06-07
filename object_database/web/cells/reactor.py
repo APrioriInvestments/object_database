@@ -26,6 +26,7 @@ class Reactor:
 
     Reactors are allowed to send messages.
     """
+
     def __init__(self):
         pass
 

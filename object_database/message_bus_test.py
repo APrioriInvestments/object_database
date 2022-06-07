@@ -32,7 +32,7 @@ TIMEOUT = 5.0
 
 
 def waitUntil(predicate, *, timeout=10.0):
-    """ Returns True if the predicate became True within timeout secounds. """
+    """Returns True if the predicate became True within timeout secounds."""
     t0 = time.time()
     while time.time() - t0 < timeout:
         if predicate():
@@ -532,7 +532,7 @@ class TestMessageBus(unittest.TestCase):
 
         # use a bytecount-limited queue for bus 2
         self.messageBus2.stop(timeout=TIMEOUT)
-        self.messageQueue2 = BytecountLimitedQueue(len, 1024 ** 2)
+        self.messageQueue2 = BytecountLimitedQueue(len, 1024**2)
 
         def onEvent(event):
             if event.matches.IncomingMessage:
@@ -571,7 +571,7 @@ class TestMessageBus(unittest.TestCase):
 
     @flaky(max_runs=30, min_passes=30)
     def test_connect_send(self):
-        """ connect and immediately send: the send should never
+        """connect and immediately send: the send should never
         be processed before the connect which scheduled the auth_token
         to be written to the socket as the very first step.
         """

@@ -150,8 +150,7 @@ class Children:
         return True
 
     def removeAll(self):
-        """Removes all children and child structures.
-        """
+        """Removes all children and child structures."""
         self.namedChildren = {}
         self.allChildren = []
 

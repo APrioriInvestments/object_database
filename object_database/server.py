@@ -444,9 +444,11 @@ class Server:
 
         typename = msg.typename
 
-        assert typename in definition, (
-            "Can't subscribe to a type we didn't define in the schema: %s not in %s"
-            % (typename, list(definition))
+        assert (
+            typename in definition
+        ), "Can't subscribe to a type we didn't define in the schema: %s not in %s" % (
+            typename,
+            list(definition),
         )
 
         typedef = definition[typename]

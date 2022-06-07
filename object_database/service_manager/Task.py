@@ -36,7 +36,7 @@ class ResourceScope:
 
 
 class TaskContext(object):
-    """ Placeholder for information about the current running task environment
+    """Placeholder for information about the current running task environment
     passed into tasks.
     """
 
@@ -62,7 +62,7 @@ class RunningTask(object):
 
 
 class TaskExecutor(object):
-    """Base class for all Tasks. """
+    """Base class for all Tasks."""
 
     def instantiate(self):
         """Return a RunningTask that represents us."""

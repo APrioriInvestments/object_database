@@ -19,7 +19,7 @@ import logging
 
 
 def augmentToBeUnique(listOfItems):
-    """ Given a list that may include duplicates, return a list of unique items
+    """Given a list that may include duplicates, return a list of unique items
 
     Returns a list of [(x,index)] for each 'x' in listOfItems,
     where index is the number of times we've seen 'x' before.
@@ -158,11 +158,9 @@ class SubscribedSequence(Cell):
         return "Sequence"
 
     def recalculate(self):
-        self.exportData['orientation'] = self.orientation
+        self.exportData["orientation"] = self.orientation
 
-        self.keysAndCounts = augmentToBeUnique(
-            self.itemsFun()
-        )
+        self.keysAndCounts = augmentToBeUnique(self.itemsFun())
 
         # walk over each item and remove it from the existing items if we already have it
         newKeysAndCounts = set(self.keysAndCounts)

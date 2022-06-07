@@ -45,7 +45,7 @@ class ServiceBase:
         self._reactorsRunning = False
 
     def configureLogging(self):
-        """ Subclasses may override this method to configure logging. """
+        """Subclasses may override this method to configure logging."""
         pass
 
     @staticmethod

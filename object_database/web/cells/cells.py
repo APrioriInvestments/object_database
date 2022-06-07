@@ -201,7 +201,7 @@ class CellDependencies:
                     "Effect %s threw exception %s:\n\n%s",
                     aReactor,
                     result[1],
-                    "".join(traceback.format_tb(result[1].__traceback__))
+                    "".join(traceback.format_tb(result[1].__traceback__)),
                 )
 
             self.updateDependencies(aReactor, depContext)
@@ -351,7 +351,7 @@ class Cells:
                         "Callback %s threw an exception: %s\n\n%s",
                         callback,
                         result[1],
-                        "".join(traceback.format_tb(result[1].__traceback__))
+                        "".join(traceback.format_tb(result[1].__traceback__)),
                     )
 
         except queue.Empty:
@@ -427,10 +427,8 @@ class Cells:
         self._eventHasTransactions.put(1)
 
     def _handleTransaction(self, key_value, set_adds, set_removes, transactionId):
-        """ Given the updates coming from a transaction, update self._subscribedCells. """
-        self._dependencies.odbValuesChanged(
-            set(key_value) | set(set_adds) | set(set_removes)
-        )
+        """Given the updates coming from a transaction, update self._subscribedCells."""
+        self._dependencies.odbValuesChanged(set(key_value) | set(set_adds) | set(set_removes))
 
     def _addCell(self, cell, parent):
         if not isinstance(cell, Cell):
@@ -510,9 +508,7 @@ class Cells:
         def updateFocusedCell():
             focusedCell = self.focusedCell.get()
 
-            if (
-                focusedCell and focusedCell.identity in self._nodeIdsToDiscard
-            ):
+            if focusedCell and focusedCell.identity in self._nodeIdsToDiscard:
                 self.focusedCell.set(self.pickFocusedCell())
                 self.focusEventId += 1
 
@@ -723,10 +719,7 @@ class Cells:
             result = depContext.calculate(recalcNode)
 
         if result[0]:
-            node.onError(
-                result[1],
-                "".join(traceback.format_tb(result[1].__traceback__))
-            )
+            node.onError(result[1], "".join(traceback.format_tb(result[1].__traceback__)))
 
         self._dependencies.updateDependencies(node, depContext)
 

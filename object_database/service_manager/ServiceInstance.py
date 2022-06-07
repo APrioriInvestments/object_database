@@ -207,8 +207,7 @@ class Service:
         return res
 
     def instantiateServiceType(self):
-        """Instantiate the codebase and return the instance of the Service type.
-        """
+        """Instantiate the codebase and return the instance of the Service type."""
         if self.codebase:
             module = self.codebase.instantiate(self.service_module_name)
 

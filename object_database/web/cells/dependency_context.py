@@ -25,6 +25,7 @@ _cur_context.stack = []
 
 class DependencyContext:
     """Models a collection of dependencies on ODB and slot values."""
+
     def __init__(self, db, readOnly):
         self.db = db
         self.readOnly = readOnly
@@ -117,12 +118,12 @@ class DependencyContext:
                         try:
                             with self.getViewOrTransaction() as v:
                                 result = func()
-                                self.subscriptions = (
-                                    set(v.getFieldReads()).union(set(v.getIndexReads()))
+                                self.subscriptions = set(v.getFieldReads()).union(
+                                    set(v.getIndexReads())
                                 )
                                 if not self.readOnly:
-                                    self.odbKeysWritten = (
-                                        set(v.getFieldWrites()).union(set(v.getIndexWrites()))
+                                    self.odbKeysWritten = set(v.getFieldWrites()).union(
+                                        set(v.getIndexWrites())
                                     )
 
                                 return (False, result)
@@ -136,7 +137,7 @@ class DependencyContext:
                             if revisionConflicts > 2:
                                 logging.warn(
                                     "Committing to db threw revision conflict #%s",
-                                    revisionConflicts
+                                    revisionConflicts,
                                 )
 
                             if revisionConflicts > 100:
@@ -150,8 +151,8 @@ class DependencyContext:
                             # the exception is actually our 'result'
                             # all writes are voided, but we have to retain the set of values we
                             # wrote so we can put them back if necessary
-                            self.subscriptions = (
-                                set(v.getFieldReads()).union(set(v.getIndexReads()))
+                            self.subscriptions = set(v.getFieldReads()).union(
+                                set(v.getIndexReads())
                             )
                             self.resetWrites()
 

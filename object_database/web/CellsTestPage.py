@@ -40,6 +40,5 @@ class CellsTestPage(object):
         raise NotImplementedError("Subclasses implement")
 
     def text(self):
-        """Return the canonical description of what this is supposed to show.
-        """
+        """Return the canonical description of what this is supposed to show."""
         raise NotImplementedError("Subclasses implement")

@@ -14,8 +14,7 @@
 
 
 def return_type(set_of_types):
-    """Given a set of types, return a suitable type name covering the possibilities.
-    """
+    """Given a set of types, return a suitable type name covering the possibilities."""
     list_of_types = list(set_of_types)
     if len(list_of_types) == 0:
         return "None"  # shouldn't happen

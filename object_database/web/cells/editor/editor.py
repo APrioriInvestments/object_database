@@ -338,21 +338,19 @@ class Editor(FocusableCell):
 
         self.lastLineSlot = lastLineSlot or Slot()
 
-        self.firstLineSlot = (
-            firstLineSlot or self.sessionStateSlot("EditorStateFirstVisibleRow")
+        self.firstLineSlot = firstLineSlot or self.sessionStateSlot(
+            "EditorStateFirstVisibleRow"
         )
         self.firstLineSlotWatcher = SlotWatcher(
-            self.firstLineSlot,
-            self.onFirstLineSlotChanged
+            self.firstLineSlot, self.onFirstLineSlotChanged
         )
         self.reactors.add(self.firstLineSlotWatcher)
 
-        self.selectionSlot = (
-            selectionSlot or self.sessionStateSlot("EditorStateSelectionState")
+        self.selectionSlot = selectionSlot or self.sessionStateSlot(
+            "EditorStateSelectionState"
         )
         self.selectionSlotWatcher = SlotWatcher(
-            self.selectionSlot,
-            self.onSelectionSlotChanged
+            self.selectionSlot, self.onSelectionSlotChanged
         )
         self.reactors.add(self.selectionSlotWatcher)
 
@@ -465,6 +463,7 @@ class Editor(FocusableCell):
 
     def onRemovedFromTree(self):
         if self.userSelectionSlot is not None:
+
             def removeSelf():
                 content = dict(self.userSelectionSlot.get())
                 content.pop(self.editSessionId, None)
@@ -784,7 +783,7 @@ class Editor(FocusableCell):
         self.exportData["username"] = self.username
         self.exportData["readOnly"] = self.readOnly
         self.exportData["splitFraction"] = (
-            (self.splitFractionSlot.getWithoutRegisteringDependency() or 0.5)
+            self.splitFractionSlot.getWithoutRegisteringDependency() or 0.5
         )
         self.exportData["darkMode"] = self.darkMode
         self.exportData["hasSectionHeaders"] = bool(

@@ -100,7 +100,7 @@ class SubprocessServiceManager(ServiceManager):
         self.start_new_session = start_new_session
         self.subprocessCheckTimeout = subprocessCheckTimeout
         self.logMaxMegabytes = logMaxMegabytes
-        self.logMaxTotalBytes = int(logMaxTotalMegabytes * 1024 ** 2)
+        self.logMaxTotalBytes = int(logMaxTotalMegabytes * 1024**2)
         self.logBackupCount = logBackupCount
 
         self.startTs = startTs

@@ -56,8 +56,7 @@ class DropdownDrawer(Cell):
 
 
 class CircleLoader(Cell):
-    """A simple circular loading indicator
-    """
+    """A simple circular loading indicator"""
 
     def __init__(self):
         super().__init__()

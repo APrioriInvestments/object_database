@@ -15,6 +15,7 @@ MAX_TRIES = 10
 
 class Cell(object):
     """Base class for all Cell instances."""
+
     EFFECT = False
     FOCUSABLE = False
 
@@ -40,9 +41,7 @@ class Cell(object):
         from object_database.web.cells.session_state import sessionState
 
         return ComputedSlot(
-            lambda: sessionState(self)
-            .slotFor(self.identityPath + (subfield,))
-            .get(),
+            lambda: sessionState(self).slotFor(self.identityPath + (subfield,)).get(),
             lambda value: sessionState(self)
             .slotFor(self.identityPath + (subfield,))
             .set(value),
@@ -196,9 +195,8 @@ class Cell(object):
 
     def childrenWithExceptions(self):
         return self.findChildrenMatching(
-            lambda cell:
-                isinstance(cell, object_database.web.cells.leaves.Traceback)
-                or ('exception' in cell.exportData)
+            lambda cell: isinstance(cell, object_database.web.cells.leaves.Traceback)
+            or ("exception" in cell.exportData)
         )
 
     def prepare(self):
@@ -247,10 +245,10 @@ class Cell(object):
             "Cell %s had exception: %s\n\n%s",
             self,
             type(exception).__name__ + ": " + str(exception),
-            stacktrace
+            stacktrace,
         )
 
-        self.exportData['exception'] = (
+        self.exportData["exception"] = (
             type(exception).__name__ + ": " + str(exception) + "\n\n" + stacktrace
         )
 

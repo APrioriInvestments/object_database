@@ -48,7 +48,7 @@ class SocketWatcher:
         return sockOrFd in self._sockets
 
     def gc(self):
-        """ Garbage-Collect any closed sockets. """
+        """Garbage-Collect any closed sockets."""
         sockets = []
 
         for sock in list(self._sockets.keys()):

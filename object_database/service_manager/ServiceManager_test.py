@@ -119,7 +119,7 @@ class LoggingService(ServiceBase):
         pass
 
     def doWork(self, shouldStop):
-        maxCharacters = 1024 ** 2
+        maxCharacters = 1024**2
         loggedCharacters = 0
         logger = logging.getLogger("LoggingService")
 
@@ -831,7 +831,7 @@ class ServiceManagerTest(ServiceManagerTestCommon, unittest.TestCase):
 
     def test_logfiles_backup_and_get_cleaned_up(self):
         # LoggingService logs between 3MB and 4MB per run
-        MEGABYTE = 1024 ** 2
+        MEGABYTE = 1024**2
         oldsDir = os.path.join(self.logDir, "old")
 
         with self.database.transaction():

@@ -60,7 +60,7 @@ class Modal(Cell):
 
 
 def ButtonModal(shown, title, body, ok, cancel=None):
-    """ Make a Modal with buttons.
+    """Make a Modal with buttons.
 
     Args:
         shown (cells.Slot): a cells.Slot boolean that determines whether the modal

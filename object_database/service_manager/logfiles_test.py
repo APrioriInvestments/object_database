@@ -204,8 +204,8 @@ def test_logset(tmpdir):
 
 
 def test_deleteLogsIfOverQuota_garbage(tmpdir):
-    """ Undeletable garbage files in the logs dir means we can never succeed but
-    we shouldn't loop forever. """
+    """Undeletable garbage files in the logs dir means we can never succeed but
+    we shouldn't loop forever."""
 
     logsDir = str(tmpdir)
     oldsDir = os.path.join(logsDir, "old")
@@ -233,7 +233,7 @@ def test_deleteLogsIfOverQuota_garbage(tmpdir):
 
 @pytest.mark.timeout(2)
 def test_deleteLogsIfOverQuota_multiple_active_instances_per_service(tmpdir):
-    """ We shouldn't loop forever if we have multiple active logfiles and we're over quota
+    """We shouldn't loop forever if we have multiple active logfiles and we're over quota
     (bugfix).
     """
     logsDir = str(tmpdir)

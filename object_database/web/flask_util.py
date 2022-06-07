@@ -67,7 +67,7 @@ def next_url(
 
 
 def url_with_request_parameters(url, req=None, filtr=None):
-    """ Adds the parameters of the current Flask request to the given url. """
+    """Adds the parameters of the current Flask request to the given url."""
     req = req or request
     for k, v in req.args.items():
         if filtr and k not in filtr:
@@ -77,7 +77,7 @@ def url_with_request_parameters(url, req=None, filtr=None):
 
 
 def set_query_parameter(url, param_name, param_value):
-    """Given a URL, set or replace a query parameter and return the result. """
+    """Given a URL, set or replace a query parameter and return the result."""
     scheme, netloc, path, query_string, fragment = urlsplit(url)
     query_params = parse_qs(query_string)
 

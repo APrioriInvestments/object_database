@@ -58,7 +58,7 @@ def main(argv):
                     "filename": parsedArgs.log_path,
                     "level": 0,  # this handler should apply to all levels
                     "formatter": "nyc",
-                    "maxBytes": int(float(parsedArgs.log_max_megabytes) * 1024 ** 2),
+                    "maxBytes": int(float(parsedArgs.log_max_megabytes) * 1024**2),
                     "backupCount": int(parsedArgs.log_backup_count),
                 }
             },

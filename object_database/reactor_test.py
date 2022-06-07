@@ -420,7 +420,7 @@ def test_reactor_block_until_true_internal(db):
 
 
 def test_curTimestamp_exceptions(db):
-    """ Test the exceptional paths of curTimestamp and curTimestampIsAfter """
+    """Test the exceptional paths of curTimestamp and curTimestampIsAfter"""
     assert Reactor.curTimestamp() is None
 
     with pytest.raises(TypeError):

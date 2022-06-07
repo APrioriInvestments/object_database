@@ -56,7 +56,7 @@ def recursiveUpdate(dictionary, updates):
 
 
 def getFormatter(logger):
-    """ Given a logger, get its default formatter or None. """
+    """Given a logger, get its default formatter or None."""
     if logger is None:
         return None
 
@@ -104,7 +104,7 @@ DEFAULT_LOGGING_CONFIG = {
 
 
 def setupLogging(config=None, default_level=None, default_format=None, updates=None):
-    """Setup logging configuration """
+    """Setup logging configuration"""
     if config is None:
         config = copy.deepcopy(DEFAULT_LOGGING_CONFIG)
 

@@ -27,7 +27,7 @@ def generateData(ct):
     y = ListOf(Float32)()
     for i in range(0, ct + 1):
         x.append(i / ct)
-        y.append(math.sin(i / ct ** 0.5))
+        y.append(math.sin(i / ct**0.5))
 
     return x, y
 

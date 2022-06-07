@@ -30,10 +30,10 @@ from wtforms.validators import DataRequired
 
 
 class FlaskUser:
-    """ User class that implements to the flask-login User API.
+    """User class that implements to the flask-login User API.
 
-        We make these objects from our ObjectDB User classes so that Flask can
-        handle them without having to hold a view into ObjectDB
+    We make these objects from our ObjectDB User classes so that Flask can
+    handle them without having to hold a view into ObjectDB
     """
 
     @staticmethod
@@ -70,10 +70,10 @@ class FlaskUser:
 
 
 class LoginPluginInterface(ABC):
-    """ Interface for a class that implements a login flow for a Flask app.
+    """Interface for a class that implements a login flow for a Flask app.
 
-        The derived class will register `/login` and `/logout` endpoints with
-        the Flask app and it will provide a load_user method.
+    The derived class will register `/login` and `/logout` endpoints with
+    the Flask app and it will provide a load_user method.
     """
 
     REQUIRED_KEYS = None
@@ -136,7 +136,7 @@ class User:
 
 
 def authorized_groups_text(authorized_groups, default_text="All") -> str:
-    """ Helper function that returns a string for display purposes. """
+    """Helper function that returns a string for display purposes."""
     res = default_text
     if authorized_groups:
         res = ", ".join(authorized_groups)
@@ -144,7 +144,7 @@ def authorized_groups_text(authorized_groups, default_text="All") -> str:
 
 
 class LoginIpPlugin(LoginPluginInterface):
-    """ LoginPlugin that remembers the IP from which a user had logged in.
+    """LoginPlugin that remembers the IP from which a user had logged in.
 
     If the same user appears to have a new IP, they will be asked to authenticate.
     """
@@ -185,12 +185,12 @@ class LoginIpPlugin(LoginPluginInterface):
         return self._auth_plugin.authorized_groups if self._auth_plugin is not None else None
 
     def _authenticate(self, username, password) -> str:
-        """ Attempts to authenticate with given username and password.
+        """Attempts to authenticate with given username and password.
 
-            Returns:
-            --------
-            str
-                "" (empty string) if no error occurred and an error message otherwise
+        Returns:
+        --------
+        str
+            "" (empty string) if no error occurred and an error message otherwise
         """
         login_ip = request_ip_address()
         self._logger.info(f"User '{username}' trying to authenticate from IP {login_ip}")

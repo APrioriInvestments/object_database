@@ -2,7 +2,7 @@
 -i https://pypi.org/simple
 
 autopep8
-black==19.3b
+black==22.3.0
 coverage
 flake8
 flaky

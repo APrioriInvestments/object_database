@@ -191,7 +191,7 @@ class ServiceManager(object):
 
     @staticmethod
     def waitRunning(db, serviceName, timeout=5.0, targetCount=None) -> bool:
-        """ Returns True if the service is running as expected and False otherwise
+        """Returns True if the service is running as expected and False otherwise
 
         Args:
             db: an object database connection object
@@ -310,13 +310,13 @@ class ServiceManager(object):
             with self.db.transaction():
                 self.serviceHostObject.cpuUse = psutil.cpu_percent() / 100.0
                 self.serviceHostObject.actualMemoryUseGB = (
-                    psutil.virtual_memory().used / 1024 ** 3
+                    psutil.virtual_memory().used / 1024**3
                 )
                 self.serviceHostObject.statsLastUpdateTime = time.time()
 
     @revisionConflictRetry
     def collectOrphanInstances(self):
-        """ Remove instances whose associated service no longer exists. """
+        """Remove instances whose associated service no longer exists."""
         orphans = []
         with self.db.transaction():
             for instance in service_schema.ServiceInstance.lookupAll(

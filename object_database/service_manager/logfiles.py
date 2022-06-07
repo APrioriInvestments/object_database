@@ -9,7 +9,7 @@ Timestamp = float
 
 
 class Logfile:
-    """ Stores a filepath corresponing to a log-file and some pre-computed stuff about it. """
+    """Stores a filepath corresponing to a log-file and some pre-computed stuff about it."""
 
     @staticmethod
     def fromFilepath(filepath):
@@ -90,7 +90,7 @@ class Logfile:
         return os.path.isfile(self._filepath)
 
     def delete(self) -> bool:
-        """ Returns the number of bytes that were deleted. """
+        """Returns the number of bytes that were deleted."""
         if self._isActive:
             # refuse to delete an active front log slice
             return 0
@@ -163,7 +163,7 @@ class Logfile:
 
 
 class LogfileSet:
-    """ A sequence of Logfile objects for a specific service.
+    """A sequence of Logfile objects for a specific service.
 
     Logfiles must belog to the same service, but may belong to different processes.
     Each process may have multple logfiles with .1, .2, etc extensions.
@@ -228,7 +228,7 @@ class LogfileSet:
             self._oldest = logfile
 
     def deleteOldest(self, alwaysRemoveOldest=True) -> int:
-        """ Returns the number of bytes that were deleted.
+        """Returns the number of bytes that were deleted.
 
         Args:
             alwaysRemoveOldest (bool): when False, only remove the oldest Logfile
@@ -269,7 +269,7 @@ class LogfileSet:
 
 
 class LogsDirectoryQuotaManager:
-    """ Object in charge for cleaning up the logs dir if it exceeds a quota. """
+    """Object in charge for cleaning up the logs dir if it exceeds a quota."""
 
     def __init__(self, path, maxBytes):
         self._checkIsDir(path)
@@ -292,7 +292,7 @@ class LogsDirectoryQuotaManager:
             raise FileExistsError(f"Path exists but is not a directory '{path}'")
 
     def deleteLogsIfOverQuota(self):
-        """ Tries to delete enough log files to be within specified quota
+        """Tries to delete enough log files to be within specified quota
 
         Returns the number of bytes that still need to be deleted to reach the quota,
         or if negative, the number of bytes available for further logging.
@@ -352,7 +352,7 @@ class LogsDirectoryQuotaManager:
     def _deleteOldestAmongServicesWithAtLeastKInstances(
         logsByService, bytesToDelete: int, K: int
     ) -> int:
-        """ Repeatedly delete the oldest logfile among services with K or more instances.
+        """Repeatedly delete the oldest logfile among services with K or more instances.
 
         Returns the number of bytes freed from the disk
 
@@ -381,7 +381,7 @@ class LogsDirectoryQuotaManager:
 
     @staticmethod
     def _deleteFromLargestLogfileSet(logsByService, bytesToDelete: int):
-        """ Repeatedly delete the oldest logfile from the largest LogfileSet.
+        """Repeatedly delete the oldest logfile from the largest LogfileSet.
 
         Returns the number of bytes freed from the disk
 

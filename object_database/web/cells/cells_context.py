@@ -20,6 +20,7 @@ _cur_cells = threading.local()
 
 class CellsContext:
     """Context variable specifying the current 'cells' instance that's calculating."""
+
     def __init__(self, cells):
         self.cells = cells
 

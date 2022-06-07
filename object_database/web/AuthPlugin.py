@@ -21,12 +21,12 @@ from abc import ABC, abstractmethod
 class AuthPluginBase(ABC):
     @abstractmethod
     def authenticate(self, username, password) -> str:
-        """ Tries to authenticate with given username and password.
+        """Tries to authenticate with given username and password.
 
-            Returns:
-            --------
-            str
-                "" if no error occurred, and an error message otherwise
+        Returns:
+        --------
+        str
+            "" if no error occurred, and an error message otherwise
         """
         pass
 
@@ -36,14 +36,14 @@ class AuthPluginBase(ABC):
 
 
 class PermissiveAuthPlugin(AuthPluginBase):
-    """ An AuthPlugin that allows anyone to login (useful for testing). """
+    """An AuthPlugin that allows anyone to login (useful for testing)."""
 
     def authenticate(self, username, password) -> str:
         return ""
 
 
 class LdapAuthPlugin(AuthPluginBase):
-    """ An AuthPlugin that relegates to LDAP for authentication. """
+    """An AuthPlugin that relegates to LDAP for authentication."""
 
     def __init__(self, hostname, base_dn, ntlm_domain=None, authorized_groups=None):
         """
@@ -65,8 +65,8 @@ class LdapAuthPlugin(AuthPluginBase):
 
     @property
     def _logger(self):
-        """ _logger is a property rather than being set in __init__ to allow plugin
-            objects to live in the Object Database
+        """_logger is a property rather than being set in __init__ to allow plugin
+        objects to live in the Object Database
         """
         return logging.getLogger(__name__)
 

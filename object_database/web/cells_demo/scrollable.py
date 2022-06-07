@@ -161,11 +161,7 @@ class ScrollableHWithSeveralCodeEditors(CellsTestPage):
 class ScrollableVWithSeveralCodeEditors(CellsTestPage):
     def cell(self):
         return cells.VScrollable(
-            cells.Editor()
-            + cells.Editor()
-            + cells.Editor()
-            + cells.Editor()
-            + cells.Editor()
+            cells.Editor() + cells.Editor() + cells.Editor() + cells.Editor() + cells.Editor()
         )
 
     def text(self):

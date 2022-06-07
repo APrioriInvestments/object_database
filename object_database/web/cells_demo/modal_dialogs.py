@@ -70,10 +70,9 @@ class ModalWithUpdateField(CellsTestPage):
 
             lastShowing.set(isShowing.get())
 
-        modal = (
-            cells.ButtonModal(isShowing, "Text Updater", textBox, ok=onOK, cancel=onCancel)
-            + cells.Effect(checkShowing)
-        )
+        modal = cells.ButtonModal(
+            isShowing, "Text Updater", textBox, ok=onOK, cancel=onCancel
+        ) + cells.Effect(checkShowing)
 
         return cells.Card(button + textDisplay + modal)
 
@@ -114,7 +113,7 @@ def test_basic_modal(headless_browser):
 
 
 def test_modal_with_update_field(headless_browser):
-    """ Test Modal with update field.
+    """Test Modal with update field.
 
     - modal is initially hidden
     - read the text on the card
@@ -180,7 +179,7 @@ def test_modal_with_update_field(headless_browser):
 
 
 def test_modal_with_cancel_and_update_buttons(headless_browser):
-    """ Test Modal with Update and Cancel Fields.
+    """Test Modal with Update and Cancel Fields.
 
     - modal is initially hidden
     - read the text on the card

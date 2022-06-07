@@ -859,12 +859,10 @@ class WebglPlot(Cell):
         self.screenRectangle = Slot()
         self.mouseoverContents = Slot()
         self.mousoverContentsWatcher = SlotWatcher(
-            self.mouseoverContents,
-            self.onMouseoverContentsChanged
+            self.mouseoverContents, self.onMouseoverContentsChanged
         )
         self.mousePositionWatcher = SlotWatcher(
-            self.mousePosition,
-            self.onMousePositionChanged
+            self.mousePosition, self.onMousePositionChanged
         )
         self.mouseoverFunction = None
 
@@ -967,21 +965,17 @@ class WebglPlot(Cell):
             s = message["size"]
 
             self.screenRectangle.set(
-                Rectangle(bottom=p[1], left=p[0], top=p[1] + s[1], right=p[0] + s[0]),
+                Rectangle(bottom=p[1], left=p[0], top=p[1] + s[1], right=p[0] + s[0])
             )
             self.onMousePositionChanged(
                 None, self.mousePosition.getWithoutRegisteringDependency()
             )
 
         if message.get("event") == "mouseenter":
-            self.mousePosition.set(
-                {"x": message["x"], "y": message["y"], "mouseInside": True}
-            )
+            self.mousePosition.set({"x": message["x"], "y": message["y"], "mouseInside": True})
         if message.get("event") == "mouseleave":
             self.mousePosition.set(
                 {"x": message["x"], "y": message["y"], "mouseInside": False}
             )
         if message.get("event") == "mousemove":
-            self.mousePosition.set(
-                {"x": message["x"], "y": message["y"], "mouseInside": True}
-            )
+            self.mousePosition.set({"x": message["x"], "y": message["y"], "mouseInside": True})

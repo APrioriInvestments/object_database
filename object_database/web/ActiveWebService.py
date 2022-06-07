@@ -86,7 +86,7 @@ class WebServiceError(Exception):
         self.status_code = status_code
 
 
-MAX_PROCESS_MEMORY_HARD_LIMIT = 8 * 1024 ** 3
+MAX_PROCESS_MEMORY_HARD_LIMIT = 8 * 1024**3
 
 
 class ActiveWebService(ServiceBase):
@@ -139,8 +139,8 @@ class ActiveWebService(ServiceBase):
     @staticmethod
     def configureFromCommandline(db, serviceObject, args):
         """
-            Subclasses should take the remaining args from the commandline and
-            configure using them.
+        Subclasses should take the remaining args from the commandline and
+        configure using them.
         """
         db.subscribeToType(Configuration)
 

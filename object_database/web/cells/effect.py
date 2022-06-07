@@ -32,6 +32,7 @@ class Effect(Cell):
     re-run if any of the values that it reads are modified.  If you're not careful, you may
     easily end up in a cycle of changes, so be judicious with these.
     """
+
     def __init__(self, effector):
         super().__init__()
 

@@ -189,7 +189,7 @@ def servicesTable():
 
 
 def __serviceCountSetter(service, ct):
-    """Helper function for servicesTableDataPrep. """
+    """Helper function for servicesTableDataPrep."""
 
     def f():
         service.target_count = ct
@@ -331,7 +331,7 @@ def makeMainView(display, toggles, current_username, authorized_groups_text):
 
 
 def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
-    """ Calls the correct service's display with the right arguments
+    """Calls the correct service's display with the right arguments
 
     Requirements:
         - Must be called from within an ODB view (or transaction)

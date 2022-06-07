@@ -174,8 +174,7 @@ class TableRow(Cell):
         self.cols = self.columnsSlot.get()
 
         self.children["cells"] = [Text("")] + [
-            Subscribed.bind(self.rendererFun, self.rowKey, col)
-            for col in self.cols
+            Subscribed.bind(self.rendererFun, self.rowKey, col) for col in self.cols
         ]
 
 
@@ -283,9 +282,7 @@ class Table(Cell):
         # should we sort ascending or descending
         self.sortColumnAscendingSlot = Slot(sortColumnAscending)
 
-        self.columnsComputedSlot = ComputedSlot(
-            lambda: list(self.colFun())
-        )
+        self.columnsComputedSlot = ComputedSlot(lambda: list(self.colFun()))
 
         self.sortedRowsSlot = sortedRowsComputedSlot(
             self.rowFun,
@@ -338,9 +335,7 @@ class Table(Cell):
         for rowKey in self.rowKeys:
             if rowKey not in self.rowDict:
                 self.rowDict[rowKey] = TableRow(
-                    self.columnsComputedSlot,
-                    self.rendererFun,
-                    rowKey
+                    self.columnsComputedSlot, self.rendererFun, rowKey
                 )
 
             rowCells.append(self.rowDict[rowKey])

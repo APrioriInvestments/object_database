@@ -114,3 +114,8 @@ object_database_service_config start AnODBService
 ```
 
 We'll learn more about cells and how to develop them in the upcoming `cells_dev.md` doc. 
+
+
+#### ODB Cells Playground ####
+
+ODB provides a playground where you can explore and see examples of various cells in action. Running `object_database_webtest` and then heading to [http://localhost:8000/services](http://localhost:8000) you will see a cells test service. If you update the code in the editor and press ctrl-n-enter the cell will refresh in the browser. This is one of the better way to explore cells. 

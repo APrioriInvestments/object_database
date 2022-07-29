@@ -119,3 +119,26 @@ We'll learn more about cells and how to develop them in the upcoming `cells_dev.
 #### ODB Cells Playground ####
 
 ODB provides a playground where you can explore and see examples of various cells in action. Running `object_database_webtest` and then heading to [http://localhost:8000/services](http://localhost:8000) you will see a cells test service. If you update the code in the editor and press ctrl-n-enter the cell will refresh in the browser. This is one of the better way to explore cells. 
+
+#### A Note About slots ####
+
+In the ODB playground (mentioned above) you will see a number of examples with `cells.Slot()`'s and `cells.Subscribed()`'s. A cell which is subscribed to a slot will automatically update when the contents of the slot change. This can happen from within the UI itselt on the client side, or from the ODB on the server side. Slots allow you to build reactive web applications. 
+
+The slot API is very simple `slot.set([value])` sets the value and `slot.get([value])` retrieves it. 
+
+Here is an example of a dropdown cell element which displays the contents of a slot but also changes those contents based on the user selection. 
+
+```python
+slot = cells.Slot("you haven't picked anything yet")
+
+dropdown = cells.Subscribed(
+                lambda: 
+                     cells.Dropdown(
+                         str(slot.get()),
+                         ["option 1", "option 2", "option 3"],
+                         lambda i: slot.set(i)
+                     )
+            )
+```                         
+
+The dropdown selection calls `lambda i: slot(i)` which takes the selected value and sets the slot, while the display value is defined by `slot.get()`. The dropdown is notified when the slot value changes, calls .`get()` on it and udpates the display. 

@@ -58,7 +58,7 @@ class Sequence(Cell):
 
 
 class HorizontalSequence(Cell):
-    def __init__(self, elements, overflow=True, margin=None, wrap=True):
+    def __init__(self, elements, overflow=True, margin=None, wrap=False):
         """
         Lays out (children) elements in a horizontal sequence.
 

@@ -84,7 +84,7 @@ class HorizPanelNonWrapSequence(CellsTestPage):
             )
 
         panels = [make_panel(i) for i in range(50)]
-        return cells.HorizontalSequence(panels, wrap=False)
+        return cells.HorizontalSequence(panels)
 
     def text(self):
         return "Should see 50 panels horizontally across the screen without wrapping"
@@ -99,7 +99,7 @@ class HorizPanelDoesWrapSequence(CellsTestPage):
             )
 
         panels = [make_panel(i) for i in range(50)]
-        return cells.HorizontalSequence(panels)
+        return cells.HorizontalSequence(panels, wrap=True)
 
     def text(self):
         return "Should see 50 panels horizontally across the screen with wrapping"

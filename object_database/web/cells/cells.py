@@ -308,15 +308,29 @@ class Cells:
                 if cell is not None:
                     cell.mostRecentFocusId = self.focusEventId
 
+    def _executeCallback(self, callback):
+        context = DependencyContext(self.db, readOnly=False)
+
+        with CellsContext(self):
+            result = context.calculate(callback)
+
+        self._dependencies.updateFromWriteableDependencyContext(context)
+
+        if result[0]:
+            logging.warn(
+                "Callback %s threw an exception: %s\n\n%s",
+                callback,
+                result[1],
+                "".join(traceback.format_tb(result[1].__traceback__)),
+            )
+
     def changeFocus(self, newCell):
         """Trigger a server-side focus change."""
         self._eventHasTransactions.put(1)
 
         if DependencyContext.get() is None:
             # this can happen when we are installing a cell
-            with CellsContext(self):
-                context = DependencyContext(self.db, readOnly=False)
-                context.calculate(lambda: self.focusedCell.set(newCell))
+            self._executeCallback(lambda: self.focusedCell.set(newCell))
         else:
             self.focusedCell.set(newCell)
 
@@ -346,20 +360,7 @@ class Cells:
                 callback = self._callbacks.get(block=False)
                 processed += 1
 
-                context = DependencyContext(self.db, readOnly=False)
-
-                with CellsContext(self):
-                    result = context.calculate(callback)
-
-                self._dependencies.updateFromWriteableDependencyContext(context)
-
-                if result[0]:
-                    logging.warn(
-                        "Callback %s threw an exception: %s\n\n%s",
-                        callback,
-                        result[1],
-                        "".join(traceback.format_tb(result[1].__traceback__)),
-                    )
+                self._executeCallback(callback)
 
         except queue.Empty:
             return

@@ -101,4 +101,4 @@ class ContextBroadcast(Cell):
 
     def onRemovedFromTree(self):
         if self.installedParent:
-            self.installedParent._removeChild(self)
+            self.cells._executeCallback(lambda: self.installedParent._removeChild(self))

@@ -46,12 +46,10 @@ class ContextReflector(Cell):
 
     def _addChild(self, child):
         self.subcellDict[child] = child.value
-
         self.storage.set(tuple(self.subcellDict.values()))
 
     def _removeChild(self, child):
         self.subcellDict.pop(child)
-
         self.storage.set(tuple(self.subcellDict.values()))
 
     def recalculate(self):
@@ -93,7 +91,7 @@ class ContextBroadcast(Cell):
             while p:
                 if isinstance(p, ContextReflector) and p.key == self.key:
                     self.installedParent = p
-                    p._addChild(self)
+                    self.cells.scheduleCallback(lambda: p._addChild(self))
                     return
                 p = p.parent
 

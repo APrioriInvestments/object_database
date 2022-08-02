@@ -396,6 +396,9 @@ class Editor(FocusableCell):
 
         self.sectionDisplayFun = sectionDisplayFun
 
+    def prepareForReuse(self):
+        self.everCalculated = False
+
     def scrollTo(self, firstLine):
         """Scroll so that 'firstLine' is the first visible line"""
         self.firstLineSlot.set(firstLine)

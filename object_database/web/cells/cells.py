@@ -542,10 +542,6 @@ class Cells:
         self._processCallbacks()
         self._recalculateCells()
 
-        t0 = time.time()
-        while self._processCallbacks() > 0 and time.time() - t0 < MAX_RENDER_TIME:
-            self._recalculateCells()
-
         focusedCell = self._updateFocusedCell()
 
         packet = dict(

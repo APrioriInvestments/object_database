@@ -19,6 +19,7 @@ import queue
 import json
 import uuid
 
+from object_database.web.cells.recomputing_cell_context import RecomputingCellContext
 from object_database.web.ActiveWebServiceSchema import active_webservice_schema
 from object_database.web.ActiveWebService_util import (
     makeMainView,
@@ -175,7 +176,8 @@ class CellsSession:
                 cell = self.cells[cell_id]
 
                 if cell is not None:
-                    cell.onMessage(jsonMsg)
+                    with RecomputingCellContext(cell):
+                        cell.onMessage(jsonMsg)
 
             logging.info("Processed callback in cell with lag of %s", time.time() - t0)
 

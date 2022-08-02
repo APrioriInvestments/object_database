@@ -29,13 +29,13 @@ class Expands(Cell):
 
     @property
     def isExpanded(self):
-        isExpandedSlot = sessionState(self).slotFor(self.identityPath + ("ExpandsState",))
+        isExpandedSlot = sessionState().slotFor(self.identityPath + ("ExpandsState",))
 
         return isExpandedSlot.get() or False
 
     @isExpanded.setter
     def isExpanded(self, isExpanded):
-        isExpandedSlot = sessionState(self).slotFor(self.identityPath + ("ExpandsState",))
+        isExpandedSlot = sessionState().slotFor(self.identityPath + ("ExpandsState",))
 
         isExpandedSlot.set(bool(isExpanded))
 

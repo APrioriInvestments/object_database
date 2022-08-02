@@ -25,6 +25,8 @@ def wrapCallback(callback):
     """
     cells = CellsContext.get()
 
+    assert cells is not None
+
     def realCallback(*args, **kwargs):
         def innerCallback():
             callback(*args, **kwargs)

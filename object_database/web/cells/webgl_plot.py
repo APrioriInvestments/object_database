@@ -866,6 +866,9 @@ class WebglPlot(Cell):
         )
         self.mouseoverFunction = None
 
+        self.reactors.add(self.mousoverContentsWatcher)
+        self.reactors.add(self.mousePositionWatcher)
+
     def onMousePositionChanged(self, old, new):
         if self.mouseoverFunction is None:
             self.mouseoverContents.set(None)

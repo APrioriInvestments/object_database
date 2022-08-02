@@ -70,5 +70,5 @@ class SlotWatcher(Reactor):
 
             if curVal != self.broadcastValue:
                 oldValue = self.broadcastValue
-                self.broadcastValue = oldValue
+                self.broadcastValue = curVal
                 self.onValueChanged(oldValue, curVal)

@@ -15,8 +15,6 @@
 
 from object_database.web.cells.cell import Cell
 
-import logging
-
 
 def augmentToBeUnique(listOfItems):
     """Given a list that may include duplicates, return a list of unique items
@@ -53,11 +51,7 @@ class Subscribed(Cell):
 
     def onRemovedFromTree(self):
         if self.onRemovedCallback is not None:
-            try:
-                with self.view():
-                    self.onRemovedCallback()
-            except Exception:
-                logging.exception("Subscribed onRemoved callback failed.")
+            self.cells.scheduleCallback(self.onRemovedCallback)
 
     def identityOfChild(self, child):
         return self.childIdentity

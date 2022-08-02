@@ -29,6 +29,11 @@ from object_database.web.cells.cells_context import CellsContext
 from object_database.web.cells.reactor import Reactor
 
 
+# maximum number of seconds to keep repeating the render / callback
+# processing cycle for.
+MAX_RENDER_TIME = 0.1
+
+
 class CellDependencies:
     def __init__(self):
         """Track the dependencies of a set of cells and computed slots.
@@ -363,7 +368,7 @@ class Cells:
                 self._executeCallback(callback)
 
         except queue.Empty:
-            return
+            return processed
         finally:
             if processed:
                 logging.info(
@@ -534,6 +539,11 @@ class Cells:
     def renderMessages(self):
         self._processCallbacks()
         self._recalculateCells()
+
+        t0 = time.time()
+        while self._processCallbacks() > 0 and time.time() - t0 < MAX_RENDER_TIME:
+            self._recalculateCells()
+
         focusedCell = self._updateFocusedCell()
 
         packet = dict(

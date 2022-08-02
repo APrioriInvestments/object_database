@@ -88,3 +88,22 @@ class EditorSectionDemo(CellsTestPage):
             "You should see a text editor with a 'sections' display to the right. "
             "There should be a section for every line starting with '# - '."
         )
+
+
+class PrefocusedEditor(CellsTestPage):
+    def cell(self):
+        slotState = cells.Slot(False)
+
+        def editor():
+            if slotState.get():
+                ed = cells.Editor()
+                ed.focus()
+                return ed
+
+        return cells.Button("Show editor", slotState.toggle) + cells.Subscribed(editor)
+
+    def text(self):
+        return (
+            "You should see a button that brings up a text editor. It should have "
+            "focus when it pops up."
+        )

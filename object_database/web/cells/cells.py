@@ -312,7 +312,14 @@ class Cells:
         """Trigger a server-side focus change."""
         self._eventHasTransactions.put(1)
 
-        self.focusedCell.set(newCell)
+        if DependencyContext.get() is None:
+            # this can happen when we are installing a cell
+            with CellsContext(self):
+                context = DependencyContext(self.db, readOnly=False)
+                context.calculate(lambda: self.focusedCell.set(newCell))
+        else:
+            self.focusedCell.set(newCell)
+
         self.focusEventId += 1000
 
         if newCell is not None:

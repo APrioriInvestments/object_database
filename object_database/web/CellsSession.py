@@ -179,7 +179,12 @@ class CellsSession:
                     with RecomputingCellContext(cell):
                         cell.onMessage(jsonMsg)
 
-            logging.info("Processed callback in cell with lag of %s", time.time() - t0)
+                logging.info(
+                    "Processed onMessage for cell %s with lag of %s: %s",
+                    cell,
+                    time.time() - t0,
+                    repr(jsonMsg)[:100],
+                )
 
         return callbackFun
 

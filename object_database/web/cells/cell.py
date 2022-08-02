@@ -262,6 +262,8 @@ class Cell(object):
             return object_database.web.cells.subscribed.Subscribed(x)
         if isinstance(x, Cell):
             return x
+        if hasattr(x, "cellDisplay"):
+            return Cell.makeCell(x.cellDisplay())
 
         return object_database.web.cells.Traceback(
             f"Can't convert instance of type {type(x)} to a cell."

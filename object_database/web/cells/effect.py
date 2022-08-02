@@ -34,13 +34,14 @@ class Effect(Cell):
     easily end up in a cycle of changes, so be judicious with these.
     """
 
-    def __init__(self, effector):
+    def __init__(self, effector, onRemoved=None):
         super().__init__()
 
         def callEffector():
             with RecomputingCellContext(self):
                 return effector()
 
+        self.onRemovedCallback = onRemoved
         self.reactors.add(SimpleReactor(callEffector))
 
     def recalculate(self):
@@ -48,3 +49,7 @@ class Effect(Cell):
 
     def cellJavascriptClassName(self):
         return "PassthroughCell"
+
+    def onRemovedFromTree(self):
+        if self.onRemovedCallback is not None:
+            self.cells.scheduleCallback(self.onRemovedCallback)

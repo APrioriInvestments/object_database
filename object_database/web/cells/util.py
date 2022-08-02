@@ -27,8 +27,7 @@ def wrapCallback(callback):
 
     def realCallback(*args, **kwargs):
         def innerCallback():
-            with CellsContext(cells):
-                callback(*args, **kwargs)
+            callback(*args, **kwargs)
 
         cells.scheduleCallback(innerCallback)
 

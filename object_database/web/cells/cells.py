@@ -182,7 +182,7 @@ class CellDependencies:
 
             aSlot.ensureCalculated()
 
-    def recalculateDirtyReactors(self, db):
+    def recalculateDirtyReactors(self, db, cells):
         """Recalculate reactors in a loop until none are dirty.
 
         Returns:
@@ -199,7 +199,8 @@ class CellDependencies:
             def updateIt():
                 aReactor.applyStateChange()
 
-            result = depContext.calculate(updateIt)
+            with CellsContext(cells):
+                result = depContext.calculate(updateIt)
 
             if result[0]:
                 logging.error(
@@ -689,7 +690,7 @@ class Cells:
                         if not node.garbageCollected:
                             self._recalculateCell(node)
 
-            if not self._dependencies.recalculateDirtyReactors(self.db):
+            if not self._dependencies.recalculateDirtyReactors(self.db, self):
                 return
 
     def getPacketId(self, packetCallback):

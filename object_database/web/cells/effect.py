@@ -15,6 +15,7 @@
 
 from object_database.web.cells.cell import Cell
 from object_database.web.cells.reactor import SimpleReactor
+from object_database.web.cells.recomputing_cell_context import RecomputingCellContext
 
 
 class Effect(Cell):
@@ -36,7 +37,11 @@ class Effect(Cell):
     def __init__(self, effector):
         super().__init__()
 
-        self.reactors.add(SimpleReactor(effector))
+        def callEffector():
+            with RecomputingCellContext(self):
+                return effector()
+
+        self.reactors.add(SimpleReactor(callEffector))
 
     def recalculate(self):
         pass

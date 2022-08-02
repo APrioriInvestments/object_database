@@ -175,12 +175,13 @@ class CellDependencies:
             for calculation in self._subscribedCells.get(key, set()):
                 self._markCalcDirty(calculation)
 
-    def recalculateDirtyComputedSlots(self, db):
+    def recalculateDirtyComputedSlots(self, db, cells):
         # this is not the most efficient way of doing this - we could do better...
         while self._dirtyComputedSlots:
             aSlot = self._dirtyComputedSlots.pop()
 
-            aSlot.ensureCalculated()
+            with CellsContext(cells):
+                aSlot.ensureCalculated()
 
     def recalculateDirtyReactors(self, db, cells):
         """Recalculate reactors in a loop until none are dirty.
@@ -676,7 +677,7 @@ class Cells:
             except queue.Empty:
                 pass
 
-            self._dependencies.recalculateDirtyComputedSlots(self.db)
+            self._dependencies.recalculateDirtyComputedSlots(self.db, self)
 
             while self._dependencies._dirtyNodes:
                 cellsByLevel = {}

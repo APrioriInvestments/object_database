@@ -22,6 +22,7 @@ class CellsContext:
     """Context variable specifying the current 'cells' instance that's calculating."""
 
     def __init__(self, cells):
+        assert cells is not None
         self.cells = cells
 
     @staticmethod

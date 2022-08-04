@@ -368,7 +368,7 @@ pre {
 }
 
 .monospace_font {
-    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    font-family: "Ubuntu Mono";
 }
 
 
@@ -805,7 +805,7 @@ pre {
     width: 100%;
     height: 100%;
     white-space: pre;
-    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    font-family: "Ubuntu Mono";
 }
 
 .editor-line-piece {
@@ -827,7 +827,7 @@ pre {
     left: 0px;
     width: 100%;
     height: 100%;
-    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    font-family: "Ubuntu Mono";
 }
 
 .editor-cursor-transition-layer {
@@ -836,7 +836,7 @@ pre {
     left: 0px;
     width: 100%;
     height: 100%;
-    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    font-family: "Ubuntu Mono";
 }
 
 .editor-cursor-layer {
@@ -845,7 +845,7 @@ pre {
     left: 0px;
     width: 100%;
     height: 100%;
-    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    font-family: "Ubuntu Mono";
 }
 
 .editor-scrollbar-layer {
@@ -959,7 +959,7 @@ pre {
     position: absolute;
     right: 0px;
     bottom: 4px;
-    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    font-family: "Ubuntu Mono";
     white-space: pre;
 }
 
@@ -968,7 +968,7 @@ pre {
     overflow: hidden;
     display: inline;
 
-    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    font-family: "Ubuntu Mono";
     white-space: pre;
     padding-top: 4px;
     padding-left: 4px;
@@ -983,7 +983,7 @@ pre {
 
 .sheet-header-bar-guide {
     border-right: 1px solid #BBBBBB;
-    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    font-family: "Ubuntu Mono";
     border-right: 1px solid #BBBBBB;
     white-space: pre;
     padding-top: 4px;
@@ -994,7 +994,7 @@ pre {
 
 .sheet-currently-selected-contents {
     position: absolute;
-    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    font-family: "Ubuntu Mono";
     line-height: 120%;
     white-space: pre-wrap;
     padding-top: 4px;
@@ -1090,7 +1090,7 @@ pre {
     background-color: #FFFFFFFF;
     border: 1px solid #DDDDDD;
     white-space: pre;
-    font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
+    font-family: "Ubuntu Mono";
     padding: 4px;
 
     overflow: auto;

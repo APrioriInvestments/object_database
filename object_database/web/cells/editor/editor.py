@@ -38,7 +38,7 @@ def compressState(state, maxTimestamp, maxWordUndos=1000, maxLineUndos=10000):
     """Compress events so that the state doesn't build up.
 
     Args:
-        state - a dict(lines,events=,topEventIndex) state model
+        state - a dict(lines,events=,topEventGuid) state model
         maxWordUndos - the maximum number of single-word undo events to tolerate
         maxLineUndos - the maximum number of line-level undos to tolerate
     """
@@ -78,7 +78,7 @@ def compressState(state, maxTimestamp, maxWordUndos=1000, maxLineUndos=10000):
 
     assert state1 == state2, (state1, state2)
 
-    return dict(lines=lines, topEventIndex=state["topEventIndex"], events=events)
+    return dict(lines=lines, topEventGuid=state["topEventGuid"], events=events)
 
 
 def collapseStateToTopmost(state):
@@ -89,17 +89,17 @@ def collapseStateToTopmost(state):
             ix = change["lineIndex"]
             lines[ix : ix + len(change["oldLines"])] = change["newLines"]
 
-    return dict(lines=lines, events=(), topEventIndex=state["topEventIndex"])
+    return dict(lines=lines, events=(), topEventGuid=state["topEventGuid"])
 
 
 class EditorStateBase:
     def getStateSlot(self):
         def getState():
-            return dict(lines=self.lines, topEventIndex=self.topEventIndex, events=self.events)
+            return dict(lines=self.lines, topEventGuid=self.topEventGuid, events=self.events)
 
         def setState(val):
             self.lines = val["lines"]
-            self.topEventIndex = val["topEventIndex"]
+            self.topEventGuid = val["topEventGuid"]
             self.events = val["events"]
 
         return ComputedSlot(getState, setState)
@@ -117,13 +117,15 @@ class EditorStateBase:
         return computeStateFromEvents(self.lines, self.events)
 
     def setCurrentState(self, newBuffer):
-        event = computeDeltaEvent(self.getCurrentState(), newBuffer, "server")
+        event = computeDeltaEvent(
+            self.getCurrentState(), newBuffer, "server", self.topEventGuid
+        )
 
         if event is None:
             return
 
-        self.topEventIndex += 1
         self.events = self.events + (event,)
+        self.topEventGuid = event["eventGuid"]
 
     def lineRangeForSection(self, sectionHeader, sectionNumber):
         lines = self.getCurrentState().split("\n")
@@ -147,7 +149,7 @@ class SlotEditorState(EditorStateBase):
         self.dataSlot = Slot(
             dict(
                 lines=tuple(initialText.split("\n")),
-                topEventIndex=0,
+                topEventGuid="<initial>",
                 events=(),
                 userSelectionData={},
             )
@@ -164,13 +166,13 @@ class SlotEditorState(EditorStateBase):
         self.dataSlot.set(val)
 
     @property
-    def topEventIndex(self):
-        return self.dataSlot.get()["topEventIndex"]
+    def topEventGuid(self):
+        return self.dataSlot.get()["topEventGuid"]
 
-    @topEventIndex.setter
-    def topEventIndex(self, newValue):
+    @topEventGuid.setter
+    def topEventGuid(self, newValue):
         val = dict(self.dataSlot.get())
-        val["topEventIndex"] = newValue
+        val["topEventGuid"] = newValue
         self.dataSlot.set(val)
 
     @property
@@ -198,11 +200,11 @@ class OdbEditorState(EditorStateBase):
     """An adaptor to hold the state of the editor in the ODB."""
 
     def __init__(
-        self, storageObject, linesName, topEventIndexName, eventsName, userSelectionDataName
+        self, storageObject, linesName, topEventGuidName, eventsName, userSelectionDataName
     ):
         self.storageObject = storageObject
         self.linesName = linesName
-        self.topEventIndexName = topEventIndexName
+        self.topEventGuidName = topEventGuidName
         self.eventsName = eventsName
         self.userSelectionDataName = userSelectionDataName
 
@@ -215,12 +217,12 @@ class OdbEditorState(EditorStateBase):
         setattr(self.storageObject, self.linesName, newValue)
 
     @property
-    def topEventIndex(self):
-        return getattr(self.storageObject, self.topEventIndexName) or 0
+    def topEventGuid(self):
+        return getattr(self.storageObject, self.topEventGuidName) or "<initial>"
 
-    @topEventIndex.setter
-    def topEventIndex(self, newValue):
-        setattr(self.storageObject, self.topEventIndexName, newValue)
+    @topEventGuid.setter
+    def topEventGuid(self, newValue):
+        setattr(self.storageObject, self.topEventGuidName, newValue)
 
     @property
     def events(self):
@@ -239,7 +241,7 @@ class OdbEditorState(EditorStateBase):
         setattr(self.storageObject, self.userSelectionDataName, newValue)
 
 
-def computeDeltaEvent(curContents, newContents, reason):
+def computeDeltaEvent(curContents, newContents, reason, topEventGuid):
     curContents = curContents.split("\n")
     newContents = newContents.split("\n")
 
@@ -266,6 +268,17 @@ def computeDeltaEvent(curContents, newContents, reason):
         else:
             break
 
+    startCursor = dict(
+        pos=[min(max(len(curContents) - j, 0), len(curContents) - 1), 0],
+        tail=[min(i, len(curContents) - 1), 0],
+        desiredCol=0,
+    )
+    endCursor = dict(
+        pos=[min(max(len(newContents) - j, 0), len(newContents) - 1), 0],
+        tail=[min(i, len(newContents) - 1), 0],
+        desiredCol=0,
+    )
+
     return dict(
         changes=[
             dict(
@@ -274,9 +287,11 @@ def computeDeltaEvent(curContents, newContents, reason):
                 newLines=newContents[i : len(newContents) - j],
             )
         ],
-        startCursors=[dict(pos=[len(curContents) - j, 0], tail=[i, 0], desiredCol=0)],
-        newCursors=[dict(pos=[len(newContents) - j, 0], tail=[i, 0], desiredCol=0)],
+        startCursors=[startCursor],
+        newCursors=[endCursor],
         timestamp=time.time(),
+        eventGuid=str(uuid.uuid4()),
+        priorEventGuid=topEventGuid,
         undoState=None,
         editSessionId=None,
         reason=reason,
@@ -373,12 +388,7 @@ class Editor(FocusableCell):
         )
         self.reactors.add(self.userSelectionSlotWatcher)
 
-        self.sentEventIndex = None
-
-        # None, or a pair [tIdLow, tIdHi] containing a contiguous (inclusive) range of
-        # transactions ids that are ours. Any transactions with a server ID in this range
-        # will be considered valid.
-        self.transactionStartSeqNum = None
+        self.sentEventGuid = None
 
         self.editSessionId = str(uuid.uuid4())
 
@@ -449,18 +459,23 @@ class Editor(FocusableCell):
         self.ensureVisible(pos[0], 10)
 
     def setContents(self, newContents):
-        event = computeDeltaEvent(self.getCurrentContents(), newContents, "server-push")
+        curState = self._getCurrentState()
+
+        event = computeDeltaEvent(
+            self.getCurrentContents(), newContents, "server-push", curState["topEventGuid"]
+        )
 
         if event is None:
             return
 
-        curState = dict(self._getCurrentState())
-
-        if not eventIsValidInContextOfLines(event, curState["lines"], curState["events"]):
+        if not eventIsValidInContextOfLines(
+            event, curState["lines"], curState["topEventGuid"], curState["events"]
+        ):
             raise Exception("Computed an invalid event somehow")
 
+        curState = dict(curState)
         curState["events"] = curState["events"] + (event,)
-        curState["topEventIndex"] += 1
+        curState["topEventGuid"] = event["eventGuid"]
 
         self.stateSlot.set(curState)
 
@@ -500,71 +515,63 @@ class Editor(FocusableCell):
     def onStateSlotChanged(self, oldVal, val):
         serverState = self._getCurrentState()
 
-        if self.sentEventIndex > serverState["topEventIndex"]:
-            # somehow we got into a bad state
-            self.scheduleMessage({"resetState": collapseStateToTopmost(serverState)})
-            self.sentEventIndex = serverState["topEventIndex"]
-            logging.warning("Client %s completely resetting state", self.editSessionId)
+        # broadcast any committed events to the client.
+        if self.sentEventGuid == serverState["topEventGuid"]:
+            return
 
-        elif self.sentEventIndex != serverState["topEventIndex"]:
-            # tell the server that events have happened underneath it
-            eventsSinceLastBroadcast = serverState["topEventIndex"] - self.sentEventIndex
+        # now, look back in the event history until we find the event we are supposed to have
+        events = serverState["events"]
+        eventIx = len(events) - 1
 
-            if eventsSinceLastBroadcast:
-                if len(serverState["events"]) >= eventsSinceLastBroadcast:
-                    self.scheduleMessage(
-                        {"acceptedEvents": serverState["events"][-eventsSinceLastBroadcast:]}
-                    )
+        while eventIx >= 0:
+            if events[eventIx]["priorEventGuid"] == self.sentEventGuid:
+                # we need to send all events from here forward
+                self.scheduleMessage({"acceptedEvents": events[eventIx:]})
+                self.sentEventGuid = events[-1]["eventGuid"]
+                return
+            else:
+                eventIx -= 1
 
-                    for event in serverState["events"][-eventsSinceLastBroadcast:]:
-                        if event["editSessionId"] == self.editSessionId:
-                            # this is our event
-                            if self.transactionStartSeqNum is None:
-                                self.transactionStartSeqNum = (
-                                    self.sentEventIndex,
-                                    self.sentEventIndex + 1,
-                                )
-                            else:
-                                self.transactionStartSeqNum = (
-                                    self.transactionStartSeqNum[0],
-                                    self.transactionStartSeqNum[1] + 1,
-                                )
-                        else:
-                            self.transactionStartSeqNum = None
-
-                        self.sentEventIndex += 1
-
-                    assert self.sentEventIndex == serverState["topEventIndex"]
-                else:
-                    logging.warning("Client %s completely resetting state", self.editSessionId)
-
-                    self.scheduleMessage({"resetState": serverState})
-
-                    self.sentEventIndex = serverState["topEventIndex"]
+        # somehow we got into a bad state
+        self.scheduleMessage({"resetState": collapseStateToTopmost(serverState)})
+        self.sentEventGuid = serverState["topEventGuid"]
+        logging.warning(
+            "Client %s/%s completely resetting state to %s because the send state was ahead",
+            self.username,
+            self.editSessionId,
+            self.sentEventGuid,
+        )
 
     def triggerUndoOrRedo(self, isUndo):
         currentState = self._getCurrentState()
 
         if isUndo:
-            newEvents = computeUndoEvents(currentState["events"], self.editSessionId)
+            newEvents = computeUndoEvents(
+                currentState["events"], self.editSessionId, currentState["topEventGuid"]
+            )
         else:
-            newEvents = computeRedoEvents(currentState["events"], self.editSessionId)
+            newEvents = computeRedoEvents(
+                currentState["events"], self.editSessionId, currentState["topEventGuid"]
+            )
 
         if newEvents:
             if not eventsAreValidInContextOfLines(
-                newEvents, currentState["lines"], currentState["events"]
+                newEvents,
+                currentState["lines"],
+                currentState["topEventGuid"],
+                currentState["events"],
             ):
                 raise Exception("Computed invalid undo events")
 
             currentState = dict(currentState)
             currentState["events"] = currentState["events"] + tuple(newEvents)
-            currentState["topEventIndex"] += 1
+            currentState["topEventGuid"] = newEvents[-1]["eventGuid"]
 
             logging.info("Pushing an %s event: %s", "undo" if isUndo else "redo", newEvents)
 
             self.stateSlot.set(currentState)
         else:
-            logging.info("Can't build an %s event", "undo" if isUndo else "redo")
+            logging.error("Can't build an %s event", "undo" if isUndo else "redo")
 
     def onMessage(self, messageFrame):
         if (
@@ -606,7 +613,6 @@ class Editor(FocusableCell):
             if self.readOnly:
                 raise Exception("Can't accept events for a read-only buffer.")
 
-            topEventIndex = messageFrame.get("topEventIndex")
             event = messageFrame.get("event")
 
             for change in event["changes"]:
@@ -614,27 +620,36 @@ class Editor(FocusableCell):
 
             currentState = self._getCurrentState()
 
-            isValidIndex = topEventIndex == currentState["topEventIndex"]
-
-            if not isValidIndex and self.transactionStartSeqNum is not None:
-                if (
-                    self.transactionStartSeqNum[0] <= topEventIndex
-                    and topEventIndex <= self.transactionStartSeqNum[1]
-                ):
-                    isValidIndex = True
+            isValidIndex = event["priorEventGuid"] == currentState["topEventGuid"]
 
             if isValidIndex:
                 if not eventIsValidInContextOfLines(
-                    event, currentState["lines"], currentState["events"]
+                    event,
+                    currentState["lines"],
+                    currentState["topEventGuid"],
+                    currentState["events"],
                 ):
                     self.scheduleMessage({"resetState": collapseStateToTopmost(currentState)})
-                    self.sentEventIndex = currentState["topEventIndex"]
-                    logging.warning("Client %s completely resetting state", self.editSessionId)
+                    self.sentEventGuid = currentState["topEventGuid"]
+                    logging.error(
+                        "Resetting session %s/%s on eventGuid %s: bad event %s.",
+                        self.username,
+                        self.editSessionId,
+                        currentState["topEventGuid"],
+                        event,
+                    )
                 else:
                     newState = dict(
                         lines=currentState["lines"],
-                        topEventIndex=currentState["topEventIndex"] + 1,
+                        topEventGuid=event["eventGuid"],
                         events=currentState["events"] + (event,),
+                    )
+
+                    logging.info(
+                        "Accepting event on %s/%s: %s",
+                        self.username,
+                        self.editSessionId,
+                        event["eventGuid"],
                     )
 
                     if len(newState["events"]) % 100 == 0:
@@ -650,8 +665,9 @@ class Editor(FocusableCell):
                     self.stateSlot.set(newState)
             else:
                 logging.warning(
-                    "Dropping event %s from %s on the ground",
-                    topEventIndex,
+                    "Dropping event %s from %s/%s on the ground",
+                    event,
+                    self.username,
                     self.editSessionId,
                 )
 
@@ -659,7 +675,7 @@ class Editor(FocusableCell):
         state = self.stateSlot.getWithoutRegisteringDependency()
 
         if state is None:
-            return dict(lines=("",), topEventIndex=0, events=())
+            return dict(lines=("",), topEventGuid="<initial>", events=())
 
         return state
 
@@ -764,9 +780,15 @@ class Editor(FocusableCell):
         initData = collapseStateToTopmost(self._getCurrentState())
 
         # keep track of what we first told the editor was the state of the system
-        self.sentEventIndex = initData["topEventIndex"]
+        self.sentEventGuid = initData["topEventGuid"]
 
-        logging.info("Creating editor with %s events", len(initData["events"]))
+        logging.info(
+            "Creating editor %s/%s with %s events and top event %s",
+            self.username,
+            self.editSessionId,
+            len(initData["events"]),
+            initData["topEventGuid"],
+        )
 
         if self.userSelectionSlot:
             self.exportData[

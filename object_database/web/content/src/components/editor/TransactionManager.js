@@ -1,11 +1,12 @@
 class TransactionManager {
-    constructor(dataModel, constants, onEvent=null, editSessionId='id', initBaseEventIndex=0) {
+    constructor(dataModel, constants, onEvent=null, allocateNewEventGuid=null, editSessionId='id', topEventGuid='<empty>') {
         this.dataModel = dataModel;
         this.constants = constants;
         this.editSessionId = editSessionId;
 
         // the base event of the current state the server knows
-        this.topEventIndex = initBaseEventIndex;
+        this.topEventGuid = topEventGuid;
+        this.topLocalEventGuid = topEventGuid;
 
         // events before the base event index
         this.priorEvents = [];
@@ -21,21 +22,28 @@ class TransactionManager {
         this.reverseEvent = this.reverseEvent.bind(this);
         this.computeNextUndo = this.computeNextUndo.bind(this);
         this.computeNextRedo = this.computeNextRedo.bind(this);
+        this.allocateNewEventGuid = allocateNewEventGuid ? allocateNewEventGuid : () => { '' };
 
         this.eventsAreInSameUndoStream = this.eventsAreInSameUndoStream.bind(this);
 
-        // should take (topEventIndex, relativeEventIndex, event)
+        // should take (event)
         this.onEvent = onEvent;
     }
 
     snapshot(reason='unknown') {
-        let event = this.dataModel.collectChanges(this.editSessionId, reason);
+        let event = this.dataModel.collectChanges(
+            this.editSessionId,
+            reason,
+            this.topLocalEventGuid,
+            this.allocateNewEventGuid()
+        );
 
         if (event.changes.length > 0) {
             this.events.push(event);
+            this.topLocalEventGuid = event.eventGuid;
 
             if (this.onEvent !== null) {
-                this.onEvent(this.topEventIndex, this.events.length - 1, event);
+                this.onEvent(event);
             }
         }
     }
@@ -67,6 +75,8 @@ class TransactionManager {
             timestamp: isForUndo ? Date.now() / 1000.0 : event.timestamp,
             undoState: undoState,
             editSessionId: isForUndo ? this.editSessionId : event.editSessionId,
+            priorEventGuid: null,
+            eventGuid: null,
             reason: event.reason
         };
     }
@@ -108,11 +118,13 @@ class TransactionManager {
                     lineIndex: change.lineIndex + lineCount
                 }
             }).reverse(),
-            startCursors: event.newCursors,
-            newCursors: event.startCursors,
+            startCursors: event.startCursors,
+            newCursors: event.newCursors,
             timestamp: event.timestamp,
             undoState: event.undoState,
             editSessionId: event.editSessionId,
+            eventGuid: event.eventGuid,
+            priorEventGuid: event.priorEventGuid,
             reason: event.reason
         };
     }
@@ -130,14 +142,11 @@ class TransactionManager {
     pushBaseEvent(event) {
         if (this.events.length) {
             // see if this is our event
-            if (event.editSessionId == this.editSessionId) {
-                if (this.events.length && JSON.stringify(event) == JSON.stringify(this.events[0])) {
-                    // it is - we can just pop our event off the front of the queue.
-                    this.topEventIndex++;
-                    this.priorEvents.push(this.events[0]);
-                    this.events.splice(0, 1);
-                    return false;
-                }
+            if (event.eventGuid == this.events[0].eventGuid) {
+                this.topEventGuid = event.eventGuid;
+                this.priorEvents.push(this.events[0]);
+                this.events.splice(0, 1);
+                return false;
             }
 
             // its not our top event!
@@ -147,7 +156,7 @@ class TransactionManager {
             // Note that 'reverse' mutates 'events'
             this.events.reverse().forEach((event) => {
                 this.dataModel.pushEvent(
-                    this.reverseEvent(event)
+                    this.reverseEvent(event, false)
                 );
             });
 
@@ -156,7 +165,9 @@ class TransactionManager {
 
             this.priorEvents.push(event);
             this.dataModel.pushEventButRetainCursors(event);
-            this.topEventIndex += 1;
+
+            this.topEventGuid = event.eventGuid;
+            this.topLocalEventGuid = event.eventGuid;
 
             // now attempt to push our events back on top in order, bailing as soon
             // as we have a conflict
@@ -177,6 +188,7 @@ class TransactionManager {
                     } else {
                         // it was ABOVE us, so we need to move down our notion of the
                         // area of effect of 'edit'
+                        e = TransactionManager.offsetEvent(e, 0);
                         let lineDelta = TransactionManager.relativeLineCount(e);
                         rebaseBounds.highIx += lineDelta;
                         rebaseBounds.lowIx += lineDelta;
@@ -196,7 +208,8 @@ class TransactionManager {
             } else {
                 this.dataModel.pushEventButRetainCursors(event);
             }
-            this.topEventIndex += 1;
+            this.topEventGuid = event.eventGuid;
+            this.topLocalEventGuid = event.eventGuid;
         }
 
         return true;
@@ -204,11 +217,15 @@ class TransactionManager {
 
     // apply an event to the dataModel. It must be in an unedited state.
     pushEvent(event) {
+        event.eventGuid = this.allocateNewEventGuid();
+        event.priorEventGuid = this.topLocalEventGuid;
+
         this.dataModel.pushEvent(event);
         this.events.push(event);
+        this.topLocalEventGuid = event.eventGuid;
 
         if (this.onEvent !== null) {
-            this.onEvent(this.topEventIndex, this.events.length - 1, event);
+            this.onEvent(event);
         }
     }
 

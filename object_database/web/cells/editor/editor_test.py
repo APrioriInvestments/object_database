@@ -14,22 +14,26 @@ class EditorModel:
         self.initLines = [""]
         self.lines = [""]
         self.events = []
-        self.topEventIndex = 0
+        self.topEventGuid = "0"
 
     def pushEvent(self, event):
+        event = dict(event)
+        event["eventGuid"] = str(int(self.topEventGuid) + 1)
+        event["priorEventGuid"] = self.topEventGuid
+
         assert isValidEvent(event)
-        assert eventIsValidInContextOfLines(event, self.lines, [])
+        assert eventIsValidInContextOfLines(event, self.lines, self.topEventGuid, [])
         self.events.append(event)
-        self.topEventIndex += 1
+        self.topEventGuid = str(int(self.topEventGuid) + 1)
 
         applyEventsToLines(self.lines, [event])
 
     def undo(self):
-        for e in computeUndoEvents(self.events, "session"):
+        for e in computeUndoEvents(self.events, "session", self.topEventGuid):
             self.pushEvent(e)
 
     def redo(self):
-        for e in computeRedoEvents(self.events, "session"):
+        for e in computeRedoEvents(self.events, "session", self.topEventGuid):
             self.pushEvent(e)
 
     def insertLine(self, index, value, reason):
@@ -76,14 +80,12 @@ class EditorModel:
     def compress(self, maxTimestamp=None, maxWordUndos=0, maxLineUndos=10000):
         assert computeStateFromEvents(self.initLines, self.events) == "\n".join(self.lines)
 
-        state = dict(
-            topEventIndex=self.topEventIndex, lines=self.initLines, events=self.events
-        )
+        state = dict(topEventGuid=self.topEventGuid, lines=self.initLines, events=self.events)
 
         newState = compressState(state, maxTimestamp, maxWordUndos, maxLineUndos)
 
         self.events = list(newState["events"])
-        self.topEventIndex = newState["topEventIndex"]
+        self.topEventGuid = newState["topEventGuid"]
         self.initLines = newState["lines"]
 
     def totalChanges(self):

@@ -141,7 +141,7 @@ class DataModel {
     // the current and prior states of the DataModel (since last call).
     // events contains enough information to completely replay the state
     // of the system.
-    collectChanges(editSessionId, reason) {
+    collectChanges(editSessionId, reason, priorEventGuid, eventGuid) {
         let changes = this.changesSinceLastCheckpoint;
         let cursors = this.cursorAtLastCheckpoint;
 
@@ -155,6 +155,8 @@ class DataModel {
             timestamp: Date.now() / 1000.0,
             undoState: null,
             editSessionId: editSessionId,
+            priorEventGuid: priorEventGuid,
+            eventGuid: eventGuid,
             reason: reason
         };
     }

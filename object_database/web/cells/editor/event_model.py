@@ -29,6 +29,8 @@ An edit looks like
         timestamp: float,
         undoState: None | 'undo' | 'redo',
         editSessionId: str,
+        priorEventGuid: str,
+        eventGuid: str,
         reason: 'unknown' | 'server-push' | {'keystroke': 'key'} | {'event': 'paste'}
     }
 
@@ -61,6 +63,7 @@ backward for the most recent 'undo' and perform that operation in reverse.
 """
 import time
 import logging
+import uuid
 
 
 def isValidChange(change):
@@ -125,6 +128,8 @@ def isValidEvent(event):
             "undoState",
             "editSessionId",
             "reason",
+            "eventGuid",
+            "priorEventGuid",
         ]
     ):
         return False
@@ -154,6 +159,12 @@ def isValidEvent(event):
         return False
 
     if not isinstance(event["editSessionId"], str) and event["editSessionId"] is not None:
+        return False
+
+    if not isinstance(event["eventGuid"], str):
+        return False
+
+    if not isinstance(event["priorEventGuid"], str):
         return False
 
     if not isinstance(event["reason"], (str, dict)):
@@ -268,6 +279,8 @@ def collapseEvents(e1, e2):
         timestamp=e2["timestamp"],
         undoState=e2["undoState"],
         editSessionId=e2["editSessionId"],
+        priorEventGuid=e1["eventGuid"],
+        eventGuid=e2["eventGuid"],
         reason=e2["reason"],
     )
 
@@ -276,21 +289,21 @@ def reverseChange(c):
     return dict(oldLines=c["newLines"], newLines=c["oldLines"], lineIndex=c["lineIndex"])
 
 
-def reverseEvent(event, isForUndo, curEditSessionId=None):
-    undoState = None
-    if isForUndo:
-        if event.get("undoState") == "undo":
-            undoState = "redo"
-        else:
-            undoState = "undo"
+def reverseEventForUndo(event, curEditSessionId, priorEventGuid):
+    if event.get("undoState") == "undo":
+        undoState = "redo"
+    else:
+        undoState = "undo"
 
     return dict(
         changes=[reverseChange(c) for c in reversed(event["changes"])],
         startCursors=event["newCursors"],
         newCursors=event["startCursors"],
-        timestamp=time.time() if isForUndo else event["timestamp"],
+        timestamp=time.time(),
         undoState=undoState,
-        editSessionId=curEditSessionId if isForUndo else event["editSessionId"],
+        editSessionId=curEditSessionId,
+        priorEventGuid=priorEventGuid,
+        eventGuid=str(uuid.uuid4()),
         reason=event["reason"],
     )
 
@@ -350,7 +363,7 @@ def computeNextRedoIx(events, pendingRedos=1):
     return i + 1
 
 
-def computeUndoEvents(events, curEditSessionId):
+def computeUndoEvents(events, curEditSessionId, topEventGuid):
     """Given a stream of events, return an event that "undoes" the top event."""
     i = computeNextUndoIx(events)
 
@@ -359,7 +372,7 @@ def computeUndoEvents(events, curEditSessionId):
     if i is None:
         return res
 
-    res.append(reverseEvent(events[i], True, curEditSessionId))
+    res.append(reverseEventForUndo(events[i], curEditSessionId, topEventGuid))
 
     while True:
         i2 = computeNextUndoIx(events, 1 + len(res))
@@ -372,12 +385,12 @@ def computeUndoEvents(events, curEditSessionId):
         if not eventsAreInSameUndoStream(events[i2], events[i]):
             return res
 
-        res.append(reverseEvent(events[i2], True, curEditSessionId))
+        res.append(reverseEventForUndo(events[i2], curEditSessionId, res[-1]["eventGuid"]))
 
         i = i2
 
 
-def computeRedoEvents(events, curEditSessionId):
+def computeRedoEvents(events, curEditSessionId, topEventGuid):
     i = computeNextRedoIx(events)
 
     if i is None:
@@ -385,7 +398,7 @@ def computeRedoEvents(events, curEditSessionId):
 
     res = []
 
-    res.append(reverseEvent(events[i], True, curEditSessionId))
+    res.append(reverseEventForUndo(events[i], curEditSessionId, topEventGuid))
 
     while True:
         i2 = computeNextRedoIx(events, 1 + len(res))
@@ -398,7 +411,7 @@ def computeRedoEvents(events, curEditSessionId):
         if not eventsAreInSameUndoStream(events[i2], events[i]):
             return res
 
-        res.append(reverseEvent(events[i2], True, curEditSessionId))
+        res.append(reverseEventForUndo(events[i2], curEditSessionId, res[-1]["eventGuid"]))
 
         i = i2
 
@@ -419,7 +432,7 @@ def computeStateFromEvents(lines, events):
     return "\n".join(lines)
 
 
-def eventIsValidInContextOfLines(candidateEvent, lines, events):
+def eventIsValidInContextOfLines(candidateEvent, lines, topEventGuid, events):
     """Return True if 'event' is a valid event and matches 'lines'.
 
     This will return False if the changes in 'event' don't match the data we're expecting
@@ -429,9 +442,13 @@ def eventIsValidInContextOfLines(candidateEvent, lines, events):
     Args:
         candidateEvent - an event dict that we're checking
         lines - a list of strings
+        topEventGuid - the topmost event guid in events, or of the current lines
         events - a list of changes
     """
     if not isValidEvent(candidateEvent):
+        return False
+
+    if candidateEvent["priorEventGuid"] != topEventGuid:
         return False
 
     lines = list(lines)
@@ -457,7 +474,7 @@ def eventIsValidInContextOfLines(candidateEvent, lines, events):
     return True
 
 
-def eventsAreValidInContextOfLines(candidateEvents, lines, events):
+def eventsAreValidInContextOfLines(candidateEvents, lines, topEventGuid, events):
     for candidateEvent in candidateEvents:
         if not isValidEvent(candidateEvent):
             return False
@@ -467,6 +484,12 @@ def eventsAreValidInContextOfLines(candidateEvents, lines, events):
     applyEventsToLines(lines, events)
 
     for candidateEvent in candidateEvents:
+        if candidateEvent["priorEventGuid"] != topEventGuid:
+            logging.warning("Invalid event found: priorEventGuid is wrong")
+            return False
+
+        topEventGuid = candidateEvent["eventGuid"]
+
         for change in candidateEvent["changes"]:
             ix = change["lineIndex"]
             if ix > len(lines):

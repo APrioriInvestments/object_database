@@ -101,6 +101,7 @@ class Editor extends ConcreteCell {
         this.sendSelectionState = this.sendSelectionState.bind(this);
         this.renderAndPlaceDivs = this.renderAndPlaceDivs.bind(this);
         this.positionNamedChild = this.positionNamedChild.bind(this);
+        this.allocateNewEventGuid = this.allocateNewEventGuid.bind(this);
         this.setCursorsTo = this.setCursorsTo.bind(this);
 
         this.hasSectionHeaders = this.props.hasSectionHeaders;
@@ -119,6 +120,7 @@ class Editor extends ConcreteCell {
         this.lastSentSelectionStateString = null;
         this.commitDelay = this.props.commitDelay;
         this.editSessionId = this.props.editSessionId;
+        this.uniqueEventIndex = 1;
 
         this.splitFraction = this.props.splitFraction;
 
@@ -126,12 +128,17 @@ class Editor extends ConcreteCell {
         this.dataModel = new DataModel(
             this.constants,
             this.props.readOnly,
-            this.props.initialState.lines
+            this.props.initialState.lines,
+            null
         );
 
         this.transactionManager = new TransactionManager(
-            this.dataModel, this.constants, this.sendEventToServer, this.props.editSessionId,
-            this.props.initialState.topEventIndex - this.props.initialState.events.length
+            this.dataModel,
+            this.constants,
+            this.sendEventToServer,
+            this.allocateNewEventGuid,
+            this.props.editSessionId,
+            this.props.initialState.topEventGuid
         );
 
         // send the initial events into the transaction manager
@@ -147,6 +154,12 @@ class Editor extends ConcreteCell {
         else {
             this.dataModel.cursors = [new Cursor(0,0,0,0,0)];
         }
+    }
+
+    // get a GUID for the event index
+    allocateNewEventGuid() {
+        this.uniqueEventIndex += 1;
+        return this.editSessionId + "-" + this.uniqueEventIndex;
     }
 
     setCursorsTo(newCursors) {
@@ -179,7 +192,17 @@ class Editor extends ConcreteCell {
 
         if (JSON.stringify(newState) != this.lastSentSelectionStateString) {
             this.lastSentSelectionStateString = JSON.stringify(newState);
-            this.sendMessage(newState);
+            this.sendMessageWithDelay(newState);
+        }
+    }
+
+    sendMessageWithDelay(message) {
+        if (this.commitDelay) {
+            setTimeout(() => {
+                this.sendMessage(message);
+            }, this.commitDelay);
+        } else {
+            this.sendMessage(message);
         }
     }
 
@@ -202,24 +225,15 @@ class Editor extends ConcreteCell {
         observer.observe(this.div);
     }
 
-    sendEventToServer(topEventIndex, relativeEventIndex, event) {
-        if (this.commitDelay) {
-            setTimeout(() => {
-                this.sendMessage({
-                    msg: 'newEvent',
-                    topEventIndex: topEventIndex,
-                    relativeEventIndex: relativeEventIndex,
-                    event: event
-                });
-            }, this.commitDelay);
-        } else {
-            this.sendMessage({
-                msg: 'newEvent',
-                topEventIndex: topEventIndex,
-                relativeEventIndex: relativeEventIndex,
-                event: event
-            })
+    sendEventToServer(event) {
+        if (!(event.eventGuid && event.priorEventGuid)) {
+            throw new Error("No event guid");
         }
+
+        this.sendMessageWithDelay({
+            msg: 'newEvent',
+            event: event
+        })
     }
 
     serverKnowsAsFocusedCell() {
@@ -464,14 +478,20 @@ class Editor extends ConcreteCell {
                 this.dataModel = new DataModel(
                     this.constants,
                     this.readOnly,
-                    message.resetState.lines
+                    message.resetState.lines,
+                    null,
+                    this.allocateNewEventGuid
                 );
 
-                console.log("Resetting state to event " + message.resetState.topEventIndex);
+                console.log("Resetting state to event " + message.resetState.topEventGuid);
 
                 this.transactionManager = new TransactionManager(
-                    this.dataModel, this.constants, this.sendEventToServer, this.editSessionId,
-                    message.resetState.topEventIndex - message.resetState.events.length
+                    this.dataModel,
+                    this.constants,
+                    this.sendEventToServer,
+                    this.allocateNewEventGuid,
+                    this.editSessionId,
+                    message.resetState.topEventGuid
                 );
 
                 // send the initial events into the transaction manager
@@ -721,26 +741,14 @@ class Editor extends ConcreteCell {
                     // see if we can redo. If not, ask the server to try, since it
                     // may have a longer history than we do
                     if (!this.transactionManager.redo()) {
-                        if (this.commitDelay) {
-                            setTimeout(() => {
-                                this.sendMessage({'msg': 'triggerRedo'})
-                            }, this.commitDelay);
-                        } else {
-                            this.sendMessage({'msg': 'triggerRedo'})
-                        }
+                        this.sendMessageWithDelay({'msg': 'triggerRedo'})
                         return;
                     }
                 } else {
                     // see if we can undo. If not, ask the server to try, since it
                     // may have a longer history than we do
                     if (!this.transactionManager.undo()) {
-                        if (this.commitDelay) {
-                            setTimeout(() => {
-                                this.sendMessage({'msg': 'triggerUndo'})
-                            }, this.commitDelay);
-                        } else {
-                            this.sendMessage({'msg': 'triggerUndo'})
-                        }
+                        this.sendMessageWithDelay({'msg': 'triggerUndo'})
                         return;
                     }
                 }

@@ -444,7 +444,7 @@ class Editor(FocusableCell):
         newSelSlot = [dict(pos=pos, tail=tail, desiredCol=pos[1])]
 
         self.selectionSlot.set(newSelSlot)
-        self.onSelectionSlotChanged(None, newSelSlot, "navigateTo")
+        self.onSelectionSlotChanged(None, newSelSlot)
 
         self.ensureVisible(pos[0], 10)
 

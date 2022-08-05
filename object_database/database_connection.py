@@ -447,13 +447,18 @@ class DatabaseConnection:
 
             return View(self, transaction_id)
 
-    def transaction(self):
+    def transaction(self, transaction_id=None):
         """Only one transaction may be committed on the current transaction number."""
         with self._lock:
             if self.disconnected.is_set():
                 raise DisconnectedException()
 
-            return Transaction(self, self._cur_transaction_num)
+            if transaction_id is None:
+                transaction_id = self._cur_transaction_num
+
+            assert transaction_id <= self._cur_transaction_num
+
+            return Transaction(self, transaction_id)
 
     def _onMessage(self, msg):
         self._messages_received += 1

@@ -17,6 +17,25 @@ from object_database.web.cells.cells_context import CellsContext
 from object_database.web.cells.dependency_context import DependencyContext
 
 
+class ComputedSlotDeps:
+    """Explicitly tracks the set of ComputedSlot and ODB values we read.
+
+    This needs to be versioned, since a ComputedSlot could read different
+    values if it gets recomputed midway through an effect calculation.
+    """
+
+    def __init__(self, subSlots, subscriptions, subSlotDeps):
+        self.subSlots = set(subSlots)
+        self.subscriptions = set(subscriptions)
+        self.subSlotDeps = set(subSlotDeps)
+
+    def __str__(self):
+        return (
+            f"ComputedSlotDeps({len(self.subSlots)} slots"
+            f" and {len(self.subscriptions)} subs)"
+        )
+
+
 class ComputedSlot:
     """Models a value that's computed from other Slot and ODB values.
 
@@ -37,12 +56,16 @@ class ComputedSlot:
     push the 'set' operation into some other slot or ODB value.
     """
 
+    IS_COMPUTED = True
+
     def __init__(self, valueFunction, onSet=None):
         self._valueFunction = valueFunction
         self._onSet = onSet
         self._valueAndIsException = None
         self._valueUpToDate = False
+        self.dependencies = None
         self.cells = None
+        self._isExecuting = False
 
     def orphan(self):
         """This slot is no longer being used by the cells tree."""
@@ -51,8 +74,19 @@ class ComputedSlot:
         self.cells = None
 
     def getWithoutRegisteringDependency(self):
+        if self._isExecuting:
+            raise Exception("ComputedSlot definition is cyclic.")
+
         if self.cells is None and CellsContext.get():
             self.cells = CellsContext.get()
+
+        curContext = DependencyContext.get()
+
+        if not curContext.readOnly:
+            raise Exception(
+                "It makes no sense to getWithoutRegisteringDependency"
+                " in a writeable dependency context"
+            )
 
         self.ensureCalculated()
 
@@ -62,12 +96,18 @@ class ComputedSlot:
             return self._valueAndIsException[1]
 
     def get(self):
+        if self._isExecuting:
+            raise Exception("ComputedSlot definition is cyclic.")
+
         if self.cells is None and CellsContext.get():
             self.cells = CellsContext.get()
 
-        self.ensureCalculated()
-
         curContext = DependencyContext.get()
+
+        if not curContext.readOnly:
+            return curContext.getComputedSlotValue(self)
+
+        self.ensureCalculated()
 
         # don't allow direct modifications outside of the context
         if curContext is None:
@@ -90,8 +130,15 @@ class ComputedSlot:
 
     def markDirty(self):
         self._valueUpToDate = False
+        self.dependencies = None
+
+    def isDirty(self):
+        return not self._valueUpToDate
 
     def ensureCalculated(self):
+        if self._isExecuting:
+            raise Exception("ComputedSlot definition is cyclic.")
+
         if self.cells is None and CellsContext.get():
             self.cells = CellsContext.get()
 
@@ -101,13 +148,24 @@ class ComputedSlot:
         if not self.cells:
             raise Exception("Can't calculate a ComputedSlot without a cells instance.")
 
-        context = DependencyContext(self.cells.db, readOnly=True)
+        context = DependencyContext(self.cells, readOnly=True)
 
         oldVal = self._valueAndIsException
-        self._valueAndIsException = context.calculate(self._valueFunction)
+        try:
+            self._isExecuting = True
+            self._valueAndIsException = context.calculate(self._valueFunction)
+        finally:
+            self._isExecuting = False
+
         self._valueUpToDate = True
 
         self.cells._dependencies.updateDependencies(self, context)
 
         if oldVal != self._valueAndIsException:
             self.cells._dependencies.markSlotsDirty([self])
+
+        self.dependencies = ComputedSlotDeps(
+            context.slotsRead,
+            context.subscriptions,
+            context.slotDepsRead
+        )

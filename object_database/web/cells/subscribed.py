@@ -51,7 +51,7 @@ class Subscribed(Cell):
 
     def onRemovedFromTree(self):
         if self.onRemovedCallback is not None:
-            self.cells.scheduleCallback(self.onRemovedCallback)
+            self.cells.scheduleUnconditionalCallback(self.onRemovedCallback)
 
     def identityOfChild(self, child):
         return self.childIdentity

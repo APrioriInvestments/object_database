@@ -24,14 +24,15 @@ class CellsContext:
     def __init__(self, cells):
         assert cells is not None
         self.cells = cells
+        self.priorCells = None
 
     @staticmethod
     def get():
         return getattr(_cur_cells, "cells", None)
 
     def __enter__(self):
-        assert getattr(_cur_cells, "cells", None) is None
+        self.priorCells = getattr(_cur_cells, "cells", None)
         _cur_cells.cells = self.cells
 
     def __exit__(self, *args):
-        _cur_cells.cells = None
+        _cur_cells.cells = self.priorCells

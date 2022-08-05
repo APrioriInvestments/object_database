@@ -82,7 +82,7 @@ class DelayedRemoval(CellsTestPage):
 
         def worker():
             time.sleep(2)
-            curCells.scheduleCallback(lambda: slot.set(False))
+            curCells.scheduleUnconditionalCallback(lambda: slot.set(False))
 
         def toggle():
             if slot.get():

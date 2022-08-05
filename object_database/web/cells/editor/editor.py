@@ -208,6 +208,17 @@ class OdbEditorState(EditorStateBase):
         self.eventsName = eventsName
         self.userSelectionDataName = userSelectionDataName
 
+    def getStateSlot(self):
+        def getState():
+            return dict(lines=self.lines, topEventGuid=self.topEventGuid, events=self.events)
+
+        def setState(val):
+            self.lines = val["lines"]
+            self.topEventGuid = val["topEventGuid"]
+            self.events = val["events"]
+
+        return ComputedSlot(getState, setState)
+
     @property
     def lines(self):
         return getattr(self.storageObject, self.linesName) or ("",)
@@ -388,7 +399,11 @@ class Editor(FocusableCell):
         )
         self.reactors.add(self.userSelectionSlotWatcher)
 
-        self.sentEventGuid = None
+        # this will become a slot that holds the event guid that we've sent to the javascript
+        # client. It has to be a slot so that if we have an ODB transaction that fails
+        # we don't end up with a state mismatch (the slot value will be reset and the
+        # message will be un-scheduled)
+        self.sentEventGuidSlot = None
 
         self.editSessionId = str(uuid.uuid4())
 
@@ -487,7 +502,7 @@ class Editor(FocusableCell):
                 content.pop(self.editSessionId, None)
                 self.userSelectionSlot.set(content)
 
-            self.cells.scheduleCallback(removeSelf)
+            self.cells.scheduleUnconditionalCallback(removeSelf)
 
     def getCurrentContents(self):
         state = self.stateSlot.get()
@@ -516,7 +531,7 @@ class Editor(FocusableCell):
         serverState = self._getCurrentState()
 
         # broadcast any committed events to the client.
-        if self.sentEventGuid == serverState["topEventGuid"]:
+        if self.sentEventGuidSlot.get() == serverState["topEventGuid"]:
             return
 
         # now, look back in the event history until we find the event we are supposed to have
@@ -524,23 +539,32 @@ class Editor(FocusableCell):
         eventIx = len(events) - 1
 
         while eventIx >= 0:
-            if events[eventIx]["priorEventGuid"] == self.sentEventGuid:
+            if events[eventIx]["priorEventGuid"] == self.sentEventGuidSlot.get():
                 # we need to send all events from here forward
                 self.scheduleMessage({"acceptedEvents": events[eventIx:]})
-                self.sentEventGuid = events[-1]["eventGuid"]
+                self.sentEventGuidSlot.set(events[-1]["eventGuid"])
+
+                logging.info(
+                    "Client %s/%s updating to event %s",
+                    self.username,
+                    self.editSessionId,
+                    self.sentEventGuidSlot.get(),
+                )
                 return
             else:
                 eventIx -= 1
 
         # somehow we got into a bad state
         self.scheduleMessage({"resetState": collapseStateToTopmost(serverState)})
-        self.sentEventGuid = serverState["topEventGuid"]
-        logging.warning(
-            "Client %s/%s completely resetting state to %s because the send state was ahead",
+        logging.error(
+            "Client %s/%s completely resetting state to %s "
+            "because the send state (%s) was ahead",
             self.username,
             self.editSessionId,
-            self.sentEventGuid,
+            serverState["topEventGuid"],
+            self.sentEventGuidSlot.get(),
         )
+        self.sentEventGuidSlot.set(serverState["topEventGuid"])
 
     def triggerUndoOrRedo(self, isUndo):
         currentState = self._getCurrentState()
@@ -630,7 +654,7 @@ class Editor(FocusableCell):
                     currentState["events"],
                 ):
                     self.scheduleMessage({"resetState": collapseStateToTopmost(currentState)})
-                    self.sentEventGuid = currentState["topEventGuid"]
+                    self.sentEventGuidSlot.set(currentState["topEventGuid"])
                     logging.error(
                         "Resetting session %s/%s on eventGuid %s: bad event %s.",
                         self.username,
@@ -665,14 +689,22 @@ class Editor(FocusableCell):
                     self.stateSlot.set(newState)
             else:
                 logging.warning(
-                    "Dropping event %s from %s/%s on the ground",
-                    event,
+                    "Dropping event on %s/%s: %s",
                     self.username,
                     self.editSessionId,
+                    event["eventGuid"],
                 )
 
-    def _getCurrentState(self):
+    def _getCurrentStateWithoutDependency(self):
         state = self.stateSlot.getWithoutRegisteringDependency()
+
+        if state is None:
+            return dict(lines=("",), topEventGuid="<initial>", events=())
+
+        return state
+
+    def _getCurrentState(self):
+        state = self.stateSlot.get()
 
         if state is None:
             return dict(lines=("",), topEventGuid="<initial>", events=())
@@ -777,10 +809,10 @@ class Editor(FocusableCell):
 
     def doFirstCalc(self):
         # figure out the initial state of the editor
-        initData = collapseStateToTopmost(self._getCurrentState())
+        initData = collapseStateToTopmost(self._getCurrentStateWithoutDependency())
 
         # keep track of what we first told the editor was the state of the system
-        self.sentEventGuid = initData["topEventGuid"]
+        self.sentEventGuidSlot = Slot(initData["topEventGuid"])
 
         logging.info(
             "Creating editor %s/%s with %s events and top event %s",

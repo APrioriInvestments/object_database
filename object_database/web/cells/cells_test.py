@@ -39,6 +39,8 @@ from object_database.test_util import currentMemUsageMb, log_cells_stats
 import logging
 import unittest
 import threading
+import pytest
+
 
 test_schema = Schema("core.web.test")
 
@@ -74,9 +76,9 @@ class CellsTests(unittest.TestCase):
 
         self.cells.withRoot(sequence)
 
-        self.cells._recalculateCells()
+        self.cells.renderMessages()
         pair[0].setChild("HIHI")
-        self.cells._recalculateCells()
+        self.cells.renderMessages()
 
         # Assert that the contianers have the correct parent
         self.assertEqual(pair[0].parent, sequence)
@@ -85,7 +87,7 @@ class CellsTests(unittest.TestCase):
         # Assert that the first Container has a Cell child
         self.assertIsInstance(pair[0].children["child"], Cell)
 
-    def test_cells_computed_slot(self):
+    def test_computed_slot(self):
         aSlot = ComputedSlot(lambda: len(Thing.lookupAll()))
 
         # make a 'subscribed' that translates the slot value into a
@@ -171,11 +173,11 @@ class CellsTests(unittest.TestCase):
 
         self.cells.renderMessages()
 
-        self.cells.scheduleCallback(lambda: slot.set(1))
+        self.cells.scheduleUnconditionalCallback(lambda: slot.set(1))
         self.cells.renderMessages()
         assert slot.getWithoutRegisteringDependency() == 1
 
-        self.cells.scheduleCallback(lambda: slot.set(0))
+        self.cells.scheduleUnconditionalCallback(lambda: slot.set(0))
         self.cells.renderMessages()
         assert slot.getWithoutRegisteringDependency() == 0
 
@@ -195,14 +197,16 @@ class CellsTests(unittest.TestCase):
 
         self.cells.renderMessages()
 
+        tid = self.cells.currentTransactionId
+
         with self.db.transaction():
             Thing(x=1, k=1)
             Thing(x=2, k=2)
 
-        self.cells._recalculateCells()
+        self.cells.db.flush()
+        self.cells._recalculateAll()
 
-        with self.db.transaction():
-            Thing(x=3, k=3)
+        assert tid < self.cells.currentTransactionId
 
         # three 'Span', three 'Text', the Sequence, the Subscribed, and a delete
         # self.assertEqual(len(self.cells.renderMessages()), 9)
@@ -212,11 +216,11 @@ class CellsTests(unittest.TestCase):
             if node.identity not in self.cells._nodesKnownToChannel
         ]
 
-        # We have discarded only one
-        self.assertEqual(len(self.cells._nodeIdsToDiscard), 1)
-
         # We have created three: Span and two Text
         self.assertEqual(len(nodes_created), 3)
+
+        # We have discarded only one
+        self.assertEqual(len(self.cells._nodeIdsToDiscard), 1)
 
     def test_cells_ensure_subscribed(self):
         schema = Schema("core.web.test2")
@@ -360,6 +364,188 @@ class CellsTests(unittest.TestCase):
 
         assert s0.getWithoutRegisteringDependency() == 10
 
-        self.cells.scheduleCallback(lambda: s1.set(20))
+        self.cells.scheduleUnconditionalCallback(lambda: s1.set(20))
 
         self.cells.renderMessages()
+
+    def test_computed_slot_cycle(self):
+        computedSlot1 = ComputedSlot(lambda: computedSlot2.get())
+        computedSlot2 = ComputedSlot(lambda: computedSlot1.get())
+
+        with pytest.raises(Exception, match="cyclic"):
+            self.cells.executeCallback(lambda: computedSlot1.get())
+
+        with pytest.raises(Exception, match="cyclic"):
+            self.cells.calculateExpression(lambda: computedSlot1.get())
+
+    def test_computed_slot_resets_on_slot(self):
+        slot = Slot(0)
+        computedSlot = ComputedSlot(lambda: slot.get())
+
+        def callback():
+            assert computedSlot.get() == slot.get()
+
+            slot.set(1)
+            assert computedSlot.get() == slot.get()
+            computedSlot.get()
+            slot.set(2)
+            assert computedSlot.get() == slot.get()
+
+            return True
+
+        assert self.cells.executeCallback(callback)
+
+    def test_computed_slot_resets_on_odb_value(self):
+        with self.db.transaction():
+            thing = Thing()
+
+        computedSlot = ComputedSlot(lambda: thing.x)
+
+        def callback():
+            computedSlot.get()
+            thing.x = 2
+            assert computedSlot.get() == thing.x
+
+            thing.x = 3
+            assert computedSlot.get() == thing.x
+
+            return True
+
+        assert self.cells.executeCallback(callback)
+
+    def test_computed_slot_resets_on_odb_index(self):
+        computedSlot = ComputedSlot(lambda: len(Thing.lookupAll()))
+
+        def callback():
+            assert computedSlot.get() == 0
+
+            Thing()
+
+            assert computedSlot.get() == 1
+
+            Thing()
+
+            assert computedSlot.get() == 2
+
+            return True
+
+        assert self.cells.executeCallback(callback)
+
+    def test_computed_slot_dependent_slots(self):
+        slot = Slot(0)
+        computedSlot = ComputedSlot(lambda: slot.get())
+        computedSlot2 = ComputedSlot(lambda: computedSlot.get())
+
+        def callback():
+            assert computedSlot2.get() == 0
+            slot.set(1)
+            assert computedSlot2.get() == 1
+            slot.set(2)
+            assert computedSlot2.get() == 2
+
+        self.cells.executeCallback(callback)
+
+    def test_computed_slot_imports_correctly(self):
+        # check that regardless of the order in which we read or cache
+        # computed slots, the values are correct
+        def checkScenario(N, firstRead, secondRead, write, thirdRead):
+            """Make a chain of N slots.
+
+            Calculate 'firstRead' of them.
+
+            Then in a single transaction, check 'secondRead', increment
+            'write', and then check 'thirdRead'
+
+            This exercises pathways involving caching values from the
+            main slots.
+            """
+            someSlots = [Slot(1) for _ in range(N)]
+
+            def makeComputer(i):
+                if i == 0:
+                    return ComputedSlot(lambda: someSlots[i].get())
+
+                return ComputedSlot(lambda: someSlots[i].get() + compSlots[i - 1].get())
+
+            compSlots = [makeComputer(i) for i in range(N)]
+
+            def checkCompSlot(i):
+                total = 0
+                for ix in range(i + 1):
+                    total += someSlots[ix].get()
+
+                assert compSlots[i].get() == total
+
+                return True
+
+            assert self.cells.calculateExpression(lambda: checkCompSlot(firstRead))
+
+            def callback():
+                checkCompSlot(secondRead)
+
+                someSlots[write].set(someSlots[write].get() + 1)
+
+                checkCompSlot(thirdRead)
+
+                return True
+
+            assert self.cells.executeCallback(callback)
+
+            assert self.cells.calculateExpression(lambda: checkCompSlot(N - 1))
+
+        N = 4
+
+        for firstRead in range(N):
+            for secondRead in range(N):
+                for write in range(N):
+                    for thirdRead in range(N):
+                        checkScenario(N, firstRead, secondRead, write, thirdRead)
+
+    def test_computed_slot_transitive_dependencies(self):
+        N = 10
+
+        with self.db.transaction():
+            things = [Thing(x=i) for i in range(N)]
+            outputThing = Thing(x=100)
+
+        def makeGetsThing(i):
+            return ComputedSlot(lambda: things[i].x)
+
+        slots = [makeGetsThing(i) for i in range(N)]
+        finalSlot = ComputedSlot(lambda: sum(slots[i].get() for i in range(N)))
+
+        canProceedEvent = threading.Event()
+        didWriteEvent = threading.Event()
+
+        attemptedWrites = []
+
+        def callback():
+            outputThing.k = finalSlot.get()
+            attemptedWrites.append(outputThing.k)
+            didWriteEvent.set()
+            canProceedEvent.wait(timeout=1)
+
+        # in a background thread, ask Cells to process
+        # a callback that attempts to write into the ODB
+        # based on this computed value
+        backgroundThread = threading.Thread(
+            target=self.cells.executeCallback, args=(callback,)
+        )
+        backgroundThread.start()
+
+        # wait for it to say that it has calculated a value
+        didWriteEvent.wait(timeout=1)
+        assert didWriteEvent.isSet()
+        assert len(attemptedWrites) == 1
+
+        # now let write a conflicting transaction in!
+        with self.db.transaction():
+            things[0].x += 1000
+
+        canProceedEvent.set()
+        backgroundThread.join(timeout=1)
+
+        # we should see that it retried the transaction
+        # and that it saw our increment
+        assert len(attemptedWrites) == 2
+        assert attemptedWrites[1] == attemptedWrites[0] + 1000

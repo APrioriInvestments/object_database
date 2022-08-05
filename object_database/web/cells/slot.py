@@ -19,6 +19,7 @@ class Slot:
     """Represents a piece of session-specific interface state. Any cells or computed slots
     that call 'get' will be recalculated in subsequent frames if the value changes.
     """
+    IS_COMPUTED = False
 
     def __init__(self, value=None):
         self._value = value
@@ -56,7 +57,7 @@ class Slot:
         if self._value == val:
             return
 
-        curContext.slotSet(self, self._value)
+        curContext.slotValueModified(self, self._value)
 
         self._value = val
 

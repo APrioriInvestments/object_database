@@ -51,7 +51,7 @@ class CellsSubscribedTests(unittest.TestCase):
 
         self.assertEqual(sub.children["content"].text, "False")
 
-        self.cells.scheduleCallback(lambda: slot.set(True))
+        self.cells.scheduleUnconditionalCallback(lambda: slot.set(True))
         self.cells.renderMessages()
 
         self.assertEqual(sub.children["content"].text, "True")

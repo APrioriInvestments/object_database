@@ -21,216 +21,16 @@ import types
 from object_database.web.cells.session_state import SessionState
 from object_database.web.cells.cell import Cell
 from object_database.web.cells.slot import Slot
-from object_database.web.cells.computed_slot import ComputedSlot
 from object_database.web.cells.root_cell import RootCell
 from object_database.web.cells.dependency_context import DependencyContext
 from object_database.web.cells.recomputing_cell_context import RecomputingCellContext
 from object_database.web.cells.cells_context import CellsContext
-from object_database.web.cells.reactor import Reactor
+from object_database.web.cells.cell_dependencies import CellDependencies
 
 
 # maximum number of seconds to keep repeating the render / callback
 # processing cycle for.
 MAX_RENDER_TIME = 0.1
-
-
-class CellDependencies:
-    def __init__(self):
-        """Track the dependencies of a set of cells and computed slots.
-
-        Cells divides the world into two kinds of objects: "state" such as Slot objects and
-        the ODB, and 'calculations' that depend on the state, which are the cells tree and
-        ComputedSlot objects.
-
-        The state of the system, when everything has finished calculating, is a DAG:
-            * the root cell is the top of the dag
-            * there is a subtree of cells below it, each of whose properties and children
-                is a deterministic function of the state of the system
-            * each cell may depend on the state of a collection of computed slots, each of
-                which must also be up to date.
-            * leaves of the dag are
-                * slot objects
-                * the ODB
-
-        As a result, the calculated state of a 'cell' object or a computed slot will depend on
-        a set of slots, odb values, and other computed slot objects.
-        """
-        # map from cell/computed slot to direct ODB dependencies
-        self._subscriptions = {}
-
-        self._cellReactors = {}
-
-        # map from direct ODB key to set of cell / computed slots
-        self._subscribedCells = {}
-
-        # map from cell/computed slot to the set of slots (computed or otherwise) it read
-        self._slotsRead = {}
-
-        # map from slot to the set of cells / slots that are reading it
-        self._slotToReaders = {}
-
-        # set of computed slot objects that are dirty, and are in the calculation graph
-        self._dirtyComputedSlots = set()
-
-        # set of cells that are dirty
-        self._dirtyNodes = set()
-
-        self._dirtyReactors = set()
-
-    def updateCellReactors(self, cell):
-        if not cell.reactors and cell not in self._cellReactors:
-            return
-
-        oldReactors = self._cellReactors.get(cell, set())
-        self._cellReactors[cell] = cell.reactors
-
-        if not self._cellReactors[cell]:
-            self._cellReactors.pop(cell)
-
-        newReactors = cell.reactors
-
-        for reactor in newReactors - oldReactors:
-            self._dirtyReactors.add(reactor)
-
-        for reactor in oldReactors - newReactors:
-            self.calculationDiscarded(reactor)
-
-    def calculationDiscarded(self, calculation):
-        """Indicate that a cell or slot is garbage collected"""
-        self._dirtyComputedSlots.discard(calculation)
-        self._dirtyReactors.discard(calculation)
-
-        subscriptions = self._subscriptions.pop(calculation, set())
-        slots = self._slotsRead.pop(calculation, set())
-
-        for key in subscriptions:
-            self._subscribedCells[key].discard(calculation)
-            if not self._subscribedCells[key]:
-                self._subscribedCells.pop(key)
-
-        for slot in slots:
-            self._slotToReaders[slot].discard(calculation)
-            if not self._slotToReaders[slot]:
-                self._slotToReaders.pop(slot)
-
-                if isinstance(slot, ComputedSlot):
-                    self.calculationDiscarded(slot)
-                    slot.orphan()
-
-        for reactor in self._cellReactors.pop(calculation, []):
-            self.calculationDiscarded(reactor)
-
-    def updateDependencies(self, calculation, dependencyContext):
-        """Update the dependencies of a cell or slot"""
-        subscriptions = dependencyContext.subscriptions
-        slots = dependencyContext.slotsRead
-
-        existingSubscriptions = self._subscriptions.get(calculation, set())
-        self._subscriptions[calculation] = subscriptions
-
-        newSubscriptions = subscriptions - existingSubscriptions
-        droppedSubscriptions = existingSubscriptions - subscriptions
-
-        for key in newSubscriptions:
-            self._subscribedCells.setdefault(key, set()).add(calculation)
-
-        for key in droppedSubscriptions:
-            self._subscribedCells[key].discard(calculation)
-            if not self._subscribedCells[key]:
-                self._subscribedCells.pop(key)
-
-        existingSlots = self._slotsRead.get(calculation, set())
-        self._slotsRead[calculation] = slots
-
-        newSlots = slots - existingSlots
-        droppedSlots = existingSlots - slots
-
-        for slot in newSlots:
-            self._slotToReaders.setdefault(slot, set()).add(calculation)
-
-        for slot in droppedSlots:
-            self._slotToReaders[slot].discard(calculation)
-            if not self._slotToReaders[slot]:
-                self._slotToReaders.pop(slot)
-
-                if isinstance(slot, ComputedSlot):
-                    self.calculationDiscarded(slot)
-                    slot.orphan()
-
-        self._dirtyComputedSlots.discard(calculation)
-        self._dirtyNodes.discard(calculation)
-
-    def updateFromWriteableDependencyContext(self, context):
-        self.markSlotsDirty(set(context.writtenSlotOriginalValues))
-        self.odbValuesChanged(set(context.odbKeysWritten))
-
-    def markSlotsDirty(self, slots):
-        """Some state-change modified the values in a collection of slots."""
-        for slot in slots:
-            for calculation in self._slotToReaders.get(slot, set()):
-                self._markCalcDirty(calculation)
-
-    def odbValuesChanged(self, keys):
-        for key in keys:
-            for calculation in self._subscribedCells.get(key, set()):
-                self._markCalcDirty(calculation)
-
-    def recalculateDirtyComputedSlots(self, db, cells):
-        # this is not the most efficient way of doing this - we could do better...
-        while self._dirtyComputedSlots:
-            aSlot = self._dirtyComputedSlots.pop()
-
-            with CellsContext(cells):
-                aSlot.ensureCalculated()
-
-    def recalculateDirtyReactors(self, db, cells):
-        """Recalculate reactors in a loop until none are dirty.
-
-        Returns:
-            True if we updated anything.
-        """
-        if not self._dirtyReactors:
-            return False
-
-        while self._dirtyReactors:
-            aReactor = self._dirtyReactors.pop()
-
-            depContext = DependencyContext(db, readOnly=False)
-
-            def updateIt():
-                aReactor.applyStateChange()
-
-            with CellsContext(cells):
-                result = depContext.calculate(updateIt)
-
-            if result[0]:
-                logging.error(
-                    "Effect %s threw exception %s:\n\n%s",
-                    aReactor,
-                    result[1],
-                    "".join(traceback.format_tb(result[1].__traceback__)),
-                )
-
-            self.updateDependencies(aReactor, depContext)
-
-            # now register its writes. This may trigger it again!
-            self.updateFromWriteableDependencyContext(depContext)
-
-        return True
-
-    def markCellDirty(self, cell):
-        self._dirtyNodes.add(cell)
-
-    def _markCalcDirty(self, calculation):
-        if isinstance(calculation, ComputedSlot):
-            self._dirtyComputedSlots.add(calculation)
-            calculation.markDirty()
-        elif isinstance(calculation, Cell):
-            self._dirtyNodes.add(calculation)
-        elif isinstance(calculation, Reactor):
-            self._dirtyReactors.add(calculation)
-        else:
-            raise Exception("Invalid calculation found")
 
 
 class Cells:
@@ -239,6 +39,9 @@ class Cells:
 
         self._eventHasTransactions = queue.Queue()
 
+        # a view that we use to ensure that the underlying DB connection doesn't
+        # GC a transaction before our transaction handler registers it
+        self._tidLockingView = self.db.view()
         self.db.registerOnTransactionHandler(self._onTransaction)
 
         # map: Cell.identity ->  Cell
@@ -300,6 +103,16 @@ class Cells:
 
         self._addCell(self._root, parent=None)
 
+    @property
+    def currentTransactionId(self):
+        """Get the current transactionId that has been processed.
+
+        This TID is the max event we have processed through our transaction
+        handler (which dirties computed slots) and is guaranteed to
+        exist.
+        """
+        return self._tidLockingView.transaction_id()
+
     def onMessage(self, message):
         """Called when the CellHandler sends a message _directly_ to 'cells'."""
         if message.get("event") == "focusChanged":
@@ -315,21 +128,52 @@ class Cells:
                 if cell is not None:
                     cell.mostRecentFocusId = self.focusEventId
 
-    def _executeCallback(self, callback):
-        context = DependencyContext(self.db, readOnly=False)
+    def _executeCallback(self, callback, withLogging=True):
+        context = DependencyContext(self, readOnly=False)
 
         with CellsContext(self):
             result = context.calculate(callback)
 
-        self._dependencies.updateFromWriteableDependencyContext(context)
+        self._dependencies.updateFromWriteableDependencyContext(self, context)
 
-        if result[0]:
+        if result[0] and withLogging:
             logging.warn(
                 "Callback %s threw an exception: %s\n\n%s",
                 callback,
                 result[1],
                 "".join(traceback.format_tb(result[1].__traceback__)),
             )
+
+        return result
+
+    def calculateExpression(self, callback):
+        """Synchronously execute a read-only callback on the main thread.
+
+        If it throws, raise the exception directly."""
+        self._handleAllTransactions()
+
+        context = DependencyContext(self, readOnly=True)
+
+        with CellsContext(self):
+            result = context.calculate(callback)
+
+        if result[0]:
+            raise result[1]
+        else:
+            return result[1]
+
+    def executeCallback(self, callback):
+        """Synchronously execute a callback on the main thread.
+
+        If it throws, raise the exception directly."""
+        self._handleAllTransactions()
+
+        result = self._executeCallback(callback, withLogging=False)
+
+        if result[0]:
+            raise result[1]
+        else:
+            return result[1]
 
     def changeFocus(self, newCell):
         """Trigger a server-side focus change."""
@@ -357,45 +201,34 @@ class Cells:
 
         walk(self._root)
 
-    def _processCallbacks(self):
-        """Execute any callbacks that have been scheduled to run on the main UI thread."""
-        processed = 0
-        t0 = time.time()
+    def scheduleUnconditionalCallback(self, callback):
+        """Place a callback on the callback queue unconditionally.
 
-        try:
-            while True:
-                callback = self._callbacks.get(block=False)
-                processed += 1
-
-                self._executeCallback(callback)
-
-        except queue.Empty:
-            return processed
-        finally:
-            if processed:
-                logging.info(
-                    "Processed %s callbacks in %s seconds", processed, time.time() - t0
-                )
-
-    def scheduleCallback(self, callback):
-        """Schedule a callback to execute on the main cells thread as soon as possible.
-
-        Code in other threads shouldn't modify cells or slots.
-        Cells that want to trigger asynchronous work can do so and then push
-        content back into Slot objects using these callbacks.
+        This means that even if the current 'transaction' fails for some reason, the callback
+        will be executed.  Normally, when processing cell messages or Effects, you should use
+        Cell.scheduleCallback which works through the DependencyContext to only register the
+        callback if the current transaction doesn't fail.
         """
         self._callbacks.put(callback)
         self._eventHasTransactions.put(1)
 
-    def markPendingMessage(self, cell, message):
-        self.markPendingMessages(cell, [message])
+    def _scheduleCallbacks(self, callbacks):
+        if not callbacks:
+            return
 
-    def markPendingMessages(self, cell, message):
+        for callback in callbacks:
+            self._callbacks.put(callback)
+        self._eventHasTransactions.put(1)
+
+    def _scheduleMessages(self, messages):
+        if not messages:
+            return
+
         wasEmpty = len(self._pendingOutgoingMessages) == 0
 
-        messagesToSend = self._pendingOutgoingMessages.setdefault(cell.identity, [])
-
-        messagesToSend.extend(message)
+        for cell, message in messages:
+            messagesToSend = self._pendingOutgoingMessages.setdefault(cell, [])
+            messagesToSend.append(message)
 
         if wasEmpty:
             self._eventHasTransactions.put(1)
@@ -423,10 +256,6 @@ class Cells:
         self._id += 1
         return str(self._id)
 
-    def triggerIfHasDirty(self):
-        if self._dependencies._dirtyNodes:
-            self._eventHasTransactions.put(1)
-
     def wait(self):
         self._eventHasTransactions.get()
 
@@ -444,6 +273,7 @@ class Cells:
     def _handleTransaction(self, key_value, set_adds, set_removes, transactionId):
         """Given the updates coming from a transaction, update self._subscribedCells."""
         self._dependencies.odbValuesChanged(set(key_value) | set(set_adds) | set(set_removes))
+        return transactionId
 
     def _addCell(self, cell, parent):
         if not isinstance(cell, Cell):
@@ -518,7 +348,7 @@ class Cells:
         )[-1]
 
     def _updateFocusedCell(self):
-        context = DependencyContext(self.db, readOnly=False)
+        context = DependencyContext(self, readOnly=False)
 
         def updateFocusedCell():
             focusedCell = self.focusedCell.get()
@@ -534,13 +364,12 @@ class Cells:
         if result[0]:
             raise result[1]
 
-        self._dependencies.updateFromWriteableDependencyContext(context)
+        self._dependencies.updateFromWriteableDependencyContext(self, context)
 
         return result[1]
 
     def renderMessages(self):
-        self._processCallbacks()
-        self._recalculateCells()
+        self._recalculateAll()
 
         focusedCell = self._updateFocusedCell()
 
@@ -618,26 +447,31 @@ class Cells:
             finalNodesToDiscard.append(nodeId)
             self._nodesKnownToChannel.discard(nodeId)
 
-        for nodeId, messages in self._pendingOutgoingMessages.items():
-            # only send messages for cells that still exist.
-            # we process messages at the end of the cell update cycle,
-            # after the tree is fully rebuilt.
-            if nodeId in self._nodesKnownToChannel:
-                toSend = []
+        for cell, messages in self._pendingOutgoingMessages.items():
+            if cell.isActive():
+                nodeId = cell.identity
 
-                def unpackMessage(m):
-                    if isinstance(m, types.FunctionType):
-                        try:
-                            toSend.append(m())
-                        except Exception:
-                            logging.exception("Callback %s threw an unexpected exception:", m)
-                    else:
-                        toSend.append(m)
+                # only send messages for cells that still exist.
+                # we process messages at the end of the cell update cycle,
+                # after the tree is fully rebuilt.
+                if nodeId in self._nodesKnownToChannel:
+                    toSend = []
 
-                for m in messages:
-                    unpackMessage(m)
+                    def unpackMessage(m):
+                        if isinstance(m, types.FunctionType):
+                            try:
+                                toSend.append(m())
+                            except Exception:
+                                logging.exception(
+                                    "Callback %s threw an unexpected exception:", m
+                                )
+                        else:
+                            toSend.append(m)
 
-                packet["messages"][nodeId] = toSend
+                    for m in messages:
+                        unpackMessage(m)
+
+                    packet["messages"][nodeId] = toSend
 
         self._pendingOutgoingMessages.clear()
         self._nodesToBroadcast = set()
@@ -661,34 +495,72 @@ class Cells:
 
         return [packet]
 
-    def _recalculateCells(self):
+    def _recalculateAll(self):
         while True:
             # handle all the transactions so far
-            old_queue = self._transactionQueue
-            self._transactionQueue = queue.Queue()
+            self._handleAllTransactions()
+            self._updateAllDirtyCells()
 
-            try:
-                while True:
-                    self._handleTransaction(*old_queue.get_nowait())
-            except queue.Empty:
-                pass
+            hadReactors = self._dependencies.recalculateDirtyReactors(self)
+            hadCallbacks = self._processCallbacks()
 
-            self._dependencies.recalculateDirtyComputedSlots(self.db, self)
-
-            while self._dependencies._dirtyNodes:
-                cellsByLevel = {}
-                for node in self._dependencies._dirtyNodes:
-                    if not node.garbageCollected:
-                        cellsByLevel.setdefault(node.level, []).append(node)
-                self._dependencies._dirtyNodes.clear()
-
-                for level, nodesAtThisLevel in sorted(cellsByLevel.items()):
-                    for node in nodesAtThisLevel:
-                        if not node.garbageCollected:
-                            self._recalculateCell(node)
-
-            if not self._dependencies.recalculateDirtyReactors(self.db, self):
+            if not hadReactors and not hadCallbacks:
                 return
+
+    def _updateAllDirtyCells(self):
+        while self._dependencies._dirtyNodes:
+            cellsByLevel = {}
+            for node in self._dependencies._dirtyNodes:
+                if not node.garbageCollected:
+                    cellsByLevel.setdefault(node.level, []).append(node)
+            self._dependencies._dirtyNodes.clear()
+
+            for level, nodesAtThisLevel in sorted(cellsByLevel.items()):
+                for node in nodesAtThisLevel:
+                    if not node.garbageCollected:
+                        self._recalculateCell(node)
+
+    def _processCallbacks(self):
+        """Execute any callbacks that have been scheduled to run on the main UI thread."""
+        processed = 0
+        t0 = time.time()
+
+        try:
+            while True:
+                callback = self._callbacks.get(block=False)
+                processed += 1
+
+                self._executeCallback(callback)
+
+        except queue.Empty:
+            return processed > 0
+        finally:
+            if processed:
+                logging.info(
+                    "Processed %s callbacks in %s seconds", processed, time.time() - t0
+                )
+
+    def _handleAllTransactions(self):
+        """Process any transactions, dirtying the dependency graph if required."""
+        maxTransactionId = self.db.currentTransactionId()
+
+        old_queue = self._transactionQueue
+        self._transactionQueue = queue.Queue()
+
+        maxTransactionId = max(maxTransactionId, self._tidLockingView.transaction_id())
+
+        try:
+            while True:
+                maxTransactionId = max(
+                    self._handleTransaction(*old_queue.get_nowait()), maxTransactionId
+                )
+        except queue.Empty:
+            pass
+
+        if maxTransactionId != self._tidLockingView.transaction_id():
+            self._tidLockingView = self.db.view(transaction_id=maxTransactionId)
+
+        self._dependencies.recalculateDirtyComputedSlots(self)
 
     def getPacketId(self, packetCallback):
         """Return an integer 'packet' id for a callback.
@@ -723,7 +595,7 @@ class Cells:
     def _recalculateCell(self, node):
         origChildren = self._cellsKnownChildren.get(node.identity, set())
 
-        depContext = DependencyContext(self.db, readOnly=True)
+        depContext = DependencyContext(self, readOnly=True)
 
         def recalcNode():
             node.prepare()

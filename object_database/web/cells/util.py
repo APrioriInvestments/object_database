@@ -31,7 +31,7 @@ def wrapCallback(callback):
         def innerCallback():
             callback(*args, **kwargs)
 
-        cells.scheduleCallback(innerCallback)
+        cells.scheduleUnconditionalCallback(innerCallback)
 
     realCallback.__name__ = callback.__name__
 

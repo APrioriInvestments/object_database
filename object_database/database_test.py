@@ -333,6 +333,21 @@ class ObjectDatabaseTests:
             # exists, and x.x0, but not x1 through x9
             self.assertEqual(len(t.getFieldReads()), 2)
 
+    def test_field_reads_sequential(self):
+        db = self.createNewDb()
+        db.subscribeToSchema(schema)
+
+        with db.transaction():
+            x = ThingWithInit()
+            y = ThingWithInit(1)
+
+        with db.transaction() as v:
+            assert len(v.getFieldReads()) == 0
+            x.x
+            assert len(v.getFieldReads()) == 1
+            y.x
+            assert len(v.getFieldReads()) == 2
+
     def test_create_and_delete_is_no_op(self):
         db = self.createNewDb()
         db.subscribeToSchema(schema)

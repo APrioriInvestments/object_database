@@ -52,4 +52,4 @@ class Effect(Cell):
 
     def onRemovedFromTree(self):
         if self.onRemovedCallback is not None:
-            self.cells.scheduleCallback(self.onRemovedCallback)
+            self.cells.scheduleUnconditionalCallback(self.onRemovedCallback)

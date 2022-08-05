@@ -94,6 +94,35 @@ class View(object):
     def db(self):
         return self._db
 
+    def addViewWatcher(self, viewWatcher):
+        """Add a callback that receives events when we read/write odb values.
+
+        The callback will be called whenever the view is open, and will receive
+        callbacks of the form
+
+            (event, field_id, oid)
+
+        where 'event' is on of 'fieldWritten', 'fieldRead', 'indexWritten',
+        or 'indexRead'.
+        """
+        self._view.addViewWatcher(viewWatcher)
+
+    def markFieldRead(self, field_id, oid):
+        """Mark that we have read 'field_id' and 'oid'.
+
+        This can be used to create additional dependencies in a transaction
+        to ensure we get revision conflicts when we want them.
+        """
+        self._view.markFieldRead(field_id, oid)
+
+    def markIndexRead(self, field_id, indexValue):
+        """Mark that we have read 'field_id' and 'indexValue'.
+
+        This can be used to create additional dependencies in a transaction
+        to ensure we get revision conflicts when we want them.
+        """
+        self._view.markIndexRead(field_id, indexValue)
+
     def setSerializationContext(self, serializationContext):
         self.serializationContext = serializationContext.withoutCompression()
         self._view.setSerializationContext(self.serializationContext)

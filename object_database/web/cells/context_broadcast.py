@@ -91,7 +91,7 @@ class ContextBroadcast(Cell):
             while p:
                 if isinstance(p, ContextReflector) and p.key == self.key:
                     self.installedParent = p
-                    self.cells.scheduleCallback(lambda: p._addChild(self))
+                    self.cells.scheduleUnconditionalCallback(lambda: p._addChild(self))
                     return
                 p = p.parent
 

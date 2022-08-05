@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include "ViewWatcher.hpp"
 #include "DatabaseConnectionState.hpp"
 #include "HashFunctions.hpp"
 #include <unordered_set>
@@ -50,6 +51,10 @@ public:
       if (!m_ever_entered) {
          m_connection_state->decrefVersion(m_tid);
       }
+   }
+
+   void addViewWatcher(std::shared_ptr<ViewWatcher> inWatcher) {
+      m_view_watchers.push_back(inWatcher);
    }
 
    void setSerializationContext(std::shared_ptr<SerializationContext> context) {
@@ -101,6 +106,10 @@ public:
    // otherwise use the value in the view. If the value does not exist, returns a null pointer.
    // we also record what values were read
    instance_ptr getField(field_id field, object_id oid, Type* t, bool recordAccess=true) {
+      for (auto watcherPtr: m_view_watchers) {
+         watcherPtr->onFieldRead(field, oid);
+      }
+
       auto delete_it = m_delete_cache.find(std::make_pair(field, oid));
       if (delete_it != m_delete_cache.end()) {
          return nullptr;
@@ -118,6 +127,14 @@ public:
       }
 
       return i;
+   }
+
+   void markFieldRead(field_id field, object_id oid) {
+      m_read_values.insert(std::make_pair(field, oid));
+   }
+
+   void markIndexRead(field_id field, index_value i) {
+      m_set_reads.insert(IndexKey(field, i));
    }
 
    bool fieldExists(field_id field, object_id oid, Type* t, bool recordAccess=true) {
@@ -151,6 +168,10 @@ public:
          throw std::runtime_error("Value is deleted.");
       }
 
+      for (auto watcherPtr: m_view_watchers) {
+         watcherPtr->onFieldWritten(field, oid, t, data);
+      }
+
       if (data) {
          //if we're writing a new value, record whether this is a new object
          //that we're populating into 'm_new_writes'
@@ -173,6 +194,10 @@ public:
    }
 
    void indexAdd(field_id fid, index_value i, object_id o) {
+      for (auto watcherPtr: m_view_watchers) {
+         watcherPtr->onIndexWritten(fid, i);
+      }
+
       IndexKey key(fid, i);
 
       //check if we are adding something back to an index it was removed from already
@@ -194,6 +219,10 @@ public:
 
    void indexRemove(field_id fid, index_value i, object_id o) {
       IndexKey key(fid, i);
+
+      for (auto watcherPtr: m_view_watchers) {
+         watcherPtr->onIndexWritten(fid, i);
+      }
 
       //check if we are adding something back to an index it was removed from already
       auto add_it = m_set_adds.find(key);
@@ -250,6 +279,10 @@ public:
    }
 
    object_id indexLookupFirst(field_id fid, index_value i) {
+      for (auto watcherPtr: m_view_watchers) {
+         watcherPtr->onIndexRead(fid, i);
+      }
+
       m_set_reads.insert(IndexKey(fid, i));
 
       //we need to suppress anything in 'm_set_removes' and add anything in 'm_set_adds'
@@ -358,6 +391,8 @@ private:
    bool m_is_entered;
 
    bool m_ever_entered;
+
+   std::vector<std::shared_ptr<ViewWatcher> > m_view_watchers;
 
    std::unordered_set<std::pair<field_id, object_id> > m_read_values;
 

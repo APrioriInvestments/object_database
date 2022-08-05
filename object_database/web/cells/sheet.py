@@ -34,7 +34,7 @@ class RowsPromise:
         with self.lock:
             self.results = rows
             if self.sheet is not None:
-                self.sheet.cells.scheduleCallback(self.sendData)
+                self.sheet.scheduleCallback(self.sendData)
 
     def setSheet(self, sheet, range, reason):
         with self.lock:
@@ -43,7 +43,7 @@ class RowsPromise:
             self.range = range
 
             if self.results:
-                self.sheet.cells.scheduleCallback(self.sendData)
+                self.sheet.scheduleCallback(self.sendData)
 
     def sendData(self):
         return self.sheet.scheduleMessage(

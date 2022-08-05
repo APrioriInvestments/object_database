@@ -22,6 +22,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <typed_python/util.hpp>
 
 #include "View.hpp"
 #include "PyDatabaseConnectionState.hpp"
@@ -30,6 +31,105 @@
 #include <typed_python/SerializationBuffer.hpp>
 #include <typed_python/SerializationContext.hpp>
 #include <typed_python/PythonSerializationContext.hpp>
+
+
+class PyObjViewWatcher : public ViewWatcher {
+public:
+    PyObjViewWatcher(PyObject* callback) {
+        mCallback = incref(callback);
+    }
+
+    void onFieldWritten(
+        field_id field,
+        object_id oid,
+        Type* t,
+        instance_ptr dataOrNull
+    ) {
+        PyObject* res = PyObject_CallFunction(
+            mCallback,
+            "sll",
+            "fieldWritten",
+            (long)field,
+            (long)oid
+        );
+        if (!res) {
+            PyErr_PrintEx(0);
+            PyErr_Clear();
+        } else {
+            decref(res);
+        }
+    }
+
+    void onFieldRead(
+        field_id field,
+        object_id oid
+    ) {
+        PyObject* res = PyObject_CallFunction(
+            mCallback,
+            "sll",
+            "fieldRead",
+            (long)field,
+            (long)oid
+        );
+        if (!res) {
+            PyErr_PrintEx(0);
+            PyErr_Clear();
+        } else {
+            decref(res);
+        }
+    }
+
+    void onIndexWritten(
+        field_id field,
+        index_value indexValue
+    ) {
+        PyObjectStealer pyIV(indexValue.toPython());
+
+        PyObject* res = PyObject_CallFunction(
+            mCallback,
+            "slO",
+            "indexWritten",
+            (long)field,
+            (PyObject*)pyIV
+        );
+
+        if (!res) {
+            PyErr_PrintEx(0);
+            PyErr_Clear();
+        } else {
+            decref(res);
+        }
+    }
+
+    void onIndexRead(
+        field_id field,
+        index_value indexValue
+    ) {
+        PyObjectStealer pyIV(indexValue.toPython());
+
+        PyObject* res = PyObject_CallFunction(
+            mCallback,
+            "slO",
+            "indexRead",
+            (long)field,
+            (PyObject*)pyIV
+        );
+
+        if (!res) {
+            PyErr_PrintEx(0);
+            PyErr_Clear();
+        } else {
+            decref(res);
+        }
+    }
+
+    ~PyObjViewWatcher() {
+        decref(mCallback);
+    }
+
+private:
+    PyObject* mCallback;
+};
 
 
 class PyView {
@@ -104,6 +204,54 @@ public:
         return incref(Py_None);
     }
 
+    static PyObject* markFieldRead(PyView* self, PyObject* args, PyObject* kwargs) {
+        static const char *kwlist[] = {"field_id", "oid", NULL};
+
+        long field_id;
+        long oid;
+
+        if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ll", (char**)kwlist, &field_id, &oid)) {
+            return NULL;
+        }
+
+        self->state->markFieldRead(field_id, oid);
+
+        return incref(Py_None);
+    }
+
+    static PyObject* markIndexRead(PyView* self, PyObject* args, PyObject* kwargs) {
+        static const char *kwlist[] = {"field_id", "oid", NULL};
+
+        long field_id;
+        PyObject* o;
+
+        if (!PyArg_ParseTupleAndKeywords(args, kwargs, "lO", (char**)kwlist, &field_id, &o)) {
+            return NULL;
+        }
+
+        return translateExceptionToPyObject([&]() {
+            self->state->markIndexRead(field_id, index_value::fromPython(o));
+
+            return incref(Py_None);
+        });
+    }
+
+    static PyObject* addViewWatcher(PyView* self, PyObject* args, PyObject* kwargs) {
+        static const char *kwlist[] = {"callback", NULL};
+
+        PyObject* callback;
+
+        if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist, &callback)) {
+            return NULL;
+        }
+
+        return translateExceptionToPyObject([&]() {
+            self->state->addViewWatcher(std::shared_ptr<ViewWatcher>(
+                new PyObjViewWatcher(callback))
+            );
+            return incref(Py_None);
+        });
+    }
 
     static PyObject* extractReads(PyView* self, PyObject* args, PyObject* kwargs) {
         static const char *kwlist[] = {NULL};

@@ -20,6 +20,8 @@ class TransactionManager {
         this.pushEvent = this.pushEvent.bind(this);
         this.pushBaseEvent = this.pushBaseEvent.bind(this);
         this.reverseEvent = this.reverseEvent.bind(this);
+        this.offsetCursor = this.offsetCursor.bind(this);
+        this.offsetEvent = this.offsetEvent.bind(this);
         this.computeNextUndo = this.computeNextUndo.bind(this);
         this.computeNextRedo = this.computeNextRedo.bind(this);
         this.allocateNewEventGuid = allocateNewEventGuid ? allocateNewEventGuid : () => { '' };
@@ -109,7 +111,15 @@ class TransactionManager {
         return {lowIx: startIx, highIx: endIx}
     }
 
-    static offsetEvent(event, lineCount) {
+    offsetCursor(cursor, lineCount) {
+        return {
+            pos: [cursor.pos[0] + lineCount, cursor.pos[1]],
+            tail: [cursor.tail[0] + lineCount, cursor.tail[1]],
+            desiredCol: cursor.desiredCol
+        };
+    }
+
+    offsetEvent(event, lineCount) {
         return {
             changes: event.changes.map((change) => {
                 return {
@@ -118,8 +128,12 @@ class TransactionManager {
                     lineIndex: change.lineIndex + lineCount
                 }
             }).reverse(),
-            startCursors: event.startCursors,
-            newCursors: event.newCursors,
+            startCursors: event.startCursors.map(
+                (cursor) => { return this.offsetCursor(cursor, lineCount) }
+            ),
+            newCursors: event.newCursors.map(
+                (cursor) => { return this.offsetCursor(cursor, lineCount) }
+            ),
             timestamp: event.timestamp,
             undoState: event.undoState,
             editSessionId: event.editSessionId,
@@ -184,11 +198,11 @@ class TransactionManager {
                     // this edit was not contiguous with our edit, so we can apply it
                     if (bounds.lowIx > rebaseBounds.highIx) {
                         // it was below us so we need to offset it by the edits line delta
-                        e = TransactionManager.offsetEvent(e, relativeLineCount);
+                        e = this.offsetEvent(e, relativeLineCount);
                     } else {
                         // it was ABOVE us, so we need to move down our notion of the
                         // area of effect of 'edit'
-                        e = TransactionManager.offsetEvent(e, 0);
+                        e = this.offsetEvent(e, 0);
                         let lineDelta = TransactionManager.relativeLineCount(e);
                         rebaseBounds.highIx += lineDelta;
                         rebaseBounds.lowIx += lineDelta;
@@ -197,7 +211,8 @@ class TransactionManager {
                     this.pushEvent(e);
                 } else {
                     // these events conflicted
-                    console.log("Ignoring unrebasable event " + i + " out of " + eventsToRebase.length);
+                    console.log("Ignoring unrebasable event " + i + " with guid "
+                        + e.eventGuid + " out of " + eventsToRebase.length);
                     break;
                 }
             }
@@ -221,6 +236,7 @@ class TransactionManager {
         event.priorEventGuid = this.topLocalEventGuid;
 
         this.dataModel.pushEvent(event);
+
         this.events.push(event);
         this.topLocalEventGuid = event.eventGuid;
 

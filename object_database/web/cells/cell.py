@@ -7,6 +7,7 @@ from object_database.web.cells.children import Children
 from object_database.web.cells.recomputing_cell_context import RecomputingCellContext
 from object_database.web.cells.cells_context import CellsContext
 from object_database.web.cells.computed_slot import ComputedSlot
+from object_database.web.cells.dependency_context import DependencyContext
 
 
 MAX_TIMEOUT = 1.0
@@ -64,11 +65,26 @@ class Cell(object):
     def cellJavascriptClassName(self):
         return self.__class__.__name__
 
+    def scheduleCallback(self, callback):
+        context = DependencyContext.get()
+
+        if context is None:
+            raise Exception("Can't schedule a callback outside of a DependencyContenxt")
+
+        context.scheduleCallback(callback)
+
     def scheduleMessage(self, message):
-        if not self.garbageCollected and self.cells is not None:
-            self.cells.markPendingMessage(self, message)
-        else:
-            self._messagesToSendOnInstall.append(message)
+        context = DependencyContext.get()
+
+        if context is None:
+            raise Exception("Can't schedule a message outside of a DependencyContenxt")
+
+        context.scheduleMessage(self, message)
+
+        # if not self.garbageCollected and self.cells is not None:
+        #     self.cells.markPendingMessage(self, message)
+        # else:
+        #     self._messagesToSendOnInstall.append(message)
 
     def onRemovedFromTree(self):
         """Called when a cell is removed from the tree. This shouldn't update any slots,

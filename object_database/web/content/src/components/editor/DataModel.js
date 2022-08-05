@@ -472,6 +472,25 @@ class DataModel {
             throw new Error('DataModel has changes. cant accept an event');
         }
 
+        let clipLineNumber = (lineNumber) => {
+            return Math.max(0, Math.min(this.lines.length - 1, lineNumber))
+        };
+
+        let clipPos = (pos) => {
+            return [
+                pos[0],
+                Math.max(0, Math.min(this.lines[pos[0]].length, pos[1]))
+            ]
+        };
+
+        event.startCursors = event.startCursors.map((cursor) => {
+            return {
+                pos: clipPos(cursor.pos),
+                tail: clipPos(cursor.tail),
+                desiredCol: cursor.desiredCol
+            };
+        });
+
         // we don't have to worry about keeping our cursors up to date
         event.changes.map((change) => {
             this.lines.splice(
@@ -484,6 +503,14 @@ class DataModel {
             );
             this.isInMultilineString = null;
         })
+
+        event.newCursors = event.newCursors.map((cursor) => {
+            return {
+                pos: clipPos(cursor.pos),
+                tail: clipPos(cursor.tail),
+                desiredCol: cursor.desiredCol
+            };
+        });
 
         this.cursors = event.newCursors.map(
             (json) => Cursor.fromJson(json)

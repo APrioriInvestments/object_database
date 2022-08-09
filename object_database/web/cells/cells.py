@@ -525,20 +525,29 @@ class Cells:
         processed = 0
         t0 = time.time()
 
+        callbacksToExecute = []
+
         try:
             while True:
-                callback = self._callbacks.get(block=False)
-                processed += 1
-
-                self._executeCallback(callback)
-
+                callbacksToExecute.append(self._callbacks.get(block=False))
         except queue.Empty:
-            return processed > 0
-        finally:
-            if processed:
-                logging.info(
-                    "Processed %s callbacks in %s seconds", processed, time.time() - t0
-                )
+            pass
+
+        def singleCallback():
+            for c in callbacksToExecute:
+                try:
+                    c()
+                except Exception:
+                    logging.exception("Callback %s threw an unexpected exception", c)
+
+        self._executeCallback(singleCallback)
+
+        processed = len(callbacksToExecute)
+
+        if processed:
+            logging.info("Processed %s callbacks in %s seconds", processed, time.time() - t0)
+
+        return processed > 0
 
     def _handleAllTransactions(self):
         """Process any transactions, dirtying the dependency graph if required."""

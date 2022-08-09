@@ -165,7 +165,5 @@ class ComputedSlot:
             self.cells._dependencies.markSlotsDirty([self])
 
         self.dependencies = ComputedSlotDeps(
-            context.slotsRead,
-            context.subscriptions,
-            context.slotDepsRead
+            context.slotsRead, context.subscriptions, context.slotDepsRead
         )

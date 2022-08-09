@@ -19,6 +19,7 @@ class Slot:
     """Represents a piece of session-specific interface state. Any cells or computed slots
     that call 'get' will be recalculated in subsequent frames if the value changes.
     """
+
     IS_COMPUTED = False
 
     def __init__(self, value=None):

@@ -795,6 +795,10 @@ class Editor extends ConcreteCell {
             this.focusOnCreate = false;
         }
 
+        if (this.props.exception) {
+            return;
+        }
+
         this.installResizeObserver();
     }
 

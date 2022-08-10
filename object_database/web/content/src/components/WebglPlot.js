@@ -12,6 +12,8 @@ import {TrianglesFigure} from './TrianglesFigure';
 import {GlRenderer} from './GlRenderer';
 import {makeDomElt as h} from './Cell';
 
+let activeGlContexts = 0;
+
 class DragHelper {
     constructor(startEvent, callback) {
         this.callback = callback;
@@ -978,7 +980,14 @@ class WebglPlot extends ConcreteCell {
     cellWillUnload() {
         try {
             // release opengl memory
-            this.renderer.gl.getExtension('WEBGL_lose_context').loseContext();
+            activeGlContexts -= 1;
+            console.log("Total WebGL Contexts: " + activeGlContexts);
+
+            let extension = this.renderer.gl.getExtension('WEBGL_lose_context');
+
+            if (extension !== null) {
+                extension.loseContext();
+            }
         } catch(e) {
             console.error(e);
         }
@@ -1010,6 +1019,9 @@ class WebglPlot extends ConcreteCell {
         this.canvas.height = this.canvas.clientHeight;
 
         this.renderer = new GlRenderer(this.canvas);
+        activeGlContexts += 1;
+
+        console.log("Total WebGL Contexts: " + activeGlContexts);
 
         this.installResizeObserver();
         this.requestAnimationFrame();

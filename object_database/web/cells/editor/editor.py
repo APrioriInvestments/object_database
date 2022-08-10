@@ -496,7 +496,6 @@ class Editor(FocusableCell):
 
     def onRemovedFromTree(self):
         if self.userSelectionSlot is not None:
-
             def removeSelf():
                 content = dict(self.userSelectionSlot.get())
                 content.pop(self.editSessionId, None)
@@ -544,12 +543,7 @@ class Editor(FocusableCell):
                 self.scheduleMessage({"acceptedEvents": events[eventIx:]})
                 self.sentEventGuidSlot.set(events[-1]["eventGuid"])
 
-                logging.info(
-                    "Client %s/%s updating to event %s",
-                    self.username,
-                    self.editSessionId,
-                    self.sentEventGuidSlot.get(),
-                )
+                logging.info("Client %s/%s updating to event %s", self.username, self.editSessionId, self.sentEventGuidSlot.get())
                 return
             else:
                 eventIx -= 1
@@ -557,12 +551,11 @@ class Editor(FocusableCell):
         # somehow we got into a bad state
         self.scheduleMessage({"resetState": collapseStateToTopmost(serverState)})
         logging.error(
-            "Client %s/%s completely resetting state to %s "
-            "because the send state (%s) was ahead",
+            "Client %s/%s completely resetting state to %s because the send state (%s) was ahead",
             self.username,
             self.editSessionId,
             serverState["topEventGuid"],
-            self.sentEventGuidSlot.get(),
+            self.sentEventGuidSlot.get()
         )
         self.sentEventGuidSlot.set(serverState["topEventGuid"])
 
@@ -669,12 +662,7 @@ class Editor(FocusableCell):
                         events=currentState["events"] + (event,),
                     )
 
-                    logging.info(
-                        "Accepting event on %s/%s: %s",
-                        self.username,
-                        self.editSessionId,
-                        event["eventGuid"],
-                    )
+                    logging.info("Accepting event on %s/%s: %s", self.username, self.editSessionId, event)
 
                     if len(newState["events"]) % 100 == 0:
                         t0 = time.time()
@@ -692,7 +680,7 @@ class Editor(FocusableCell):
                     "Dropping event on %s/%s: %s",
                     self.username,
                     self.editSessionId,
-                    event["eventGuid"],
+                    event,
                 )
 
     def _getCurrentStateWithoutDependency(self):
@@ -737,8 +725,13 @@ class Editor(FocusableCell):
         lastLine = self.lastLineSlot.get() or 0
         viewHeight = max(lastLine - topLine, 10)
 
-        topLine = max(topLine - viewHeight, 0)
-        lastLine = min(lastLine + viewHeight, len(state))
+        # number of lines of view text above and below that we'll
+        # extend our visible range by when we are deciding which
+        # visible cells to show.
+        VIEW_PADDING_LINES = 10
+
+        topLine = max(topLine - VIEW_PADDING_LINES, 0)
+        lastLine = min(lastLine + VIEW_PADDING_LINES, len(state))
 
         sectionCount = {}
         sectionKeys = set()

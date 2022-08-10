@@ -1015,6 +1015,10 @@ class WebglPlot extends ConcreteCell {
     }
 
     onFirstInstalled() {
+        if (this.props.exception) {
+            return;
+        }
+
         this.canvas.width = this.canvas.clientWidth;
         this.canvas.height = this.canvas.clientHeight;
 

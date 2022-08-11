@@ -453,17 +453,25 @@ class LineFigure(Figure):
         return LineFigure(ListOf(Float32)(x), ListOf(Float32)(y), lineWidth, color)
 
 
+VALID_POINT_SHAPES = ["circle", "vertical_tick", "horizontal_tick", "square"]
+
+
 class PointFigure(Figure):
-    def __init__(self, xs, ys, pointSizes=1.0, colors=Color(blue=255, alpha=255)):
+    def __init__(
+        self, xs, ys, pointSizes=1.0, colors=Color(blue=255, alpha=255), shape="circle"
+    ):
         assert isinstance(pointSizes, (float, int, ListOf(Float32))), type(pointSizes)
         assert isinstance(xs, ListOf(Float32)), type(xs)
         assert isinstance(ys, ListOf(Float32)), type(ys)
         assert isinstance(colors, (Color, ListOf(Color))), type(colors)
 
+        assert shape in VALID_POINT_SHAPES
+
         self.xs = xs
         self.ys = ys
         self.pointSizes = pointSizes
         self.colors = colors
+        self.shape = shape
 
     def extent(self):
         if not self.xs:
@@ -483,10 +491,11 @@ class PointFigure(Figure):
             "y": packets.encode(self.ys),
             "pointSize": packets.encode(self.pointSizes),
             "color": packets.encode(self.colors),
+            "shape": self.shape,
         }
 
     @staticmethod
-    def create(x, y, pointSize, color=None):
+    def create(x, y, pointSize, color=None, shape="circle"):
         if not isinstance(pointSize, (float, int)):
             pointSize = ListOf(Float32)(pointSize)
 
@@ -496,7 +505,7 @@ class PointFigure(Figure):
         else:
             color = Color(blue=255, alpha=255)
 
-        return PointFigure(ListOf(Float32)(x), ListOf(Float32)(y), pointSize, color)
+        return PointFigure(ListOf(Float32)(x), ListOf(Float32)(y), pointSize, color, shape)
 
 
 class ImageFigure(Figure):
@@ -744,8 +753,10 @@ class Plot:
     def withLines(self, x, y, lineWidth=1.0, color=None):
         return self + Plot([LineFigure.create(x=x, y=y, lineWidth=lineWidth, color=color)])
 
-    def withPoints(self, x, y, pointSize=1.0, color=None):
-        return self + Plot([PointFigure.create(x=x, y=y, pointSize=pointSize, color=color)])
+    def withPoints(self, x, y, pointSize=1.0, color=None, shape="circle"):
+        return self + Plot(
+            [PointFigure.create(x=x, y=y, pointSize=pointSize, color=color, shape=shape)]
+        )
 
     def withBackgroundColor(self, backgroundColor):
         return self + Plot(backgroundColor=createColor(backgroundColor))

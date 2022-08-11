@@ -236,6 +236,27 @@ class WebglPoints(CellsTestPage):
                     color=["red", "green", "blue"],
                     pointSize=[5, 15, 30],
                 )
+                .withPoints(
+                    [0.0, 0.5, 0.25],
+                    [1.0, 1.5, 1.25],
+                    color=["red", "green", "blue"],
+                    pointSize=[5, 15, 30],
+                    shape="square",
+                )
+                .withPoints(
+                    [0.0, 0.5, 0.25],
+                    [2.0, 2.5, 2.25],
+                    color=["red", "green", "blue"],
+                    pointSize=[5, 15, 30],
+                    shape="vertical_tick",
+                )
+                .withPoints(
+                    [0.0, 0.5, 0.25],
+                    [3.0, 3.5, 3.25],
+                    color=["red", "green", "blue"],
+                    pointSize=[5, 15, 30],
+                    shape="horizontal_tick",
+                )
             )
 
         return cells.WebglPlot(getData)

@@ -452,7 +452,7 @@ class GlRenderer {
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, pointCount);
     }
 
-    drawPoints(vertexBuffer, pointSizeBuffer, colorBuffer, pointCount) {
+    drawPoints(vertexBuffer, pointSizeBuffer, colorBuffer, pointCount, shape) {
         if (!vertexBuffer) {
             return;
         }
@@ -504,17 +504,46 @@ class GlRenderer {
         gl.uniform2fv(uScreenPixelSize, [1.0 / this.canvas.width, 1.0 / this.canvas.height]);
         gl.uniform2fv(uScreenPosition, this.screenPosition);
 
-        let segmentCount = 16;
-        for (let i = 0; i < segmentCount; i++) {
-            gl.uniform2fv(
-                uZOffsetPx,
-                [Math.cos(2.0 * Math.PI * i / segmentCount), Math.sin(2.0 * Math.PI * i / segmentCount)]
-            )
-            gl.uniform2fv(
-                uWOffsetPx,
-                [Math.cos(2.0 * Math.PI * (i + 1) / segmentCount),
-                 Math.sin(2.0 * Math.PI * (i + 1) / segmentCount)]
-            )
+        if (shape == "circle") {
+            let segmentCount = 16;
+            for (let i = 0; i < segmentCount; i++) {
+                gl.uniform2fv(
+                    uZOffsetPx,
+                    [Math.cos(2.0 * Math.PI * i / segmentCount), Math.sin(2.0 * Math.PI * i / segmentCount)]
+                )
+                gl.uniform2fv(
+                    uWOffsetPx,
+                    [Math.cos(2.0 * Math.PI * (i + 1) / segmentCount),
+                     Math.sin(2.0 * Math.PI * (i + 1) / segmentCount)]
+                )
+                gl.drawArrays(gl.TRIANGLES, 0, pointCount * 3);
+            }
+        } else {
+            let width = 1;
+            let height = 1;
+
+            if (shape == "square") {
+                // all set
+            } else if (shape == "vertical_tick") {
+                width = .2;
+            } else if (shape == "horizontal_tick") {
+                height = .2;
+            }
+
+            gl.uniform2fv(uZOffsetPx, [width, height])
+            gl.uniform2fv(uWOffsetPx, [width, -height])
+            gl.drawArrays(gl.TRIANGLES, 0, pointCount * 3);
+
+            gl.uniform2fv(uZOffsetPx, [width, -height])
+            gl.uniform2fv(uWOffsetPx, [-width,-height])
+            gl.drawArrays(gl.TRIANGLES, 0, pointCount * 3);
+
+            gl.uniform2fv(uZOffsetPx, [-width, -height])
+            gl.uniform2fv(uWOffsetPx, [-width, height])
+            gl.drawArrays(gl.TRIANGLES, 0, pointCount * 3);
+
+            gl.uniform2fv(uZOffsetPx, [-width, height])
+            gl.uniform2fv(uWOffsetPx, [width, height])
             gl.drawArrays(gl.TRIANGLES, 0, pointCount * 3);
         }
     }

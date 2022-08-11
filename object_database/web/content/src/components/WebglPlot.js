@@ -953,7 +953,8 @@ class WebglPlot extends ConcreteCell {
             xs,
             ys,
             pointSize,
-            color
+            color,
+            figureJson.shape
         );
     }
 

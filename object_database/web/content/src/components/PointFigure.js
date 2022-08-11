@@ -1,9 +1,15 @@
 
 
 class PointFigure {
-    constructor(xs, ys, pointSize=1.0, color=null) {
+    constructor(xs, ys, pointSize=1.0, color=null, shape=null) {
         this.xs = xs;
         this.ys = ys;
+
+        if (!shape) {
+            this.shape = "circle";
+        } else {
+            this.shape = shape;
+        }
 
         if (!(xs instanceof Float32Array)) {
             throw new Error("xys must be a Float32Array");
@@ -165,7 +171,8 @@ class PointFigure {
             this.triangleBuffer,
             this.pointSizeBuffer,
             this.colorBuffer,
-            this.pointCount
+            this.pointCount,
+            this.shape
         );
     }
 }

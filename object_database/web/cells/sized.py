@@ -17,12 +17,27 @@ from object_database.web.cells.cell import Cell
 
 
 class Sized(Cell):
-    def __init__(self, content, height=None, width=None):
+    def __init__(self, content=None, height=None, width=None):
         super().__init__()
-        self.content = Cell.makeCell(content)
+        if content is not None:
+            self.content = Cell.makeCell(content)
+        else:
+            self.content = None
+
+        self.height = height
+        self.width = width
+
         self.exportData["height"] = height
         self.exportData["width"] = width
-        self.children["content"] = Cell.makeCell(self.content)
+
+        if self.content is not None:
+            self.children["content"] = Cell.makeCell(self.content)
+
+    def __mul__(self, other):
+        if self.content is None:
+            return Sized(content=other, height=self.height, width=self.width)
+        else:
+            return Sized(content=self.content * other, height=self.height, width=self.width)
 
     def sortsAs(self):
         return self.content.sortsAs()

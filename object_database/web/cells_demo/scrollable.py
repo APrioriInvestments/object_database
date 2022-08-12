@@ -226,3 +226,39 @@ class ScrollableSequenceOfCardAndTabs(CellsTestPage):
 
     def text(self):
         return "Should see a Card between each plot and Card in Tab A should not wrap."
+
+
+class ScrollIntoViewOnFirstVisible(CellsTestPage):
+    def cell(self):
+        topVisible = cells.Slot(0)
+        bottomVisible = cells.Slot()
+
+        return (
+            cells.Button("Toggle top", topVisible.toggle)
+            + cells.Button("Toggle bottom", bottomVisible.toggle)
+            + cells.Scrollable(
+                cells.Sequence(
+                    [
+                        cells.Subscribed(
+                            lambda: None
+                            if not topVisible.get()
+                            else cells.VisibleInParentScrollOnFirstDisplay()
+                            * cells.Text("Should be at the top")
+                        )
+                        + cells.Sized(height=5000) * cells.VCenter(cells.Text("middle"))
+                        + cells.Subscribed(
+                            lambda: None
+                            if not bottomVisible.get()
+                            else cells.VisibleInParentScrollOnFirstDisplay()
+                            * cells.Text("Should be at the bottom")
+                        )
+                    ]
+                )
+            )
+        )
+
+    def text(self):
+        return (
+            "Should see two buttons that turn off/on two pieces of text. when they come on"
+            "you should scroll so that piece of content is visible."
+        )

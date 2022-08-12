@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 
+from object_database.web.cells import Effect
 from object_database.web.cells.cell import Cell
 from object_database.web.cells.container import Container
 
@@ -42,7 +43,6 @@ class VisibleInParentScrollOnFirstDisplay(Cell):
     def __init__(self, content=None, valign="nearest", halign="nearest"):
         super().__init__()
         self.content = Cell.makeCell(content) if content is not None else None
-        self.isCalculated = False
         self.halign = halign
         self.valign = valign
 
@@ -52,8 +52,7 @@ class VisibleInParentScrollOnFirstDisplay(Cell):
     def recalculate(self):
         self.children["content"] = self.content if self.content else Cell.makeCell("")
 
-        if not self.isCalculated:
-            self.isCalculated = True
+        def onDisplay():
             p = self.parent
             while p is not None:
                 if isinstance(p, Scrollable):
@@ -61,6 +60,8 @@ class VisibleInParentScrollOnFirstDisplay(Cell):
                     return
 
                 p = p.parent
+
+        self.children["effect"] = Effect(onDisplay)
 
     def sortsAs(self):
         if isinstance(self.content, Cell):

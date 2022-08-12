@@ -56,7 +56,7 @@ jobs:
       timeout-minutes: 15  # Should run in ~2 to 3 min with cache
       run: |
         echo 'UPGRADE PIP'
-        pip install --upgrade pip pip-tools wheel
+        pip install --upgrade pip==21.2.4 pip-tools wheel
         echo 'INSTALL DEV REQUIREMENTS'
         pip install --requirement dev-requirements.lock
         echo 'INSTALL odb in editable mode'

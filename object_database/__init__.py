@@ -41,4 +41,4 @@ from object_database.view import (
 from object_database.inmem_server import InMemServer
 
 
-__version__ = "0.2"
+__version__ = "0.2.1"

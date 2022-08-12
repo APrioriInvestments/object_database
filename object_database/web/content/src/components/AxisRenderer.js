@@ -420,7 +420,7 @@ class AxisRenderer {
         if (this.axisData.label) {
             this.legendDiv.appendChild(
                 h('div', {style: 'height:100%;display:flex;flex-direction:column;justify-content:center;pointer-events:none'}, [
-                    h('div', {style: 'text-align:center;min-width:40px;padding-right:3px;pointer-events:none'}, [this.axisData.label])
+                    h('div', {style: 'text-align:center;min-width:40px;padding-right:3px;pointer-events:none;writing-mode: vertical-rl;transform: rotate(-180deg)'}, [this.axisData.label])
                 ])
             )
         }

@@ -105,9 +105,9 @@ class WebglBackgroundColor(CellsTestPage):
                     backgroundColor=(0.0, 0.0, 0.0, 0.0),
                 )
                 .withBottomAxis(label="bottom")
-                .withLeftAxis(label="top")
-                .withTopAxis(label="right")
-                .withRightAxis(label="left")
+                .withLeftAxis(label="this is a several-word left axis")
+                .withTopAxis(label="top")
+                .withRightAxis(label="right")
             )
 
         return cells.WebglPlot(getData)

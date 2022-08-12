@@ -55,9 +55,14 @@ jobs:
     - name: Install PIP dependencies
       timeout-minutes: 15  # Should run in ~2 to 3 min with cache
       run: |
+        echo 'UPGRADE PIP'
         pip install --upgrade pip pip-tools wheel
+        echo 'INSTALL DEV REQUIREMENTS'
         pip install --requirement dev-requirements.lock
+        echo 'INSTALL odb in editable mode'
         pip install --editable .
+        echo 'Import ODB and see that it built correctly'
+        python3 -c 'import object_database._types'
 
     - name: Install NODE dependencies
       timeout-minutes: 3  # Runs in ~30 sec

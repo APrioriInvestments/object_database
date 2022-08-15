@@ -311,7 +311,7 @@ class Table(Cell):
             return False
 
         self.rowDict = {}
-        self.curPageSlot.set(0)
+        self.curPageSlot = Slot(0)
 
         super().prepareForReuse()
 

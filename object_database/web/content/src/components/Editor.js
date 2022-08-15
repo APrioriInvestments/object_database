@@ -125,6 +125,11 @@ class Editor extends ConcreteCell {
         this.splitFraction = this.props.splitFraction;
 
         this.constants = new Constants(this.props.darkMode);
+
+        if (this.props.initialState === undefined) {
+            throw new Error("Somehow we have no initial state.")
+        }
+
         this.dataModel = new DataModel(
             this.constants,
             this.props.readOnly,

@@ -421,8 +421,23 @@ class Editor(FocusableCell):
 
         self.sectionDisplayFun = sectionDisplayFun
 
+    def getDisplayExportData(self):
+        # we only wa
+        toReturn = dict(self.exportData)
+
+        # because our comms protocol with the client is
+        # not as tight as we'd like, we need to be careful
+        # not to leave the 'exportData' in place (since it might
+        # be large), because we send it on every frame. the javascript
+        # on the other side is careful to see this only on first render
+        # and then take deltas only from messages.
+        self.exportData.clear()
+
+        return toReturn
+
     def prepareForReuse(self):
         self.everCalculated = False
+        self.exportData = {}
 
     def scrollTo(self, firstLine):
         """Scroll so that 'firstLine' is the first visible line"""
@@ -791,16 +806,8 @@ class Editor(FocusableCell):
         self.contentsSlot.get()
 
         if not self.everCalculated:
-            # because our comms protocol with the client is
-            # not as tight as we'd like, we need to be careful
-            # not to leave the 'exportData' in place (since it might
-            # be large), because we send it on every frame. the javascript
-            # on the other side is careful to see this only on first render
-            # and then take deltas only from messages.
             self.doFirstCalc()
             self.everCalculated = True
-        else:
-            self.exportData.clear()
 
         if self.sectionDisplayFun or self.overlayDisplayFun:
             self.recalculateSections()

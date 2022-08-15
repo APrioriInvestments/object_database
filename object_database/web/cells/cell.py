@@ -106,11 +106,7 @@ class Cell(object):
         self.markDirty()
 
     def getDisplayExportData(self):
-        """Get the version of 'self.exportData' we should actually use.
-
-        Cells that have children who are collapsed into their parent are responsible for
-        updating things like 'flexParent' here.
-        """
+        """Get the version of 'self.exportData' we should actually use."""
         return self.exportData
 
     def getDisplayChildren(self):

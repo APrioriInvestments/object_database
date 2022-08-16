@@ -51,6 +51,8 @@ class DependencyContext:
         # set of ComputedSlot dependencies we read from
         self.slotDepsRead = set()
 
+        self.slowComputedSlotsRead = set()
+
         # messages that were scheduled to be sent as part of this recalculation
         self.scheduledMessages = []
 

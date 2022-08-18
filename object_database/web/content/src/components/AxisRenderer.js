@@ -427,8 +427,8 @@ class AxisRenderer {
 
         let topAxisHeight = this.knownTopAxisSize;
 
-        let plotWidthPx = this.glRenderer.canvas.width;
-        let plotHeightPx = this.glRenderer.canvas.height;
+        let plotWidthPx = this.glRenderer.width;
+        let plotHeightPx = this.glRenderer.height;
 
         let axisLabelAreaWidth = this.axisData.space;
 
@@ -582,8 +582,8 @@ class AxisRenderer {
 
         this.axisDiv.style.height = this.axisData.space + "px";
 
-        let plotWidthPx = this.glRenderer.canvas.width;
-        let plotHeightPx = this.glRenderer.canvas.height;
+        let plotWidthPx = this.glRenderer.width;
+        let plotHeightPx = this.glRenderer.height;
 
         // these are the coordinates in the actual data display
         let x0 = this.glRenderer.screenPosition[0];

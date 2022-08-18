@@ -379,3 +379,29 @@ class WebglError(CellsTestPage):
             "Clicking 'turn on an error' should toggle an Exception display. You should be "
             "able to switch back and forth between the two displays."
         )
+
+
+class LotsOfWebGls(CellsTestPage):
+    def cell(self):
+        def makePlot(i, j):
+            def getData():
+                return Plot().withLines([0.0, j, 1.0], [0.0, i, 1.0])
+
+            return cells.WebglPlot(getData)
+
+        def makeRow(i):
+            row = cells.Text("")
+            for j in range(8):
+                row = row >> makePlot(i, j)
+            return row
+
+        rows = cells.Slot(2)
+
+        return (
+            cells.Button("Add row", lambda: rows.set(rows.get() + 1))
+            + cells.Button("Remove row", lambda: rows.set(rows.get() - 1))
+            + cells.SubscribedSequence(lambda: list(range(rows.get())), makeRow)
+        )
+
+    def text(self):
+        return "You should 64 webgl plots and they should all work."

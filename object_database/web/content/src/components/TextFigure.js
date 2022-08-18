@@ -21,6 +21,9 @@ class TextFigure {
         this.sizes = sizes;
         this.textDiv = textDiv;
 
+        this.clear = this.clear.bind(this);
+        this.drawSelf = this.drawSelf.bind(this);
+
         if (!(xs instanceof Float32Array)) {
             throw new Error("xs must be a Float32Array");
         }
@@ -70,11 +73,15 @@ class TextFigure {
         }
     }
 
+    clear(renderer) {
+        // nothing to do
+    }
+
     drawSelf(renderer) {
         for (let i = 0; i < this.xs.length; i++) {
             let style = [];
-            let x = (this.xs[i] - renderer.screenPosition[0]) / renderer.screenSize[0] * renderer.canvas.width;
-            let y = (1.0 - (this.ys[i] - renderer.screenPosition[1]) / renderer.screenSize[1]) * renderer.canvas.height;
+            let x = (this.xs[i] - renderer.screenPosition[0]) / renderer.screenSize[0] * renderer.width;
+            let y = (1.0 - (this.ys[i] - renderer.screenPosition[1]) / renderer.screenSize[1]) * renderer.height;
 
             x += this.offsets[i * 2];
             y -= this.offsets[i * 2 + 1];

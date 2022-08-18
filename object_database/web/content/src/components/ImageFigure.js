@@ -45,12 +45,16 @@ class ImageFigure {
         let gl = renderer.gl;
 
         if (this.texture) {
-            gl.deleteTexture(this.texture);
+            if (!gl.isContextLost()) {
+                gl.deleteTexture(this.texture);
+            }
             this.texture = null;
         }
 
         if (this.triangleBuffer) {
-            gl.deleteBuffer(this.triangleBuffer);
+            if (!gl.isContextLost()) {
+                gl.deleteBuffer(this.triangleBuffer);
+            }
             this.triangleBuffer = null;
         }
     }

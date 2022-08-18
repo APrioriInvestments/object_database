@@ -206,32 +206,44 @@ class LineFigure {
         let gl = renderer.gl;
 
         if (this.colorBuffer) {
-            gl.deleteBuffer(this.colorBuffer);
+            if (!gl.isContextLost()) {
+                gl.deleteBuffer(this.colorBuffer);
+            }
             this.colorBuffer = null;
         }
 
         if (this.triangleBuffer) {
-            gl.deleteBuffer(this.triangleBuffer);
+            if (!gl.isContextLost()) {
+                gl.deleteBuffer(this.triangleBuffer);
+            }
             this.triangleBuffer = null;
         }
 
         if (this.lineWidthBuffer) {
-            gl.deleteBuffer(this.lineWidthBuffer);
+            if (!gl.isContextLost()) {
+                gl.deleteBuffer(this.lineWidthBuffer);
+            }
             this.lineWidthBuffer = null;
         }
 
         if (this.directionBuffer) {
-            gl.deleteBuffer(this.directionBuffer);
+            if (!gl.isContextLost()) {
+                gl.deleteBuffer(this.directionBuffer);
+            }
             this.directionBuffer = null;
         }
 
         if (this.otherDirectionBuffer) {
-            gl.deleteBuffer(this.otherDirectionBuffer);
+            if (!gl.isContextLost()) {
+                gl.deleteBuffer(this.otherDirectionBuffer);
+            }
             this.otherDirectionBuffer = null;
         }
 
         if (this.linePosBuffer) {
-            gl.deleteBuffer(this.linePosBuffer);
+            if (!gl.isContextLost()) {
+                gl.deleteBuffer(this.linePosBuffer);
+            }
             this.linePosBuffer = null;
         }
     }

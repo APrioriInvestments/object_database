@@ -63,12 +63,16 @@ class TrianglesFigure {
         let gl = renderer.gl;
 
         if (this.colorBuffer) {
-            gl.deleteBuffer(this.colorBuffer);
+            if (!gl.isContextLost()) {
+                gl.deleteBuffer(this.colorBuffer);
+            }
             this.colorBuffer = null;
         }
 
         if (this.triangleBuffer) {
-            gl.deleteBuffer(this.triangleBuffer);
+            if (!gl.isContextLost()) {
+                gl.deleteBuffer(this.triangleBuffer);
+            }
             this.triangleBuffer = null;
         }
     }

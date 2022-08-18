@@ -1,3 +1,5 @@
+import {makeDomElt as h} from './Cell';
+
 const imageShader = {
 fragmentShader: `
   #ifdef GL_ES
@@ -176,9 +178,14 @@ vertexShader: `
 }
 
 class GlRenderer {
-    constructor(canvas) {
-        this.canvas = canvas;
-        this.gl = this.canvas.getContext("webgl", {antialias: true});
+    constructor() {
+        this.webgl_canvas = h(
+            'canvas', {
+                style: 'width:100px;height:100px;position:absolute;top:0;left:0;opacity:0.0'
+            }
+        );
+
+        this.gl = this.webgl_canvas.getContext("webgl", {antialias: true});
 
         this.linesProgram = this.buildShaderProgram(this.gl, linesShader);
         this.trianglesProgram = this.buildShaderProgram(this.gl, trianglesShader);
@@ -186,11 +193,14 @@ class GlRenderer {
         this.imageProgram = this.buildShaderProgram(this.gl, imageShader);
 
         // where in object coordinates the current draw rect is
-        this.screenPosition = [0.0, 0.0];
-        this.screenSize = [1.0, 1.0];
+        this.screenPosition = null;
+        this.screenSize = null;
+        this.width = null;
+        this.height = null;
 
-        this.scrollPixels = this.scrollPixels.bind(this);
-        this.zoom = this.zoom.bind(this);
+        this.sizeToCanvas = this.sizeToCanvas.bind(this);
+        this.copyToCanvas = this.copyToCanvas.bind(this);
+        this.isContextLost = this.isContextLost.bind(this);
         this.buildShaderProgram = this.buildShaderProgram.bind(this);
         this.compileShader = this.compileShader.bind(this);
         this.clearViewport = this.clearViewport.bind(this);
@@ -232,49 +242,42 @@ class GlRenderer {
         return shader;
     }
 
-    zoom(xScreenFrac, yScreenFrac, zoomFrac, allowHorizontal=true, allowVertical=true) {
-        if (allowHorizontal) {
-            this.screenPosition[0] += xScreenFrac * this.screenSize[0] * (1 - zoomFrac);
-            this.screenSize[0] *= zoomFrac;
-        }
+    sizeToCanvas(canvas, screenPosition, screenSize) {
+        this.screenPosition = screenPosition;
+        this.screenSize = screenSize;
+        this.width = canvas.width;
+        this.height = canvas.height;
 
-        if (allowVertical) {
-            this.screenPosition[1] += yScreenFrac * this.screenSize[1] * (1 - zoomFrac);
-            this.screenSize[1] *= zoomFrac;
+        let width = canvas.width;
+        let height = canvas.height;
+        let maxWidth = Math.max(this.webgl_canvas.width, width);
+        let maxHeight = Math.max(this.webgl_canvas.height, height);
+
+        if (this.webgl_canvas.width != maxWidth || this.webgl_canvas.height != maxHeight) {
+            this.webgl_canvas.width = maxWidth;
+            this.webgl_canvas.height = maxHeight;
         }
     }
 
-    zoomRect(x0ScreenFrac, y0ScreenFrac, x1ScreenFrac, y1ScreenFrac) {
-        if (y0ScreenFrac > y1ScreenFrac) {
-            [y0ScreenFrac, y1ScreenFrac] = [y1ScreenFrac, y0ScreenFrac];
-        }
+    copyToCanvas(canvas) {
+        let ctx = canvas.getContext('2d');
+        ctx.globalCompositeOperation = 'copy';
 
-        if (x0ScreenFrac > x1ScreenFrac) {
-            [x0ScreenFrac, x1ScreenFrac] = [x1ScreenFrac, x0ScreenFrac];
-        }
-
-        this.screenPosition[0] += x0ScreenFrac * this.screenSize[0];
-        this.screenPosition[1] += y0ScreenFrac * this.screenSize[1];
-
-        this.screenSize[0] *= Math.max(0.001, x1ScreenFrac - x0ScreenFrac);
-        this.screenSize[1] *= Math.max(0.001, y1ScreenFrac - y0ScreenFrac);
+        ctx.drawImage(
+            this.webgl_canvas,
+            0, this.webgl_canvas.height - canvas.height, canvas.width, canvas.height,   // src rect
+            0, 0, canvas.width, canvas.height
+        );
     }
 
-    scrollPixels(xScreenFrac, yScreenFrac) {
-        this.screenPosition[0] += xScreenFrac * this.screenSize[0];
-        this.screenPosition[1] += yScreenFrac * this.screenSize[1];
+    isContextLost() {
+        return this.gl.isContextLost();
     }
-
-    scrollToRectangle(viewRect) {
-        this.screenPosition = [viewRect[0], viewRect[1]];
-        this.screenSize = [viewRect[2] - viewRect[0], viewRect[3] - viewRect[1]];
-    }
-
 
     clearViewport() {
         let gl = this.gl;
 
-        gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+        gl.viewport(0, 0, this.width, this.height);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.enable(gl.BLEND);
@@ -366,7 +369,7 @@ class GlRenderer {
             gl.FLOAT, false, 0, 0
         );
 
-        gl.uniform2fv(uScreenPixelSize, [1.0 / this.canvas.width, 1.0 / this.canvas.height]);
+        gl.uniform2fv(uScreenPixelSize, [1.0 / this.width, 1.0 / this.height]);
         gl.uniform2fv(uScreenPosition, this.screenPosition);
 
         gl.drawArrays(gl.TRIANGLES, 0, pointCount * 3);
@@ -446,7 +449,7 @@ class GlRenderer {
             gl.FLOAT, false, 0, 0
         );
 
-        gl.uniform2fv(uScreenPixelSize, [1.0 / this.canvas.width, 1.0 / this.canvas.height]);
+        gl.uniform2fv(uScreenPixelSize, [1.0 / this.width, 1.0 / this.height]);
         gl.uniform2fv(uScreenPosition, this.screenPosition);
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, pointCount);
@@ -501,7 +504,7 @@ class GlRenderer {
             gl.FLOAT, false, 0, 0
         );
 
-        gl.uniform2fv(uScreenPixelSize, [1.0 / this.canvas.width, 1.0 / this.canvas.height]);
+        gl.uniform2fv(uScreenPixelSize, [1.0 / this.width, 1.0 / this.height]);
         gl.uniform2fv(uScreenPosition, this.screenPosition);
 
         if (shape == "circle") {

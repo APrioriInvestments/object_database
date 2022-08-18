@@ -13,6 +13,7 @@ import {GlRenderer} from './GlRenderer';
 import {makeDomElt as h} from './Cell';
 
 let activeGlContexts = 0;
+let glRenderer = null;
 
 class DragHelper {
     constructor(startEvent, callback) {
@@ -242,6 +243,10 @@ class WebglPlot extends ConcreteCell {
     constructor(props, ...args) {
         super(props, ...args);
 
+        if (glRenderer === null) {
+            glRenderer = new GlRenderer();
+        }
+
         this.installResizeObserver = this.installResizeObserver.bind(this);
         this.loadPacketIfNecessary = this.loadPacketIfNecessary.bind(this);
         this.drawScene = this.drawScene.bind(this);
@@ -276,6 +281,12 @@ class WebglPlot extends ConcreteCell {
         this.textFigureFromJson = this.textFigureFromJson.bind(this);
         this.lineFigureFromJson = this.lineFigureFromJson.bind(this);
 
+        this.scrollPixels = this.scrollPixels.bind(this);
+        this.zoom = this.zoom.bind(this);
+        this.zoomRect = this.zoomRect.bind(this);
+        this.scrollToRectangle = this.scrollToRectangle.bind(this);
+
+
         this.renderedDefaultViewport = null;
 
         this.packets = new Packets(
@@ -285,6 +296,47 @@ class WebglPlot extends ConcreteCell {
         );
 
         this.figures = [];
+
+        this.screenPosition = [0.0, 0.0];
+        this.screenSize = [1.0, 1.0];
+    }
+
+    zoom(xScreenFrac, yScreenFrac, zoomFrac, allowHorizontal=true, allowVertical=true) {
+        if (allowHorizontal) {
+            this.screenPosition[0] += xScreenFrac * this.screenSize[0] * (1 - zoomFrac);
+            this.screenSize[0] *= zoomFrac;
+        }
+
+        if (allowVertical) {
+            this.screenPosition[1] += yScreenFrac * this.screenSize[1] * (1 - zoomFrac);
+            this.screenSize[1] *= zoomFrac;
+        }
+    }
+
+    zoomRect(x0ScreenFrac, y0ScreenFrac, x1ScreenFrac, y1ScreenFrac) {
+        if (y0ScreenFrac > y1ScreenFrac) {
+            [y0ScreenFrac, y1ScreenFrac] = [y1ScreenFrac, y0ScreenFrac];
+        }
+
+        if (x0ScreenFrac > x1ScreenFrac) {
+            [x0ScreenFrac, x1ScreenFrac] = [x1ScreenFrac, x0ScreenFrac];
+        }
+
+        this.screenPosition[0] += x0ScreenFrac * this.screenSize[0];
+        this.screenPosition[1] += y0ScreenFrac * this.screenSize[1];
+
+        this.screenSize[0] *= Math.max(0.001, x1ScreenFrac - x0ScreenFrac);
+        this.screenSize[1] *= Math.max(0.001, y1ScreenFrac - y0ScreenFrac);
+    }
+
+    scrollPixels(xScreenFrac, yScreenFrac) {
+        this.screenPosition[0] += xScreenFrac * this.screenSize[0];
+        this.screenPosition[1] += yScreenFrac * this.screenSize[1];
+    }
+
+    scrollToRectangle(viewRect) {
+        this.screenPosition = [viewRect[0], viewRect[1]];
+        this.screenSize = [viewRect[2] - viewRect[0], viewRect[3] - viewRect[1]];
     }
 
     requestAnimationFrame() {
@@ -326,8 +378,8 @@ class WebglPlot extends ConcreteCell {
             let x = mouseover.x;
             let y = mouseover.y;
 
-            let xPx = (x - this.renderer.screenPosition[0]) / this.renderer.screenSize[0] * this.canvas.width;
-            let yPx = (1.0 - (y - this.renderer.screenPosition[1]) / this.renderer.screenSize[1]) * this.canvas.height;
+            let xPx = (x - this.screenPosition[0]) / this.screenSize[0] * this.canvas.width;
+            let yPx = (1.0 - (y - this.screenPosition[1]) / this.screenSize[1]) * this.canvas.height;
 
             let contents = mouseover.contents;
 
@@ -481,13 +533,13 @@ class WebglPlot extends ConcreteCell {
             );
         } else {
             // do him first so we know how big he is
-            new AxisRenderer('top', this.topAxis, this.topAxisLegend, this.props.plotData, this.renderer, 0).render();
-            new AxisRenderer('bottom', this.bottomAxis, this.bottomAxisLegend, this.props.plotData, this.renderer, 0).render();
+            new AxisRenderer('top', this.topAxis, this.topAxisLegend, this.props.plotData, glRenderer, 0).render();
+            new AxisRenderer('bottom', this.bottomAxis, this.bottomAxisLegend, this.props.plotData, glRenderer, 0).render();
 
             // because of how the dom is structured, the left/right axes need to know how far to offset themselves.
             let ht = this.topAxis.clientHeight + this.topAxisLegend.clientHeight;
-            new AxisRenderer('left', this.leftAxis, this.leftAxisLegend, this.props.plotData, this.renderer, ht).render();
-            new AxisRenderer('right', this.rightAxis, this.rightAxisLegend, this.props.plotData, this.renderer, ht).render();
+            new AxisRenderer('left', this.leftAxis, this.leftAxisLegend, this.props.plotData, glRenderer, ht).render();
+            new AxisRenderer('right', this.rightAxis, this.rightAxisLegend, this.props.plotData, glRenderer, ht).render();
         }
     }
 
@@ -500,10 +552,12 @@ class WebglPlot extends ConcreteCell {
             return;
         }
 
+        glRenderer.sizeToCanvas(this.canvas, this.screenPosition, this.screenSize)
+        glRenderer.clearViewport()
+
         this.renderAxes();
         this.renderLegend();
         this.renderMousover();
-
 
         let arraysEqual = (x, y) => {
             if (!x && !y) {
@@ -526,15 +580,13 @@ class WebglPlot extends ConcreteCell {
         }
 
         if (!arraysEqual(this.props.plotData.defaultViewport, this.renderedDefaultViewport)) {
-            this.renderer.scrollToRectangle(this.props.plotData.defaultViewport);
+            this.scrollToRectangle(this.props.plotData.defaultViewport);
             this.renderedDefaultViewport = this.props.plotData.defaultViewport;
         }
 
         while (this.textLayer.childNodes.length) {
             this.textLayer.removeChild(this.textLayer.firstChild);
         }
-
-        this.renderer.clearViewport()
 
         if (this.props.plotData.backgroundColor) {
             let c = this.props.plotData.backgroundColor;
@@ -544,8 +596,10 @@ class WebglPlot extends ConcreteCell {
         }
 
         this.figures.forEach(figure => {
-            figure.drawSelf(this.renderer)
+            figure.drawSelf(glRenderer)
         })
+
+        glRenderer.copyToCanvas(this.canvas);
     }
 
     _computeFillSpacePreferences() {
@@ -569,14 +623,14 @@ class WebglPlot extends ConcreteCell {
         let xFrac = (e.pageX - rect.left) / rect.width;
         let yFrac = (rect.height - (e.pageY - rect.top)) / rect.height;
 
-        this.renderer.zoom(xFrac, yFrac, Math.exp(e.deltaY / 100), allowHorizontal, allowVertical)
+        this.zoom(xFrac, yFrac, Math.exp(e.deltaY / 100), allowHorizontal, allowVertical)
         this.sendScrollStateToServer();
         this.requestAnimationFrame();
     }
 
     onDoubleclick(e) {
         if (this.renderedDefaultViewport) {
-            this.renderer.scrollToRectangle(this.renderedDefaultViewport);
+            this.scrollToRectangle(this.renderedDefaultViewport);
             this.requestAnimationFrame();
             this.sendScrollStateToServer();
         }
@@ -592,8 +646,8 @@ class WebglPlot extends ConcreteCell {
         let xFrac = (e.pageX - rect.left) / rect.width;
         let yFrac = (rect.height - (e.pageY - rect.top)) / rect.height;
 
-        let x = this.renderer.screenPosition[0] + this.renderer.screenSize[0] * xFrac;
-        let y = this.renderer.screenPosition[1] + this.renderer.screenSize[1] * yFrac;
+        let x = this.screenPosition[0] + this.screenSize[0] * xFrac;
+        let y = this.screenPosition[1] + this.screenSize[1] * yFrac;
 
         this.sendMessage({'event': 'mousemove', 'x': x, 'y': y})
     }
@@ -608,8 +662,8 @@ class WebglPlot extends ConcreteCell {
         let xFrac = (e.pageX - rect.left) / rect.width;
         let yFrac = (rect.height - (e.pageY - rect.top)) / rect.height;
 
-        let x = this.renderer.screenPosition[0] + this.renderer.screenSize[0] * xFrac;
-        let y = this.renderer.screenPosition[1] + this.renderer.screenSize[1] * yFrac;
+        let x = this.screenPosition[0] + this.screenSize[0] * xFrac;
+        let y = this.screenPosition[1] + this.screenSize[1] * yFrac;
 
         this.sendMessage({'event': 'mouseenter', 'x': x, 'y': y})
     }
@@ -624,8 +678,8 @@ class WebglPlot extends ConcreteCell {
         let xFrac = (e.pageX - rect.left) / rect.width;
         let yFrac = (rect.height - (e.pageY - rect.top)) / rect.height;
 
-        let x = this.renderer.screenPosition[0] + this.renderer.screenSize[0] * xFrac;
-        let y = this.renderer.screenPosition[1] + this.renderer.screenSize[1] * yFrac;
+        let x = this.screenPosition[0] + this.screenSize[0] * xFrac;
+        let y = this.screenPosition[1] + this.screenSize[1] * yFrac;
 
         this.sendMessage({'event': 'mouseleave', 'x': x, 'y': y})
     }
@@ -646,7 +700,7 @@ class WebglPlot extends ConcreteCell {
                         return;
                     }
 
-                    this.renderer.scrollPixels(
+                    this.scrollPixels(
                         -(curPoint[0] - lastPoint[0]) / this.canvas.width,
                         (curPoint[1] - lastPoint[1]) / this.canvas.height
                     );
@@ -690,7 +744,7 @@ class WebglPlot extends ConcreteCell {
                             let x1 = curPoint[0] - curRect.left;
                             let y1 = this.canvas.height - (curPoint[1] - curRect.top);
 
-                            this.renderer.zoomRect(
+                            this.zoomRect(
                                 x0 / this.canvas.width,
                                 y0 / this.canvas.height,
                                 x1 / this.canvas.width,
@@ -760,8 +814,7 @@ class WebglPlot extends ConcreteCell {
                 onmousemove: this.onMousemove,
                 onmouseleave: this.onMouseleave,
                 onmouseenter: this.onMouseenter
-            },
-            ["Error: no WEBGL available"]
+            }
         );
 
         this.textLayer = h(
@@ -838,8 +891,8 @@ class WebglPlot extends ConcreteCell {
     sendScrollStateToServer() {
         this.sendMessage({
             'event': 'scrollState',
-            'position': this.renderer.screenPosition,
-            'size': this.renderer.screenSize,
+            'position': this.screenPosition,
+            'size': this.screenSize,
             'canvasSize': [this.canvas.width, this.canvas.height]
         });
     }
@@ -979,19 +1032,10 @@ class WebglPlot extends ConcreteCell {
     }
 
     cellWillUnload() {
-        try {
-            // release opengl memory
-            activeGlContexts -= 1;
-            console.log("Total WebGL Contexts: " + activeGlContexts);
-
-            let extension = this.renderer.gl.getExtension('WEBGL_lose_context');
-
-            if (extension !== null) {
-                extension.loseContext();
-            }
-        } catch(e) {
-            console.error(e);
-        }
+        // release opengl memory
+        this.figures.forEach(figure => {
+            figure.clear(glRenderer)
+        });
     }
 
     installResizeObserver() {
@@ -1022,11 +1066,6 @@ class WebglPlot extends ConcreteCell {
 
         this.canvas.width = this.canvas.clientWidth;
         this.canvas.height = this.canvas.clientHeight;
-
-        this.renderer = new GlRenderer(this.canvas);
-        activeGlContexts += 1;
-
-        console.log("Total WebGL Contexts: " + activeGlContexts);
 
         this.installResizeObserver();
         this.requestAnimationFrame();

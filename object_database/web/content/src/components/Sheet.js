@@ -276,6 +276,10 @@ class Sheet extends ConcreteCell {
     }
 
     installResizeObserver() {
+        if (this.sheetDiv === null) {
+            return;
+        }
+
         let observer = new ResizeObserver(entries => {
             for (let entry of entries) {
                 if (entry.contentRect.width == this.lastWidth &&

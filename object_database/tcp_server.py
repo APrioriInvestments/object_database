@@ -188,9 +188,9 @@ class PumpLoopChannel(ClientToServerChannel):
 def _connectedChannel(host, port, auth_token, timeout=10.0, retry=False):
     t0 = time.time()
 
-    # With CLIENT_AUTH we are setting up the SSL to use encryption only, which is what we want.
-    # If we also wanted authentication, we would use SERVER_AUTH.
-    ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = ssl.CERT_NONE
 
     nativePumpLoop = None
     while nativePumpLoop is None:

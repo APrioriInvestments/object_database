@@ -308,6 +308,10 @@ class MessageBus(object):
         self._incomingSocketBuffers = {}
 
         if self._wantsSSL:
+            self._outboundSslContext = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            self._outboundSslContext.check_hostname = False
+            self._outboundSslContext.verify_mode = ssl.CERT_NONE
+
             if self._sslContext is None:
                 self._sslContext = sslContextFromCertPathOrNone(self._certPath)
         else:
@@ -1101,7 +1105,7 @@ class MessageBus(object):
             naked_socket = socket.create_connection((endpoint.host, endpoint.port))
 
             if self._wantsSSL:
-                sock = self._sslContext.wrap_socket(naked_socket)
+                sock = self._outboundSslContext.wrap_socket(naked_socket)
             else:
                 sock = naked_socket
 

@@ -44,7 +44,6 @@ class RenderedCursor {
         this.lastUpdateTimestamp = lastUpdateTimestamp;
         this.username = username;
         this.isPrimaryCursor = isPrimaryCursor;
-
         this.render = this.render.bind(this);
     }
 
@@ -443,11 +442,397 @@ class RenderedLine {
 
         return divs.map((node) => node.cloneNode(true));
     }
-
 };
 
+
+class Autocompletion {
+    constructor(dataModel, constants, isActive) {
+        this.dataModel = dataModel;
+        this.constants = constants;
+        this.isActive = isActive;
+
+        this.setAutocompletions = this.setAutocompletions.bind(this);
+        this.render = this.render.bind(this);
+        this.handleKey = this.handleKey.bind(this);
+        this.isIdentifierEvent = this.isIdentifierEvent.bind(this);
+        this.triggerNewAutocomplete = this.triggerNewAutocomplete.bind(this);
+        this.checkForCloseAfterKeystroke = this.checkForCloseAfterKeystroke.bind(this);
+        this.computeWordStartCursor = this.computeWordStartCursor.bind(this);
+        this.currentWordValue = this.currentWordValue.bind(this);
+        this.getValidCompletions = this.getValidCompletions.bind(this);
+        this.isValidCompletion = this.isValidCompletion.bind(this);
+
+        // the current completions we're showing
+        // can be null if we don't know them yet in which case we'll get a (...)
+        // in the rendering
+        this.completions = null;
+
+        // true if we're showing this autocompletion
+        this.isVisible = false;
+
+        // current autocompletion state
+        this.selectedIx = 0;
+        this.scrollIx = 0;
+
+        this.completionRequestId = null;
+        this.maxCompletionRequestId = 0;
+
+        // a cursor indicating where the popup box should be
+        // we'll close it
+        this.wordStartCursor = null;
+    }
+
+    computeWordCursor() {
+        if (this.dataModel.cursors.length == 0) {
+            return null;
+        }
+
+        let cursor = this.dataModel.cursors[0].clone();
+        cursor.selectWord(this.dataModel.lines);
+        return cursor;
+    }
+
+    computeWordStartCursor() {
+        if (this.dataModel.cursors.length == 0) {
+            return null;
+        }
+
+        let cursor = this.dataModel.cursors[0].clone();
+        cursor.selectWord(this.dataModel.lines);
+        cursor.becomeTail();
+        return cursor;
+    }
+
+    currentWordValue() {
+        let cursor = this.computeWordCursor();
+
+        if (cursor === null) {
+            return "";
+        }
+
+        return cursor.getSelectedText(this.dataModel.lines);
+    }
+
+    getValidCompletions() {
+        let word = this.currentWordValue();
+
+        if (this.completions === null) {
+            return null;
+        }
+
+        let valid = [];
+
+        this.completions.forEach((completeWord) => {
+            if (this.isValidCompletion(word, completeWord)) {
+                valid.push(completeWord);
+            }
+        });
+
+        return valid;
+    }
+
+    isValidCompletion(partial, complete) {
+        partial = partial.toLowerCase();
+        complete = complete.toLowerCase();
+
+        if (partial.length > complete.length) {
+            return false;
+        }
+
+        return complete.slice(0, partial.length) == partial;
+    }
+
+
+    checkForCloseAfterKeystroke() {
+        if (!this.isVisible) {
+            return;
+        }
+
+        let updatedCursor = this.computeWordStartCursor();
+
+        if (updatedCursor === null) {
+            this.isVisible = false;
+            return;
+        }
+
+        if (updatedCursor.lineOffset != this.wordStartCursor.lineOffset ||
+                updatedCursor.colOffset != this.wordStartCursor.colOffset) {
+            this.isVisible = false;
+            return;
+        }
+
+        let valid = this.getValidCompletions();
+
+        if (valid !== null && valid.length == 0) {
+            this.isVisible = false;
+            return;
+        }
+
+        if (valid.indexOf(this.selectedWord) == -1) {
+            this.selectedWord = valid[0];
+        }
+    }
+
+    //reset the
+    triggerNewAutocomplete() {
+        this.maxCompletionRequestId += 1;
+
+        this.completions = null;
+        this.completionMeanings = null;
+
+        this.isVisible = true;
+
+        // the currently selected autocompletion
+        this.selectedWord = null;
+
+        // the scroll offset of the current autocompletion. Zero means its at the top
+        this.scrollOffset = 0;
+
+        this.completionRequestId = this.maxCompletionRequestId;
+        this.wordStartCursor = this.computeWordStartCursor();
+
+        console.info("Triggering " + this.completionRequestId);
+        return this.maxCompletionRequestId;
+    }
+
+    isIdentifierEvent(event) {
+        return (
+            event.key.length == 1
+            && 'abcdefghijklmnopqrstuvwxyz._'.includes(event.key.toLowerCase())
+        );
+    }
+
+    handleKey(event) {
+        if (this.completions === null) {
+            return false;
+        }
+
+        if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+            if (event.key == 'ArrowUp' && this.isVisible) {
+                let completions = this.getValidCompletions();
+
+                if (completions.length > 0) {
+                    if (this.selectedWord === null) {
+                        return false;
+                    } else {
+                        let ix = completions.indexOf(this.selectedWord);
+                        ix = ix - 1;
+
+                        this.scrollOffset = Math.max(0, this.scrollOffset - 1);
+
+                        if (ix >= 0 && ix < completions.length) {
+                            this.selectedWord = completions[ix];
+                        } else {
+                            return false;
+                        }
+                    };
+
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (event.key == 'ArrowDown' && this.isVisible) {
+                let completions = this.getValidCompletions();
+
+                if (completions.length > 0) {
+                    if (this.selectedWord === null) {
+                        return false;
+                    } else {
+                        let ix = completions.indexOf(this.selectedWord);
+                        ix = ix + 1;
+
+                        this.scrollOffset = Math.min(
+                            this.scrollOffset + 1, this.constants.maxVisibleAutocompletions - 1
+                        );
+
+                        if (ix >= 0 && ix < completions.length) {
+                            this.selectedWord = completions[ix];
+                        } else {
+                            return false;
+                        }
+                    };
+
+                    return true;
+                }
+
+                return false;
+            }
+
+            if ((event.key == 'Enter' || event.key == 'Tab') && this.isVisible) {
+                let cursor = this.dataModel.cursors[0];
+
+                let completions = this.getValidCompletions();
+
+                if (completions == null) {
+                    return false;
+                }
+
+                if (this.selectedWord !== null) {
+                    cursor.removeTail();
+                    cursor.offsetWord(this.dataModel.lines, false, null, true);
+                    cursor.removeTail();
+                    cursor.offsetWord(this.dataModel.lines, true, null, true);
+                    this.dataModel.replaceText(cursor, this.selectedWord);
+                    cursor.removeTail();
+                }
+
+                this.isVisible = false;
+                return true;
+            }
+
+            if (event.key == 'Escape' && this.isVisible) {
+                this.isVisible = false;
+                return true;
+            }
+
+            if (event.key.length == 1 && !this.isIdentifierEvent(event) && this.isVisible) {
+                this.isVisible = false;
+            }
+        }
+
+        return false;
+    }
+
+    // returns true if a given event should trigger an autocomplete
+    shouldOpenAutocomplete(event) {
+        if (!this.isActive) {
+            return false;
+        }
+
+        if (this.isVisible) {
+            return false;
+        }
+
+        if (!this.isIdentifierEvent(event)) {
+            return false;
+        }
+
+        if (this.dataModel.cursors.length == 0) {
+            return false;
+        }
+
+        let cursor = this.computeWordCursor();
+
+        if (cursor.colOffset != this.dataModel.cursors[0].colOffset) {
+            return false;
+        }
+
+        return true;
+    }
+
+    setAutocompletions(completions, requestId) {
+        if (requestId != this.completionRequestId) {
+            return;
+        }
+
+        this.completions = completions.map((x) => x[0]);
+        this.completionMeanings = completions.map((x) => x[1]);
+
+        let valid = this.getValidCompletions();
+
+        if (valid === null || valid.length == 0) {
+            this.isVisible = false;
+        } else {
+            this.scrollOffset = 0;
+            this.selectedWord = valid[0];
+        }
+    }
+
+    render() {
+        if (!this.isVisible) {
+            return [];
+        }
+
+        if (this.dataModel.cursors.length == 0) {
+            return [];
+        }
+
+        let completionsToUse = this.getValidCompletions();
+
+        if (completionsToUse == null || completionsToUse.length == 0) {
+            return [];
+        }
+
+        let selectedIxToUse = Math.max(0, completionsToUse.indexOf(this.selectedWord));
+
+        let scrollIxToUse = Math.max(0, selectedIxToUse - this.scrollOffset);
+
+        let cursor = this.computeWordStartCursor();
+
+        let constants = this.constants;
+
+        let leftPx = constants.gutterWidth
+            + cursor.colOffset * constants.charWidth
+            + constants.cursorHShift;
+
+        let topPx = (cursor.lineOffset + 1) * constants.lineHeight
+            - constants.cursorVExtent + constants.topPxOffset + constants.autocompletionTopPadding;
+
+        let autocompletionBoxHeight = Math.min(
+            constants.maxVisibleAutocompletions,
+            completionsToUse.length
+        );
+
+        let autocompletionWidth = Math.min(
+            Math.max(
+                Math.max(...completionsToUse.map((x) => x.length)),
+                constants.autocompletionsMinWidth
+            ),
+            constants.autocompletionsMaxWidth
+        )
+
+        let heightPx = constants.lineHeight * autocompletionBoxHeight + 2 * constants.cursorVExtent;
+        let widthPx = constants.charWidth * autocompletionWidth + constants.autocompletionLeftPadding;
+
+        let res = [h('div', {
+            'class': 'editor-autocompletion-box',
+            'style':
+                  'left: ' + (leftPx - constants.autocompletionLeftPadding) + "px;"
+                + "top: " + topPx + "px;"
+                + 'width:' + (widthPx + constants.autocompletionLeftPadding) + "px;height:" + heightPx + "px;"
+                + 'background-color:' + constants.autocompleteBackgroundColor + ';'
+                + 'border: 1px solid ' + constants.autocompleteBorderColor + ';'
+            ,
+        })];
+
+        if (selectedIxToUse !== null) {
+            let lineIx = selectedIxToUse - scrollIxToUse;
+
+            res.push(
+                h('div', {
+                    'class': 'editor-autocompletion-line',
+                    'style': 'left:' + (leftPx - constants.autocompletionLeftPadding) + 'px;' +
+                    'top: ' + (topPx + lineIx * constants.lineHeight) + 'px;' +
+                    'width: ' + (widthPx + constants.autocompletionLeftPadding) + 'px;' +
+                    'height: ' + constants.lineHeight + 'px;' +
+                    'background-color:' + constants.autocompleteSelectionColor + ';'
+                })
+            )
+        }
+
+        for (let i = scrollIxToUse; i < completionsToUse.length; i++) {
+            let lineIx = i - scrollIxToUse;
+
+            res.push(
+                h('div', {
+                    'class': 'editor-autocompletion-line',
+                    'style': 'left:' + leftPx + 'px;' +
+                    'top: ' + (topPx + lineIx * constants.lineHeight) + 'px;' +
+                    'width: ' + widthPx + 'px;' +
+                    'height: ' + constants.lineHeight + 'px;'
+                }, [completionsToUse[i]])
+            )
+        }
+
+        return res;
+    }
+}
+
+
 class RenderingModel {
-    constructor(dataModel, constants, firstLineIx=null) {
+    constructor(dataModel, constants, firstLineIx=null, hasAutocomplete=false) {
         this.constants = constants;
         this.dataModel = dataModel;
         this.topLineNumber = firstLineIx === null ? 0 : firstLineIx;
@@ -474,6 +859,7 @@ class RenderingModel {
         this.selectionLayer = h('div', {'class': 'editor-selection-layer'}, []);
         this.otherSelectionLayer = h('div', {'class': 'editor-selection-layer'}, []);
         this.cursorLayer = h('div', {'class': 'editor-cursor-layer'}, []);
+        this.autocompleteLayer = h('div', {'class': 'editor-cursor-layer'}, []);
         this.otherCursorLayer = h('div', {'class': 'editor-cursor-layer'}, []);
 
         this.cursorBackgroundLayer = h('div', {'class': 'editor-cursor-background-layer'}, []);
@@ -492,6 +878,8 @@ class RenderingModel {
         // if other users are also editing, their cursors
         this.otherCursors = null;
 
+        this.autocompletions = new Autocompletion(this.dataModel, this.constants, hasAutocomplete);
+
         this.syntaxCache = {};
 
         this.renderedCursors = [];
@@ -501,7 +889,12 @@ class RenderingModel {
             this.cursorBackgroundLayer,
             this.lineGutterLayer,
             this.otherSelectionLayer, this.selectionLayer,
-            this.lineLayer, this.otherCursorLayer, this.cursorLayer, this.scrollbarLayer];
+            this.lineLayer,
+            this.otherCursorLayer,
+            this.cursorLayer,
+            this.autocompleteLayer,
+            this.scrollbarLayer
+        ];
 
         this.render = this.render.bind(this);
         this.setOtherCursors = this.setOtherCursors.bind(this);
@@ -693,6 +1086,11 @@ class RenderingModel {
         this.buildRenderedLines();
         this.buildRenderedCursors();
         this.buildRenderedOtherCursors();
+
+        ConcreteCell.replaceChildren(
+            this.autocompleteLayer,
+            this.autocompletions.render()
+        )
 
         ConcreteCell.replaceChildren(
             this.cursorLayer,

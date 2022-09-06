@@ -29,6 +29,7 @@ from object_database.web.cells.editor.event_model import (
     computeStateFromEvents,
 )
 
+import threading
 import logging
 import time
 import uuid
@@ -309,6 +310,60 @@ def computeDeltaEvent(curContents, newContents, reason, topEventGuid):
     )
 
 
+class AutocompleteRequest:
+    """A data-structure representing an asynchronous request for autocompletion.
+
+    Because autocompletions could potentially be expensive, this object
+    can be filled out asynchronously (or not at all) and will show (...)
+    in the autocompleter until its processed.
+
+    The editor itself may choose to cancel this request if it is no longer
+    relevant. Backends should attempt to cache in memory what they can
+    to reduce latency as much as possible.
+    """
+
+    def __init__(self, editor, requestId, contents, insertionLineAndCol):
+        self.editor = editor
+        self.requestId = requestId
+        self.contents = contents
+        self.completions = None
+        self.insertionLineAndCol = insertionLineAndCol
+        self.isValid = True
+        self.lock = threading.RLock()
+
+    def complete(self, completions):
+        """Provide a list of autocompletions for this insertion point.
+
+        Autocompletions should be a list of tuples of strings, with the
+        first of each tuple being a valid completion and the second being
+        any documention about the identifier you'd like to display.
+        """
+        with self.lock:
+            if not self.isValid:
+                return
+
+            processedCompletions = []
+
+            for identifier, docs in completions:
+                if not isinstance(identifier, str) or not isinstance(docs, str):
+                    raise Exception("Completions must be pairs of strings")
+
+                processedCompletions.append((identifier, docs))
+
+            self.completions = processedCompletions
+            self.editor.scheduleCallback(self.sendData)
+
+    def invalidate(self):
+        """The completion is no longer valid. No update will be sent"""
+        with self.lock:
+            self.isValid = False
+
+    def sendData(self):
+        self.editor.scheduleMessage(
+            dict(requestId=self.requestId, completions=self.completions)
+        )
+
+
 class Editor(FocusableCell):
     """Produce a collaborative text-editor"""
 
@@ -325,6 +380,7 @@ class Editor(FocusableCell):
         sectionDisplayFun=None,
         overlayDisplayFun=None,
         splitFractionSlot=None,
+        autocompleteFunction=None,
     ):
         """Initialize a collaborative code editor.
 
@@ -339,6 +395,8 @@ class Editor(FocusableCell):
                 the first visible line.
             lastLineSlot - if None, then create one. A slot object holding the position of
                 the last visible line.
+            autocompleteFunction - None, or a function that takes an AutocompleteRequest
+                which should synchronously or asynchronously fill out the promise.
             username - None, or a string indicating the username to display for all selections
                 owned by this user.
             commitDelay - if not None, then the number of milliseconds since events were
@@ -363,6 +421,14 @@ class Editor(FocusableCell):
         self.reactors.add(self.stateSlotWatcher)
 
         self.lastLineSlot = lastLineSlot or Slot()
+
+        # if not None, this callback gets fired every time we think we're supposed
+        # to open up a new autocompletion
+        self.autocompleteFunction = autocompleteFunction
+
+        # the currently pending autocompletion - there can be at most one at
+        # once, tied to a particular edit guid
+        self.curPendingAutocompletion = None
 
         self.firstLineSlot = firstLineSlot or self.sessionStateSlot(
             "EditorStateFirstVisibleRow"
@@ -613,6 +679,20 @@ class Editor(FocusableCell):
             logging.error("Can't build an %s event", "undo" if isUndo else "redo")
 
     def onMessage(self, messageFrame):
+        if messageFrame.get("msg") == "provideCurrentAutocompletion":
+            currentState = self._getCurrentState()
+
+            contents = "\n".join(currentState["lines"])
+            curSelection = self.selectionSlot.get()
+
+            curSelectionLineAndCol = curSelection[0]["pos"]
+
+            request = AutocompleteRequest(
+                self, messageFrame["requestId"], contents, curSelectionLineAndCol
+            )
+
+            self.autocompleteFunction(request)
+
         if (
             messageFrame.get("msg") == "triggerRedo"
             or messageFrame.get("msg") == "triggerUndo"
@@ -684,7 +764,7 @@ class Editor(FocusableCell):
                         events=currentState["events"] + (event,),
                     )
 
-                    logging.info(
+                    logging.debug(
                         "Accepting event on %s/%s: %s",
                         self.username,
                         self.editSessionId,
@@ -845,6 +925,7 @@ class Editor(FocusableCell):
             "initialCursors"
         ] = self.selectionSlot.getWithoutRegisteringDependency()
 
+        self.exportData["hasAutocomplete"] = self.autocompleteFunction is not None
         self.exportData["initialState"] = initData
         self.exportData["editSessionId"] = self.editSessionId
         self.exportData["commitDelay"] = self.commitDelay

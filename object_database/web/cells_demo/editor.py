@@ -107,3 +107,29 @@ class PrefocusedEditor(CellsTestPage):
             "You should see a button that brings up a text editor. It should have "
             "focus when it pops up."
         )
+
+
+class EditorWithAutocomplete(CellsTestPage):
+    def cell(self):
+        return cells.Editor(
+            autocompleteFunction=lambda request: request.complete(
+                [
+                    ("A", 'a really great letter is "A"'),
+                    ("abcdef", ""),
+                    ("abcDEF", ""),
+                    ("acbDEF", ""),
+                    ("B", "dont use A use B"),
+                ]
+            )
+        )
+
+    def text(self):
+        return "You should an editor with autocompletion available."
+
+
+class EditorWithNeverResolvedAutocomplete(CellsTestPage):
+    def cell(self):
+        return cells.Editor(autocompleteFunction=lambda request: None)
+
+    def text(self):
+        return "You should an editor with autocompletion available."

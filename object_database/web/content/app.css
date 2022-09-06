@@ -710,6 +710,17 @@ pre {
   90% { opacity: 0; }
 }
 
+.editor-autocompletion-box {
+    position: absolute;
+    opacity: .9;
+}
+
+.editor-autocompletion-line {
+    position: absolute;
+    white-space: pre;
+    font-family: "Ubuntu Mono";
+}
+
 .editor-cursor {
     position: absolute;
     opacity: .5;

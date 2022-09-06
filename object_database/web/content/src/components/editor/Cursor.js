@@ -65,6 +65,7 @@ class Cursor {
         this.toStartOfDocument = this.toStartOfDocument.bind(this);
         this.toJson = this.toJson.bind(this);
         this.offsetWord = this.offsetWord.bind(this);
+        this.becomeTail = this.becomeTail.bind(this);
         this.offsetSections = this.offsetSections.bind(this);
         this.selectWord = this.selectWord.bind(this);
         this.nontrivialSelectedRange = this.nontrivialSelectedRange.bind(this);
@@ -312,6 +313,11 @@ class Cursor {
 
     touch() {}
 
+    becomeTail() {
+        this.colOffset = this.tailColOffset;
+        this.lineOffset = this.tailLineOffset;
+    }
+
     removeTail(forceEnd=false) {
         if (forceEnd) {
             if (this.tailLineOffset > this.lineOffset || this.tailLineOffset == this.lineOffset && this.tailColOffset > this.colOffset) {
@@ -434,10 +440,22 @@ class Cursor {
 
     selectWord(lines) {
         this.removeTail();
-        this.offsetWord(lines, false);
-        this.tailColOffset = this.colOffset;
+
+        let line = lines[this.lineOffset];
+        let wordStart = this.colOffset;
+        let wordEnd = this.colOffset;
+
+        while (wordEnd + 1 < line.length && isWordPart(line[wordEnd + 1])) {
+            wordEnd += 1;
+        }
+
+        while (wordStart > 0 && isWordPart(line[wordStart - 1])) {
+            wordStart -= 1;
+        }
+
         this.tailLineOffset = this.lineOffset;
-        this.offsetWord(lines, true);
+        this.tailColOffset = wordStart;
+        this.colOffset = wordEnd;
     }
 
     searchForwardFor(lines, text) {
@@ -561,7 +579,12 @@ class Cursor {
     // skipWordAfterSpacePolicy - if true, then if we are on whitespace, skip that and then
     //      continue to skip. Otherwise, if we're on whitespace just stop after that.
     //      if null, then do the standard thing (true on the right, false on the left)
-    offsetWord(lines, toRight, skipWordAfterSpacePolicy=null) {
+    offsetWord(
+        lines,
+        toRight,
+        skipWordAfterSpacePolicy=null,
+        noChangeIfAtEndOfWord=false
+    ) {
         let line = lines[this.lineOffset];
         let co = this.colOffset;
 
@@ -579,6 +602,14 @@ class Cursor {
                     return;
                 }
                 return;
+            }
+
+            // check if we want to do nothing
+            if (noChangeIfAtEndOfWord) {
+                if (co > 0 && co <= line.length && isWordPart(line[co - 1]) &&
+                        (co == line.length || !isWordPart(line[co]))) {
+                    return;
+                }
             }
 
             if (isSpace(line[co])) {
@@ -633,6 +664,16 @@ class Cursor {
                     return;
                 }
                 return;
+            }
+
+            // check if we want to do nothing
+            if (noChangeIfAtEndOfWord) {
+                if (co > 0 && co <= line.length && !isWordPart(line[co - 1])) {
+                    return;
+                }
+                if (co < line.length && isWordPart(line[co]) && (co == 0 || !isWordPart(line[co - 1]))) {
+                    return;
+                }
             }
 
             if (co > 0 && isSpace(line[co - 1])) {

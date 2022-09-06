@@ -41,6 +41,12 @@ class Constants {
         this.reservedWordColor = '#DD0055';
         this.keywordColor = '#5555FF';
 
+        this.maxVisibleAutocompletions = 10;
+        this.autocompletionLeftPadding = 10;
+        this.autocompletionTopPadding = 3;
+        this.autocompletionsMinWidth = 30;
+        this.autocompletionsMaxWidth = 80;
+
         if (darkMode) {
             this.cursorColor = 'white';
             this.selectionColor = '#666666';
@@ -54,6 +60,9 @@ class Constants {
             this.textColor = 'white';
             this.backgroundColor = 'black';
             this.backgroundBorder = 'black';
+            this.autocompleteBackgroundColor = '#222222';
+            this.autocompleteSelectionColor = '#66666';
+            this.autocompleteBorderColor = '#444444';
 
             this.sectionBackgroundColor = '#333333';
             this.sectionSeparatorColor = '#444444';
@@ -65,6 +74,11 @@ class Constants {
             this.selectionColor = '#BBBBBB';
             this.cursorColorOther = '#007bff88';
             this.selectionColorOther = '#007bff88';
+
+            this.autocompleteBackgroundColor = '#DDDDDD';
+            this.autocompleteSelectionColor = '#BBBBBB';
+            this.autocompleteBorderColor = '#AAAAAA';
+
             this.nameLabelBackgroundColor = '#007bff88';
             this.nameLabelColor = '#000000BB';
             this.nameLabelCalloutColor = '#007bff88';
@@ -150,7 +164,10 @@ class Editor extends ConcreteCell {
         this.props.initialState.events.forEach(this.transactionManager.pushBaseEvent);
 
         this.renderModel = new RenderingModel(
-            this.dataModel, this.constants, this.props.firstLineIx
+            this.dataModel,
+            this.constants,
+            this.props.firstLineIx,
+            this.props.hasAutocomplete
         );
 
         if (this.props.initialCursors !== null) {
@@ -465,6 +482,15 @@ class Editor extends ConcreteCell {
 
     handleMessages(messages) {
         messages.forEach((message) => {
+            if (message.completions !== undefined) {
+                console.log("Receiving " + message.requestId)
+                this.renderModel.autocompletions.setAutocompletions(
+                    message.completions,
+                    message.requestId
+                )
+                this.requestAnimationFrame();
+            }
+
             if (message.firstLine !== undefined) {
                 this.renderModel.topLineNumber = message.firstLine;
                 this.renderModel.ensureTopLineValid(true);
@@ -674,6 +700,17 @@ class Editor extends ConcreteCell {
 
         this.dataModel.updateCursorAtLastCheckpoint();
 
+        // see if autocomplete wants to handle this
+        if (this.renderModel.autocompletions.handleKey(event)) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            this.renderModel.sync();
+            this.transactionManager.snapshot({'keystroke': event.key});
+            this.requestAnimationFrame();
+            return;
+        }
+
         // see if the main model wants to handle it
         if (this.dataModel.handleKey(event)) {
             event.preventDefault();
@@ -681,7 +718,24 @@ class Editor extends ConcreteCell {
 
             this.renderModel.sync();
             this.transactionManager.snapshot({'keystroke': event.key});
+
+            this.renderModel.autocompletions.checkForCloseAfterKeystroke();
+
+            if (this.renderModel.autocompletions.shouldOpenAutocomplete(event)) {
+                console.log("Opening an autocomplete")
+
+                let requestId = this.renderModel.autocompletions.triggerNewAutocomplete();
+
+                this.sendMessageWithDelay(
+                    {
+                        'msg': 'provideCurrentAutocompletion',
+                        'requestId': requestId
+                    }
+                )
+            }
+
             this.requestAnimationFrame();
+
             return;
         }
 
@@ -716,6 +770,7 @@ class Editor extends ConcreteCell {
 
                     this.renderModel.sync();
                     this.transactionManager.snapshot({'event': 'paste'});
+                    this.renderModel.autocompletions.checkForCloseAfterKeystroke();
                     this.requestAnimationFrame();
                 }
 
@@ -730,6 +785,7 @@ class Editor extends ConcreteCell {
                     this.dataModel.pasteText(clipboardText);
                     this.renderModel.sync();
                     this.transactionManager.snapshot({'event': 'paste'});
+                    this.renderModel.autocompletions.checkForCloseAfterKeystroke();
                     this.requestAnimationFrame();
                 });
 
@@ -759,6 +815,8 @@ class Editor extends ConcreteCell {
                 }
 
                 this.renderModel.sync();
+                this.renderModel.autocompletions.checkForCloseAfterKeystroke();
+
                 this.requestAnimationFrame();
                 event.preventDefault();
                 event.stopPropagation();
@@ -771,6 +829,7 @@ class Editor extends ConcreteCell {
             let direction = event.key == 'PageUp' ? -1 : 1;
             this.renderModel.moveViewBy(this.renderModel.viewHeight * direction);
             this.dataModel.pageBy(this.renderModel.viewHeight * direction);
+            this.renderModel.autocompletions.checkForCloseAfterKeystroke();
 
             event.preventDefault();
             event.stopPropagation();

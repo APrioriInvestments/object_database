@@ -218,6 +218,19 @@ class Schema:
                 t.addProperty(name, val.fget, val.fset)
             elif isinstance(val, staticmethod):
                 t.addStaticMethod(name, val.__func__)
+            elif isinstance(val, classmethod):
+
+                def bind(func, t):
+                    def inner(*args, **kwargs):
+                        return func(t, *args, **kwargs)
+
+                    inner.__name__ = func.__name__
+                    inner.__qualname__ = func.__qualname__
+                    inner.__doc__ = func.__doc__
+
+                    return inner
+
+                t.addStaticMethod(name, bind(val.__func__, t))
             elif isinstance(val, FunctionType):
                 t.addMethod(name, val)
 

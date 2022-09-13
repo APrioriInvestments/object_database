@@ -2040,6 +2040,36 @@ class ObjectDatabaseTests:
         self.assertEqual(db1.currentTransactionIdForSchema(schema1), 3)
         self.assertEqual(db1.currentTransactionIdForSchema(schema2), 0)
 
+    def test_classmethods(self):
+        db = self.createNewDb()
+
+        schema = Schema("test_schema")
+
+        class OrdinaryBase:
+            @classmethod
+            def f(cls):
+                return (OrdinaryBase, cls)
+
+        @schema.define
+        class SchematicBase:
+            @classmethod
+            def f(cls):
+                return (SchematicBase, cls)
+
+        @schema.define
+        class Child1(OrdinaryBase, SchematicBase):
+            pass
+
+        @schema.define
+        class Child2(SchematicBase, OrdinaryBase):
+            pass
+
+        db.subscribeToSchema(schema)
+
+        with db.transaction():
+            assert Child1().f() == (OrdinaryBase, Child1)
+            assert Child2().f() == (SchematicBase, Child2)
+
 
 class ObjectDatabaseOverChannelTestsWithRedis(unittest.TestCase, ObjectDatabaseTests):
     @classmethod

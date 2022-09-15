@@ -2,7 +2,6 @@
 requires = [
     "setuptools",
     "wheel",
-    'oldest-supported-numpy',
-    'typed_python == 0.2.6'
+    "oldest-supported-numpy",
+    "typed_python @ git+https://github.com/aprioriinvestments/typed_python.git@5322a883e8ee1eddadf25464fc8837019efdc292#egg=typed_python-999.999.999"
 ]
-# build-backend = "setuptools.build_meta:__legacy__"

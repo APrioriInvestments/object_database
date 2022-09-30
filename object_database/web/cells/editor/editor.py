@@ -381,6 +381,7 @@ class Editor(FocusableCell):
         overlayDisplayFun=None,
         splitFractionSlot=None,
         autocompleteFunction=None,
+        onDoubleClick=None,
     ):
         """Initialize a collaborative code editor.
 
@@ -407,6 +408,8 @@ class Editor(FocusableCell):
                 that should produce a cell that displays the contents of the section indicated.
             overlayDisplayFun - a function that we call to determine if we should draw
                 an overlay where all the section header cells normally go.
+            onDoubleClick - a function of (line, col, ctrl, shift, alt, meta) whenever we
+                detect a double-click
         """
         super().__init__()
 
@@ -415,6 +418,8 @@ class Editor(FocusableCell):
             self.editorState = editorState
         else:
             self.editorState = SlotEditorState()
+
+        self.onDoubleClick = onDoubleClick
 
         self.stateSlot = self.editorState.getStateSlot()
         self.stateSlotWatcher = SlotWatcher(self.stateSlot, self.onStateSlotChanged)
@@ -484,7 +489,6 @@ class Editor(FocusableCell):
         self.darkMode = darkMode
 
         self.overlayDisplayFun = overlayDisplayFun
-
         self.sectionDisplayFun = sectionDisplayFun
 
     def getDisplayExportData(self):
@@ -679,6 +683,17 @@ class Editor(FocusableCell):
             logging.error("Can't build an %s event", "undo" if isUndo else "redo")
 
     def onMessage(self, messageFrame):
+        if messageFrame.get("msg") == "doubleClick":
+            if self.onDoubleClick:
+                self.onDoubleClick(
+                    messageFrame["lineOffset"],
+                    messageFrame["colOffset"],
+                    messageFrame["ctrl"],
+                    messageFrame["shift"],
+                    messageFrame["alt"],
+                    messageFrame["meta"],
+                )
+
         if messageFrame.get("msg") == "provideCurrentAutocompletion":
             currentState = self._getCurrentState()
 

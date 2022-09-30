@@ -379,6 +379,8 @@ class Editor extends ConcreteCell {
 
         let isCtrl = event.ctrlKey;
         let isShift = event.shiftKey;
+        let isAlt = event.altKey;
+        let isMeta = event.metaKey;
 
         let pos = this.mouseEventToPos([event.pageX, event.pageY]);
 
@@ -397,6 +399,18 @@ class Editor extends ConcreteCell {
             this.dataModel.cursors[this.dataModel.cursors.length - 1].selectWord(
                 this.dataModel.lines
             );
+
+            this.sendMessageWithDelay(
+                {
+                    'msg': 'doubleClick',
+                    'lineOffset': pos.lineOffset,
+                    'colOffset': pos.colOffset,
+                    'ctrl': isCtrl,
+                    'shift': isShift,
+                    'alt': isAlt,
+                    'meta': isMeta
+                }
+            )
         }
 
         this.requestAnimationFrame();

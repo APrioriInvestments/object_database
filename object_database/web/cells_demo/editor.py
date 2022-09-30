@@ -133,3 +133,20 @@ class EditorWithNeverResolvedAutocomplete(CellsTestPage):
 
     def text(self):
         return "You should an editor with autocompletion available."
+
+
+class EditorWithDoubleClick(CellsTestPage):
+    def cell(self):
+        editor = cells.Editor(
+            onDoubleClick=lambda *args: editor.setContents(
+                editor.getCurrentContents() + "\n\n" + str(args)
+            )
+        )
+
+        return editor
+
+    def text(self):
+        return (
+            "You should an editor which appends some line and column info if you double-click"
+            " any of its text"
+        )

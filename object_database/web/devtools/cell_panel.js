@@ -30,16 +30,243 @@ const cells = {
             ]
         },
         {
-            name: "cell_2_1",
+            name: "cell_3_1",
             children: [
                 {
-                    name: "cell_2_2",
+                    name: "cell_3_2",
                     children: []
                 }
             ]
         },
     ]
 }
+
+class CellsTree extends Object {
+    constructor(data) {
+        super();
+
+        this.data = data;
+
+        // basic view settings
+        // TODO: maybe these should be passed as params to the constructor
+        this.duration = 750;
+        this.rectW = 60;
+        this.rectH=30;
+
+        // node ids
+        // increment for now
+        this.id = 0;
+
+        // bound methods
+        this.setupTree = this.setupTree.bind(this);
+        this.update = this.update.bind(this);
+        this.collapse = this.collapse.bind(this);
+        this.redraw = this.redraw.bind(this);
+        this.onDblclick = this.onDblclick.bind(this);
+    }
+
+    setupTree(){
+        this.tree = d3.layout.tree().nodeSize([70, 40]);
+        const zm = d3.behavior.zoom()
+            .scaleExtent([1,3])
+            .on("zoom", this.redraw)
+        // the main svg container for the tree
+        this.svg = d3.select("#main").append("svg")
+            .attr("width", "100%")
+            .attr("height", 1000)
+            .call(zm)
+            .append("g")
+            .attr(
+                "transform",
+                `translate(${350},${20})`
+            );
+        //necessary so that zoom knows where to zoom and unzoom from
+        zm.translate([350, 20]);
+ 
+        this.data.x0 = 0;
+        this.data.y0 = height / 2;
+
+        // collapse all children for now
+        // TODO do we want this?
+        this.data.children.forEach(this.collapse);
+
+        // build the tree
+        this.update(this.data);
+    }
+
+    collapse(d) {
+        if (d.children) {
+            d._children = d.children;
+            d._children.forEach(this.collapse);
+            d.children = null;
+        }
+    }
+
+    update(data) {
+
+        const rectW = this.rectW;
+        const rectH = this.rectH;
+
+        const diagonal = d3.svg.diagonal()
+            .projection(function (d) {
+                return [d.x + rectW / 2, d.y + rectH / 2];
+            });
+
+        // Compute the new tree layout.
+        const nodes = this.tree.nodes(this.data)
+              .reverse()
+
+        const links = this.tree.links(nodes);
+
+        // Normalize for fixed-depth.
+        nodes.forEach(function (d) {
+            d.y = d.depth * 180;
+        });
+
+        // Update the nodes…
+        const node = this.svg.selectAll("g.node")
+              .data(nodes, function (d) {
+                  console.log(d);
+                  return d.id || (d.id = ++this.id);
+              });
+
+        // Enter any new nodes at the parent's previous position.
+        const nodeEnter = node.enter().append("g")
+            .attr("class", "node")
+            .attr("transform", function (d) {
+                return `translate(${data.x0},${data.y0})`;
+            })
+            .on("dblclick", this.onDblclick);
+
+        nodeEnter.append("rect")
+            .attr("width", rectW)
+            .attr("height", rectH)
+            .attr("stroke", "black")
+            .attr("stroke-width", 1)
+            .style("fill", function (d) {
+                return d._children ? "lightsteelblue" : "#fff";
+        });
+
+        nodeEnter.append("text")
+            .attr("x", rectW / 2)
+            .attr("y", rectH / 2)
+            .attr("dy", ".35em")
+            .attr("text-anchor", "middle")
+            .text(function (d) {
+                return d.name;
+        });
+
+        // Transition nodes to their new position.
+        const nodeUpdate = node.transition()
+            .duration(this.duration)
+              .attr("transform", function (d) {
+                  return `translate(${d.x},${d.y})`;
+        });
+
+        nodeUpdate.select("rect")
+            .attr("width", rectW)
+            .attr("height", rectH)
+            .attr("stroke", "black")
+            .attr("stroke-width", 1)
+            .style("fill", function (d) {
+                return d._children ? "lightsteelblue" : "#fff";
+        });
+
+        nodeUpdate.select("text")
+            .style("fill-opacity", 1);
+
+        // Transition exiting nodes to the parent's new position.
+        const nodeExit = node.exit().transition()
+            .duration(this.duration)
+              .attr("transform", function (d) {
+                  return `translate(${data.x},${data.y})`;
+              })
+              .remove();
+
+        nodeExit.select("rect")
+            .attr("width", rectW)
+            .attr("height", rectH)
+            .attr("stroke", "black")
+            .attr("stroke-width", 1);
+
+        nodeExit.select("text");
+
+        // Update the links…
+        const link = this.svg.selectAll("path.link")
+              .data(links, function (d) {
+                  return d.target.id;
+              });
+
+        // Enter any new links at the parent's previous position.
+        link.enter().insert("path", "g")
+            .attr("class", "link")
+            .attr("x", rectW / 2)
+            .attr("y", rectH / 2)
+            .attr("d", function (d) {
+                const o = {
+                    x: data.x0,
+                    y: data.y0
+                };
+                return diagonal({
+                    source: o,
+                    target: o
+                });
+            });
+
+        // Transition links to their new position.
+        link.transition()
+            .duration(this.duration)
+            .attr("d", diagonal);
+
+        // Transition exiting nodes to the parent's new position.
+        link.exit().transition()
+            .duration(this.duration)
+            .attr("d", function (d) {
+                const o = {
+                    x: data.x,
+                    y: data.y
+                };
+                return diagonal({
+                    source: o,
+                    target: o
+                });
+            })
+            .remove();
+
+        // Stash the old positions for transition.
+        nodes.forEach(function (d) {
+            d.x0 = d.x;
+            d.y0 = d.y;
+        });
+    }
+
+    // Toggle children on click.
+    onDblclick(d) {
+        if (d.children) {
+            d._children = d.children;
+            d.children = null;
+        } else {
+            d.children = d._children;
+            d._children = null;
+        }
+        this.update(d);
+        // prevent the default zooming in/out behavior
+        d3.event.stopPropagation();
+    }
+
+    //Redraw for zoom
+    redraw() {
+        this.svg.attr("transform",
+                      `translate(${d3.event.translate})`
+                      +`scale(${d3.event.scale})`
+                     );
+    }
+}
+
+
+// init and run
+// const cTree = new CellsTree(cells);
+// cTree.setupTree();
 
 let i = 0,
     duration = 750,
@@ -52,9 +279,10 @@ const diagonal = d3.svg.diagonal()
     return [d.x + rectW / 2, d.y + rectH / 2];
 });
 
+const zm = d3.behavior.zoom().scaleExtent([1,3]);
 const svg = d3.select("#main").append("svg").attr("width", "100%").attr("height", 1000)
-    .call(zm = d3.behavior.zoom().scaleExtent([1,3]).on("zoom", redraw)).append("g")
-    .attr("transform", "translate(" + 350 + "," + 20 + ")");
+      .call(zm).on("zoom", redraw).append("g")
+      .attr("transform", "translate(" + 350 + "," + 20 + ")");
 
 //necessary so that zoom knows where to zoom and unzoom from
 zm.translate([350, 20]);
@@ -89,6 +317,8 @@ function update(source) {
     // Update the nodes…
     const node = svg.selectAll("g.node")
         .data(nodes, function (d) {
+            console.log(d)
+            console.log(d.id)
         return d.id || (d.id = ++i);
     });
 
@@ -96,9 +326,9 @@ function update(source) {
     const nodeEnter = node.enter().append("g")
         .attr("class", "node")
         .attr("transform", function (d) {
-        return "translate(" + source.x0 + "," + source.y0 + ")";
-    })
-        .on("click", click);
+            return `translate(${source.x0},${source.y0})`;
+        })
+        .on("dblclick", onDblclick);
 
     nodeEnter.append("rect")
         .attr("width", rectW)
@@ -205,7 +435,7 @@ function update(source) {
 }
 
 // Toggle children on click.
-function click(d) {
+function onDblclick(d) {
     if (d.children) {
         d._children = d.children;
         d.children = null;
@@ -214,6 +444,8 @@ function click(d) {
         d._children = null;
     }
     update(d);
+    // prevent the default zooming in/out behavior
+    d3.event.stopPropagation();
 }
 
 //Redraw for zoom

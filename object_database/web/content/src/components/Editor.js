@@ -45,7 +45,8 @@ class Constants {
         this.autocompletionLeftPadding = 10;
         this.autocompletionTopPadding = 3;
         this.autocompletionsMinWidth = 30;
-        this.autocompletionsMaxWidth = 80;
+        this.autocompletionsMaxWidth = 50;
+        this.autocompletionsMeaningMaxWidth = 70;
 
         if (darkMode) {
             this.cursorColor = 'white';

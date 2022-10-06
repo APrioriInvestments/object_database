@@ -728,7 +728,7 @@ class Autocompletion {
         }
 
         this.completions = completions.map((x) => x[0]);
-        this.completionMeanings = completions.map((x) => x[1]);
+        this.completionMeanings = Object.fromEntries(completions);
 
         let valid = this.getValidCompletions();
 
@@ -783,8 +783,15 @@ class Autocompletion {
             constants.autocompletionsMaxWidth
         )
 
+        let autocompletionMeaningWidth = Math.min(
+            Math.max(...completionsToUse.map((x) => this.completionMeanings[x].length)),
+            constants.autocompletionsMeaningMaxWidth
+        );
+
         let heightPx = constants.lineHeight * autocompletionBoxHeight + 2 * constants.cursorVExtent;
-        let widthPx = constants.charWidth * autocompletionWidth + constants.autocompletionLeftPadding;
+        let widthPx = constants.charWidth * (
+            autocompletionWidth + autocompletionMeaningWidth
+        ) + constants.autocompletionLeftPadding;
 
         let res = [h('div', {
             'class': 'editor-autocompletion-box',
@@ -805,11 +812,13 @@ class Autocompletion {
                     'class': 'editor-autocompletion-line',
                     'style': 'left:' + (leftPx - constants.autocompletionLeftPadding) + 'px;' +
                     'top: ' + (topPx + lineIx * constants.lineHeight) + 'px;' +
-                    'width: ' + (widthPx + constants.autocompletionLeftPadding) + 'px;' +
+                    'width: ' + (widthPx
+                                    + constants.autocompletionLeftPadding) + 'px;' +
                     'height: ' + constants.lineHeight + 'px;' +
                     'background-color:' + constants.autocompleteSelectionColor + ';'
                 })
             )
+
         }
 
         for (let i = scrollIxToUse; i < completionsToUse.length; i++) {
@@ -820,10 +829,20 @@ class Autocompletion {
                     'class': 'editor-autocompletion-line',
                     'style': 'left:' + leftPx + 'px;' +
                     'top: ' + (topPx + lineIx * constants.lineHeight) + 'px;' +
-                    'width: ' + widthPx + 'px;' +
+                    'width: ' + (constants.charWidth * autocompletionWidth) + 'px;' +
                     'height: ' + constants.lineHeight + 'px;'
                 }, [completionsToUse[i]])
             )
+
+            res.push(
+                h('div', {
+                    'class': 'editor-autocompletion-meaning-line',
+                    'style': 'left:' + (leftPx + constants.charWidth * autocompletionWidth) + 'px;' +
+                    'top: ' + (topPx + lineIx * constants.lineHeight) + 'px;' +
+                    'width: ' + (constants.charWidth * autocompletionMeaningWidth) + 'px;' +
+                    'height: ' + constants.lineHeight + 'px;'
+                }, [this.completionMeanings[completionsToUse[i]]])
+            );
         }
 
         return res;

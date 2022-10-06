@@ -721,6 +721,13 @@ pre {
     font-family: "Ubuntu Mono";
 }
 
+.editor-autocompletion-meaning-line {
+    position: absolute;
+    white-space: pre;
+    font-family: "Ubuntu Mono";
+    font-style: italic;
+}
+
 .editor-cursor {
     position: absolute;
     opacity: .5;

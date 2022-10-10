@@ -1,7 +1,26 @@
+html {
+    height: 100% !important;
+}
+
+body {
+    height: 100% !important;
+    display: flex;
+    flex-direction: row;
+    margin: 0px;
+}
+
 div#main {
     display: flex;
     justify-content: center;
-    height: 400px;
+    min-width: 70%;
+    border-right: solid 2px;
+}
+
+div#cell-info {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 30%;
 }
 
 .node {

@@ -456,7 +456,7 @@ class Autocompletion {
         this.handleKey = this.handleKey.bind(this);
         this.isIdentifierEvent = this.isIdentifierEvent.bind(this);
         this.triggerNewAutocomplete = this.triggerNewAutocomplete.bind(this);
-        this.checkForCloseAfterKeystroke = this.checkForCloseAfterKeystroke.bind(this);
+        this.checkForCloseAfterEvent = this.checkForCloseAfterEvent.bind(this);
         this.computeWordStartCursor = this.computeWordStartCursor.bind(this);
         this.currentWordValue = this.currentWordValue.bind(this);
         this.getValidCompletions = this.getValidCompletions.bind(this);
@@ -542,8 +542,7 @@ class Autocompletion {
         return complete.slice(0, partial.length) == partial;
     }
 
-
-    checkForCloseAfterKeystroke() {
+    checkForCloseAfterEvent() {
         if (!this.isVisible) {
             return;
         }
@@ -568,7 +567,7 @@ class Autocompletion {
             return;
         }
 
-        if (valid.indexOf(this.selectedWord) == -1) {
+        if (valid !== null && valid.indexOf(this.selectedWord) == -1) {
             this.selectedWord = valid[0];
         }
     }
@@ -670,10 +669,7 @@ class Autocompletion {
                 }
 
                 if (this.selectedWord !== null) {
-                    cursor.removeTail();
-                    cursor.offsetWord(this.dataModel.lines, false, null, true);
-                    cursor.removeTail();
-                    cursor.offsetWord(this.dataModel.lines, true, null, true);
+                    cursor.selectWord(this.dataModel.lines);
                     this.dataModel.replaceText(cursor, this.selectedWord);
                     cursor.removeTail();
                 }
@@ -788,7 +784,7 @@ class Autocompletion {
             constants.autocompletionsMeaningMaxWidth
         );
 
-        let heightPx = constants.lineHeight * autocompletionBoxHeight + 2 * constants.cursorVExtent;
+        let heightPx = constants.lineHeight * autocompletionBoxHeight + constants.cursorVExtent;
         let widthPx = constants.charWidth * (
             autocompletionWidth + autocompletionMeaningWidth
         ) + constants.autocompletionLeftPadding;
@@ -814,14 +810,18 @@ class Autocompletion {
                     'top: ' + (topPx + lineIx * constants.lineHeight) + 'px;' +
                     'width: ' + (widthPx
                                     + constants.autocompletionLeftPadding) + 'px;' +
-                    'height: ' + constants.lineHeight + 'px;' +
+                    'height: ' + (constants.lineHeight + constants.cursorVExtent) + 'px;' +
                     'background-color:' + constants.autocompleteSelectionColor + ';'
                 })
             )
 
         }
 
-        for (let i = scrollIxToUse; i < completionsToUse.length; i++) {
+        for (let i = scrollIxToUse;
+            i < completionsToUse.length
+            && i < constants.maxVisibleAutocompletions + scrollIxToUse;
+            i++
+        ) {
             let lineIx = i - scrollIxToUse;
 
             res.push(
@@ -843,6 +843,43 @@ class Autocompletion {
                     'height: ' + constants.lineHeight + 'px;'
                 }, [this.completionMeanings[completionsToUse[i]]])
             );
+        }
+
+        if (completionsToUse.length > constants.maxVisibleAutocompletions) {
+            // render a 'scrollbar' - not clickable but enough to see whats up
+            let scrollBackground = h('div', {
+                'class': 'editor-scrollbar-background',
+                'style': 'background-color:' + constants.scrollbarBackgroundColor}
+            );
+
+            let scrollbar = h('div', {
+                'class': 'editor-scrollbar',
+                'style': 'background-color:' + constants.scrollbarColor
+            });
+
+            res.push(scrollBackground);
+            res.push(scrollbar);
+
+            let maxVis = constants.maxVisibleAutocompletions;
+
+            let backgroundHt = maxVis * constants.lineHeight;
+
+            let barHt = Math.max(
+                backgroundHt * maxVis / completionsToUse.length,
+                constants.scrollbarMinPxHigh
+            );
+
+            let barTop = (backgroundHt - barHt) * scrollIxToUse / (completionsToUse.length - maxVis)
+
+            scrollBackground.style.top = topPx + "px";
+            scrollBackground.style.left = (leftPx + widthPx - constants.scrollbarWidth - 1) + "px";
+            scrollBackground.style.height = backgroundHt + "px";
+            scrollBackground.style.width = constants.scrollbarWidth + "px";
+
+            scrollbar.style.top = (topPx + barTop) + "px";
+            scrollbar.style.left = (leftPx + widthPx - constants.scrollbarWidth - 1) + "px";
+            scrollbar.style.height = barHt + "px";
+            scrollbar.style.width = constants.scrollbarWidth + "px";
         }
 
         return res;
@@ -1100,6 +1137,7 @@ class RenderingModel {
         this.cursorLayer.style.top = offsetStyle;
         this.otherCursorLayer.style.top = offsetStyle;
         this.otherSelectionLayer.style.top = offsetStyle;
+        this.autocompleteLayer.style.top = offsetStyle;
         this.cursorBackgroundLayer.style.top = offsetStyle;
 
         this.buildRenderedLines();

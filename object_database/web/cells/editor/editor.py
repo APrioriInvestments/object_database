@@ -698,12 +698,9 @@ class Editor(FocusableCell):
             currentState = self._getCurrentState()
 
             contents = "\n".join(currentState["lines"])
-            curSelection = self.selectionSlot.get()
-
-            curSelectionLineAndCol = curSelection[0]["pos"]
 
             request = AutocompleteRequest(
-                self, messageFrame["requestId"], contents, curSelectionLineAndCol
+                self, messageFrame["requestId"], contents, messageFrame["lineAndCol"]
             )
 
             self.autocompleteFunction(request)

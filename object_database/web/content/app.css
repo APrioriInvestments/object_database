@@ -712,13 +712,13 @@ pre {
 
 .editor-autocompletion-box {
     position: absolute;
-    opacity: .9;
 }
 
 .editor-autocompletion-line {
     position: absolute;
     white-space: pre;
     font-family: "Ubuntu Mono";
+    overflow: hidden;
 }
 
 .editor-autocompletion-meaning-line {
@@ -726,6 +726,7 @@ pre {
     white-space: pre;
     font-family: "Ubuntu Mono";
     font-style: italic;
+    overflow: hidden;
 }
 
 .editor-cursor {

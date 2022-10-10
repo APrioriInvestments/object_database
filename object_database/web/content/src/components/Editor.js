@@ -41,12 +41,12 @@ class Constants {
         this.reservedWordColor = '#DD0055';
         this.keywordColor = '#5555FF';
 
-        this.maxVisibleAutocompletions = 10;
+        this.maxVisibleAutocompletions = 20;
         this.autocompletionLeftPadding = 10;
         this.autocompletionTopPadding = 3;
         this.autocompletionsMinWidth = 30;
         this.autocompletionsMaxWidth = 50;
-        this.autocompletionsMeaningMaxWidth = 70;
+        this.autocompletionsMeaningMaxWidth = 90;
 
         if (darkMode) {
             this.cursorColor = 'white';
@@ -581,7 +581,9 @@ class Editor extends ConcreteCell {
         window.requestAnimationFrame(() => {
             this.animationFrameRequested = false;
 
+            this.renderModel.autocompletions.checkForCloseAfterEvent();
             this.renderModel.render();
+
             this.renderAndPlaceDivs();
             this.sendSelectionState();
         })
@@ -734,16 +736,18 @@ class Editor extends ConcreteCell {
             this.renderModel.sync();
             this.transactionManager.snapshot({'keystroke': event.key});
 
-            this.renderModel.autocompletions.checkForCloseAfterKeystroke();
+            this.renderModel.autocompletions.checkForCloseAfterEvent();
 
             if (this.renderModel.autocompletions.shouldOpenAutocomplete(event)) {
-                console.log("Opening an autocomplete")
-
                 let requestId = this.renderModel.autocompletions.triggerNewAutocomplete();
 
                 this.sendMessageWithDelay(
                     {
                         'msg': 'provideCurrentAutocompletion',
+                        'lineAndCol': [
+                            this.renderModel.autocompletions.wordStartCursor.lineOffset,
+                            this.renderModel.autocompletions.wordStartCursor.colOffset
+                        ],
                         'requestId': requestId
                     }
                 )
@@ -785,7 +789,6 @@ class Editor extends ConcreteCell {
 
                     this.renderModel.sync();
                     this.transactionManager.snapshot({'event': 'paste'});
-                    this.renderModel.autocompletions.checkForCloseAfterKeystroke();
                     this.requestAnimationFrame();
                 }
 
@@ -800,7 +803,6 @@ class Editor extends ConcreteCell {
                     this.dataModel.pasteText(clipboardText);
                     this.renderModel.sync();
                     this.transactionManager.snapshot({'event': 'paste'});
-                    this.renderModel.autocompletions.checkForCloseAfterKeystroke();
                     this.requestAnimationFrame();
                 });
 
@@ -830,7 +832,6 @@ class Editor extends ConcreteCell {
                 }
 
                 this.renderModel.sync();
-                this.renderModel.autocompletions.checkForCloseAfterKeystroke();
 
                 this.requestAnimationFrame();
                 event.preventDefault();
@@ -844,7 +845,6 @@ class Editor extends ConcreteCell {
             let direction = event.key == 'PageUp' ? -1 : 1;
             this.renderModel.moveViewBy(this.renderModel.viewHeight * direction);
             this.dataModel.pageBy(this.renderModel.viewHeight * direction);
-            this.renderModel.autocompletions.checkForCloseAfterKeystroke();
 
             event.preventDefault();
             event.stopPropagation();

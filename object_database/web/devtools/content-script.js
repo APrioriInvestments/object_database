@@ -11,18 +11,21 @@
  * originating messaged to the devtools background.
  */
 
+
+console.log("loading content script");
 var portFromCS = chrome.runtime.connect({name:"port-from-cs"});
 
 // at the moment nothing much is done with messages going
 // to the content-script port
 portFromCS.onMessage.addListener(function(msg) {
-    console.log("recieved message from background", msg);
+    // console.log("received message from background");
 });
 
 window.addEventListener("message", (event) => {
     // filter on the target windows url
+    console.log("message in target window")
     if(event.origin === window.location.origin){
-        // reoute the message to the background script
+        // reroute the message to the background script
         portFromCS.postMessage({data: event.data});
     }
 }, false);

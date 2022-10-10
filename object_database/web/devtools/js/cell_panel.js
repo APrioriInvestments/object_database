@@ -1,5 +1,12 @@
 import {CellsTree} from './tree.js';
 
+// setup message handling from background
+function handleMessageFromBackground(msg){
+    console.log("handling background message");
+    console.log(msg);
+}
+
+
 // SOME FAKE DATA: TODO!
 const cells = {
     name: "root cell",

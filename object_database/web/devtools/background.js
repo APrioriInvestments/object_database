@@ -35,7 +35,7 @@ function connected(port) {
     // notify if the port has disconnected
     port.onDisconnect.addListener(function(port) {
         if (port.name === "port-from-panel" || port.name === "port-from-cs"){
-            console.log(`${port.name}} has disconnected`);
+            console.log(`${port.name} has disconnected`);
         };
     });
 }
@@ -46,6 +46,7 @@ function notifyDevtoolsPabel(msg){
     if (portFromPanel){
         portFromPanel.postMessage(msg);
     } else {
+        console.log(msg);
         console.log("failed to send message to devtools panel: port disconnected");
     }
 }

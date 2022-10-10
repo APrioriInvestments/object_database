@@ -3,20 +3,20 @@
     "version": "1.0",
     "manifest_version": 2,
     "devtools_page": "devtools.html",
-    "content_security_policy": "script-src 'self' https://d3js.org; object-src 'self'"
+    "content_security_policy": "script-src 'self' https://d3js.org; object-src 'self'",
     "content_scripts": [
         {
             "matches": [
                 "*://*/*"
             ],
             "js": [
-                "./js/content-script.js"
+                "content-script.js"
             ]
         }
     ],
     "background": {
         "scripts": [
-            "./js/background.js"
+            "background.js"
         ]
-    },
+    }
 }

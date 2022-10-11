@@ -445,7 +445,7 @@ class Cursor {
         let wordStart = this.colOffset;
         let wordEnd = this.colOffset;
 
-        while (wordEnd + 1 < line.length && isWordPart(line[wordEnd + 1])) {
+        while (wordEnd < line.length && isWordPart(line[wordEnd])) {
             wordEnd += 1;
         }
 

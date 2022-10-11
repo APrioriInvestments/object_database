@@ -15,7 +15,7 @@ class Autocompletion {
         this.computeWordStartCursor = this.computeWordStartCursor.bind(this);
         this.currentWordValue = this.currentWordValue.bind(this);
         this.getValidCompletions = this.getValidCompletions.bind(this);
-        this.isValidCompletion = this.isValidCompletion.bind(this);
+        this.computeValidCompletionScore = this.computeValidCompletionScore.bind(this);
 
         // the current completions we're showing
         // can be null if we don't know them yet in which case we'll get a (...)
@@ -78,23 +78,45 @@ class Autocompletion {
         let valid = [];
 
         this.completions.forEach((completeWord) => {
-            if (this.isValidCompletion(word, completeWord)) {
-                valid.push(completeWord);
+            let validCompletionScore = this.computeValidCompletionScore(word, completeWord);
+
+            if (validCompletionScore !== null) {
+                valid.push([completeWord, validCompletionScore]);
             }
         });
 
-        return valid;
+        valid.sort((a, b) => a[1] - b[1]);
+
+        return valid.map((a) => a[0]);
     }
 
-    isValidCompletion(partial, complete) {
+    computeValidCompletionScore(partial, complete) {
+        if (partial.length > complete.length) {
+            return null;
+        }
+
         partial = partial.toLowerCase();
         complete = complete.toLowerCase();
 
         if (partial.length > complete.length) {
-            return false;
+            return null;
         }
 
-        return complete.slice(0, partial.length) == partial;
+        let posInComplete = 0
+
+        for (let i = 0; i < partial.length; i++) {
+            while (posInComplete < complete.length && partial[i] != complete[posInComplete]) {
+                posInComplete += 1;
+            }
+
+            if (posInComplete >= complete.length) {
+                return null;
+            }
+
+            posInComplete += 1;
+        }
+
+        return posInComplete;
     }
 
     checkForCloseAfterEvent() {
@@ -291,6 +313,48 @@ class Autocompletion {
         }
     }
 
+    renderCompletionText(completion) {
+        let selectedWord = this.currentWordValue().toLowerCase();
+        let completionLower = completion.toLowerCase();
+
+        let isBold = new Array(completion.length);
+
+        let indexInWord = 0;
+
+        for (let i = 0; i < completion.length; i++) {
+            if (selectedWord[indexInWord] == completionLower[i]) {
+                isBold[i] = 1;
+                indexInWord += 1;
+            } else {
+                isBold[i] = 0;
+            }
+        }
+
+        let divs = [];
+
+        let i = 0;
+        let blockStart = 0;
+        while (i < isBold.length) {
+            if (i + 1 == isBold.length || isBold[i + 1] != isBold[i]) {
+                divs.push(
+                    h('div',
+                        {'class': 'editor-line-piece',
+                         'style': 'font-weight:' + (isBold[i] ? 'bold': 'normal')},
+                        [completion.slice(blockStart, i + 1)]
+                    )
+                );
+
+                i += 1;
+                blockStart = i;
+            } else {
+                i += 1;
+            }
+        }
+
+        return divs;
+    }
+
+
     render() {
         if (!this.isVisible) {
             return [];
@@ -300,6 +364,8 @@ class Autocompletion {
             return [];
         }
 
+        let constants = this.constants;
+
         let completionsToUse = this.getValidCompletions();
 
         if (completionsToUse == null || completionsToUse.length == 0) {
@@ -308,11 +374,15 @@ class Autocompletion {
 
         let selectedIxToUse = Math.max(0, completionsToUse.indexOf(this.selectedWord));
 
-        let scrollIxToUse = Math.max(0, selectedIxToUse - this.scrollOffset);
+        let scrollIxToUse = Math.max(
+            0,
+            Math.min(
+                selectedIxToUse - this.scrollOffset,
+                completionsToUse.length - constants.maxVisibleAutocompletions
+            )
+        );
 
         let cursor = this.computeWordStartCursor();
-
-        let constants = this.constants;
 
         let leftPx = constants.gutterWidth
             + cursor.colOffset * constants.charWidth
@@ -386,7 +456,7 @@ class Autocompletion {
                     'top: ' + (topPx + lineIx * constants.lineHeight) + 'px;' +
                     'width: ' + (constants.charWidth * autocompletionWidth) + 'px;' +
                     'height: ' + constants.lineHeight + 'px;'
-                }, [completionsToUse[i]])
+                }, this.renderCompletionText(completionsToUse[i]))
             )
 
             res.push(
@@ -423,11 +493,11 @@ class Autocompletion {
             let INSET_H = 2;
 
             let barHt = Math.max(
-                backgroundHt * maxVis / completionsToUse.length - INSET_V * 2,
+                backgroundHt * maxVis / completionsToUse.length,
                 constants.scrollbarMinPxHigh
-            );
+            ) - INSET_V * 2;
 
-            let barTop = (backgroundHt - barHt) * scrollIxToUse / (completionsToUse.length - maxVis)
+            let barTop = (backgroundHt - INSET_V * 2 - barHt) * scrollIxToUse / (completionsToUse.length - maxVis)
 
             scrollBackground.style.top = (topPx + 1) + "px";
             scrollBackground.style.left = (leftPx + widthPx - constants.scrollbarWidth - 1 - INSET_H * 2) + "px";

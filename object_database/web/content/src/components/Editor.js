@@ -45,7 +45,7 @@ class Constants {
         this.autocompletionLeftPadding = 10;
         this.autocompletionTopPadding = 3;
         this.autocompletionsMinWidth = 30;
-        this.autocompletionsMaxWidth = 50;
+        this.autocompletionsMaxWidth = 80;
         this.autocompletionsDocstringMaxWidth = 90;
         this.autocompletionsTypeMaxWidth = 30;
 

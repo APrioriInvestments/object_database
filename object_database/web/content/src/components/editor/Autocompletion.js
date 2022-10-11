@@ -458,7 +458,7 @@ class Autocompletion {
         let autocompletionWidth = Math.min(
             Math.max(
                 Math.max(...completionsToUse.map(
-                    (x) => (x.length + (this.completionModules[x] || '').length))
+                    (x) => (x.length + ((this.completionModules[x] + '   ') || '').length))
                 ),
                 constants.autocompletionsMinWidth
             ),
@@ -467,7 +467,7 @@ class Autocompletion {
 
         let autocompletionTypeWidth = Math.min(
             Math.max(...completionsToUse.map(
-                (x) => ((this.completionTypes[x] + '  ') || '').length)
+                (x) => ((this.completionTypes[x] + '   ') || '').length)
             ),
             constants.autocompletionsTypeMaxWidth
         );

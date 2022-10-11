@@ -320,6 +320,15 @@ class AutocompleteRequest:
     The editor itself may choose to cancel this request if it is no longer
     relevant. Backends should attempt to cache in memory what they can
     to reduce latency as much as possible.
+
+    attributes:
+        editor - the Editor instance associated with the request
+        requestId - an integer uniquely identifying the request on
+            this channel
+        contents - the contents of the document at the time of the request
+        completions - the set of completions provided by the callback,
+            or None
+
     """
 
     def __init__(self, editor, requestId, contents, insertionLineAndCol):
@@ -327,16 +336,32 @@ class AutocompleteRequest:
         self.requestId = requestId
         self.contents = contents
         self.completions = None
+        self.contextDescriptor = None
         self.insertionLineAndCol = insertionLineAndCol
         self.isValid = True
         self.lock = threading.RLock()
 
-    def complete(self, completions):
+    def complete(self, completions, contextDescriptor=None):
         """Provide a list of autocompletions for this insertion point.
 
-        Autocompletions should be a list of tuples of strings, with the
-        first of each tuple being a valid completion and the second being
-        any documention about the identifier you'd like to display.
+        Autocompletions should be a list of 'completions' which can either
+        be a string, or a dict with entries
+
+            completion - str
+            priority - int (optional). used to order completions that are
+                equally well-matched by the completion text
+            module - str (optional). If present this is shown as part
+                of the prefix of the completion (but doesn't count against
+                it for matching or count in the text)
+            type - str (optional). If present then we show a 'type' column
+            docstring - str (optional). If present, then this becomes
+                a docstring that gets displayed to the side of the relevant
+                item.
+
+        Args:
+            completions - a list of completions
+            contextDescriptor - a docstring for the object being completed,
+                and a single line of it will be shown above the completions
         """
         with self.lock:
             if not self.isValid:
@@ -344,13 +369,43 @@ class AutocompleteRequest:
 
             processedCompletions = []
 
-            for identifier, docs in completions:
-                if not isinstance(identifier, str) or not isinstance(docs, str):
-                    raise Exception("Completions must be pairs of strings")
+            for completion in completions:
 
-                processedCompletions.append((identifier, docs))
+                def isValidCompletion(completion):
+                    if isinstance(completion, str):
+                        return True
+
+                    if not isinstance(completion, dict):
+                        return False
+
+                    if "completion" not in completion:
+                        return False
+
+                    for k, v in completion.items():
+                        if k in ["completion", "module", "type", "docstring"]:
+                            if not isinstance(v, str):
+                                return False
+                        elif k in ["priority"]:
+                            if not isinstance(v, (int, float)):
+                                return False
+                        else:
+                            return False
+
+                    return True
+
+                if not isValidCompletion(completion):
+                    raise Exception(f"invalid completion {completion}")
+
+                processedCompletions.append(
+                    completion if isinstance(completion, dict) else {"completion": completion}
+                )
+
+            if not isinstance(contextDescriptor, str) and contextDescriptor is not None:
+                raise Exception("contextDescriptor should be an integer or None")
 
             self.completions = processedCompletions
+            self.contextDescriptor = contextDescriptor
+
             self.editor.scheduleCallback(self.sendData)
 
     def invalidate(self):
@@ -360,7 +415,11 @@ class AutocompleteRequest:
 
     def sendData(self):
         self.editor.scheduleMessage(
-            dict(requestId=self.requestId, completions=self.completions)
+            dict(
+                requestId=self.requestId,
+                completions=self.completions,
+                contextDescriptor=self.contextDescriptor,
+            )
         )
 
 
@@ -704,6 +763,7 @@ class Editor(FocusableCell):
             )
 
             self.autocompleteFunction(request)
+            self.curPendingAutocompletion = request
 
         if (
             messageFrame.get("msg") == "triggerRedo"

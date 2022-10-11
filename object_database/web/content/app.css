@@ -721,7 +721,15 @@ pre {
     overflow: hidden;
 }
 
-.editor-autocompletion-meaning-line {
+.editor-autocompletion-type-line {
+    position: absolute;
+    white-space: pre;
+    font-family: "Ubuntu Mono";
+    color: green;
+    overflow: hidden;
+}
+
+.editor-autocompletion-docstring-line {
     position: absolute;
     white-space: pre;
     font-family: "Ubuntu Mono";

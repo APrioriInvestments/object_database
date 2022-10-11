@@ -705,7 +705,7 @@ class RenderingModel {
 
         ConcreteCell.replaceChildren(
             this.autocompleteLayer,
-            this.autocompletions.render()
+            this.autocompletions.render(this.topLineNumber, this.viewHeight)
         )
 
         ConcreteCell.replaceChildren(

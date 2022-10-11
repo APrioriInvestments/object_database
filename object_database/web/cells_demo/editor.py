@@ -114,11 +114,11 @@ class EditorWithAutocomplete(CellsTestPage):
         return cells.Editor(
             autocompleteFunction=lambda request: request.complete(
                 [
-                    ("A", 'a really great letter is "A"'),
-                    ("abcdef", ""),
-                    ("abcDEF", ""),
-                    ("acbDEF", ""),
-                    ("B", "dont use A use B"),
+                    dict(completion="A", docstring='a really great letter is "A"'),
+                    "abcdef",
+                    "abcDEF",
+                    "acbDEF",
+                    dict(completion="B", docstring="dont use A use B"),
                 ]
             )
         )

@@ -22,6 +22,9 @@ class Autocompletion {
         // in the rendering
         this.completions = null;
 
+        // context on the object we're completing
+        this.contextDescriptor = null;
+
         // true if we're showing this autocompletion
         this.isVisible = false;
 
@@ -85,7 +88,24 @@ class Autocompletion {
             }
         });
 
-        valid.sort((a, b) => a[1] - b[1]);
+        // order our completions - place completions that have fewer
+        // unmatched characters in them first. Then, all things equal,
+        // use the user priority if it was given to us.
+        let orderPriority = (a, b) => {
+            if (a[1] < b[1]) {
+                return -1;
+            }
+            if (a[1] > b[1]) {
+                return 1;
+            }
+
+            let priorityA = this.completionPriorities[a[0]] || 0;
+            let priorityB = this.completionPriorities[b[0]] || 0;
+
+            return priorityB - priorityA;
+        };
+
+        valid.sort(orderPriority);
 
         return valid.map((a) => a[0]);
     }
@@ -154,7 +174,10 @@ class Autocompletion {
         this.maxCompletionRequestId += 1;
 
         this.completions = null;
-        this.completionMeanings = null;
+        this.completionDocstrings = null;
+        this.completionPriorities = null;
+        this.completionTypes = null;
+        this.completionModules = null;
 
         this.isVisible = true;
 
@@ -295,13 +318,25 @@ class Autocompletion {
         return true;
     }
 
-    setAutocompletions(completions, requestId) {
+    setAutocompletions(completions, contextDescriptor, requestId) {
         if (requestId != this.completionRequestId) {
             return;
         }
 
-        this.completions = completions.map((x) => x[0]);
-        this.completionMeanings = Object.fromEntries(completions);
+        this.contextDescriptor = contextDescriptor;
+        this.completions = completions.map((x) => x.completion);
+        this.completionDocstrings = Object.fromEntries(
+            completions.filter(c => c.docstring !== undefined).map(x => [x.completion, x.docstring])
+        );
+        this.completionModules = Object.fromEntries(
+            completions.filter(c => c.module !== undefined).map(x => [x.completion, x.module])
+        );
+        this.completionTypes = Object.fromEntries(
+            completions.filter(c => c.type !== undefined).map(x => [x.completion, x.type])
+        );
+        this.completionPriorities = Object.fromEntries(
+            completions.filter(c => c.priority !== undefined).map(x => [x.completion, x.priority])
+        );
 
         let valid = this.getValidCompletions();
 
@@ -314,6 +349,8 @@ class Autocompletion {
     }
 
     renderCompletionText(completion) {
+        let moduleText = this.completionModules[completion] || '';
+
         let selectedWord = this.currentWordValue().toLowerCase();
         let completionLower = completion.toLowerCase();
 
@@ -331,6 +368,16 @@ class Autocompletion {
         }
 
         let divs = [];
+
+        if (moduleText.length) {
+            divs.push(
+                h('div',
+                    {'class': 'editor-line-piece',
+                     'style': 'opacity:.6'},
+                    [moduleText]
+                )
+            )
+        }
 
         let i = 0;
         let blockStart = 0;
@@ -355,7 +402,7 @@ class Autocompletion {
     }
 
 
-    render() {
+    render(topLineNumber, viewHeight) {
         if (!this.isVisible) {
             return [];
         }
@@ -370,6 +417,15 @@ class Autocompletion {
 
         if (completionsToUse == null || completionsToUse.length == 0) {
             return [];
+        }
+
+        let autocompletionBoxHeight = Math.min(
+            constants.maxVisibleAutocompletions,
+            completionsToUse.length
+        );
+
+        if (this.contextDescriptor !== null) {
+            autocompletionBoxHeight += 1;
         }
 
         let selectedIxToUse = Math.max(0, completionsToUse.indexOf(this.selectedWord));
@@ -388,45 +444,80 @@ class Autocompletion {
             + cursor.colOffset * constants.charWidth
             + constants.cursorHShift;
 
-        let topPx = (cursor.lineOffset + 1) * constants.lineHeight
-            - constants.cursorVExtent + constants.topPxOffset + constants.autocompletionTopPadding;
+        let topPx = null;
 
-        let autocompletionBoxHeight = Math.min(
-            constants.maxVisibleAutocompletions,
-            completionsToUse.length
-        );
+        if (cursor.lineOffset + autocompletionBoxHeight < topLineNumber + viewHeight) {
+            // render the autocomplete below us
+            topPx = (cursor.lineOffset + 1) * constants.lineHeight;
+            topPx += constants.topPxOffset + constants.autocompletionTopPadding - constants.cursorVExtent;
+        } else {
+            topPx = (cursor.lineOffset - autocompletionBoxHeight - 1) * constants.lineHeight;
+            topPx -= constants.topPxOffset + constants.autocompletionTopPadding - constants.cursorVExtent;
+        }
 
         let autocompletionWidth = Math.min(
             Math.max(
-                Math.max(...completionsToUse.map((x) => x.length)),
+                Math.max(...completionsToUse.map(
+                    (x) => (x.length + (this.completionModules[x] || '').length))
+                ),
                 constants.autocompletionsMinWidth
             ),
             constants.autocompletionsMaxWidth
         )
 
-        let autocompletionMeaningWidth = Math.min(
-            Math.max(...completionsToUse.map((x) => this.completionMeanings[x].length)),
-            constants.autocompletionsMeaningMaxWidth
+        let autocompletionTypeWidth = Math.min(
+            Math.max(...completionsToUse.map(
+                (x) => ((this.completionTypes[x] + '  ') || '').length)
+            ),
+            constants.autocompletionsTypeMaxWidth
+        );
+
+        let autocompletionDocstringWidth = Math.min(
+            Math.max(...completionsToUse.map((x) => (this.completionDocstrings[x] || '').length)),
+            constants.autocompletionsDocstringMaxWidth
         );
 
         let heightPx = constants.lineHeight * autocompletionBoxHeight + constants.cursorVExtent;
         let widthPx = constants.charWidth * (
-            autocompletionWidth + autocompletionMeaningWidth
+            autocompletionWidth
+            + autocompletionTypeWidth
+            + autocompletionDocstringWidth
         ) + constants.autocompletionLeftPadding;
 
-        let res = [h('div', {
-            'class': 'editor-autocompletion-box',
-            'style':
-                  'left: ' + (leftPx - constants.autocompletionLeftPadding) + "px;"
-                + "top: " + topPx + "px;"
-                + 'width:' + (widthPx + constants.autocompletionLeftPadding) + "px;height:" + heightPx + "px;"
-                + 'background-color:' + constants.autocompleteBackgroundColor + ';'
-                + 'border: 1px solid ' + constants.autocompleteBorderColor + ';'
-            ,
-        })];
+        let res = [];
+
+        res.push(
+            h('div', {
+                'class': 'editor-autocompletion-box',
+                'style':
+                      'left: ' + (leftPx - constants.autocompletionLeftPadding) + "px;"
+                    + "top: " + topPx + "px;"
+                    + 'width:' + (widthPx + constants.autocompletionLeftPadding) + "px;"
+                    + "height:" + heightPx + "px;"
+                    + 'background-color:' + constants.autocompleteBackgroundColor + ';'
+                    + 'border: 1px solid ' + constants.autocompleteBorderColor + ';'
+                ,
+            })
+        );
+
+        if (this.contextDescriptor !== null) {
+            res.push(
+                h('div', {
+                    'class': 'editor-autocompletion-line',
+                    'style': 'left:' + leftPx + 'px;' +
+                    'top: ' + (topPx) + 'px;' +
+                    'width: ' + (widthPx - 2) + 'px;' +
+                    'height: ' + constants.lineHeight + 'px;'
+                }, [this.contextDescriptor])
+            )
+        }
 
         if (selectedIxToUse !== null) {
             let lineIx = selectedIxToUse - scrollIxToUse;
+
+            if (this.contextDescriptor !== null) {
+                lineIx += 1;
+            }
 
             res.push(
                 h('div', {
@@ -438,16 +529,18 @@ class Autocompletion {
                     'height: ' + (constants.lineHeight + constants.cursorVExtent) + 'px;' +
                     'background-color:' + constants.autocompleteSelectionColor + ';'
                 })
-            )
-
+            );
         }
-
         for (let i = scrollIxToUse;
             i < completionsToUse.length
             && i < constants.maxVisibleAutocompletions + scrollIxToUse;
             i++
         ) {
             let lineIx = i - scrollIxToUse;
+
+            if (this.contextDescriptor !== null) {
+                lineIx += 1;
+            }
 
             res.push(
                 h('div', {
@@ -459,15 +552,34 @@ class Autocompletion {
                 }, this.renderCompletionText(completionsToUse[i]))
             )
 
-            res.push(
-                h('div', {
-                    'class': 'editor-autocompletion-meaning-line',
-                    'style': 'left:' + (leftPx + constants.charWidth * autocompletionWidth) + 'px;' +
-                    'top: ' + (topPx + lineIx * constants.lineHeight) + 'px;' +
-                    'width: ' + (constants.charWidth * autocompletionMeaningWidth) + 'px;' +
-                    'height: ' + constants.lineHeight + 'px;'
-                }, [this.completionMeanings[completionsToUse[i]]])
-            );
+            if (this.completionTypes[completionsToUse[i]] !== undefined) {
+                res.push(
+                    h('div', {
+                        'class': 'editor-autocompletion-type-line',
+                        'style': 'left:' + (leftPx + constants.charWidth * autocompletionWidth) + 'px;' +
+                        'top: ' + (topPx + lineIx * constants.lineHeight) + 'px;' +
+                        'width: ' + (constants.charWidth * autocompletionTypeWidth) + 'px;' +
+                        'height: ' + constants.lineHeight + 'px;'
+                    }, [this.completionTypes[completionsToUse[i]]])
+                );
+            }
+
+            if (this.completionDocstrings[completionsToUse[i]] !== undefined) {
+                res.push(
+                    h('div', {
+                        'class': 'editor-autocompletion-docstring-line',
+                        'style': 'left:' + (
+                            leftPx + constants.charWidth * (
+                                autocompletionWidth +
+                                autocompletionTypeWidth
+                            )
+                        ) + 'px;' +
+                        'top: ' + (topPx + lineIx * constants.lineHeight) + 'px;' +
+                        'width: ' + (constants.charWidth * autocompletionDocstringWidth) + 'px;' +
+                        'height: ' + constants.lineHeight + 'px;'
+                    }, [this.completionDocstrings[completionsToUse[i]]])
+                );
+            }
         }
 
         if (completionsToUse.length > constants.maxVisibleAutocompletions) {

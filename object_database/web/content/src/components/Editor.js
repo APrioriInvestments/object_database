@@ -46,7 +46,8 @@ class Constants {
         this.autocompletionTopPadding = 3;
         this.autocompletionsMinWidth = 30;
         this.autocompletionsMaxWidth = 50;
-        this.autocompletionsMeaningMaxWidth = 90;
+        this.autocompletionsDocstringMaxWidth = 90;
+        this.autocompletionsTypeMaxWidth = 30;
 
         if (darkMode) {
             this.cursorColor = 'white';
@@ -498,10 +499,10 @@ class Editor extends ConcreteCell {
     handleMessages(messages) {
         messages.forEach((message) => {
             if (message.completions !== undefined) {
-                console.log("Receiving " + message.requestId)
                 this.renderModel.autocompletions.setAutocompletions(
                     message.completions,
-                    message.requestId
+                    message.contextDescriptor,
+                    message.requestId,
                 )
                 this.requestAnimationFrame();
             }

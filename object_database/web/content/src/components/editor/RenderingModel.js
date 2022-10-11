@@ -864,20 +864,23 @@ class Autocompletion {
 
             let backgroundHt = maxVis * constants.lineHeight;
 
+            let INSET_V = 3;
+            let INSET_H = 2;
+
             let barHt = Math.max(
-                backgroundHt * maxVis / completionsToUse.length,
+                backgroundHt * maxVis / completionsToUse.length - INSET_V * 2,
                 constants.scrollbarMinPxHigh
             );
 
             let barTop = (backgroundHt - barHt) * scrollIxToUse / (completionsToUse.length - maxVis)
 
-            scrollBackground.style.top = topPx + "px";
-            scrollBackground.style.left = (leftPx + widthPx - constants.scrollbarWidth - 1) + "px";
+            scrollBackground.style.top = (topPx + 1) + "px";
+            scrollBackground.style.left = (leftPx + widthPx - constants.scrollbarWidth - 1 - INSET_H * 2) + "px";
             scrollBackground.style.height = backgroundHt + "px";
-            scrollBackground.style.width = constants.scrollbarWidth + "px";
+            scrollBackground.style.width = (constants.scrollbarWidth + INSET_H * 2) + "px";
 
-            scrollbar.style.top = (topPx + barTop) + "px";
-            scrollbar.style.left = (leftPx + widthPx - constants.scrollbarWidth - 1) + "px";
+            scrollbar.style.top = (topPx + barTop + INSET_V) + "px";
+            scrollbar.style.left = (leftPx + widthPx - constants.scrollbarWidth - INSET_H) + "px";
             scrollbar.style.height = barHt + "px";
             scrollbar.style.width = constants.scrollbarWidth + "px";
         }

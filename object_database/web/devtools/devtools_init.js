@@ -14,11 +14,13 @@ chrome.devtools.panels.create(
             if (_window){
                 // handleMessageFromBackground() is defined in panel.js
                 // TODO _window.handleMessageFromBackground(msg);
-                //console.log("msg from background")
+               console.log("msg from background")
+                console.log(msg);
             } else {
                 console.log("no connection to background");
                 // if the panel's window is undefined store the data for now
                 data.push(msg);
+                console.log(`logged data: ${msg}`)
             }
         });
 

@@ -1,5 +1,5 @@
 /*
- * I am the conect script which is injected into the target
+ * I am the content script which is injected into the target
  * document window when devtools is open.
  *
  * I create connection port to handle communication between myself

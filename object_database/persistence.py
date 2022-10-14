@@ -72,6 +72,9 @@ class InMemoryPersistence(object):
             return
 
         with self.lock:
+            if values:
+                assert self.values.get(key, set())
+
             s = self.values.get(key, set())
 
             for value in values:

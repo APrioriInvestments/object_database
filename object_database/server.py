@@ -162,6 +162,7 @@ class Server:
         # for each key, the last version number we committed
         self._version_numbers = {}
         self._version_numbers_timestamps = {}
+        self._min_acceptable_version_number = -1
 
         # _field_id to set(subscribed channel)
         self._field_id_to_channel = {}
@@ -868,16 +869,27 @@ class Server:
                 data = connectedChannel.extractTransactionData(msg.transaction_guid)
 
                 with self._lock:
-                    isOK, badKey = self._handleNewTransaction(
-                        connectedChannel,
-                        data["writes"],
-                        data["set_adds"],
-                        data["set_removes"],
-                        data["key_versions"],
-                        data["index_versions"],
-                        msg.as_of_version,
-                        transStartTime=transStartTime,
-                    )
+                    if msg.as_of_version < self._min_acceptable_version_number:
+                        self._logger.exception(
+                            "Transaction had an old as_of_version %s which is before "
+                            "the oldest garbage-collected as_of_version %s",
+                            msg.as_of_version,
+                            self._min_acceptable_version_number,
+                        )
+
+                        isOK = False
+                        badKey = "<TRANSACTION TOO OLD>"
+                    else:
+                        isOK, badKey = self._handleNewTransaction(
+                            connectedChannel,
+                            data["writes"],
+                            data["set_adds"],
+                            data["set_removes"],
+                            data["key_versions"],
+                            data["index_versions"],
+                            msg.as_of_version,
+                            transStartTime=transStartTime,
+                        )
             except Exception:
                 self._logger.exception("Unknown error committing transaction:")
                 isOK = False
@@ -999,9 +1011,17 @@ class Server:
                 if ts < threshold:
                     if isinstance(key, IndexId):
                         if not self._kvstore.getSetMembers(key):
+                            self._min_acceptable_version_number = max(
+                                self._min_acceptable_version_number, self._version_numbers[key]
+                            )
+
                             del self._version_numbers[key]
                     else:
                         if self._kvstore.get(key) is None:
+                            self._min_acceptable_version_number = max(
+                                self._min_acceptable_version_number, self._version_numbers[key]
+                            )
+
                             del self._version_numbers[key]
                 else:
                     new_ts[key] = ts

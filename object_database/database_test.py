@@ -1544,6 +1544,102 @@ class ObjectDatabaseTests:
         with self.assertRaises(RevisionConflictException):
             t1.commit()
 
+    def test_unchecked_writing_with_deleting(self):
+        db = self.createNewDb()
+
+        schema = Schema("test_schema")
+
+        @schema.define
+        class IntHolder:
+            k = int
+
+        db.subscribeToSchema(schema)
+
+        with db.transaction():
+            o1 = IntHolder(k=10)
+
+        t1 = db.transaction()
+        t2 = db.transaction()
+
+        # in one transaction, delete directly
+        with t1.nocommit():
+            o1.delete()
+
+        # in another transaction, assign to the field without reading it
+        with t2.nocommit():
+            o1.k = 20
+
+        # now the DB knows o1 as deleted
+        t1.commit()
+
+        # the DB will allow this write because it didn't have a corresponding read
+        t2.commit()
+
+        with db.view():
+            assert not o1.exists()
+
+        assert len(t2.getFieldWrites()) == 1
+
+        # the mem store should have this value
+        fieldId = list(t2.getFieldWrites())[0]
+        valueWritten = list(t2.getFieldWrites().values())[0]
+        assert self.mem_store.get(fieldId) == valueWritten
+
+        # but it should know that the field is deleted
+        print(t1.getFieldWrites())
+        assert list(t1.getFieldWrites().values()) == [None, None]
+        fieldsErased = list(t1.getFieldWrites())
+
+        assert fieldId in fieldsErased
+        existenceField = [x for x in fieldsErased if x != fieldId][0]
+
+        assert not self.mem_store.exists(existenceField)
+
+    def test_unchecked_writing_with_deleting_and_index_values(self):
+        db = self.createNewDb()
+
+        schema = Schema("test_schema")
+
+        @schema.define
+        class IntHolder:
+            k = Indexed(int)
+
+        db.subscribeToSchema(schema)
+
+        with db.transaction():
+            o1 = IntHolder(k=10)
+            o2 = IntHolder(k=10)
+
+        t1 = db.transaction()
+        t2 = db.transaction()
+
+        # in one transaction, delete directly
+        with t1.nocommit():
+            o1.delete()
+
+        # in another transaction, assign to the field without reading it
+        with t2.nocommit():
+            o1.delete()
+
+        t2.commit()
+
+        t0 = time.time()
+        while time.time() - t0 < 4:
+            time.sleep(1.0)
+
+            with db.transaction():
+                o2.k += 1
+
+        def blah(*args, **kwargs):
+            assert False
+
+        try:
+            t1.commit()
+        except RevisionConflictException as e:
+            assert "TOO OLD" in e.args[0]
+        else:
+            raise Exception("Expected to raise")
+
     def test_default_constructor_for_list(self):
         db = self.createNewDb()
 

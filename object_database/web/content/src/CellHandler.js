@@ -58,6 +58,9 @@ class CellHandler {
 
         // the server-assigned session
         this.sessionId = null;
+
+        // devtools related messages
+        this.sendMessageToDevtools = this.sendMessageToDevtools.bind(this);
     }
 
     tearDownAllLiveCells() {
@@ -119,6 +122,12 @@ class CellHandler {
         );
     }
 
+    sendMessageToDevtools(msg){
+        // TODO perhaps this should be run by a worker
+        msg.type = "cells_devtools";
+        window.postMessage(msg);
+    }
+
     initialRender() {
         this.renderMainDiv(
              h("div", {class: 'container-fluid'}, [
@@ -127,6 +136,9 @@ class CellHandler {
                  ])
              ])
         );
+        this.sendMessageToDevtools({
+            status: "initial load"
+        });
     }
 
     afterConnected() {
@@ -158,6 +170,9 @@ class CellHandler {
                    ["Reconnecting in " + waitSeconds + " seconds"])
             ])
         );
+        this.sendMessageToDevtools({
+            status: "reconnecting"
+        });
     }
 
     /**
@@ -167,7 +182,7 @@ class CellHandler {
      * It will case out the appropriate handling
      * method based on the `type` field in the
      * message.
-     * Note taht we call `doesNotUnderstand()`
+     * Note that we call `doesNotUnderstand()`
      * in the event of a message containing a
      * message type that is unknown to the system.
      * @param {Object} message - A JSON decoded

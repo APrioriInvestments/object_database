@@ -13,14 +13,13 @@ chrome.devtools.panels.create(
         portFromPanel.onMessage.addListener(function(msg) {
             if (_window){
                 // handleMessageFromBackground() is defined in panel.js
-                // TODO _window.handleMessageFromBackground(msg);
-               console.log("msg from background")
-                console.log(msg);
+                _window.handleMessageFromBackground(msg);
             } else {
                 console.log("no connection to background");
                 // if the panel's window is undefined store the data for now
                 data.push(msg);
-                console.log(`logged data: ${msg}`)
+                // console.log(`logged data:`)
+                // console.log(data);
             }
         });
 
@@ -33,15 +32,14 @@ chrome.devtools.panels.create(
             // set the _window const to panelWindow which allows handling
             // of messages by the panel, i.e. in the panel's window context
             _window = panelWindow;
-            const msg = null;
+            let msg = data.shift();
             // if any data was logged while the panel was not available
             // send it along now
-            /*
-            while (msg == data.shift()){
-                console.log("msg from background")
-                // TODO _window.handleMessageFromBackground(msg);
+            while (msg){
+                // console.log("handling logged messages");
+                _window.handleMessageFromBackground(msg);
+                msg = data.shift();
             }
-            */
             // If we ever need to send messages back via the port
             // we can do that as below
             _window.respond = function(msg) {

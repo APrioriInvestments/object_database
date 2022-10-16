@@ -23,9 +23,12 @@ portFromCS.onMessage.addListener(function(msg) {
 
 window.addEventListener("message", (event) => {
     // filter on the target windows url
-    console.log("message in target window")
+    // console.log("message in target window")
     if(event.origin === window.location.origin){
-        // reroute the message to the background script
-        portFromCS.postMessage({data: event.data});
+        // filter the message further to make sure it's for devtools
+        if(event.data.type == "cells_devtools"){
+            // reroute the message to the background script
+            portFromCS.postMessage({data: event.data});
+        }
     }
 }, false);

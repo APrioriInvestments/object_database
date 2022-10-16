@@ -61,6 +61,7 @@ class CellHandler {
 
         // devtools related messages
         this.sendMessageToDevtools = this.sendMessageToDevtools.bind(this);
+        this.updateDevtools = this.updateDevtools.bind(this);
     }
 
     tearDownAllLiveCells() {
@@ -120,12 +121,6 @@ class CellHandler {
                    ["Failed to connect: " + msg])
             ])
         );
-    }
-
-    sendMessageToDevtools(msg){
-        // TODO perhaps this should be run by a worker
-        msg.type = "cells_devtools";
-        window.postMessage(msg);
     }
 
     initialRender() {
@@ -380,6 +375,7 @@ class CellHandler {
                         + totalUpdateCount + " nodes created/updated."
                 )
             }
+            this.updateDevtools();
         }
     }
 
@@ -509,6 +505,33 @@ class CellHandler {
             message['target_cell'] = 'main_cells_session';
             this.socket.sendString(JSON.stringify(message));
         }
+    }
+
+    sendMessageToDevtools(msg){
+        // TODO perhaps this should be run by a worker
+        msg.type = "cells_devtools";
+        window.postMessage(msg);
+    }
+
+    /**
+      * Send updated cells data to devtools
+      **/
+    updateDevtools(){
+        const addToTree = (cell, parent) => {
+            if(!parent.children){
+                parent.children = [];
+            }
+            parent.children.append({
+                name: cell.constructor.name,
+                id: cell.identity,
+                children: Object.values(cell.namedChildren).map((child) => {
+                    return addToTree(child, cell);
+                })
+            })
+        };
+        const page_root = this.activeCells['page_root'];
+        const tree = addToTree(page_root, {});
+        return tree;
     }
 }
 

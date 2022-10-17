@@ -18,6 +18,8 @@ class CellsTree extends Object {
         this.redraw = this.redraw.bind(this);
         this.onDblclick = this.onDblclick.bind(this);
         this.onClick = this.onClick.bind(this);
+        this.onMouseover = this.onMouseover.bind(this);
+        this.onMouseleave = this.onMouseleave.bind(this);
     }
 
     setupTree(){
@@ -43,7 +45,7 @@ class CellsTree extends Object {
 
         // collapse all children for now
         // TODO do we want this?
-        // this.data.children.forEach(this.collapse);
+        this.data.children.forEach(this.collapse);
 
         // build the tree
         this.update(this.data);
@@ -72,7 +74,7 @@ class CellsTree extends Object {
         // Update the nodes…
         const node = this.svg.selectAll("g.node")
             .data(nodes, function (d) {
-                return d.id || (d.id = ++id);
+                return d.id = ++id;
             }
         );
 
@@ -83,7 +85,10 @@ class CellsTree extends Object {
                 return `translate(${source.x0},${source.y0})`;
             })
             .on("dblclick", this.onDblclick)
-            .on("click", this.onClick);
+            .on("click", this.onClick)
+            .on("mouseover", this.onMouseover)
+            .on("mouseleave", this.onMouseleave);
+
 
         nodeEnter.append("rect")
             .attr("width", this.rectW)
@@ -219,9 +224,23 @@ class CellsTree extends Object {
         // update the cell data
         // probably should be handled by a different class
         const infoDiv = document.getElementById("cell-info")
-        infoDiv.textContent = event.name;
+        infoDiv.textContent = `${event.name} (id: ${event.identity})`;
     }
 
+    onMouseover(event){
+        // highlighte the corresponding element in the target window
+        chrome.devtools.inspectedWindow.eval(
+            `document.querySelector("[data-cell-id='${event.identity}']").classList.add('devtools-inspect')'`
+        );
+    }
+
+    onMouseleave(event){
+        console.log(event);
+        // highlighte the corresponding element in the target window
+        chrome.devtools.inspectedWindow.eval(
+            `document.querySelector("[data-cell-id='${event.identity}']").classList.remove('devtools-inspect')'`
+        );
+    }
     //Redraw for zoom
     redraw() {
         this.svg.attr("transform",

@@ -1096,3 +1096,8 @@ pre {
     overflow: auto;
     pointer-events: auto;
 }
+
+// devtools helpers
+.devtools-inspect{
+    background-color: lightblue!important;
+}

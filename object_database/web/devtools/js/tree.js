@@ -230,7 +230,7 @@ class CellsTree extends Object {
     onMouseover(event){
         // highlighte the corresponding element in the target window
         chrome.devtools.inspectedWindow.eval(
-            `document.querySelector("[data-cell-id='${event.identity}']").classList.add('devtools-inspect')'`
+            `document.querySelector("[data-cell-id='${event.identity}']").style.backgroundColor = 'lightblue'`
         );
     }
 
@@ -238,7 +238,7 @@ class CellsTree extends Object {
         console.log(event);
         // highlighte the corresponding element in the target window
         chrome.devtools.inspectedWindow.eval(
-            `document.querySelector("[data-cell-id='${event.identity}']").classList.remove('devtools-inspect')'`
+            `document.querySelector("[data-cell-id='${event.identity}']").style.backgroundColor= 'initial'`
         );
     }
     //Redraw for zoom

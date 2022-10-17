@@ -2,7 +2,7 @@ import {CellsTree} from './tree.js';
 
 // GLOBALS (TODO: should be handled better)
 let state = null;
-
+let cellsJSONCache = null;
 
 // setup message handling from background
 function handleMessageFromBackground(msg){
@@ -21,8 +21,10 @@ function handleMessageFromBackground(msg){
         }
         break;
     case "loaded":
-        if(state != msg.status){
+        // check to see if the cells tree has changed
+        if(cellsJSONCache != JSON.stringify(msg.cells)){
             state = msg.status;
+            cellsJSONCache = JSON.stringify(msg.cells);
             cellsTreeDisplay(msg.cells);
             console.log(msg.cells);
         }

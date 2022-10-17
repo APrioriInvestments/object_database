@@ -530,7 +530,7 @@ class CellHandler {
             })
         };
         const page_root = this.activeCells['page_root'];
-        const tree = addToTree(page_root, {});
+        const tree = addToTree(page_root, {name: "PageRoot", id: "page_root", children: []});
         return tree;
     }
 }

@@ -517,21 +517,37 @@ class CellHandler {
       * Send updated cells data to devtools
       **/
     updateDevtools(){
-        const addToTree = (cell, parent) => {
-            if(!parent.children){
-                parent.children = [];
-            }
-            parent.children.append({
+        const buildTree = (cell) => {
+            return {
                 name: cell.constructor.name,
                 id: cell.identity,
-                children: Object.values(cell.namedChildren).map((child) => {
-                    return addToTree(child, cell);
+                children: mapChildren(cell.namedChildren)
+            }
+        }
+        // NOTE: sometimes a named child is a cell, sometimes it's an array of cells
+        // so we need a helper function to deal with these cases
+        const mapChildren = (namedChildren) => {
+            const children = [];
+            if (namedChildren) {
+                Object.values(namedChildren).forEach((child) => {
+                    if (child){
+                        if (child instanceof Array){
+                            child.forEach((subchild) => {
+                                children.push(buildTree(subchild));
+                            })
+                        }
+                        children.push(buildTree(child));
+                    }
                 })
-            })
-        };
+            }
+            return children;
+        }
         const page_root = this.activeCells['page_root'];
-        const tree = addToTree(page_root, {name: "PageRoot", id: "page_root", children: []});
-        return tree;
+        const tree = buildTree(page_root);
+        this.sendMessageToDevtools({
+            status: "loaded",
+            cells: tree
+        });
     }
 }
 

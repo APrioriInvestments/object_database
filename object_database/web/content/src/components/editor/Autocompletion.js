@@ -473,7 +473,7 @@ class Autocompletion {
         );
 
         let autocompletionDocstringWidth = Math.min(
-            Math.max(...completionsToUse.map((x) => (this.completionDocstrings[x] || '').length)),
+            Math.max(...completionsToUse.map((x) => (this.completionDocstrings[x] || '').length)) + 2,
             constants.autocompletionsDocstringMaxWidth
         );
 

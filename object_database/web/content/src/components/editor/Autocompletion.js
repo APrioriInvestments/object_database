@@ -195,6 +195,10 @@ class Autocompletion {
     }
 
     isIdentifierEvent(event) {
+        if (event.ctrlKey || event.metaKey || event.altKey) {
+            return false;
+        }
+
         return (
             event.key.length == 1
             && 'abcdefghijklmnopqrstuvwxyz._'.includes(event.key.toLowerCase())
@@ -305,7 +309,8 @@ class Autocompletion {
             return false;
         }
 
-        if (this.dataModel.cursors.length == 0) {
+        // don't autocomplete with multiple cursors - its just confusing
+        if (this.dataModel.cursors.length != 1) {
             return false;
         }
 

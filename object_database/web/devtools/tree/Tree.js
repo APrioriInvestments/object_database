@@ -13,7 +13,7 @@ const templateString = `
 }
 
 </style>
-<div> A Tree </div>
+<div id="wrapper"> A Tree </div>
 `;
 
 class Tree extends HTMLElement {
@@ -23,13 +23,43 @@ class Tree extends HTMLElement {
         this.template.innerHTML = templateString;
         this.attachShadow({ mode: "open" });
         this.shadowRoot.appendChild(this.template.content.cloneNode(true));
+
+        // bind methods
+        this.setup = this.setup.bind(this);
+        this.setupNode = this.setupNode.bind(this);
     }
+
+    connectedCallback(){
+        if(this.isConnected){
+            this.setup();
+        }
+    }
+
+    setup(data){
+        this.setupNode(data);
+    }
+
+
+    setupNode(nodeData){
+        if(nodeData){
+            const wrapper = this.shadowRoot.querySelector("#wrapper");
+            const node = document.createElement("tree-node");
+            wrapper.append(node);
+            // setup the children
+            nodeData.children.forEach((childData) => {
+                this.setupNode(childData);
+            })
+        }
+    }
+
+
+
 
     get ok(){
         return "ok";
     }
 }
 
-window.customElements.define("my-tree", Tree);
+window.customElements.define("tree-graph", Tree);
 
 export { Tree as default, Tree }

@@ -10,5 +10,8 @@
     },
     "scripts": {
         "test": "mocha --require ./tests/test-setup.js ./tests/"
+    },
+    "dependencies": {
+        "leader-line": "^1.0.7"
     }
 }

@@ -4,15 +4,38 @@
     <title>Basic Grid Tests</title>
     <!-- <link rel="stylesheet" href="style.css" /> -->
     <script type="module" src="../Tree.js"></script>
+    <script type="module" src="../TreeNode.js"></script>
   </head>
   <body>
-    <my-tree>
-    </my-tree>
+      <div id="main" ></div>
   </body>
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-        console.log("loaded");
-
+   const data = {
+       name: "node0",
+       id: "node0ID",
+       children: [
+           {
+               name: "node1",
+               id: "node1ID",
+               children: []
+           },
+           {
+               name: "node2",
+               id: "node2ID",
+               children: []
+           },
+           {
+               name: "node3",
+               id: "node3ID",
+               children: []
+           }
+       ]
+   };
+   document.addEventListener("DOMContentLoaded", () => {
+       const tree = document.createElement("tree-graph");
+       tree.setup(data);
+       const main = document.getElementById("main");
+       main.append(tree);
     });
   </script>
 </html>

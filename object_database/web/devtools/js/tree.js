@@ -106,7 +106,13 @@ class CellsTree extends Object {
             .attr("dy", ".35em")
             .attr("text-anchor", "middle")
             .text(function (d) {
-                return d.name;
+                // limit the name to 7 chars since text-overflow
+                // doesn't seem to work here
+                let name = d.name;
+                if (name.length > 7){
+                    name = name.slice(0, 7) + "...";
+                }
+                return name;
             }
         );
 

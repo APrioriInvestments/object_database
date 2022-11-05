@@ -9,9 +9,13 @@
         "prettier": "^2.7.1"
     },
     "scripts": {
-        "test": "mocha --require ./tests/test-setup.js ./tests/"
+        "test": "mocha --require ./tests/test-setup.js ./tests/",
+        "build": "./node_modules/webpack/bin/webpack.js"
     },
     "dependencies": {
-        "leader-line": "^1.0.7"
+        "leader-line": "^1.0.7",
+        "skeleton-loader": "^2.0.0",
+        "webpack": "^5.74.0",
+        "webpack-cli": "^4.10.0"
     }
 }

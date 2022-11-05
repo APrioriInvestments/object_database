@@ -11,7 +11,9 @@ const templateString = `
 }
 
 </style>
-<div> A Node </div>
+<div id="wrapper">
+<span id="name"></span>
+</div>
 `;
 
 class TreeNode extends HTMLElement {
@@ -23,8 +25,10 @@ class TreeNode extends HTMLElement {
         this.shadowRoot.appendChild(this.template.content.cloneNode(true));
     }
 
-    get ok(){
-        return "ok";
+    set name(s){
+        const name = this.shadowRoot.querySelector("#name");
+        name.innerText = s;
+
     }
 }
 

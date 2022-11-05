@@ -2,6 +2,7 @@
   * Tree Graph Web component
   **/
 
+import LeaderLine from "leader-line";
 
 // Simple grid-based sheet component
 const templateString = `
@@ -12,8 +13,13 @@ const templateString = `
    overflow: hidden; /* For auto-resize without scrolling on */
 }
 
+.depth {
+    display: flex;
+    justify-content: space-around;
+}
+
 </style>
-<div id="wrapper"> A Tree </div>
+<div id="wrapper"></div>
 `;
 
 class Tree extends HTMLElement {
@@ -36,24 +42,34 @@ class Tree extends HTMLElement {
     }
 
     setup(data){
-        this.setupNode(data);
+        const wrapper = this.shadowRoot.querySelector("#wrapper");
+        const nodeDepth = document.createElement("div");
+        nodeDepth.classList.add("depth");
+        wrapper.append(nodeDepth);
+        this.setupNode(data, nodeDepth);
     }
 
-
-    setupNode(nodeData){
+    setupNode(nodeData, nodeDepth){
         if(nodeData){
-            const wrapper = this.shadowRoot.querySelector("#wrapper");
             const node = document.createElement("tree-node");
-            wrapper.append(node);
-            // setup the children
+            node.name = nodeData.name;
+            node.setAttribute("id", nodeData.id);
+            nodeDepth.append(node);
+            // setup the children in a new node depth
+            const wrapper = this.shadowRoot.querySelector("#wrapper");
+            const childrenDepth = document.createElement("div");
+            childrenDepth.classList.add("depth");
+            wrapper.append(childrenDepth);
             nodeData.children.forEach((childData) => {
-                this.setupNode(childData);
+                this.setupNode(childData, childrenDepth);
+
             })
         }
     }
 
-
-
+    updateLeaderLines(depth){
+        //TODO:
+    }
 
     get ok(){
         return "ok";

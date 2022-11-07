@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Basic Grid Tests</title>
+    <title>Basic Tree Tests</title>
     <!-- <link rel="stylesheet" href="style.css" /> -->
     <script type="module" src="../dist/tree.bundle.js"></script>
   </head>
@@ -9,32 +9,42 @@
       <div id="main" ></div>
   </body>
   <script>
-   const data = {
-       name: "node0",
-       id: "node0ID",
-       children: [
-           {
-               name: "node1",
-               id: "node1ID",
-               children: []
-           },
-           {
-               name: "node2",
-               id: "node2ID",
-               children: []
-           },
-           {
-               name: "node3",
-               id: "node3ID",
-               children: []
-           }
-       ]
-   };
+   const treeMaker = function(depth, maxChildNum){
+       let rootNode = {
+           name: "root",
+           id: "roodID",
+           children: []
+       };
+       rootNode = addChildren(rootNode, 0, depth, maxChildNum);
+       return rootNode;
+   }
+
+   const addChildren = (node, depth, totalDepth, maxChildNum) => {
+       const numChildren = Math.ceil(Math.random()* maxChildNum);
+       if (depth <= totalDepth) {
+            for (let i = 1; i <= numChildren; i++){
+                const child = {
+                        name: `node_${depth}_${i}`,
+                        id: `node_${depth}_${i}`,
+                        children: []
+                };
+                node.children.push(
+                    addChildren(child, depth + 1, totalDepth, maxChildNum)
+                );
+
+            }
+       }
+       return node;
+   }
+
+   const data = treeMaker(3, 2);
+   console.log(data);
    document.addEventListener("DOMContentLoaded", () => {
        const tree = document.createElement("tree-graph");
-       tree.setup(data);
        const main = document.getElementById("main");
        main.append(tree);
+       tree.setup(data);
+       tree.setupLeaderLines(data);
     });
   </script>
 </html>

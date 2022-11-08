@@ -86,7 +86,7 @@ class Tree extends HTMLElement {
                 depthDiv.append(childWrapper);
                 nodeData.children.forEach((childData) => {
                     const child = this.setupNode(childData, childWrapper, depth + 1);
-                    // this.updateLeaderLines(node, child);
+                    const l = new LeaderLine(node, child);
 
                 })
             }

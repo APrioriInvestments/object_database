@@ -1,0 +1,11 @@
+.depth {
+    display: flex;
+    justify-content: space-around;
+    border: 2px black solid;
+}
+
+.child-wrapper {
+    display: flex;
+    justify-content: space-around;
+    border: 1px blue solid;
+}

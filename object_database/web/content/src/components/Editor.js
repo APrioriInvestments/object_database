@@ -275,8 +275,15 @@ class Editor extends ConcreteCell {
         let y = point[1] - rect.top;
 
         return {
-            lineOffset: this.renderModel.topLineNumber + Math.floor((y - this.constants.topPxOffset) / this.constants.lineHeight),
-            colOffset: Math.floor((x - this.constants.gutterWidth) / this.constants.charWidth)
+            lineOffset: Math.max(
+                0,
+                this.renderModel.topLineNumber
+                + Math.floor((y - this.constants.topPxOffset) / this.constants.lineHeight),
+            ),
+            colOffset: Math.max(
+                0,
+                Math.floor((x - this.constants.gutterWidth) / this.constants.charWidth)
+            )
         }
     }
 

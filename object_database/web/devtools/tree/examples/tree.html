@@ -12,7 +12,8 @@
    const treeMaker = function(depth, maxChildNum){
        let rootNode = {
            name: "root",
-           id: "roodID",
+            id: "roodID",
+            order: -1,
            children: []
        };
        rootNode = addChildren(rootNode, 0, depth, maxChildNum);
@@ -25,7 +26,8 @@
             for (let i = 1; i <= numChildren; i++){
                 const child = {
                         name: `node_${depth}_${i}`,
-                        id: `node_${depth}_${i}`,
+                        id: "id-" + crypto.randomUUID(),
+                        order: i,
                         children: []
                 };
                 node.children.push(

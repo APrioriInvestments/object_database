@@ -7,7 +7,10 @@
 const templateString = `
 <style>
 :host {
-   position: relative;
+    position: relative;
+    border: 1px blue solid;
+    margin-right: 10px;
+    margin-left: 10px;
 }
 
 </style>

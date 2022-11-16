@@ -1,11 +1,9 @@
-.depth {
-    display: flex;
-    justify-content: space-around;
-    border: 2px black solid;
-}
-
-.child-wrapper {
-    display: flex;
-    justify-content: space-around;
-    border: 1px blue solid;
+:root {
+    --palette-beige: #FBE8A6;
+    --palette-blue: #303C6C;
+    --palette-lightblue: #B4DFE5;
+    --palette-cyan: #D2FDFF;
+    --palette-orange: #F4976C;
+    --palette-black: black;
+    --palette-white: white;
 }

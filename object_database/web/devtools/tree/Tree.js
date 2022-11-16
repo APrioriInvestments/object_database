@@ -15,8 +15,8 @@ const templateString = `
 .depth {
     display: flex;
     justify-content: space-around;
-    margin-top: 20px;
-    margin-bottom: 20px;
+    margin-top: 30px;
+    margin-bottom: 30px;
 }
 
 .child-wrapper {
@@ -38,21 +38,27 @@ class Tree extends HTMLElement {
         this.attachShadow({ mode: "open" });
         this.shadowRoot.appendChild(this.template.content.cloneNode(true));
 
+        this.data;
+
         // bind methods
         this.setup = this.setup.bind(this);
+        this.clear = this.clear.bind(this);
         this.setupNode = this.setupNode.bind(this);
         this.setupPaths = this.setupPaths.bind(this);
         this.addSVGPath = this.addSVGPath.bind(this);
+        this.onWindowResize = this.onWindowResize.bind(this);
     }
 
     connectedCallback(){
         if(this.isConnected){
-            // this.setup();
-
+            // add event listeners
+            window.addEventListener("resize", this.onWindowResize);
         }
     }
 
     setup(data){
+        // cache the data; TODO: think through this
+        this.data = data;
         const wrapper = this.shadowRoot.querySelector("#wrapper");
         const nodeDepth = document.createElement("div");
         nodeDepth.classList.add("depth");
@@ -128,7 +134,8 @@ class Tree extends HTMLElement {
         svg.setAttribute("height", "100%");
         svg.setAttribute("data-start-node-id", startNode.id);
         svg.setAttribute("data-end-node-id", endNode.id);
-        svg.style.left =  0;
+        svg.style.position = "absolute";
+        svg.style.left = 0;
         svg.style.top = 0;
 
         const line = document.createElementNS('http://www.w3.org/2000/svg', "line");
@@ -136,25 +143,23 @@ class Tree extends HTMLElement {
         line.setAttribute("y1", `${startY}`);
         line.setAttribute("x2", `${endX}`);
         line.setAttribute("y2", `${endY}`);
-        line.setAttribute("stroke", "black");
+        line.setAttribute("stroke", "var(--palette-blue)");
+        line.setAttribute("stroke-width", "3px");
         svg.append(line);
         wrapper.append(svg);
-        /*
-        const path = document.createElementNS('http://www.w3.org/2000/svg', "path");
-        path.setAttribute("d", `M ${startX} ${startY}  Q 95 10, ${endX} ${endY}`);
-        path.setAttribute("stroke", "black");
-        path.setAttribute("fill", "transparent");
-        svg.append(path);
-
-        wrapper.append(svg);
-        const temp = document.createElement("div");
-        temp.innerHTML = `<svg width="100%" height="100%" style="position: absolute; top: 0; left: 0"><line x1="${startX}" y1="${startY}" x2="${endX}" y2="${endY}" stroke="black"/></svg>`;
-        wrapper.append(temp.childNodes[0])
-        */
     }
 
-    get ok(){
-        return "ok";
+    /**
+      * On a window resize I first clear the tree and then redraw it
+      **/
+    onWindowResize(event){
+        this.clear();
+        this.setup(this.data);
+    }
+
+    clear(){
+        const wrapper = this.shadowRoot.querySelector("#wrapper");
+        wrapper.innerHTML = "";
     }
 }
 

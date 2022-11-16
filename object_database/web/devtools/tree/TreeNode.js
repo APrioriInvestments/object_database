@@ -11,6 +11,9 @@ const templateString = `
     border: 1px blue solid;
     margin-right: 10px;
     margin-left: 10px;
+    background-color: var(--palette-orange);
+    padding: 5px;
+    border-radius: 10px;
 }
 
 </style>

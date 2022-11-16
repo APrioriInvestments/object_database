@@ -128,8 +128,13 @@ class InMemoryChannel(ClientToServerChannel, ServerToClientChannel):
 
 
 class InMemServer(Server):
-    def __init__(self, kvstore=None, auth_token=""):
-        Server.__init__(self, kvstore or InMemoryPersistence(), auth_token)
+    def __init__(self, kvstore=None, auth_token="", transactionWatcher=None):
+        Server.__init__(
+            self,
+            kvstore or InMemoryPersistence(),
+            auth_token,
+            transactionWatcher=transactionWatcher,
+        )
         self.channels = []
         self.stopped = threading.Event()
         self.checkForDeadConnectionsLoopThread = threading.Thread(

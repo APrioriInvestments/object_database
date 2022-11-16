@@ -41,6 +41,7 @@ from object_database import (
     RedisPersistence,
     InMemoryPersistence,
     DisconnectedException,
+    LoggingTransactionWatcher,
 )
 from object_database.service_manager.SubprocessServiceManager import SubprocessServiceManager
 from object_database.service_manager.logfiles import Logfile
@@ -278,6 +279,8 @@ def main(argv=None):
     parser.add_argument("--log-max-megabytes", required=False, default="100")
     parser.add_argument("--log-max-total-megabytes", required=False, default="20000")
     parser.add_argument("--log-backup-count", required=False, default="100")
+    parser.add_argument("--transaction-log", required=False, default=None)
+
     parser.add_argument(
         "--watch-aws-image-hash",
         required=False,
@@ -364,6 +367,16 @@ def main(argv=None):
     databaseServer = None
     serviceManager = None
 
+    if parsedArgs.transaction_log:
+        if not parsedArgs.run_db:
+            raise Exception(
+                "Makes no sense to ask for a transaction log if you're not running a DB"
+            )
+
+        transactionWatcher = LoggingTransactionWatcher(parsedArgs.transaction_log)
+    else:
+        transactionWatcher = None
+
     try:
         if parsedArgs.run_db:
             ssl_ctx = sslContextFromCertPathOrNone(parsedArgs.ssl_path)
@@ -375,6 +388,7 @@ def main(argv=None):
                 else InMemoryPersistence(),
                 ssl_context=ssl_ctx,
                 auth_token=parsedArgs.service_token,
+                transactionWatcher=transactionWatcher,
             )
 
             databaseServer.start()
@@ -514,6 +528,9 @@ def main(argv=None):
                 databaseServer.stop()
             except Exception:
                 logger.exception("Failed to stop the database server:")
+
+        if transactionWatcher is not None:
+            transactionWatcher.stop()
 
 
 if __name__ == "__main__":

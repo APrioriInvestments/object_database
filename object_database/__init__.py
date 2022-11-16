@@ -24,6 +24,7 @@ ctypes.CDLL(typed_python._types.__file__, mode=ctypes.RTLD_GLOBAL)
 import object_database._types
 
 from object_database.tcp_server import connect, TcpServer, TcpProxyServer
+from object_database.logging_transaction_watcher import LoggingTransactionWatcher
 from object_database.persistence import RedisPersistence, InMemoryPersistence
 from object_database.schema import Schema, Indexed, Index, SubscribeLazilyByDefault
 from object_database.core_schema import core_schema

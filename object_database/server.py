@@ -33,6 +33,7 @@ import queue
 import time
 import logging
 import threading
+import traceback
 
 DEFAULT_GC_INTERVAL = 900.0
 
@@ -140,10 +141,11 @@ class ConnectedChannel:
 
 
 class Server:
-    def __init__(self, kvstore, auth_token):
+    def __init__(self, kvstore, auth_token, transactionWatcher=None):
         self._kvstore = kvstore
         self._auth_token = auth_token
         self.serializationContext = defaultSerializationContext
+        self.transactionWatcher = transactionWatcher
 
         self._lock = threading.RLock()
 
@@ -1040,6 +1042,59 @@ class Server:
         indices_to_check_versions,
         as_of_version,
         transStartTime=None,
+    ):
+        try:
+            result = self._commitAndBroadcastNewTransaction(
+                sourceChannel,
+                key_value,
+                set_adds,
+                set_removes,
+                keys_to_check_versions,
+                indices_to_check_versions,
+                as_of_version,
+                transStartTime,
+            )
+
+            if self.transactionWatcher:
+                self.transactionWatcher.onTransaction(
+                    sourceChannel.connectionObject._identity
+                    if sourceChannel is not None and sourceChannel.connectionObject is not None
+                    else None,
+                    key_value,
+                    set_adds,
+                    set_removes,
+                    keys_to_check_versions,
+                    indices_to_check_versions,
+                    as_of_version,
+                    None,
+                )
+
+            return result
+        except Exception:
+            self.transactionWatcher.onTransaction(
+                sourceChannel.connectionObject._identity
+                if sourceChannel is not None and sourceChannel.connectionObject is not None
+                else None,
+                key_value,
+                set_adds,
+                set_removes,
+                keys_to_check_versions,
+                indices_to_check_versions,
+                as_of_version,
+                traceback.format_exc(),
+            )
+            raise
+
+    def _commitAndBroadcastNewTransaction(
+        self,
+        sourceChannel,
+        key_value,
+        set_adds,
+        set_removes,
+        keys_to_check_versions,
+        indices_to_check_versions,
+        as_of_version,
+        transStartTime,
     ):
         self._cur_transaction_num += 1
         transaction_id = self._cur_transaction_num

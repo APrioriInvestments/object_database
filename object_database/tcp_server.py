@@ -270,8 +270,12 @@ class ServerChannel(ServerToClientChannel):
 
 
 class TcpServer(Server):
-    def __init__(self, host, port, mem_store, ssl_context, auth_token):
-        Server.__init__(self, mem_store or InMemoryPersistence(), auth_token)
+    def __init__(
+        self, host, port, mem_store, ssl_context, auth_token, transactionWatcher=None
+    ):
+        Server.__init__(
+            self, mem_store or InMemoryPersistence(), auth_token, transactionWatcher
+        )
         self.host = host
         self.port = port
         self.mem_store = mem_store

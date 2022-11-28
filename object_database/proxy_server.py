@@ -1032,7 +1032,7 @@ class ProxyServer:
 
             self._channelToMainServer.sendMessage(
                 ClientToServer.CompleteTransaction(
-                    as_of_version=msg.as_of_version, transaction_guid=guid
+                    as_of_version=msg.as_of_version, transaction_guid=guid, no_log=msg.no_log
                 )
             )
             return

@@ -100,7 +100,7 @@ ClientToServer = Alternative(
     },
     # indicate that a transaction is complete. 'as_of_version' specifies the
     # transaction id that this was based off of.
-    CompleteTransaction={"as_of_version": int, "transaction_guid": int},
+    CompleteTransaction={"as_of_version": int, "transaction_guid": int, "no_log": bool},
     # sent periodically to keep the connection alive.
     Heartbeat={},
     # define a collection of types as we know them. The server will respond with

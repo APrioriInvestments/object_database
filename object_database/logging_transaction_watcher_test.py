@@ -79,3 +79,32 @@ class LoggingTransactionWatcherTest(unittest.TestCase):
         LoggingTransactionWatcher.replayEvents(self.dir.name, handler)
 
         assert count[0]
+
+    def test_can_no_log(self):
+        db = self.createNewDb()
+
+        db.subscribeToType(Object)
+
+        with db.transaction():
+            Object()
+
+        with db.transaction().noLog():
+            Object.lookupOne().k = 10
+
+        with db.transaction().noLog():
+            Object()
+
+        with db.transaction():
+            Object.lookupOne().k = 20
+
+        self.handler.flush()
+
+        count = [0]
+
+        def handler(*args):
+            count[0] += 1
+            print(args)
+
+        LoggingTransactionWatcher.replayEvents(self.dir.name, handler)
+
+        assert count[0] == 3  # one for connection, one for create, one for assign

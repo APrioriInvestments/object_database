@@ -90,6 +90,7 @@ class View(object):
         self._confirmCommitCallback = None
         self._logger = logging.getLogger(__name__)
         self._commitTimeout = None
+        self._no_log = False
 
     def db(self):
         return self._db
@@ -171,6 +172,7 @@ class View(object):
                 indexReads,
                 tid,
                 confirmCallback,
+                no_log=self._no_log,
             )
 
             if not self._confirmCommitCallback:
@@ -275,6 +277,11 @@ class Transaction(View):
             pass
 
         self._confirmCommitCallback = ignoreConfirmResult
+
+        return self
+
+    def noLog(self):
+        self._no_log = True
 
         return self
 

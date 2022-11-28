@@ -891,6 +891,7 @@ class Server:
                             data["index_versions"],
                             msg.as_of_version,
                             transStartTime=transStartTime,
+                            no_log=msg.no_log,
                         )
             except Exception:
                 self._logger.exception("Unknown error committing transaction:")
@@ -1042,6 +1043,7 @@ class Server:
         indices_to_check_versions,
         as_of_version,
         transStartTime=None,
+        no_log=False,
     ):
         try:
             result = self._commitAndBroadcastNewTransaction(
@@ -1055,7 +1057,7 @@ class Server:
                 transStartTime,
             )
 
-            if self.transactionWatcher:
+            if self.transactionWatcher and not no_log:
                 self.transactionWatcher.onTransaction(
                     sourceChannel.connectionObject._identity
                     if sourceChannel is not None and sourceChannel.connectionObject is not None

@@ -748,6 +748,7 @@ class DatabaseConnection:
         indices_to_check_versions,
         as_of_version,
         confirmCallback,
+        no_log=False,
     ):
         assert confirmCallback is not None
 
@@ -862,6 +863,6 @@ class DatabaseConnection:
 
         self._channel.write(
             ClientToServer.CompleteTransaction(
-                as_of_version=as_of_version, transaction_guid=transaction_guid
+                as_of_version=as_of_version, transaction_guid=transaction_guid, no_log=no_log
             )
         )

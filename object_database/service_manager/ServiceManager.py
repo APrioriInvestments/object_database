@@ -307,7 +307,7 @@ class ServiceManager(object):
     def updateServiceHostStats(self):
         if time.time() - self._lastMetricUpdateTimestamp > self.metricUpdateInterval:
             self._lastMetricUpdateTimestamp = time.time()
-            with self.db.transaction():
+            with self.db.transaction().noLog():
                 self.serviceHostObject.cpuUse = psutil.cpu_percent() / 100.0
                 self.serviceHostObject.actualMemoryUseGB = (
                     psutil.virtual_memory().used / 1024**3

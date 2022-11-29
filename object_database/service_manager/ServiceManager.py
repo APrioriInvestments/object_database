@@ -318,7 +318,7 @@ class ServiceManager(object):
     def collectOrphanInstances(self):
         """Remove instances whose associated service no longer exists."""
         orphans = []
-        with self.db.transaction():
+        with self.db.view():
             for instance in service_schema.ServiceInstance.lookupAll(
                 host=self.serviceHostObject
             ):

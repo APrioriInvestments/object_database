@@ -6,10 +6,44 @@
 // Simple grid-based sheet component
 const templateString = `
 <style>
+.animation-fade-out {
+  animation: fade-out 1s steps(90) forwards;
+ -webkit-animation: fade-out 1s steps(90) forwards;
+  -moz-animation: fade-out 1s steps(90) forwards;
+}
+
+.animation-fade-in {
+  animation: fade-in 0.5s steps(90) forwards;
+ -webkit-animation: fade-in 0.5s steps(90) forwards;
+  -moz-animation: fade-in 0.5s steps(90) forwards;
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0.0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 :host {
    display: grid;
    user-select: none;
    overflow: hidden; /* For auto-resize without scrolling on */
+}
+
+#wrapper {
+    overflow: auto;
 }
 
 .depth {
@@ -67,9 +101,8 @@ class Tree extends HTMLElement {
             // cache the data; TODO: think through this
             this.data = data;
         }
-        // mark the first node as the root
-        data.root = true;
         const wrapper = this.shadowRoot.querySelector("#wrapper");
+        wrapper.addEventListener("dblclick", this.onNodeDblclick);
         const nodeDepth = document.createElement("div");
         nodeDepth.classList.add("depth");
         nodeDepth.setAttribute("id", "depth-0");
@@ -77,16 +110,27 @@ class Tree extends HTMLElement {
         const nodeWrapper = document.createElement("div");
         nodeWrapper.classList.add("child-wrapper");
         nodeDepth.append(nodeWrapper);
-        this.setupNode(data, nodeWrapper, 1);
-        this.setupPaths(data);
+        this.setupNode(data, nodeWrapper, 1, true); // this is a root node
+        // setup the node paths
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', "svg");
+        svg.setAttribute("width", "100%");
+        svg.setAttribute("height", "100%");
+        svg.style.position = "absolute";
+        svg.style.left = 0;
+        svg.style.top = 0;
+        wrapper.append(svg);
+        this.setupPaths(svg, data);
+        // fade the wrapper
+        wrapper.classList.remove("animation-fade-out");
+        wrapper.classList.add("animation-fade-in");
     }
 
-    setupNode(nodeData, wrapperDiv, depth){
+    setupNode(nodeData, wrapperDiv, depth, root=false){
         if(nodeData){
             const node = document.createElement("tree-node");
             node.name = nodeData.name;
             node.setAttribute("id", nodeData.id);
-            if (nodeData.root) {
+            if (root) {
                 node.setAttribute("data-root-node", true);
             }
             wrapperDiv.append(node);
@@ -107,7 +151,6 @@ class Tree extends HTMLElement {
                 depthDiv.append(childWrapper);
                 nodeData.children.forEach((childData) => {
                     this.setupNode(childData, childWrapper, depth + 1);
-                    // this.addSVGPath(node, child);
 
                 })
             }
@@ -115,26 +158,27 @@ class Tree extends HTMLElement {
         }
     }
 
-    setupPaths(nodeData){
+    setupPaths(svg, nodeData){
         if (nodeData) {
             const parent = this.shadowRoot.querySelector(`#${nodeData.id}`);
             nodeData.children.forEach((childData) => {
                 const child = this.shadowRoot.querySelector(`#${childData.id}`);
-                this.addSVGPath(parent, child);
-                this.setupPaths(childData);
+                this.addSVGPath(svg, parent, child);
+                this.setupPaths(svg, childData);
             })
         }
     }
+
     /**
       * I add an SVG bezier curve which starts at the bottom middle
       * of the startNode and ends at the top middle of the endNode
       * NODE: svg-type elemnents need to be created using the
       * SVG name space, ie document.createElementNS...
+      * @param {svg-element} svg
       * @param {element} startNode
       * @param {element} endNode
       */
-    addSVGPath(startNode, endNode){
-        const wrapper = this.shadowRoot.querySelector("#wrapper");
+    addSVGPath(svg, startNode, endNode){
         const startRect = startNode.getBoundingClientRect();
 
         const startY = startRect.bottom;
@@ -143,14 +187,6 @@ class Tree extends HTMLElement {
         const endY = endRect.top;
         const endX = endRect.left + (endRect.width / 2);
 
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', "svg");
-        svg.setAttribute("width", "100%");
-        svg.setAttribute("height", "100%");
-        svg.setAttribute("data-start-node-id", startNode.id);
-        svg.setAttribute("data-end-node-id", endNode.id);
-        svg.style.position = "absolute";
-        svg.style.left = 0;
-        svg.style.top = 0;
 
         const line = document.createElementNS('http://www.w3.org/2000/svg', "line");
         line.setAttribute("x1", `${startX}`);
@@ -159,8 +195,9 @@ class Tree extends HTMLElement {
         line.setAttribute("y2", `${endY}`);
         line.setAttribute("stroke", "var(--palette-blue)");
         line.setAttribute("stroke-width", "3px");
+        line.setAttribute("data-start-node-id", startNode.id);
+        line.setAttribute("data-end-node-id", endNode.id);
         svg.append(line);
-        wrapper.append(svg);
     }
 
     /**
@@ -174,8 +211,12 @@ class Tree extends HTMLElement {
     onNodeDblclick(event){
         this.clear();
         // if clicking on the root node, reset back to cached this.data tree
-        if (event.target.hasAttribute("data-root-node")) {
+        if (event.target.nodeName != "TREE-NODE") {
             this.setup(this.data);
+        } else if (event.target.hasAttribute("data-root-node")) {
+            const id = event.target.id;
+            const subTree = this.findParentSubTree(id, this.data);
+            this.setup(subTree, false); // do not cache this data
         } else {
             const id = event.target.id;
             const subTree = this.findSubTree(id, this.data);
@@ -201,8 +242,29 @@ class Tree extends HTMLElement {
         return subTree;
     }
 
+    /**
+     * I recursively walk the tree to find the corresponding
+     * parent node, and when I do I return its subtree
+     **/
+    findParentSubTree(id, node){
+        let subTree;
+        const isParent = node.children.some((child) => child.id == id)
+        if (isParent) {
+            subTree = node;
+        } else {
+            node.children.forEach((childNode) => {
+                const out = this.findParentSubTree(id, childNode);
+                if (out) {
+                    subTree = out;
+                }
+            })
+        }
+        return subTree;
+    }
     clear(){
         const wrapper = this.shadowRoot.querySelector("#wrapper");
+        wrapper.classList.remove("animation-fade-in");
+        wrapper.classList.add("animation-fade-out");
         wrapper.replaceChildren();
     }
 }

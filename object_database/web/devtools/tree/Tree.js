@@ -87,16 +87,23 @@ class Tree extends HTMLElement {
         this.onWindowResize = this.onWindowResize.bind(this);
         // event handlers
         this.onNodeDblclick = this.onNodeDblclick.bind(this);
+        this.onKeyUp = this.onKeyUp.bind(this);
     }
 
     connectedCallback(){
         if(this.isConnected){
             // add event listeners
             window.addEventListener("resize", this.onWindowResize);
+            document.addEventListener("keyup", this.onKeyUp);
         }
     }
 
+    disconnectedCallback(){
+        document.removeEventListener("key", this.onKeyUp);
+    }
+
     setup(data, cache=true){
+        this.clear();
         if (cache){
             // cache the data; TODO: think through this
             this.data = data;
@@ -204,12 +211,10 @@ class Tree extends HTMLElement {
       * On a window resize I first clear the tree and then redraw it
       **/
     onWindowResize(event){
-        this.clear();
         this.setup(this.data);
     }
 
     onNodeDblclick(event){
-        this.clear();
         // if clicking on the root node, reset back to cached this.data tree
         if (event.target.nodeName != "TREE-NODE") {
             this.setup(this.data);
@@ -224,6 +229,14 @@ class Tree extends HTMLElement {
         }
     }
 
+    onKeyUp(event){
+        if (event.key == "ArrowUp") {
+            // re-render the tree from the parent of the current root node
+            const rootNode = this.shadowRoot.querySelector("tree-node[data-root-node]");
+            const subTree = this.findParentSubTree(rootNode.id, this.data);
+            this.setup(subTree, false); // do not cache this data
+        }
+    }
     /**
       * I recursively walk the tree to find the corresponding
       * node, and when I do I return its subtree
@@ -247,6 +260,10 @@ class Tree extends HTMLElement {
      * parent node, and when I do I return its subtree
      **/
     findParentSubTree(id, node){
+        // if already at the top of the tree return it
+        if (id == this.data.id) {
+            return this.data;
+        }
         let subTree;
         const isParent = node.children.some((child) => child.id == id)
         if (isParent) {

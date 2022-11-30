@@ -26,6 +26,10 @@ const templateString = `
     justify-content: space-around;
 }
 
+svg {
+    z-index: -1;
+}
+
 </style>
 <div id="wrapper"></div>
 `;
@@ -47,6 +51,8 @@ class Tree extends HTMLElement {
         this.setupPaths = this.setupPaths.bind(this);
         this.addSVGPath = this.addSVGPath.bind(this);
         this.onWindowResize = this.onWindowResize.bind(this);
+        // event handlers
+        this.onNodeDblclick = this.onNodeDblclick.bind(this);
     }
 
     connectedCallback(){
@@ -56,9 +62,13 @@ class Tree extends HTMLElement {
         }
     }
 
-    setup(data){
-        // cache the data; TODO: think through this
-        this.data = data;
+    setup(data, cache=true){
+        if (cache){
+            // cache the data; TODO: think through this
+            this.data = data;
+        }
+        // mark the first node as the root
+        data.root = true;
         const wrapper = this.shadowRoot.querySelector("#wrapper");
         const nodeDepth = document.createElement("div");
         nodeDepth.classList.add("depth");
@@ -76,9 +86,13 @@ class Tree extends HTMLElement {
             const node = document.createElement("tree-node");
             node.name = nodeData.name;
             node.setAttribute("id", nodeData.id);
+            if (nodeData.root) {
+                node.setAttribute("data-root-node", true);
+            }
             wrapperDiv.append(node);
+            node.addEventListener("dblclick", this.onNodeDblclick);
             // setup the children in a new node depth
-            if(nodeData.children.length){
+            if (nodeData.children.length) {
                 // if the corresponding depth has not been added, do so now
                 let depthDiv = this.shadowRoot.querySelector(`#depth-${depth}`);
                 if (!depthDiv) {
@@ -157,9 +171,39 @@ class Tree extends HTMLElement {
         this.setup(this.data);
     }
 
+    onNodeDblclick(event){
+        this.clear();
+        // if clicking on the root node, reset back to cached this.data tree
+        if (event.target.hasAttribute("data-root-node")) {
+            this.setup(this.data);
+        } else {
+            const id = event.target.id;
+            const subTree = this.findSubTree(id, this.data);
+            this.setup(subTree, false); // do not cache this data
+        }
+    }
+
+    /**
+      * I recursively walk the tree to find the corresponding
+      * node, and when I do I return its subtree
+      **/
+    findSubTree(id, node){
+        if(node.id == id) {
+            return node;
+        }
+        let subTree;
+        node.children.forEach((childNode) => {
+            const out = this.findSubTree(id, childNode);
+            if (out) {
+                subTree = out;
+            }
+        })
+        return subTree;
+    }
+
     clear(){
         const wrapper = this.shadowRoot.querySelector("#wrapper");
-        wrapper.innerHTML = "";
+        wrapper.replaceChildren();
     }
 }
 

@@ -16,6 +16,11 @@ const templateString = `
     border-radius: 10px;
 }
 
+div#wrapper {
+    max-width: 100px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
 </style>
 <div id="wrapper">
 <span id="name"></span>

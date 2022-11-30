@@ -18,6 +18,7 @@ object_database/web/content/dist
 \#*
 \.#*
 *~
+.projectile
 
 # leading slash means only match at repo-root level
 /.python-version

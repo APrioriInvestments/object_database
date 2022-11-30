@@ -1,4 +1,4 @@
-import {CellsTree} from './tree.js';
+// import {CellsTree} from './tree.js';
 
 // GLOBALS (TODO: should be handled better)
 let state = null;
@@ -49,8 +49,12 @@ const cellsTreeDisplay = (cells) => {
     // init and run
     // NOTE: the tree class itself attaches the
     // svg element to #main
-    const cTree = new CellsTree(cells);
-    cTree.setupTree();
+    // const cTree = new CellsTree(cells);
+    // cTree.setupTree();
+    const tree = document.createElement("tree-graph");
+    const main = document.getElementById("main");
+    main.append(tree);
+    tree.setup(cells);
 }
 
 

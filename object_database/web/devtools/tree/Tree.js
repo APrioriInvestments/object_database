@@ -39,11 +39,10 @@ const templateString = `
 :host {
    display: grid;
    user-select: none;
-   overflow: hidden; /* For auto-resize without scrolling on */
+    width: 100%!important;
 }
 
 #wrapper {
-    overflow: auto;
 }
 
 .depth {
@@ -78,6 +77,9 @@ class Tree extends HTMLElement {
 
         this.data;
 
+        this.maxDepth = 3; //TODO!!!!
+        this.attainedDepth;
+
         // bind methods
         this.setup = this.setup.bind(this);
         this.clear = this.clear.bind(this);
@@ -108,6 +110,8 @@ class Tree extends HTMLElement {
             // cache the data; TODO: think through this
             this.data = data;
         }
+        // TODO depth should be an attribute
+        this.attainedDepth = 0;
         const wrapper = this.shadowRoot.querySelector("#wrapper");
         wrapper.addEventListener("dblclick", this.onNodeDblclick);
         const nodeDepth = document.createElement("div");
@@ -120,12 +124,15 @@ class Tree extends HTMLElement {
         this.setupNode(data, nodeWrapper, 1, true); // this is a root node
         // setup the node paths
         const svg = document.createElementNS('http://www.w3.org/2000/svg', "svg");
-        svg.setAttribute("width", "100%");
+        svg.setAttribute("width", wrapper.getBoundingClientRect().width);
         svg.setAttribute("height", "100%");
         svg.style.position = "absolute";
         svg.style.left = 0;
         svg.style.top = 0;
         wrapper.append(svg);
+
+        // TODO depth should be an attribute
+        this.attainedDepth = 0;
         this.setupPaths(svg, data);
         // fade the wrapper
         wrapper.classList.remove("animation-fade-out");
@@ -133,7 +140,8 @@ class Tree extends HTMLElement {
     }
 
     setupNode(nodeData, wrapperDiv, depth, root=false){
-        if(nodeData){
+        if(nodeData && this.attainedDepth <= this.maxDepth){
+            this.attainedDepth += 1; // TODO
             const node = document.createElement("tree-node");
             node.name = nodeData.name;
             node.setAttribute("id", nodeData.id);
@@ -166,12 +174,15 @@ class Tree extends HTMLElement {
     }
 
     setupPaths(svg, nodeData){
-        if (nodeData) {
+        if (nodeData && this.attainedDepth < this.maxDepth) {
+            this.attainedDepth += 1;
             const parent = this.shadowRoot.querySelector(`#${nodeData.id}`);
             nodeData.children.forEach((childData) => {
                 const child = this.shadowRoot.querySelector(`#${childData.id}`);
-                this.addSVGPath(svg, parent, child);
-                this.setupPaths(svg, childData);
+                if (parent && child) {
+                    this.addSVGPath(svg, parent, child);
+                    this.setupPaths(svg, childData);
+                }
             })
         }
     }

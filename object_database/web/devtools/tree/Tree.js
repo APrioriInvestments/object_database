@@ -63,6 +63,10 @@ svg {
     z-index: -1;
 }
 
+.non-final-leaf {
+    background-color: var(--palette-lightblue)
+}
+
 </style>
 <div id="wrapper"></div>
 `;
@@ -76,9 +80,6 @@ class Tree extends HTMLElement {
         this.shadowRoot.appendChild(this.template.content.cloneNode(true));
 
         this.data;
-
-        this.maxDepth = 3; //TODO!!!!
-        this.attainedDepth;
 
         // bind methods
         this.setup = this.setup.bind(this);
@@ -97,6 +98,7 @@ class Tree extends HTMLElement {
             // add event listeners
             window.addEventListener("resize", this.onWindowResize);
             document.addEventListener("keyup", this.onKeyUp);
+            this.setAttribute("display-depth", 3);
         }
     }
 
@@ -110,8 +112,6 @@ class Tree extends HTMLElement {
             // cache the data; TODO: think through this
             this.data = data;
         }
-        // TODO depth should be an attribute
-        this.attainedDepth = 0;
         const wrapper = this.shadowRoot.querySelector("#wrapper");
         wrapper.addEventListener("dblclick", this.onNodeDblclick);
         const nodeDepth = document.createElement("div");
@@ -130,9 +130,6 @@ class Tree extends HTMLElement {
         svg.style.left = 0;
         svg.style.top = 0;
         wrapper.append(svg);
-
-        // TODO depth should be an attribute
-        this.attainedDepth = 0;
         this.setupPaths(svg, data);
         // fade the wrapper
         wrapper.classList.remove("animation-fade-out");
@@ -140,8 +137,7 @@ class Tree extends HTMLElement {
     }
 
     setupNode(nodeData, wrapperDiv, depth, root=false){
-        if(nodeData && this.attainedDepth <= this.maxDepth){
-            this.attainedDepth += 1; // TODO
+        if(nodeData){
             const node = document.createElement("tree-node");
             node.name = nodeData.name;
             node.setAttribute("id", nodeData.id);
@@ -152,6 +148,12 @@ class Tree extends HTMLElement {
             node.addEventListener("dblclick", this.onNodeDblclick);
             // setup the children in a new node depth
             if (nodeData.children.length) {
+                // if we are at the display-depth don't iterate on the children
+                // simply mark that the nodes have children
+                if (depth == this.getAttribute("display-depth")){
+                    node.classList.add("non-final-leaf");
+                    return;
+                }
                 // if the corresponding depth has not been added, do so now
                 let depthDiv = this.shadowRoot.querySelector(`#depth-${depth}`);
                 if (!depthDiv) {
@@ -174,7 +176,7 @@ class Tree extends HTMLElement {
     }
 
     setupPaths(svg, nodeData){
-        if (nodeData && this.attainedDepth < this.maxDepth) {
+        if (nodeData) {
             this.attainedDepth += 1;
             const parent = this.shadowRoot.querySelector(`#${nodeData.id}`);
             nodeData.children.forEach((childData) => {
@@ -206,6 +208,7 @@ class Tree extends HTMLElement {
         const endX = endRect.left + (endRect.width / 2);
 
 
+        /**
         const line = document.createElementNS('http://www.w3.org/2000/svg', "line");
         line.setAttribute("x1", `${startX}`);
         line.setAttribute("y1", `${startY}`);
@@ -216,6 +219,33 @@ class Tree extends HTMLElement {
         line.setAttribute("data-start-node-id", startNode.id);
         line.setAttribute("data-end-node-id", endNode.id);
         svg.append(line);
+        **/
+        // add a quadratic bezier curve path
+        let midX;
+        let controlX;
+        let controlSlope = 1;
+        if (endX < startX) {
+            midX = endX + 0.5 * (startX - endX);
+            controlX = midX + 0.5 * (startX - midX);
+            controlSlope *= -1;
+        } else {
+            midX = startX + 0.5 * (endX - startX);
+            controlX = startX + 0.5 * (startX - midX);
+        }
+        const midY = startY + 0.5 * (endY - startY);
+        let controlY = startY + 0.5 * (midY - startY);
+        controlX *= controlSlope;
+        controlY *= controlSlope;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', "path");
+        path.setAttribute("stroke", "var(--palette-blue)");
+        path.setAttribute("stroke-width", "3px");
+        path.setAttribute("fill", "transparent");
+        path.setAttribute("data-start-node-id", startNode.id);
+        path.setAttribute("data-end-node-id", endNode.id);
+        const d = `M ${startX} ${startY} Q ${controlX} ${controlY}, ${midX} ${midY} T ${endX} ${endY}`;
+        path.setAttribute("d", d);
+        svg.append(path);
+
     }
 
     /**
@@ -294,6 +324,16 @@ class Tree extends HTMLElement {
         wrapper.classList.remove("animation-fade-in");
         wrapper.classList.add("animation-fade-out");
         wrapper.replaceChildren();
+    }
+
+    static get observedAttributes() {
+        return ["display-depth"];
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+        if (name == "display-depth") {
+            this.setup(this.data);
+        }
     }
 }
 

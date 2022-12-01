@@ -19,6 +19,7 @@
 PyMethodDef PyView_methods[] = {
     {"enter", (PyCFunction)PyView::enter, METH_VARARGS | METH_KEYWORDS, NULL},
     {"exit", (PyCFunction)PyView::exit, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"releaseRefcount", (PyCFunction)PyView::releaseRefcount, METH_VARARGS | METH_KEYWORDS, NULL},
     {"setSerializationContext", (PyCFunction)PyView::setSerializationContext, METH_VARARGS | METH_KEYWORDS, NULL},
     {"addViewWatcher", (PyCFunction)PyView::addViewWatcher, METH_VARARGS | METH_KEYWORDS, NULL},
     {"markFieldRead", (PyCFunction)PyView::markFieldRead, METH_VARARGS | METH_KEYWORDS, NULL},

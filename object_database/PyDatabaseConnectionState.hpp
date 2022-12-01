@@ -65,6 +65,8 @@ public:
     static PyObject* markObjectNotLazy(PyDatabaseConnectionState* self, PyObject* args, PyObject* kwargs);
 
     static PyObject* setTriggerLazyLoad(PyDatabaseConnectionState* self, PyObject* args, PyObject* kwargs);
+
+    static PyObject* serializedObjectDataAtTid(PyDatabaseConnectionState* self, PyObject* args, PyObject* kwargs);
 };
 
 extern PyTypeObject PyType_DatabaseConnectionState;

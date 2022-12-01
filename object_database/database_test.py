@@ -21,6 +21,7 @@ from object_database.view import (
     RevisionConflictException,
     DisconnectedException,
     ObjectDoesntExistException,
+    ServerError,
 )
 from object_database.database_connection import DatabaseConnection
 from object_database.tcp_server import TcpServer
@@ -275,6 +276,47 @@ class ObjectDatabaseTests:
 
         with db2.transaction():
             z.holding = 10
+
+    def test_improper_transactions_fail(self):
+        db = self.createNewDb()
+        db.subscribeToSchema(schema)
+
+        with db.transaction():
+            c = Counter()
+
+        transactionsToSuppress = [1]
+
+        def shouldSuppressMsg(msg):
+            if msg.matches.Transaction and transactionsToSuppress[0]:
+                transactionsToSuppress[0] -= 1
+                return True
+            return False
+
+        # patch this 'db' instance so that we can intercept its messages
+        db._shouldSuppressMessage = shouldSuppressMsg
+
+        with db.transaction():
+            c.delete()
+
+        # we should have dropped this transaction on the ground
+        assert transactionsToSuppress[0] == 0
+
+        # make a new transaction so that our 'asOf' tid goes up
+        with db.transaction():
+            Counter()
+
+        # 'c' should still _look_ like it exists
+        with db.view():
+            assert c.exists()
+
+        # we should be able to make this transaction
+        pendingTransaction = db.transaction()
+        with pendingTransaction.nocommit():
+            c.delete()
+
+        # but when we submit it it should complain at the server level
+        with self.assertRaises(ServerError):
+            pendingTransaction.commit()
 
     def test_assigning_dicts(self):
         db = self.createNewDb()

@@ -32,23 +32,35 @@ class LoggingTransactionWatcher:
         self,
         connectionId,
         key_value,
+        prerequisites,
         set_adds,
         set_removes,
         keys_to_check_versions,
         indices_to_check_versions,
         as_of_version,
+        transaction_id,
+        transaction_guid,
+        channelConnsSentTo,
+        succeeded,
+        conflictingKeyIfFailed,
         errorOrNone,
     ):
         serializedBytes = self.serializationContext.serialize(
             dict(
                 connectionId=connectionId,
                 key_value=key_value,
+                prerequisites=prerequisites,
                 set_adds=set_adds,
                 set_removes=set_removes,
                 keys_to_check_versions=keys_to_check_versions,
                 indices_to_check_versions=indices_to_check_versions,
                 as_of_version=as_of_version,
                 errorOrNone=errorOrNone,
+                transaction_id=transaction_id,
+                transaction_guid=transaction_guid,
+                succeeded=succeeded,
+                conflictingKeyIfFailed=conflictingKeyIfFailed,
+                channelConnsSentTo=channelConnsSentTo,
             )
         )
         with self.lock:
@@ -99,10 +111,16 @@ class LoggingTransactionWatcher:
             onEvent(
                 packet["connectionId"],
                 packet["key_value"],
+                packet["prerequisites"],
                 packet["set_adds"],
                 packet["set_removes"],
                 packet["keys_to_check_versions"],
                 packet["indices_to_check_versions"],
                 packet["as_of_version"],
+                packet["transaction_id"],
+                packet["transaction_guid"],
+                packet["succeeded"],
+                packet["conflictingKeyIfFailed"],
+                packet["channelConnsSentTo"],
                 packet["errorOrNone"],
             )

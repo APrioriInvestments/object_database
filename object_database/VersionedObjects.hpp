@@ -39,6 +39,10 @@ We provide functionality to
 
 class VersionedObjects {
 public:
+    std::pair<bool, Bytes> serializedObjectDataAtTid(object_id i, field_id f, transaction_id tid) {
+        return versionedObjectsForFieldId(f)->serializedObjectDataAtTid(i, f, tid);
+    }
+
     bool existsAtTransaction(Type* t, field_id fieldId, object_id objectId, transaction_id version) {
         return versionedObjectsForFieldId(fieldId)->existsAtTransaction(t, objectId, version);
     }

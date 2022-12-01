@@ -496,6 +496,26 @@ public:
         }
     }
 
+    std::pair<bool, Bytes> serializedObjectDataAtTid(object_id i, field_id f, transaction_id tid) {
+        transaction_id tidToUse = bestTransactionId(i, tid);
+
+        if (tidToUse == NO_TRANSACTION) {
+            return std::pair<bool, Bytes>(false, Bytes());
+        }
+
+        if (isDeleted(i, tidToUse)) {
+            return std::pair<bool, Bytes>(false, Bytes());
+        }
+
+        auto it = m_serialized_values.find(std::make_pair(i, tidToUse));
+        if (it != m_serialized_values.end()) {
+            return std::pair<bool, Bytes>(true, it->second);
+        }
+
+        return std::pair<bool, Bytes>(false, Bytes());
+    }
+
+
 private:
     //the field we represent
     field_id m_field_id;

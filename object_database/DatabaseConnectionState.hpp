@@ -192,6 +192,11 @@ public:
       return it->second;
    }
 
+   // pair of 'success', Bytes with data
+   std::pair<bool, Bytes> serializedObjectDataAtTid(object_id i, field_id f, transaction_id tid) {
+      return m_objects->serializedObjectDataAtTid(i, f, tid);
+   }
+
    // is an object visible to transaction 'tid'?
    bool objectIsVisible(SchemaAndTypeName t, object_id i, transaction_id tid) {
       transaction_id tidForType = typeSubscriptionLowestTransaction(t);

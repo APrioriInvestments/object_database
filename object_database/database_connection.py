@@ -39,6 +39,7 @@ TransactionResult = Alternative(
     "TransactionResult",
     Success={},
     RevisionConflict={"key": OneOf(str, ObjectFieldId, IndexId)},
+    ServerException={"traceback": str},
     Disconnected={},
 )
 
@@ -460,8 +461,15 @@ class DatabaseConnection:
 
             return Transaction(self, transaction_id)
 
+    def _shouldSuppressMessage(self, msg):
+        """Patchable interface for testing what happens when messages get dropped"""
+        return False
+
     def _onMessage(self, msg):
         self._messages_received += 1
+
+        if self._shouldSuppressMessage(msg):
+            return
 
         if msg.matches.Disconnected:
             with self._lock:
@@ -486,6 +494,8 @@ class DatabaseConnection:
                         TransactionResult.Success()
                         if msg.success
                         else TransactionResult.RevisionConflict(key=msg.badKey)
+                        if not msg.isException
+                        else TransactionResult.ServerException(traceback=msg.badKey)
                     )
                 except Exception:
                     self._logger.exception("Transaction commit callback threw an exception:")
@@ -763,12 +773,28 @@ class DatabaseConnection:
 
         out_writes = {}
 
+        # we only compute our prerequisites on the fields we read since we're
+        # supposed to be guaranteed that we can see these. keys_to_check_versions is a
+        # list, so we need to convert to a set to avoid an expensive lookup
+        keys_to_check_versions_set = set(keys_to_check_versions)
+
+        def computePrerequisites(out_writes):
+            {
+                writtenKey: self._connection_state.serializedObjectDataAtTid(
+                    writtenKey.objId, writtenKey.fieldId, as_of_version
+                )
+                for writtenKey in out_writes
+                if writtenKey in keys_to_check_versions_set
+            }
+            return {}
+
         for k, v in key_value.items():
             out_writes[k] = v
             if len(out_writes) > 10000:
                 self._channel.write(
                     ClientToServer.TransactionData(
                         writes=out_writes,
+                        prerequisites=computePrerequisites(out_writes),
                         set_adds={},
                         set_removes={},
                         key_versions=(),
@@ -853,6 +879,7 @@ class DatabaseConnection:
         self._channel.write(
             ClientToServer.TransactionData(
                 writes=out_writes,
+                prerequisites=computePrerequisites(out_writes),
                 set_adds=out_set_adds,
                 set_removes=out_set_removes,
                 key_versions=keys_to_check_versions,

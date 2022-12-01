@@ -92,6 +92,7 @@ ClientToServer = Alternative(
     # this can come in chunks, to prevent messages getting too large.
     TransactionData={
         "writes": ConstDict(ObjectFieldId, OneOf(None, bytes)),
+        "prerequisites": ConstDict(ObjectFieldId, OneOf(None, bytes)),
         "set_adds": ConstDict(IndexId, TupleOf(ObjectId)),
         "set_removes": ConstDict(IndexId, TupleOf(ObjectId)),
         "key_versions": TupleOf(ObjectFieldId),
@@ -161,6 +162,7 @@ ServerToClient = Alternative(
         "transaction_guid": int,
         "success": bool,
         "badKey": OneOf(None, ObjectFieldId, IndexId, str),
+        "isException": bool,
     },
     # specify how each field in a schema is mapped.
     SchemaMapping={"schema": str, "mapping": ConstDict(FieldDefinition, int)},

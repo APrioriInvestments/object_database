@@ -204,6 +204,17 @@ public:
         return incref(Py_None);
     }
 
+    static PyObject* releaseRefcount(PyView* self, PyObject* args, PyObject* kwargs) {
+        static const char *kwlist[] = {NULL};
+
+        if (!PyArg_ParseTupleAndKeywords(args, kwargs, "", (char**)kwlist)) {
+            return NULL;
+        }
+
+        self->state->releaseRefcount();
+        return incref(Py_None);
+    }
+
     static PyObject* markFieldRead(PyView* self, PyObject* args, PyObject* kwargs) {
         static const char *kwlist[] = {"field_id", "oid", NULL};
 

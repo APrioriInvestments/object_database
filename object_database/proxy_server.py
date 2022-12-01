@@ -1000,6 +1000,7 @@ class ProxyServer:
             self._channelToMainServer.sendMessage(
                 ClientToServer.TransactionData(
                     writes=msg.writes,
+                    prerequisites=msg.prerequisites,
                     set_adds=msg.set_adds,
                     set_removes=msg.set_removes,
                     key_versions=msg.key_versions,
@@ -1154,7 +1155,10 @@ class ProxyServer:
 
                 channel.sendMessage(
                     ServerToClient.TransactionResult(
-                        transaction_guid=guid, success=msg.success, badKey=msg.badKey
+                        transaction_guid=guid,
+                        success=msg.success,
+                        badKey=msg.badKey,
+                        isException=msg.isException,
                     )
                 )
 

@@ -30,6 +30,10 @@ class RevisionConflictException(Exception):
     pass
 
 
+class ServerError(Exception):
+    pass
+
+
 class FieldNotDefaultInitializable(Exception):
     pass
 
@@ -175,6 +179,11 @@ class View(object):
                 no_log=self._no_log,
             )
 
+            # now that we no longer need to look at our
+            # data for our prerequisites, we can release the
+            # view
+            self._view.releaseRefcount()
+
             if not self._confirmCommitCallback:
                 # this is the synchronous case - we want to wait for the confirm
                 t0 = time.time()
@@ -203,6 +212,8 @@ class View(object):
                     else:
                         fieldDef = None
                     raise RevisionConflictException(res.key, fieldDef)
+                if res.matches.ServerException:
+                    raise ServerError(res.traceback)
 
                 assert False, "unknown transaction result: " + str(res)
 
@@ -237,6 +248,8 @@ class View(object):
 
         if type is None and self._writeable:
             self.commit()
+        else:
+            self._view.releaseRefcount()
 
 
 class ViewWatcher:

@@ -65,6 +65,7 @@ class InMemoryPersistence(object):
             if key not in self.values:
                 self.values[key] = set()
             for value in values:
+                assert value not in self.values[key], (key, value, self.values[key])
                 self.values[key].add(value)
 
     def _setRemove(self, key, values):
@@ -272,6 +273,7 @@ class RedisPersistence(object):
                 if to_add:
                     if key not in self.cache or not self.cache[key]:
                         self.cache[key] = set()
+                        assert key not in new_sets
                         new_sets.add(key)
 
                     for val in to_add:
@@ -282,7 +284,7 @@ class RedisPersistence(object):
                     assert self.cache.get(key)
 
                     for val in to_remove:
-                        self.cache[key].discard(val)
+                        self.cache[key].remove(val)
 
                     if not self.cache[key]:
                         dropped_sets.add(key)

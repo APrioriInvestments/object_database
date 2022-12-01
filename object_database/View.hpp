@@ -41,14 +41,15 @@ public:
       m_is_entered(false),
       m_ever_entered(false),
       m_versioned_objects(*connection->getVersionedObjects()),
-      m_connection_state(connection)
+      m_connection_state(connection),
+      m_refcount_released(false)
    {
       m_connection_state->increfVersion(m_tid);
       m_serialization_context = m_connection_state->getContext();
    }
 
    ~View() {
-      if (!m_ever_entered) {
+      if (!m_refcount_released) {
          m_connection_state->decrefVersion(m_tid);
       }
    }
@@ -66,9 +67,14 @@ public:
    }
 
    void enter() {
+      if (m_refcount_released) {
+         throw std::runtime_error("View refcount is already released");
+      }
+
       if (m_is_entered || m_ever_entered) {
          throw std::runtime_error("Can't enter a view twice.");
       }
+
       m_ever_entered = true;
       m_is_entered = true;
       m_enclosing_view = s_current_view;
@@ -87,7 +93,13 @@ public:
       m_is_entered = false;
       s_current_view = m_enclosing_view;
       m_enclosing_view = nullptr;
-      m_connection_state->decrefVersion(m_tid);
+   }
+
+   void releaseRefcount() {
+      if (!m_refcount_released) {
+         m_refcount_released = true;
+         m_connection_state->decrefVersion(m_tid);
+      }
    }
 
    bool objectIsVisible(SchemaAndTypeName objType, object_id oid) {
@@ -391,6 +403,8 @@ private:
    bool m_is_entered;
 
    bool m_ever_entered;
+
+   bool m_refcount_released;
 
    std::vector<std::shared_ptr<ViewWatcher> > m_view_watchers;
 

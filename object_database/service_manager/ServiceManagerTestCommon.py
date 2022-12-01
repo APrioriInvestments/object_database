@@ -33,6 +33,11 @@ VERBOSE = False if os.environ.get("TRAVIS_CI", None) else VERBOSE
 
 
 class ServiceManagerTestCommon(object):
+    # set to False if you want your test harness to dump logs of individual services
+    # directly into the test harness. This can be very verbose if you have lots of
+    # services, and make it hard to see the test output, so its off by default.
+    LOGS_IN_FILES = True
+
     ENVIRONMENT_WAIT_MULTIPLIER = 5 if os.environ.get("TRAVIS_CI", None) is not None else 1
 
     # set to an integer to test running the services over a proxy port.
@@ -80,6 +85,7 @@ class ServiceManagerTestCommon(object):
             sslPath=os.path.join(ownDir, "..", "..", "testcert.cert"),
             verbose=VERBOSE,
             proxyPort=self.PROXY_SERVER_PORT,
+            logDir=self.LOGS_IN_FILES,
         )
 
         try:

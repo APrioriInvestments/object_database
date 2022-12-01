@@ -30,6 +30,7 @@ PyMethodDef PyDatabaseConnectionState_methods[] = {
     {"setFieldId", (PyCFunction)PyDatabaseConnectionState::setFieldId, METH_VARARGS | METH_KEYWORDS, NULL},
     {"getMinTid", (PyCFunction)PyDatabaseConnectionState::getMinTid, METH_VARARGS | METH_KEYWORDS, NULL},
     {"incomingTransaction", (PyCFunction)PyDatabaseConnectionState::incomingTransaction, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"serializedObjectDataAtTid", (PyCFunction)PyDatabaseConnectionState::serializedObjectDataAtTid, METH_VARARGS | METH_KEYWORDS, NULL},
     {"markTypeSubscribed", (PyCFunction)PyDatabaseConnectionState::markTypeSubscribed, METH_VARARGS | METH_KEYWORDS, NULL},
     {"markObjectSubscribed", (PyCFunction)PyDatabaseConnectionState::markObjectSubscribed, METH_VARARGS | METH_KEYWORDS, NULL},
     {"markObjectLazy", (PyCFunction)PyDatabaseConnectionState::markObjectLazy, METH_VARARGS | METH_KEYWORDS, NULL},
@@ -391,6 +392,34 @@ PyObject* PyDatabaseConnectionState::setTriggerLazyLoad(PyDatabaseConnectionStat
         return incref(Py_None);
     });
 }
+
+/* static */
+PyObject* PyDatabaseConnectionState::serializedObjectDataAtTid(PyDatabaseConnectionState* self, PyObject* args, PyObject* kwargs) {
+    static const char *kwlist[] = {"object_id", "field_id", "transaction_id", NULL};
+
+    object_id oid;
+    field_id fid;
+    transaction_id tid;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "lll", (char**)kwlist, &oid, &fid, &tid)) {
+        return NULL;
+    }
+
+    return translateExceptionToPyObject([&]() {
+        if (!self->state) {
+            throw std::runtime_error("Invalid PyDatabaseConnectionState (nullptr)");
+        }
+
+        std::pair<bool, Bytes> result = self->state->serializedObjectDataAtTid(oid, fid, tid);
+
+        if (!result.first) {
+            return incref(Py_None);
+        }
+
+        return result.second.toPython();
+    });
+}
+
 
 PyTypeObject PyType_DatabaseConnectionState = {
     PyVarObject_HEAD_INIT(NULL, 0)

@@ -108,10 +108,10 @@ class ConnectedChannel:
             )
         )
 
-    def sendTransactionSuccess(self, guid, success, badKey):
+    def sendTransactionSuccess(self, guid, success, badKey, isException):
         self.channel.write(
             ServerToClient.TransactionResult(
-                transaction_guid=guid, success=success, badKey=badKey
+                transaction_guid=guid, success=success, badKey=badKey, isException=isException
             )
         )
 
@@ -120,6 +120,7 @@ class ConnectedChannel:
         if guid not in self.pendingTransactions:
             self.pendingTransactions[guid] = {
                 "writes": {},
+                "prerequisites": {},
                 "set_adds": {},
                 "set_removes": {},
                 "key_versions": set(),
@@ -127,6 +128,9 @@ class ConnectedChannel:
             }
 
         self.pendingTransactions[guid]["writes"].update({k: msg.writes[k] for k in msg.writes})
+        self.pendingTransactions[guid]["prerequisites"].update(
+            {k: msg.prerequisites[k] for k in msg.prerequisites}
+        )
         self.pendingTransactions[guid]["set_adds"].update(
             {k: set(msg.set_adds[k]) for k in msg.set_adds if msg.set_adds[k]}
         )
@@ -330,6 +334,7 @@ class Server:
         self._handleNewTransaction(
             None,
             {exists_key: serialize(bool, True)},
+            {},
             {exists_index: set([identity])},
             {},
             [],
@@ -350,6 +355,7 @@ class Server:
         self._handleNewTransaction(
             None,
             {exists_key: None},
+            {},
             {},
             {exists_index: set([identity])},
             [],
@@ -865,6 +871,8 @@ class Server:
         elif msg.matches.TransactionData:
             connectedChannel.handleTransactionData(msg)
         elif msg.matches.CompleteTransaction:
+            isException = False
+
             try:
                 transStartTime = time.time()
 
@@ -885,6 +893,7 @@ class Server:
                         isOK, badKey = self._handleNewTransaction(
                             connectedChannel,
                             data["writes"],
+                            data["prerequisites"],
                             data["set_adds"],
                             data["set_removes"],
                             data["key_versions"],
@@ -892,13 +901,17 @@ class Server:
                             msg.as_of_version,
                             transStartTime=transStartTime,
                             no_log=msg.no_log,
+                            transaction_guid=msg.transaction_guid,
                         )
             except Exception:
                 self._logger.exception("Unknown error committing transaction:")
                 isOK = False
-                badKey = "<NONE>"
+                isException = True
+                badKey = traceback.format_exc()
 
-            connectedChannel.sendTransactionSuccess(msg.transaction_guid, isOK, badKey)
+            connectedChannel.sendTransactionSuccess(
+                msg.transaction_guid, isOK, badKey, isException=isException
+            )
 
     def indexReverseLookupKvs(self, adds, removes):
         res = {}
@@ -1037,6 +1050,7 @@ class Server:
         self,
         sourceChannel,
         key_value,
+        prerequisites,
         set_adds,
         set_removes,
         keys_to_check_versions,
@@ -1044,17 +1058,20 @@ class Server:
         as_of_version,
         transStartTime=None,
         no_log=False,
+        transaction_guid=None,
     ):
         try:
-            result = self._commitAndBroadcastNewTransaction(
+            result, tid, broadcastConnIds = self._commitAndBroadcastNewTransaction(
                 sourceChannel,
                 key_value,
+                prerequisites,
                 set_adds,
                 set_removes,
                 keys_to_check_versions,
                 indices_to_check_versions,
                 as_of_version,
                 transStartTime,
+                transaction_guid,
             )
 
             if self.transactionWatcher and not no_log:
@@ -1063,40 +1080,55 @@ class Server:
                     if sourceChannel is not None and sourceChannel.connectionObject is not None
                     else None,
                     key_value,
+                    prerequisites,
                     set_adds,
                     set_removes,
                     keys_to_check_versions,
                     indices_to_check_versions,
                     as_of_version,
+                    tid,
+                    transaction_guid,
+                    broadcastConnIds,
+                    result[0],
+                    result[1],
                     None,
                 )
 
             return result
         except Exception:
-            self.transactionWatcher.onTransaction(
-                sourceChannel.connectionObject._identity
-                if sourceChannel is not None and sourceChannel.connectionObject is not None
-                else None,
-                key_value,
-                set_adds,
-                set_removes,
-                keys_to_check_versions,
-                indices_to_check_versions,
-                as_of_version,
-                traceback.format_exc(),
-            )
+            if self.transactionWatcher:
+                self.transactionWatcher.onTransaction(
+                    sourceChannel.connectionObject._identity
+                    if sourceChannel is not None and sourceChannel.connectionObject is not None
+                    else None,
+                    key_value,
+                    prerequisites,
+                    set_adds,
+                    set_removes,
+                    keys_to_check_versions,
+                    indices_to_check_versions,
+                    as_of_version,
+                    self._cur_transaction_num,
+                    transaction_guid,
+                    None,
+                    False,
+                    "<EXCEPTION>",
+                    traceback.format_exc(),
+                )
             raise
 
     def _commitAndBroadcastNewTransaction(
         self,
         sourceChannel,
         key_value,
+        prerequisites,
         set_adds,
         set_removes,
         keys_to_check_versions,
         indices_to_check_versions,
         as_of_version,
         transStartTime,
+        transactionGuid,
     ):
         self._cur_transaction_num += 1
         transaction_id = self._cur_transaction_num
@@ -1150,9 +1182,36 @@ class Server:
             for key in subset:
                 last_tid = self._version_numbers.get(key, -1)
                 if as_of_version < last_tid:
-                    return (False, key)
+                    return ((False, key), transaction_id, [])
 
         t1 = time.time()
+
+        priorValues = self._kvstore.getSeveralAsDictionary(key_value)
+
+        badValues = set()
+        for objectAndFieldId, bytesOrNone in prerequisites.items():
+            if priorValues.get(objectAndFieldId) != bytesOrNone:
+                badValues.add(objectAndFieldId)
+
+        if badValues:
+            lines = ["Improper transaction " + str(transactionGuid)]
+
+            for objectAndFieldId in sorted(badValues)[:100]:
+                fieldDef = self._currentTypeMap().fieldIdToDef.get(objectAndFieldId.fieldId)
+
+                lines.append(
+                    str(objectAndFieldId.objId)
+                    + " field "
+                    + str(objectAndFieldId.fieldId)
+                    + " = "
+                    + str(fieldDef)
+                    + " was "
+                    + repr(priorValues.get(objectAndFieldId))[:100]
+                    + ", not "
+                    + repr(bytesOrNone)[:100]
+                )
+
+            raise Exception("\n".join(lines))
 
         for key in keysWritingTo:
             self._version_numbers[key] = transaction_id
@@ -1161,8 +1220,6 @@ class Server:
         for key in setsWritingTo:
             self._version_numbers[key] = transaction_id
             self._version_numbers_timestamps[key] = t1
-
-        priorValues = self._kvstore.getSeveralAsDictionary(key_value)
 
         # set the json representation in the database
         target_kvs = {k: v for k, v in key_value.items()}
@@ -1330,4 +1387,8 @@ class Server:
 
         self._garbage_collect()
 
-        return (True, None)
+        return (
+            (True, None),
+            transaction_id,
+            [c.connectionObject._identity for c in channelsTriggered],
+        )

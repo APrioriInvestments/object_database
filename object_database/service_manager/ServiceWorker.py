@@ -129,37 +129,45 @@ class ServiceWorker:
             self.shouldStop.set()
 
     def synchronouslyRunService(self):
-        self.initialize()
-
-        if self.serviceObject is None:
-            self.shouldStop.set()
-            return
-
-        with self.db.transaction():
-            self.instance.state = "Running"
-
         try:
-            self._logger.info("Starting runloop for service object %s", self.instanceId)
-            self.serviceObject.doWork(self.shouldStop)
-        except Exception:
-            self._logger.exception("Service %s/%s failed:", self.serviceName, self.instanceId)
+            self.initialize()
+
+            if self.serviceObject is None:
+                self.shouldStop.set()
+                return
 
             with self.db.transaction():
-                self.instance.state = "Crashed"
-                self.instance.end_timestamp = time.time()
-                self.instance.failureReason = traceback.format_exc()
-                return
-        else:
-            with self.db.transaction():
-                self._logger.info(
-                    "Service %s/%s exited gracefully. Setting stopped flag.",
-                    self.serviceName,
-                    self.instanceId,
+                self.instance.state = "Running"
+
+            try:
+                self._logger.info("Starting runloop for service object %s", self.instanceId)
+                self.serviceObject.doWork(self.shouldStop)
+            except Exception:
+                self._logger.exception(
+                    "Service %s/%s failed:", self.serviceName, self.instanceId
                 )
 
-                self.instance.state = "Stopped"
-                self.instance.end_timestamp = time.time()
-                self.exitedGracefully.set()
+                with self.db.transaction():
+                    self.instance.state = "Crashed"
+                    self.instance.end_timestamp = time.time()
+                    self.instance.failureReason = traceback.format_exc()
+                    return
+            else:
+                with self.db.transaction():
+                    self._logger.info(
+                        "Service %s/%s exited gracefully. Setting stopped flag.",
+                        self.serviceName,
+                        self.instanceId,
+                    )
+
+                    self.instance.state = "Stopped"
+                    self.instance.end_timestamp = time.time()
+                    self.exitedGracefully.set()
+        except Exception:
+            self._logger.exception(
+                "Unexpected exception in synchronouslyRunService for %s",
+                self.db.connectionObject,
+            )
 
     def start(self):
         self.serviceWorkerThread.start()

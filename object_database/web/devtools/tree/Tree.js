@@ -223,17 +223,18 @@ class Tree extends HTMLElement {
         // add a quadratic bezier curve path
         let midX;
         let controlX;
+        const midY = startY + 0.5 * (endY - startY);
+        let controlY = startY + 0.5 * (midY - startY);
         let controlSlope = 1;
         if (endX < startX) {
             midX = endX + 0.5 * (startX - endX);
             controlX = midX + 0.5 * (startX - midX);
-            controlSlope *= -1;
+            controlSlope = 1.02;
         } else {
             midX = startX + 0.5 * (endX - startX);
-            controlX = startX + 0.5 * (startX - midX);
+            controlX = startX + 0.5 * (midX - startX);
+            controlSlope = 0.98;
         }
-        const midY = startY + 0.5 * (endY - startY);
-        let controlY = startY + 0.5 * (midY - startY);
         controlX *= controlSlope;
         controlY *= controlSlope;
         const path = document.createElementNS('http://www.w3.org/2000/svg', "path");

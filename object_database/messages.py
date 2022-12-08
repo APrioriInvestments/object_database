@@ -92,12 +92,12 @@ ClientToServer = Alternative(
     # this can come in chunks, to prevent messages getting too large.
     TransactionData={
         "writes": ConstDict(ObjectFieldId, OneOf(None, bytes)),
-        "prerequisites": ConstDict(ObjectFieldId, OneOf(None, bytes)),
         "set_adds": ConstDict(IndexId, TupleOf(ObjectId)),
         "set_removes": ConstDict(IndexId, TupleOf(ObjectId)),
         "key_versions": TupleOf(ObjectFieldId),
         "index_versions": TupleOf(IndexId),
         "transaction_guid": int,
+        "prerequisites": ConstDict(ObjectFieldId, OneOf(None, bytes)),
     },
     # indicate that a transaction is complete. 'as_of_version' specifies the
     # transaction id that this was based off of.

@@ -374,6 +374,19 @@ class Cell {
         throw new Error('childChanged not defined for ' + this);
     }
 
+    // called when a child is going to move to a new parent. The new parent
+    // will be 'updated' with this as its new child
+    movingToNewParent(newParent) {
+        if (!newParent) {
+            throw new Error('have to move to a valid parent')
+        }
+        if (newParent === null) {
+            throw new Error('have to move to a valid parent')
+        }
+
+        this.parent = newParent;
+    }
+
     /**
      * called any time a cell is explicitly updated
      */

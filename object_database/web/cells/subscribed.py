@@ -38,7 +38,7 @@ class Subscribed(Cell):
     def __init__(self, cellFactory, childIdentity=0, onRemoved=None):
         super().__init__()
 
-        # a function of no arguments that proces a cell.
+        # a function of no arguments that produces a cell.
         # we call it and watch which view values it reads to know
         # when to recalculate the element.
         self.cellFactory = cellFactory
@@ -55,11 +55,6 @@ class Subscribed(Cell):
 
     def identityOfChild(self, child):
         return self.childIdentity
-
-    def prepareForReuse(self):
-        if not self.garbageCollected:
-            return False
-        return super().prepareForReuse()
 
     def __repr__(self):
         return f"Subscribed(id={self._identity}, factory={self.cellFactory})"

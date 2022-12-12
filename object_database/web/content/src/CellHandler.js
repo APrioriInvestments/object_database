@@ -319,6 +319,13 @@ class CellHandler {
                 this.activeCells[cellId].setParent(this.activeCells[parentIdentities[cellId]]);
             }
 
+            // tell any moved nodes that they're moved
+            for (var movedNodeId in message.nodesMoved) {
+                this.activeCells[movedNodeId].movingToNewParent(
+                    this.activeCells[message.nodesMoved[movedNodeId]]
+                );
+            }
+
             for (var updatedNodeId in message.nodesUpdated) {
                 this.activeCells[updatedNodeId].rebuildDomElement();
             }
@@ -388,15 +395,6 @@ class CellHandler {
 
         if (typeof(children) == "string") {
             if (this.activeCells[children]) {
-                if (this.activeCells[children].parent.identity != parentId) {
-                    throw new Error(
-                        "Cell named "
-                        + children + " attempted to move in the tree from "
-                        + this.activeCells[children].parent.identity + " to "
-                        + parentId
-                    );
-                }
-
                 return this.activeCells[children];
             }
             return this.createCellFromInitialMessage(children, newUnbuiltCells, cellCreationOrder);

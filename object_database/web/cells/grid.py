@@ -39,13 +39,11 @@ class Grid(Cell):
         self.rows = []
         self.cols = []
 
-    def prepareForReuse(self):
-        if not self.garbageCollected:
-            return False
+    def uninstall(self):
+        super().uninstall()
         self.existingItems = {}
         self.rows = []
         self.cols = []
-        super().prepareForReuse()
 
     def recalculate(self):
         oldRows = self.rows

@@ -306,14 +306,10 @@ class Table(Cell):
         self.exportData["fillWidth"] = fillWidth
         self.exportData["fillHeight"] = fillHeight
 
-    def prepareForReuse(self):
-        if not self.garbageCollected:
-            return False
-
+    def uninstall(self):
+        super().uninstall()
         self.rowDict = {}
         self.curPageSlot = Slot(0)
-
-        super().prepareForReuse()
 
     def recalculate(self):
         # check that this isn't throwing an exception.

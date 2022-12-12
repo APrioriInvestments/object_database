@@ -12,3 +12,18 @@ class RootCell(Container):
 
     def setChild(self, child):
         self.setContents("", child)
+
+    def isActive(self):
+        return True
+
+    def isOrphaned(self):
+        return False
+
+    def isMoved(self):
+        return False
+
+    def moveToParent(self, newParent):
+        raise Exception("We can't move the RootCell")
+
+    def removeParent(self, parent):
+        raise Exception("We can't move the RootCell")

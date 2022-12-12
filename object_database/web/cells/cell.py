@@ -23,8 +23,14 @@ class Cell(object):
     def __init__(self):
         self.cells = None  # will get set when its added to a 'Cells' object
 
-        # the cell that created us. This will never change.
+        # the most recent parent we set
         self.parent = None
+
+        # the parent we knew the last time we recalculated
+        self.knownParent = None
+
+        # the set of parents - only meaningful while we're recalculating
+        self.allParents = set()
 
         self.level = None
         self.children = Children()
@@ -32,7 +38,6 @@ class Cell(object):
         self.isRoot = False
         self._identity = None  # None, or a string
         self._tag = None
-        self.garbageCollected = False
         self.context = {}
         self._messagesToSendOnInstall = []
         self.exportData = {}
@@ -81,11 +86,6 @@ class Cell(object):
 
         context.scheduleMessage(self, message)
 
-        # if not self.garbageCollected and self.cells is not None:
-        #     self.cells.markPendingMessage(self, message)
-        # else:
-        #     self._messagesToSendOnInstall.append(message)
-
     def onRemovedFromTree(self):
         """Called when a cell is removed from the tree. This shouldn't update any slots,
         but may schedule callbacks."""
@@ -121,6 +121,9 @@ class Cell(object):
         assert self.cells is None
         self.cells = cells
         self.parent = parent
+        self.knownParent = parent
+        self.allParents.add(parent)
+
         self.level = parent.level + 1 if parent is not None else 0
         self._identity = identity
         self._identityPath = None
@@ -211,7 +214,7 @@ class Cell(object):
             or ("exception" in cell.exportData)
         )
 
-    def prepare(self):
+    def prepareForCalculation(self):
         """Prepare for recalculation."""
         self.exportData.pop("exception", None)
 
@@ -220,21 +223,59 @@ class Cell(object):
 
     def isActive(self):
         """Is this cell installed in the tree and active?"""
-        return self.cells and not self.garbageCollected
+        return self.cells and self._identity is not None and self.parent is not None
 
-    def prepareForReuse(self):
-        if not self.garbageCollected:
-            return False
+    def isOrphaned(self):
+        return self.cells is not None and self.parent is None
 
+    def isMoved(self):
+        return self.isActive() and self.parent is not self.knownParent
+
+    def moveToParent(self, newParent):
+        assert newParent.isActive()
+
+        self.allParents.add(newParent)
+        self.parent = newParent
+
+        return self.parent is not self.knownParent
+
+    def onMoved(self):
+        assert self.parent is not None
+
+        if len(self.allParents) > 1:
+            for p in self.allParents:
+                p.onError(
+                    Exception(f"Child cell({self}) can't have two parents")
+                )
+
+        if self.isAncestorOf(self.parent):
+            raise Exception(
+                f"Somehow {self} is an ancestor of {self.parent} which "
+                f"would create a cycle."
+            )
+
+        logging.info(
+            "Cell %s moved from %s to %s",
+            self,
+            self.knownParent,
+            self.parent
+        )
+
+        self.knownParent = self.parent
+
+    def removeParent(self, oldParent):
+        self.allParents.discard(oldParent)
+
+        if self.parent is oldParent:
+            if self.allParents:
+                self.parent = list(self.allParents)[0]
+            else:
+                self.parent = None
+
+    def uninstall(self):
         self.cells = None
-        self.garbageCollected = False
         self._identity = None
         self.parent = None
-
-        for c in self.children.allChildren:
-            c.prepareForReuse()
-
-        return True
 
     @property
     def identity(self):
@@ -245,24 +286,32 @@ class Cell(object):
         return self._identity
 
     def markDirty(self):
-        if not self.garbageCollected and self.cells is not None:
+        if self._identity is not None and self.cells is not None:
             self.cells.markDirty(self)
 
     def recalculate(self):
         pass
 
-    def onError(self, exception, stacktrace):
+    def onError(self, exception, stacktrace=None):
         """Called if recalculate throws an exception."""
+        if stacktrace is None:
+            stacktrace = ""
+        else:
+            stacktrace = "\n\n" + stacktrace
+
         logging.error(
-            "Cell %s had exception: %s\n\n%s",
+            "Cell %s had exception: %s%s",
             self,
             type(exception).__name__ + ": " + str(exception),
             stacktrace,
         )
 
         self.exportData["exception"] = (
-            type(exception).__name__ + ": " + str(exception) + "\n\n" + stacktrace
+            type(exception).__name__ + ": " + str(exception) + stacktrace
         )
+
+    def isErrored(self):
+        return "exception" in self.exportData
 
     @staticmethod
     def makeCell(x):

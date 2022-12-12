@@ -51,10 +51,10 @@ class Cells:
         self._nonbuiltinCellTypes = set()
 
         # map: Cell.identity -> set(Cell)
+        # populated for all cells with a valid identity
         self._cellsKnownChildren = {}
 
         # map: Cell.identity -> Cell
-        # all 'effect' cells
         self._effects = {}
 
         # a CellDependencies object that tracks the current calculation dependency graph
@@ -63,8 +63,19 @@ class Cells:
         # set(Cell)
         self._nodesToBroadcast = set()
 
+        # set(Cell)
+        self._nodesToBroadcastAsMoved = set()
+
         # set(Cell.identity)
         self._nodeIdsToDiscard = set()
+
+        # set(Cell) giving all cells who may now be orphaned
+        # and which need to be checked and cleaned up
+        self._orphanedCells = set()
+
+        # set(Cell.identity) giving all cells who have "moved", meaning
+        # that they were installed with one parent but received another
+        self._movedCells = set()
 
         # set(Cell)
         self._focusableCells = set()
@@ -275,57 +286,8 @@ class Cells:
         self._dependencies.odbValuesChanged(set(key_value) | set(set_adds) | set(set_removes))
         return transactionId
 
-    def _addCell(self, cell, parent):
-        if not isinstance(cell, Cell):
-            raise Exception(
-                f"Can't add a cell of type {type(cell)} which isn't a subclass of Cell."
-            )
-
-        if cell.cells is not None:
-            raise Exception(
-                f"Cell {cell} is already installed as a child of {cell.parent}."
-                f" We can't add it to {parent}"
-            )
-
-        cell.install(self, parent, self._newID())
-
-        assert cell.identity not in self._cellsKnownChildren
-        self._cellsKnownChildren[cell.identity] = set()
-
-        assert cell.identity not in self._cells
-        self._cells[cell.identity] = cell
-
-        if cell.FOCUSABLE:
-            self._focusableCells.add(cell)
-
-    def _cellOutOfScope(self, cell):
-        for c in cell.children.allChildren:
-            self._cellOutOfScope(c)
-
-        self.markToDiscard(cell)
-
-        if cell.cells is not None:
-            assert cell.cells == self
-            del self._cells[cell.identity]
-            del self._cellsKnownChildren[cell.identity]
-            self._dependencies.calculationDiscarded(cell)
-
-        cell.garbageCollected = True
-
     def markDirty(self, cell):
-        assert not cell.garbageCollected
         self._dependencies.markCellDirty(cell)
-
-    def markToDiscard(self, cell):
-        assert not cell.garbageCollected
-
-        if cell.identity in self._nodesKnownToChannel:
-            self._nodeIdsToDiscard.add(cell.identity)
-
-        self._nodesToBroadcast.discard(cell)
-        self._focusableCells.discard(cell)
-
-        cell.onRemovedFromTree()
 
     def markToBroadcast(self, node):
         assert node.cells is self
@@ -353,7 +315,7 @@ class Cells:
         def updateFocusedCell():
             focusedCell = self.focusedCell.get()
 
-            if focusedCell and focusedCell.identity in self._nodeIdsToDiscard:
+            if focusedCell and not focusedCell.isActive():
                 self.focusedCell.set(self.pickFocusedCell())
                 self.focusEventId += 1
 
@@ -378,6 +340,10 @@ class Cells:
             type="#frame",
             # list of cell identities that were discarded
             nodesToDiscard=[],
+            # map from cell identities that were moved to their new parent.
+            # They may also have been updated. They definitely exist in a prior
+            # update
+            nodesMoved={},
             # map from cellId -> cell update
             # each update contains the properties, children, and named
             # children that have changed
@@ -402,6 +368,9 @@ class Cells:
                     node.parent in self._nodesToBroadcast
                     or node.parent.identity in self._nodesKnownToChannel
                 )
+
+        for node in self._nodesToBroadcastAsMoved:
+            packet['nodesMoved'][node.identity] = node.parent.identity
 
         for node in self._nodesToBroadcast:
             if not node.isBuiltinCell():
@@ -475,6 +444,7 @@ class Cells:
 
         self._pendingOutgoingMessages.clear()
         self._nodesToBroadcast = set()
+        self._nodesToBroadcastAsMoved = set()
         self._nodeIdsToDiscard = set()
 
         # if packet['nodesUpdated']:
@@ -500,25 +470,170 @@ class Cells:
             # handle all the transactions so far
             self._handleAllTransactions()
             self._updateAllDirtyCells()
+            self._cleanUpAllOrphans()
+            hadMoves = self._updateAllMovedCells()
 
             hadReactors = self._dependencies.recalculateDirtyReactors(self)
             hadCallbacks = self._processCallbacks()
 
-            if not hadReactors and not hadCallbacks:
+            if not hadReactors and not hadCallbacks and not hadMoves:
                 return
 
     def _updateAllDirtyCells(self):
-        while self._dependencies._dirtyNodes:
-            cellsByLevel = {}
-            for node in self._dependencies._dirtyNodes:
-                if not node.garbageCollected:
-                    cellsByLevel.setdefault(node.level, []).append(node)
-            self._dependencies._dirtyNodes.clear()
+        if not self._dependencies._dirtyNodes:
+            return
 
+        # we might temporarily orphan a node, and then un-orphan it
+        # when someone else finds it and calculates on it. As a result,
+        # while we never want to recalculate an orphaned cell, we also
+        # need to keep them around, since a node may become 'unorphaned'
+        while True:
+            cellsByLevel = {}
+
+            for node in self._dependencies._dirtyNodes:
+                if node.isActive():
+                    cellsByLevel.setdefault(node.level, []).append(node)
+
+            didAnything = False
             for level, nodesAtThisLevel in sorted(cellsByLevel.items()):
                 for node in nodesAtThisLevel:
-                    if not node.garbageCollected:
+                    if node.isActive():
                         self._recalculateCell(node)
+                        self._dependencies._dirtyNodes.discard(node)
+
+                        didAnything = True
+
+            if not didAnything:
+                self._dependencies._dirtyNodes = set()
+                return
+
+    def _updateAllMovedCells(self):
+        didAnything = False
+
+        while self._movedCells:
+            for cell in list(self._movedCells):
+                assert not cell.isOrphaned()
+                assert cell.isActive()
+                assert cell.isMoved()
+
+                self._movedCells.remove(cell)
+
+                # tell the cell it moved. It then
+                # can recalculate itself
+                cell.onMoved()
+
+                self._nodesToBroadcastAsMoved.add(cell)
+
+                didAnything = True
+
+        return didAnything
+
+    def _cleanUpAllOrphans(self):
+        while self._orphanedCells:
+            for cell in list(self._orphanedCells):
+                assert cell.isOrphaned()
+                self._orphanedCells.remove(cell)
+                self._cellOutOfScope(cell)
+
+    def _recalculateCell(self, node):
+        # this node has to be active for this to make sense
+        assert node.isActive()
+
+        origChildren = self._cellsKnownChildren.get(node.identity, set())
+
+        depContext = DependencyContext(self, readOnly=True)
+
+        def recalcNode():
+            node.prepareForCalculation()
+
+            with RecomputingCellContext(node):
+                node.recalculate()
+
+        with CellsContext(self):
+            result = depContext.calculate(recalcNode)
+
+        if result[0]:
+            node.onError(result[1], "".join(traceback.format_tb(result[1].__traceback__)))
+
+        self._dependencies.updateDependencies(node, depContext)
+
+        self.markToBroadcast(node)
+
+        newChildren = set(node.children.allChildren)
+
+        # remove any nodes from the tree we're no longer using
+        for child in origChildren.difference(newChildren):
+            assert child.isActive()
+
+            child.removeParent(node)
+
+            if child.isOrphaned():
+                self._orphanedCells.add(child)
+
+        for child in newChildren.difference(origChildren):
+            if child.isActive() or child.isOrphaned():
+                # this child is moving to a new parent. It's definitely
+                # not orphaned anymore
+                if child.moveToParent(node):
+                    self._movedCells.add(child)
+                    self._orphanedCells.discard(child)
+                else:
+                    self._movedCells.discard(child)
+                    self._orphanedCells.discard(child)
+            else:
+                self._addCell(child, node)
+                self._recalculateCell(child)
+
+        self._cellsKnownChildren[node.identity] = newChildren
+
+        self._dependencies.updateCellReactors(node)
+
+    def _addCell(self, cell, parent):
+        if not isinstance(cell, Cell):
+            raise Exception(
+                f"Can't add a cell of type {type(cell)} which isn't a subclass of Cell."
+            )
+
+        if cell.cells is not None:
+            raise Exception(
+                f"Cell {cell} is already installed as a child of {cell.parent}."
+                f" We can't add it to {parent}"
+            )
+
+        cell.install(self, parent, self._newID())
+
+        assert cell.identity not in self._cellsKnownChildren
+        self._cellsKnownChildren[cell.identity] = set()
+
+        assert cell.identity not in self._cells
+        self._cells[cell.identity] = cell
+
+        if cell.FOCUSABLE:
+            self._focusableCells.add(cell)
+
+    def _cellOutOfScope(self, cell):
+        assert cell.cells is self
+
+        for c in cell.children.allChildren:
+            if c.parent is cell:
+                self._cellOutOfScope(c)
+            else:
+                c.removeParent(cell)
+
+        if cell.identity in self._nodesKnownToChannel:
+            self._nodeIdsToDiscard.add(cell.identity)
+
+        self._nodesToBroadcast.discard(cell)
+        self._nodesToBroadcastAsMoved.discard(cell)
+        self._focusableCells.discard(cell)
+
+        cell.onRemovedFromTree()
+
+        del self._cells[cell.identity]
+        del self._cellsKnownChildren[cell.identity]
+        self._dependencies.calculationDiscarded(cell)
+
+        cell.uninstall()
 
     def _processCallbacks(self):
         """Execute any callbacks that have been scheduled to run on the main UI thread."""
@@ -601,45 +716,6 @@ class Cells:
         self._packetCallbacks.clear()
         return res
 
-    def _recalculateCell(self, node):
-        origChildren = self._cellsKnownChildren.get(node.identity, set())
-
-        depContext = DependencyContext(self, readOnly=True)
-
-        def recalcNode():
-            node.prepare()
-
-            with RecomputingCellContext(node):
-                node.recalculate()
-
-        with CellsContext(self):
-            result = depContext.calculate(recalcNode)
-
-        if result[0]:
-            node.onError(result[1], "".join(traceback.format_tb(result[1].__traceback__)))
-
-        self._dependencies.updateDependencies(node, depContext)
-
-        self.markToBroadcast(node)
-
-        newChildren = set(node.children.allChildren)
-
-        # remove any nodes from the tree we're no longer using
-        for child in origChildren.difference(newChildren):
-            self._cellOutOfScope(child)
-
-        for child in newChildren.difference(origChildren):
-            if child.garbageCollected:
-                child.prepareForReuse()
-                self._addCell(child, node)
-            else:
-                self._addCell(child, node)
-            self._recalculateCell(child)
-
-        self._cellsKnownChildren[node.identity] = newChildren
-
-        self._dependencies.updateCellReactors(node)
-
     def childrenWithExceptions(self):
         return self._root.childrenWithExceptions()
 
@@ -650,3 +726,7 @@ class Cells:
 
     def findChildrenMatching(self, filtr):
         return self._root.findChildrenMatching(filtr)
+
+    @property
+    def root(self):
+        return self._root.children['child']

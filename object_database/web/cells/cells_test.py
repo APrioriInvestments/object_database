@@ -549,3 +549,38 @@ class CellsTests(unittest.TestCase):
         # and that it saw our increment
         assert len(attemptedWrites) == 2
         assert attemptedWrites[1] == attemptedWrites[0] + 1000
+
+    def test_moving_cell(self):
+        aCell = Text("SomeText")
+        aSlot = Slot(0)
+
+        self.cells.withRoot(
+            Subscribed(lambda: aCell if aSlot.get() == 0 else None)
+        +   Subscribed(lambda: aCell if aSlot.get() == 1 else None)
+        )
+
+        self.cells.renderMessages()
+        self.cells.executeCallback(lambda: aSlot.set(1))
+        self.cells.renderMessages()
+        self.cells.executeCallback(lambda: aSlot.set(0))
+        self.cells.renderMessages()
+        self.cells.executeCallback(lambda: aSlot.set(1))
+        self.cells.renderMessages()
+
+    def test_moving_cell_to_two_parents(self):
+        aCell = Text("SomeText")
+        aSlot = Slot(0)
+
+        subA = Subscribed(lambda: aCell if aSlot.get() >= 0 else None)
+        subB = Subscribed(lambda: aCell if aSlot.get() >= 1 else None)
+        self.cells.withRoot(subA + subB)
+
+        self.cells.renderMessages()
+        assert not subA.isErrored()
+        assert not subB.isErrored()
+
+        self.cells.executeCallback(lambda: aSlot.set(1))
+        self.cells.renderMessages()
+
+        assert subA.isErrored()
+        assert subB.isErrored()

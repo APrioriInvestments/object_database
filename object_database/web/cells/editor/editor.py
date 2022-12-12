@@ -424,7 +424,7 @@ class AutocompleteRequest:
 
 
 class Editor(FocusableCell):
-    """Produce a collaborative text-editor"""
+    """Produce a collaborative text editor"""
 
     def __init__(
         self,
@@ -564,7 +564,9 @@ class Editor(FocusableCell):
 
         return toReturn
 
-    def prepareForReuse(self):
+    def uninstall(self):
+        super().uninstall()
+
         self.everCalculated = False
         self.exportData = {}
 

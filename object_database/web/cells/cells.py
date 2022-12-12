@@ -467,12 +467,11 @@ class Cells:
 
     def _recalculateAll(self):
         while True:
-            # handle all the transactions so far
             self._handleAllTransactions()
             self._updateAllDirtyCells()
             self._cleanUpAllOrphans()
-            hadMoves = self._updateAllMovedCells()
 
+            hadMoves = self._updateAllMovedCells()
             hadReactors = self._dependencies.recalculateDirtyReactors(self)
             hadCallbacks = self._processCallbacks()
 
@@ -655,7 +654,8 @@ class Cells:
                 except Exception:
                     logging.exception("Callback %s threw an unexpected exception", c)
 
-        self._executeCallback(singleCallback)
+        if callbacksToExecute:
+            self._executeCallback(singleCallback)
 
         processed = len(callbacksToExecute)
 

@@ -141,18 +141,19 @@ class CellDependencies:
         cells._scheduleCallbacks(context.scheduledCallbacks)
 
         # force cells to handle any transactions that were written
-        cells._handleAllTransactions()
+        if context.odbKeysWritten:
+            cells._handleAllTransactions()
 
     def markSlotsDirty(self, slots):
         """Some state-change modified the values in a collection of slots."""
         for slot in slots:
             for calculation in self._slotToReaders.get(slot, set()):
-                self._markCalcDirty(calculation)
+                self._markCalcDirty(calculation, slot)
 
     def odbValuesChanged(self, keys):
         for key in keys:
             for calculation in self._subscribedCells.get(key, set()):
-                self._markCalcDirty(calculation)
+                self._markCalcDirty(calculation, key)
 
     def recalculateDirtyComputedSlots(self, cells):
         # this is not the most efficient way of doing this - we could do better
@@ -203,7 +204,7 @@ class CellDependencies:
     def markCellDirty(self, cell):
         self._dirtyNodes.add(cell)
 
-    def _markCalcDirty(self, calculation):
+    def _markCalcDirty(self, calculation, reason=None):
         if isinstance(calculation, ComputedSlot):
             self._dirtyComputedSlots.add(calculation)
             calculation.markDirty()

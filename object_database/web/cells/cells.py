@@ -370,7 +370,7 @@ class Cells:
                 )
 
         for node in self._nodesToBroadcastAsMoved:
-            packet['nodesMoved'][node.identity] = node.parent.identity
+            packet["nodesMoved"][node.identity] = node.parent.identity
 
         for node in self._nodesToBroadcast:
             if not node.isBuiltinCell():
@@ -729,4 +729,4 @@ class Cells:
 
     @property
     def root(self):
-        return self._root.children['child']
+        return self._root.children["child"]

@@ -556,7 +556,7 @@ class CellsTests(unittest.TestCase):
 
         self.cells.withRoot(
             Subscribed(lambda: aCell if aSlot.get() == 0 else None)
-        +   Subscribed(lambda: aCell if aSlot.get() == 1 else None)
+            + Subscribed(lambda: aCell if aSlot.get() == 1 else None)
         )
 
         self.cells.renderMessages()

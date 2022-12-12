@@ -244,9 +244,7 @@ class Cell(object):
 
         if len(self.allParents) > 1:
             for p in self.allParents:
-                p.onError(
-                    Exception(f"Child cell({self}) can't have two parents")
-                )
+                p.onError(Exception(f"Child cell({self}) can't have two parents"))
 
         if self.isAncestorOf(self.parent):
             raise Exception(
@@ -254,12 +252,7 @@ class Cell(object):
                 f"would create a cycle."
             )
 
-        logging.info(
-            "Cell %s moved from %s to %s",
-            self,
-            self.knownParent,
-            self.parent
-        )
+        logging.info("Cell %s moved from %s to %s", self, self.knownParent, self.parent)
 
         self.knownParent = self.parent
 

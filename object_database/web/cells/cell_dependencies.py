@@ -170,8 +170,7 @@ class CellDependencies:
         Returns:
             True if we updated anything.
         """
-        if not self._dirtyReactors:
-            return False
+        didAnything = False
 
         while self._dirtyReactors:
             aReactor = self._dirtyReactors.pop()
@@ -179,7 +178,7 @@ class CellDependencies:
             depContext = DependencyContext(cells, readOnly=False)
 
             def updateIt():
-                aReactor.applyStateChange()
+                return aReactor.applyStateChange()
 
             with CellsContext(cells):
                 result = depContext.calculate(updateIt)
@@ -195,9 +194,11 @@ class CellDependencies:
             self.updateDependencies(aReactor, depContext)
 
             # now register its writes. This may trigger it again!
-            self.updateFromWriteableDependencyContext(cells, depContext)
+            if result[1]:
+                self.updateFromWriteableDependencyContext(cells, depContext)
+                didAnything = True
 
-        return True
+        return didAnything
 
     def markCellDirty(self, cell):
         self._dirtyNodes.add(cell)

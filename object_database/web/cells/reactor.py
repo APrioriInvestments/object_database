@@ -31,6 +31,11 @@ class Reactor:
         pass
 
     def applyStateChange(self):
+        """Perform any state change we might have made.
+
+        Returns:
+            True if we did anything, False otherwise.
+        """
         raise NotImplementedError(self)
 
 
@@ -42,6 +47,7 @@ class SimpleReactor(Reactor):
 
     def applyStateChange(self):
         self.effect()
+        return True
 
 
 class SlotWatcher(Reactor):
@@ -64,7 +70,6 @@ class SlotWatcher(Reactor):
             # the first time, we don't update
             self.broadcastValue = self.slot.get()
             self.hasCalculated = True
-            return
         else:
             curVal = self.slot.get()
 
@@ -72,3 +77,7 @@ class SlotWatcher(Reactor):
                 oldValue = self.broadcastValue
                 self.broadcastValue = curVal
                 self.onValueChanged(oldValue, curVal)
+
+                return True
+
+        return False

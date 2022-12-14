@@ -1,11 +1,13 @@
 from object_database.web.cells.editor.event_model import (
     isValidEvent,
     eventIsValidInContextOfLines,
+    eventsAreValidInContextOfLines,
     applyEventsToLines,
     computeUndoEvents,
     computeRedoEvents,
+    compressState,
 )
-from object_database.web.cells.editor.editor import compressState, computeStateFromEvents
+from object_database.web.cells.editor.editor import computeStateFromEvents
 import numpy.random
 
 
@@ -15,6 +17,7 @@ class EditorModel:
         self.lines = [""]
         self.events = []
         self.topEventGuid = "0"
+        self.initEventGuid = "0"
 
     def pushEvent(self, event):
         event = dict(event)
@@ -78,7 +81,14 @@ class EditorModel:
         )
 
     def compress(self, maxTimestamp=None, maxWordUndos=0, maxLineUndos=10000):
+        if not self.events:
+            return
+
         assert computeStateFromEvents(self.initLines, self.events) == "\n".join(self.lines)
+
+        assert eventsAreValidInContextOfLines(
+            self.events, self.initLines, self.initEventGuid, []
+        )
 
         state = dict(topEventGuid=self.topEventGuid, lines=self.initLines, events=self.events)
 
@@ -87,6 +97,11 @@ class EditorModel:
         self.events = list(newState["events"])
         self.topEventGuid = newState["topEventGuid"]
         self.initLines = newState["lines"]
+        self.initEventGuid = self.events[0]["priorEventGuid"]
+
+        assert eventsAreValidInContextOfLines(
+            self.events, self.initLines, self.initEventGuid, []
+        )
 
     def totalChanges(self):
         return sum([len(e["changes"]) for e in self.events])
@@ -106,31 +121,52 @@ def test_compression():
 
 def test_compression_random():
     em = EditorModel()
-    numpy.random.seed(42)
+    for passIx in range(100):
+        numpy.random.seed(42 + passIx)
 
-    for i in range(10000):
-        if i % 100 == 0:
-            print("STEP ", i, em.totalChanges())
-        if numpy.random.uniform() < 0.1:
-            em.insertLine(
-                int(numpy.random.uniform() * (len(em.lines) + 1)),
-                "",
-                reason={"keystroke": "Enter"},
-            )
-        elif numpy.random.uniform() < 0.1 and len(em.lines) > 1:
-            em.removeLine(
-                int(numpy.random.uniform() * len(em.lines)), reason={"keystroke": "Backspace"}
-            )
-        else:
-            lineIndex = int(numpy.random.uniform() * len(em.lines))
-            if len(em.lines[lineIndex]) < 9:
-                char = "0123456789"[len(em.lines[lineIndex])]
+        pInsert = numpy.random.uniform() * 0.4 + 0.01
+        pRemove = numpy.random.uniform() * 0.4 + 0.01
+        pUndo = numpy.random.uniform() * 0.4 + 0.01
+        pCompress = numpy.random.uniform() * 0.2 + 0.01
+
+        for i in range(1000):
+            if numpy.random.uniform() < pInsert:
+                em.insertLine(
+                    int(numpy.random.uniform() * (len(em.lines) + 1)),
+                    "",
+                    reason={"keystroke": "Enter"},
+                )
+            elif numpy.random.uniform() < pRemove and len(em.lines) > 1:
+                em.removeLine(
+                    int(numpy.random.uniform() * len(em.lines)),
+                    reason={"keystroke": "Backspace"},
+                )
+            elif numpy.random.uniform() < pUndo and len(em.lines) > 1:
+                for _ in range(int(numpy.random.uniform() * 20)):
+                    em.undo()
+
+                for _ in range(int(numpy.random.uniform() * 10)):
+                    em.redo()
             else:
-                char = "_"
+                lineIndex = int(numpy.random.uniform() * len(em.lines))
+                if len(em.lines[lineIndex]) < 9:
+                    char = "0123456789"[len(em.lines[lineIndex])]
+                else:
+                    char = "_"
 
-            em.editLine(lineIndex, em.lines[lineIndex] + char, reason={"keystroke": char})
+                em.editLine(lineIndex, em.lines[lineIndex] + char, reason={"keystroke": char})
 
-        em.compress(maxWordUndos=20, maxLineUndos=200)
+            if numpy.random.uniform() < pCompress and em.events:
+                ts = em.events[max(len(em.events) - 30, 0)]["timestamp"]
+                em.compress(maxWordUndos=20, maxLineUndos=200, maxTimestamp=ts)
+
+        print(
+            f"Pass {passIx}. " f"pCompress={pCompress:.2f}. ",
+            f"pInsert={pInsert:.2f}. ",
+            f"pRemove={pRemove:.2f}. ",
+            f"pUndo={pUndo:.2f}. ",
+            f"changes={em.totalChanges()}",
+        )
 
 
 def test_undo():

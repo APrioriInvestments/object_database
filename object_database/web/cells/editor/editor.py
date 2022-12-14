@@ -19,67 +19,18 @@ from object_database.web.cells.slot import Slot
 from object_database.web.cells.reactor import SlotWatcher
 from object_database.core_schema import core_schema
 from object_database.web.cells.editor.event_model import (
-    eventsAreOnSameLine,
-    eventsAreInSameUndoStream,
-    collapseEvents,
     computeUndoEvents,
     computeRedoEvents,
     eventIsValidInContextOfLines,
     eventsAreValidInContextOfLines,
     computeStateFromEvents,
+    compressState,
 )
 
 import threading
 import logging
 import time
 import uuid
-
-
-def compressState(state, maxTimestamp, maxWordUndos=1000, maxLineUndos=10000):
-    """Compress events so that the state doesn't build up.
-
-    Args:
-        state - a dict(lines,events=,topEventGuid) state model
-        maxWordUndos - the maximum number of single-word undo events to tolerate
-        maxLineUndos - the maximum number of line-level undos to tolerate
-    """
-    lines = list(state["lines"])
-    events = list(state["events"])
-
-    i = len(events) - 1
-    eventsKept = 0
-
-    while i > 0 and eventsKept < maxLineUndos:
-        if maxTimestamp is None or events[i]["timestamp"] < maxTimestamp:
-            if eventsAreInSameUndoStream(events[i - 1], events[i]):
-                events[i - 1] = collapseEvents(events[i - 1], events[i])
-                events[i] = None
-            elif eventsAreOnSameLine(events[i - 1], events[i]) and eventsKept > maxWordUndos:
-                events[i - 1] = collapseEvents(events[i - 1], events[i])
-                events[i] = None
-            else:
-                eventsKept += 1
-
-        i -= 1
-
-    if i > 0:
-        logging.info("Folding %s events into the tail", i)
-        # chop off the top events
-        lines = computeStateFromEvents(lines, events[:i]).split("\n")
-        events = events[i:]
-
-    events = tuple([x for x in events if x is not None])
-
-    if len(events) != len(state["events"]):
-        logging.info("Compressed %s events to %s", len(state["events"]), len(events))
-
-    # verify we didn't change the final event state
-    state1 = computeStateFromEvents(state["lines"], state["events"])
-    state2 = computeStateFromEvents(lines, events)
-
-    assert state1 == state2, (state1, state2)
-
-    return dict(lines=lines, topEventGuid=state["topEventGuid"], events=events)
 
 
 def collapseStateToTopmost(state):

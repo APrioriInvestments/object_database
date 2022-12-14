@@ -64,6 +64,7 @@ backward for the most recent 'undo' and perform that operation in reverse.
 import time
 import logging
 import uuid
+import pprint
 
 
 def isValidChange(change):
@@ -279,7 +280,7 @@ def collapseEvents(e1, e2):
         timestamp=e2["timestamp"],
         undoState=e2["undoState"],
         editSessionId=e2["editSessionId"],
-        priorEventGuid=e1["eventGuid"],
+        priorEventGuid=e1["priorEventGuid"],
         eventGuid=e2["eventGuid"],
         reason=e2["reason"],
     )
@@ -485,7 +486,11 @@ def eventsAreValidInContextOfLines(candidateEvents, lines, topEventGuid, events)
 
     for candidateEvent in candidateEvents:
         if candidateEvent["priorEventGuid"] != topEventGuid:
-            logging.warning("Invalid event found: priorEventGuid is wrong")
+            logging.warning(
+                "Invalid event found: priorEventGuid is wrong: %s != %s",
+                candidateEvent["priorEventGuid"],
+                topEventGuid,
+            )
             return False
 
         topEventGuid = candidateEvent["eventGuid"]
@@ -493,17 +498,265 @@ def eventsAreValidInContextOfLines(candidateEvents, lines, topEventGuid, events)
         for change in candidateEvent["changes"]:
             ix = change["lineIndex"]
             if ix > len(lines):
-                logging.warning("Invalid change found: line index out of bounds")
+                logging.warning(
+                    "Invalid change found: line index out of bounds:\n\n%s",
+                    pprint.PrettyPrinter(indent=2, width=120).pformat(candidateEvent),
+                )
                 return False
 
             if lines[ix : ix + len(change["oldLines"])] != change["oldLines"]:
                 logging.warning(
-                    "Invalid change found: %s != %s",
+                    "Invalid change found: %s != %s:\n\n%s",
                     lines[ix : ix + len(change["oldLines"])],
                     change["oldLines"],
+                    pprint.PrettyPrinter(indent=2, width=120).pformat(candidateEvent),
                 )
                 return False
 
             lines[ix : ix + len(change["oldLines"])] = change["newLines"]
 
     return True
+
+
+def duplicateEventWithPriorEventGuid(event, priorEventGuid):
+    event = dict(event)
+    event["priorEventGuid"] = priorEventGuid
+    return event
+
+
+def compressAwayRedos(events, maxTimestamp):
+    """Get rid of any redo-statements before 'maxTimestamp'
+
+    If we have a stream of events and we see a 'redo', then that redo
+    must follow either another 'redo' or an 'undo' since it is impossible
+    to have a 'redo' after a regular event. A redo followed by an undo can
+    be collapsed away.
+
+    We assume our current list of events is valid.
+
+    Args:
+        events - a list of events
+        maxTimestamp - the maximum timestamp we'll modify, or None
+            if all events are OK
+    """
+    if not events:
+        return events
+
+    outEvents = list(events[:1])
+
+    maxTsTriggered = False
+
+    for e in events[1:]:
+        if (
+            e["undoState"] != "redo"
+            or maxTimestamp is not None
+            and e["timestamp"] > maxTimestamp
+            or maxTsTriggered
+        ):
+            if maxTimestamp is not None and e["timestamp"] > maxTimestamp:
+                maxTsTriggered = True
+
+            outEvents.append(duplicateEventWithPriorEventGuid(e, outEvents[-1]["eventGuid"]))
+        else:
+            assert outEvents[-1]["undoState"] == "undo"
+            assert e["undoState"] == "redo"
+            outEvents.pop()
+
+    return outEvents
+
+
+def compressAwayUnreachableEvents(events, maxTimestamp):
+    """Get rid of any undos or redos before a regular event.
+
+    If we have a stream of events and we see a sequence of 'undos' followed
+    by a regular event, then all the events we 'undid' are unreachable
+    and we want to remove them.
+
+    We assume our current list of events is valid and has no redo events
+    before the maxTimestamp.
+
+    Args:
+        events - a list of events
+        maxTimestamp - the maximum timestamp we'll modify, or None
+            if all events are OK to modify.
+    """
+    if not events:
+        return events
+
+    outEvents = list(events[:1])
+    initGuid = events[0]["eventGuid"]
+
+    def topGuid():
+        if not outEvents:
+            return initGuid
+        else:
+            return outEvents[-1]["eventGuid"]
+
+    assert events[0]["undoState"] != "undo"
+
+    maxTsTriggered = False
+
+    for e in events[1:]:
+        if maxTimestamp is not None and e["timestamp"] > maxTimestamp or maxTsTriggered:
+            maxTsTriggered = True
+
+            outEvents.append(duplicateEventWithPriorEventGuid(e, topGuid()))
+        elif e["undoState"] == "redo":
+            raise Exception("Expected to get rid of all 'redo' in the prior step")
+        elif e["undoState"] != "undo" and outEvents[-1]["undoState"] == "undo":
+            # how many undo events do we have?
+            oldestUndo = len(outEvents) - 1
+            while oldestUndo > 0 and outEvents[oldestUndo - 1]["undoState"] == "undo":
+                oldestUndo -= 1
+
+            undoEventsFound = len(outEvents) - oldestUndo
+
+            # if we found N = len(outEvents) - oldestUndo events
+            eventCutoff = len(outEvents) - undoEventsFound * 2
+            assert eventCutoff >= 0
+
+            undos = 0
+            regular = 0
+            for ev in outEvents[eventCutoff:]:
+                if ev["undoState"] == "undo":
+                    undos += 1
+                else:
+                    regular += 1
+
+            # assert that the number of regular events we are 'redoing'
+            # is correct
+            assert undos == regular
+
+            outEvents = outEvents[:eventCutoff]
+
+            outEvents.append(duplicateEventWithPriorEventGuid(e, topGuid()))
+        else:
+            outEvents.append(duplicateEventWithPriorEventGuid(e, topGuid()))
+
+    return outEvents
+
+
+def computeLowestEventIxReferencedByUndoEvents(events):
+    """Compute the maximum index we could drop and still service the undo stream.
+
+    More precisely, return 'ix' such that events[:ix] has no undo
+    events and events[ix:] is self-consistent, so that all undos in
+    it make sense and are paired with their corresponding events
+    that the undo.
+    """
+    if not events:
+        return 0
+
+    # first event can't be an undo or a redo
+    assert events[0]["undoState"] is None
+
+    # the current state is made up by concatenating these 'real' events
+    currentEventStack = []
+
+    # current redo stack - if we were to 'redo' an event
+    # we would push this back on
+    currentRedoStack = []
+
+    minReffedIx = len(events)
+
+    for eventIx in range(len(events)):
+        if events[eventIx]["undoState"] is None:
+            currentEventStack.append(eventIx)
+            currentRedoStack.clear()
+
+        elif events[eventIx]["undoState"] == "undo":
+            undoEventIx = currentEventStack.pop()
+            currentRedoStack.append(undoEventIx)
+            minReffedIx = min(minReffedIx, undoEventIx)
+
+        elif events[eventIx]["undoState"] == "redo":
+            redoEventIx = currentRedoStack.pop()
+            currentEventStack.append(redoEventIx)
+
+    return minReffedIx
+
+
+def compressState(state, maxTimestamp, maxWordUndos=1000, maxLineUndos=10000):
+    """Compress events so that the state doesn't build up.
+
+    We have to be a little careful - we can break the undo model if we
+    compress away events in an inconsistent way (for instance, compressing
+    two events together that have both been undone, but leaving the two
+    undo events behind) since the linkage between the events is based on
+    counting the number of events.
+
+    We apply a few heuristics: first, any sequence of undo/redo events that
+    happens _before_ a regular event can be compressed away into a sequence
+    of regular events.
+
+    Second, any stream of undo/redo can be compressed into a sequence of
+    pure undos.
+
+    Finally, we can compute the furthest-back event in the chain that
+    is referenced by something in our undo stream, and we are free to
+    compress events before this point in the stream.
+
+    Args:
+        state - a dict(lines,events=,topEventGuid) state model
+        maxTimestamp - None, or the largest timestamp we'll consider compressing
+            so that all events after this are unmodified.
+        maxWordUndos - the maximum number of single-word undo events to tolerate
+        maxLineUndos - the maximum number of line-level undos to tolerate
+    """
+    lines = list(state["lines"])
+    events = list(state["events"])
+
+    if not events:
+        return state
+
+    events = compressAwayRedos(events, maxTimestamp)
+
+    events = compressAwayUnreachableEvents(events, maxTimestamp)
+
+    # figure out the lowest event we're allowed to fold anything into
+    maxIxModifiable = computeLowestEventIxReferencedByUndoEvents(events)
+
+    # find the first event that's above maxTimestamp - we can't modify anything
+    # above that (since its possible that we have timestamps out of order)
+    if maxTimestamp is not None:
+        i = 0
+        while i < maxIxModifiable - 1:
+            if events[i]["timestamp"] >= maxTimestamp:
+                break
+
+            i += 1
+    else:
+        i = maxIxModifiable - 1
+
+    eventsKept = 0
+
+    while i > 0 and eventsKept < maxLineUndos:
+        if eventsAreInSameUndoStream(events[i - 1], events[i]):
+            events[i - 1] = collapseEvents(events[i - 1], events[i])
+            events[i] = None
+        elif eventsAreOnSameLine(events[i - 1], events[i]) and eventsKept > maxWordUndos:
+            events[i - 1] = collapseEvents(events[i - 1], events[i])
+            events[i] = None
+        else:
+            eventsKept += 1
+
+        i -= 1
+
+    if i > 0:
+        logging.info("Folding %s events into the tail", i)
+        # chop off the top events
+        lines = computeStateFromEvents(lines, events[:i]).split("\n")
+        events = events[i:]
+
+    events = tuple([x for x in events if x is not None])
+
+    if len(events) != len(state["events"]):
+        logging.info("Compressed %s events to %s", len(state["events"]), len(events))
+
+    # verify we didn't change the final event state
+    state1 = computeStateFromEvents(state["lines"], state["events"])
+    state2 = computeStateFromEvents(lines, events)
+
+    assert state1 == state2, (state1, state2)
+
+    return dict(lines=lines, topEventGuid=events[-1]["eventGuid"], events=events)

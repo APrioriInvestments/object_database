@@ -729,6 +729,18 @@ class Editor(FocusableCell):
                 currentState["topEventGuid"],
                 currentState["events"],
             ):
+                with open("/mnt/fileshare/brax/bad_undo_event.dat", "wb") as f:
+                    from typed_python import SerializationContext
+                    f.write(
+                        SerializationContext().serialize(
+                            dict(
+                                currentState=currentState,
+                                editSessionId=self.editSessionId,
+                                newEvents=newEvents
+                            )
+                        )
+                    )
+
                 raise Exception("Computed invalid undo events")
 
             currentState = dict(currentState)

@@ -140,7 +140,10 @@ class Tree extends HTMLElement {
         if(nodeData){
             const node = document.createElement("tree-node");
             node.name = nodeData.name;
-            node.setAttribute("id", nodeData.id);
+            // since the id might be a non-valid DOM element id such as int
+            // we prepend "node-" and keep the original id in a data attribute
+            node.setAttribute("id", `node-${nodeData.id}`);
+            node.setAttribute("data-original-id", nodeData.id);
             if (root) {
                 node.setAttribute("data-root-node", true);
             }
@@ -178,9 +181,9 @@ class Tree extends HTMLElement {
     setupPaths(svg, nodeData){
         if (nodeData) {
             this.attainedDepth += 1;
-            const parent = this.shadowRoot.querySelector(`#${nodeData.id}`);
+            const parent = this.shadowRoot.querySelector(`#node-${nodeData.id}`);
             nodeData.children.forEach((childData) => {
-                const child = this.shadowRoot.querySelector(`#${childData.id}`);
+                const child = this.shadowRoot.querySelector(`#node-${childData.id}`);
                 if (parent && child) {
                     this.addSVGPath(svg, parent, child);
                     this.setupPaths(svg, childData);
@@ -265,7 +268,7 @@ class Tree extends HTMLElement {
             const subTree = this.findParentSubTree(id, this.data);
             this.setup(subTree, false); // do not cache this data
         } else {
-            const id = event.target.id;
+            const id = event.target.getAttribute("data-original-id");
             const subTree = this.findSubTree(id, this.data);
             this.setup(subTree, false); // do not cache this data
         }
@@ -275,7 +278,8 @@ class Tree extends HTMLElement {
         if (event.key == "ArrowUp") {
             // re-render the tree from the parent of the current root node
             const rootNode = this.shadowRoot.querySelector("tree-node[data-root-node]");
-            const subTree = this.findParentSubTree(rootNode.id, this.data);
+            const rootNodeId = rootNode.getAttribute("data-original-id");
+            const subTree = this.findParentSubTree(rootNodeId, this.data);
             this.setup(subTree, false); // do not cache this data
         }
     }

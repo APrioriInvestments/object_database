@@ -29,7 +29,7 @@ function connected(port) {
             // from the target window we forward this message to the panels
             // if the connection is not alive we log this in the devtools's
             // debugger console
-            notifyDevtoolsPabel(msg.data);
+            notifyDevtoolsPanel(msg.data);
         });
     }
     // notify if the port has disconnected
@@ -42,7 +42,7 @@ function connected(port) {
 
 chrome.runtime.onConnect.addListener(connected);
 
-function notifyDevtoolsPabel(msg){
+function notifyDevtoolsPanel(msg){
     if (portFromPanel){
         portFromPanel.postMessage(msg);
     } else {

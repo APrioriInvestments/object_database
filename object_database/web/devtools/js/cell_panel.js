@@ -54,6 +54,8 @@ const cellsTreeDisplay = (cells) => {
     const tree = document.createElement("tree-graph");
     const main = document.getElementById("main");
     main.append(tree);
+    // displaying tree
+    console.log(cells);
     tree.setup(cells);
 }
 

@@ -520,7 +520,7 @@ class CellHandler {
         const buildTree = (cell) => {
             return {
                 name: cell.constructor.name,
-                identity: cell.identity,
+                id: cell.identity,
                 children: mapChildren(cell.namedChildren)
             }
         }

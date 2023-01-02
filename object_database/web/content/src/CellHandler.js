@@ -516,7 +516,7 @@ class CellHandler {
     setupDevtools(){
         const overlayId = "cells-devtools-overlay";
         window.addDevtoolsHighlight = (id) => {
-            const cell = document.querySelector(`[data-cell-id="${id}"}]`);
+            const cell = document.querySelector(`[data-cell-id="${id}"]`);
             const rect = cell.getBoundingClientRect();
             const overlay = document.createElement("div");
             overlay.style.position = "absolute";

@@ -40,8 +40,9 @@ from typed_python import (
     TupleOf,
     ListOf,
     deserialize,
+    serialize,
 )
-
+from .core_schema import core_schema
 from .channel import ServerToClientChannel, ClientToServerChannel
 from .messages import ServerToClient, ClientToServer
 from .server import ObjectBase
@@ -96,16 +97,6 @@ def mergeSchemaDefinitions(schemaDef1, schemaDef2):
     return SchemaDefinition(out)
 
 
-class FieldIdToDefMapping:
-    def __init__(self):
-        self.fieldIdToDef = {}
-        self.fieldDefToId = {}
-
-    def addFieldMapping(self, fieldId: FieldId, fieldDef: FieldDefinition):
-        self.fieldIdToDef[fieldId] = fieldDef
-        self.fieldDefToId[fieldDef] = fieldId
-
-
 class SubscriptionState:
     def __init__(self):
         # for each fieldId, the set of channels subscribed to it and vice versa
@@ -132,6 +123,7 @@ class SubscriptionState:
         # map from schema -> typename -> fieldname -> fieldId
         self.schemaTypeAndNameToFieldId = Dict(str, Dict(str, Dict(str, int)))()
         self.fieldIdToDef = Dict(int, FieldDefinition)()
+        self.fieldDefToId = Dict(FieldDefinition, int)()
 
         # mapping between a channel and its subscriptions
         self.channelSubscriptions = Dict(ServerToClientChannel, Set(SubscriptionKey))()
@@ -159,6 +151,11 @@ class SubscriptionState:
         self.objectValues = Dict(FieldId, Dict(ObjectId, bytes))()
         self.indexValues = Dict(FieldId, Dict(ObjectId, IndexValue))()
         self.reverseIndexValues = Dict(FieldId, Dict(IndexValue, Set(ObjectId)))()
+
+    def fieldIdFor(self, schema, typename, fieldname):
+        key = FieldDefinition(schema=schema, typename=typename, fieldname=fieldname)
+
+        return self.fieldDefToId.get(key)
 
     def dropConnection(self, channel: ServerToClientChannel):
         if channel in self.channelToSubscribedFieldIds:
@@ -386,7 +383,9 @@ class SubscriptionState:
             self.schemaTypeAndNameToFieldId.setdefault(fieldDef.schema).setdefault(
                 fieldDef.typename
             )[fieldDef.fieldname] = fieldId
+
             self.fieldIdToDef[fieldId] = fieldDef
+            self.fieldDefToId[fieldDef] = fieldId
 
     def handleSubscriptionData(
         self, schema, typename, fieldnameAndValue, values, indexValues, identities
@@ -682,6 +681,9 @@ class SubscriptionState:
             )
         )
 
+    def getObjectValue(self, fieldId, identity):
+        return self.objectValues.setdefault(fieldId).get(identity)
+
 
 class ProxyServer:
     def __init__(self, upstreamChannel: ClientToServerChannel, authToken):
@@ -721,8 +723,6 @@ class ProxyServer:
         # for each requested (schema, iteration), the set of channels waiting for it
         self._unmappedSchemasToChannels = {}
 
-        self._fieldIdToDefMapping = FieldIdToDefMapping()
-
         self._subscriptionState = SubscriptionState()
 
         # right now, we only subscribe to entire types
@@ -753,6 +753,15 @@ class ProxyServer:
         self._channelToMainServer.sendMessage(
             ClientToServer.Authenticate(token=self.authToken)
         )
+
+        # make sure we know the core schema
+        self._channelToMainServer.sendMessage(
+            ClientToServer.DefineSchema(
+                name=core_schema.name, definition=core_schema.toDefinition()
+            )
+        )
+        self._requestedSchemaIteration[core_schema.name] = 0
+        self._subscriptionState._definedSchemas[core_schema.name] = core_schema.toDefinition()
 
     def addConnection(self, channel: ServerToClientChannel):
         """An incoming connection is being made."""
@@ -788,15 +797,33 @@ class ProxyServer:
         with self._lock:
             self._handleClientToServerMessage(channel, msg)
 
+    def _areHeartbeatsSuspended(self, connIdentity):
+        fieldId = self._subscriptionState.fieldIdFor(
+            "core", "Connection", "heartbeats_suspended"
+        )
+
+        if fieldId is None:
+            return False
+
+        curData = self._subscriptionState.getObjectValue(fieldId, connIdentity)
+
+        return curData == serialize(bool, True)
+
     def checkForDeadConnections(self):
         with self._lock:
             for c in list(self._channelToMissedHeartbeatCount):
                 self._channelToMissedHeartbeatCount[c] += 1
 
-                if self._channelToMissedHeartbeatCount[c] >= 4:
+                if self._channelToMissedHeartbeatCount[
+                    c
+                ] >= 4 and not self._areHeartbeatsSuspended(
+                    self._channelToConnectionId.get(c)
+                ):
                     logging.info(
-                        "Connection %s has not heartbeat in a long time. Killing it.",
+                        "Connection %s has not heartbeat in a long time. "
+                        "It missed %s heartbeats. Killing it.",
                         self._channelToConnectionId.get(c),
+                        self._channelToMissedHeartbeatCount[c],
                     )
 
                     c.close()

@@ -15,13 +15,19 @@
 import pytest
 import unittest
 import os
+import time
 
+from object_database.core_schema import core_schema
 from object_database.util import configureLogging, genToken
 from object_database.messages import setHeartbeatInterval, getHeartbeatInterval
 from object_database.persistence import InMemoryPersistence
 from object_database.inmem_proxy_server import InMemProxyServer
 from object_database.inmem_server import InMemServer
 from object_database.database_test import Counter, ObjectDatabaseTests
+
+import object_database.messages as messages
+
+from object_database.view import DisconnectedException
 
 
 class ExecuteOdbTestsOnProxyServer(unittest.TestCase, ObjectDatabaseTests):
@@ -153,9 +159,11 @@ class ProxyServerTestsDirect(unittest.TestCase):
 
         self.server.stop()
 
-    def createNewProxyServer(self):
+    def createNewProxyServer(self, verbose=True):
         conn = self.server.getChannel()
-        conn.markVerbose("Server", "Proxy")
+
+        if verbose:
+            conn.markVerbose("Server", "Proxy")
 
         self.allChannels.append(conn)
 
@@ -402,3 +410,49 @@ class ProxyServerTestsDirect(unittest.TestCase):
 
         with db2.view():
             assert len(Counter.lookupAll()) == 10001
+
+    def test_heartbeats_suspended(self):
+        old_interval = messages.getHeartbeatInterval()
+        messages.setHeartbeatInterval(0.25)
+
+        try:
+            p1 = self.createNewProxyServer(verbose=False)
+            p2 = self.createNewProxyServer(verbose=False)
+
+            db1 = p1.connect()
+            db2 = p2.connect()
+
+            db1.subscribeToSchema(core_schema)
+            db2.subscribeToSchema(core_schema)
+
+            db1.flush()
+
+            with db1.view():
+                self.assertTrue(len(core_schema.Connection.lookupAll()), 2)
+
+            with db2.view():
+                self.assertTrue(len(core_schema.Connection.lookupAll()), 2)
+
+            with db1.transaction():
+                db1.connectionObject.heartbeats_suspended = True
+
+            db1._stopHeartbeating()
+
+            time.sleep(3.0)
+
+            with db2.view():
+                assert len(core_schema.Connection.lookupAll()) == 4
+
+            with db1.transaction():
+                db1.connectionObject.heartbeats_suspended = False
+
+            assert db2.waitForCondition(
+                lambda: len(core_schema.Connection.lookupAll()) == 3,
+                5.0 * self.PERFORMANCE_FACTOR,
+            )
+
+            with self.assertRaises(DisconnectedException):
+                with db1.view():
+                    pass
+        finally:
+            messages.setHeartbeatInterval(old_interval)

@@ -260,17 +260,36 @@ class Server:
                 self._logger.exception("Unexpected error in serviceSubscription thread:")
 
     def _removeOldDeadConnections(self):
-        fieldId = self._currentTypeMap().fieldIdFor("core", "Connection", " exists")
-        exists_index = IndexId(fieldId=fieldId, indexValue=indexValueFor(bool, True))
+        existsFieldId = self._currentTypeMap().fieldIdFor("core", "Connection", " exists")
+        exists_index = IndexId(fieldId=existsFieldId, indexValue=indexValueFor(bool, True))
+        heartbeatFieldId = self._currentTypeMap().fieldIdFor(
+            "core", "Connection", "heartbeats_suspended"
+        )
 
         oldIds = self._kvstore.getSetMembers(exists_index)
 
         if oldIds:
+            kvs = {}
+            for identity in oldIds:
+                kvs[ObjectFieldId(objId=identity, fieldId=existsFieldId)] = None
+                kvs[ObjectFieldId(objId=identity, fieldId=heartbeatFieldId)] = None
+
             self._kvstore.setSeveral(
-                {ObjectFieldId(objId=identity, fieldId=fieldId): None for identity in oldIds},
+                kvs,
                 {},
                 {exists_index: set(oldIds)},
             )
+
+    def _areHeartbeatsSuspended(self, connIdentity):
+        heartbeatFieldId = self._currentTypeMap().fieldIdFor(
+            "core", "Connection", "heartbeats_suspended"
+        )
+
+        key = ObjectFieldId(objId=connIdentity, fieldId=heartbeatFieldId)
+
+        data = self._kvstore.get(key)
+
+        return data == serialize(bool, True)
 
     def checkForDeadConnections(self):
         with self._lock:
@@ -282,10 +301,14 @@ class Server:
 
                 heartbeatCount[missed] = heartbeatCount.get(missed, 0) + 1
 
-                if missed >= 4:
+                if missed >= 4 and not self._areHeartbeatsSuspended(
+                    self._clientChannels[c].connectionObject._identity
+                ):
                     self._logger.info(
-                        "Connection %s has not heartbeat in a long time. Killing it.",
+                        "Connection %s has not heartbeat in a long time. "
+                        "It has missed %s heartbeats. Killing it.",
                         self._clientChannels[c].connectionObject._identity,
+                        missed,
                     )
 
                     c.close()
@@ -328,12 +351,16 @@ class Server:
         identityRoot = self.allocateNewIdentityRoot()
 
         fieldId = self._currentTypeMap().fieldIdFor("core", "Connection", " exists")
+        heartbeatFieldId = self._currentTypeMap().fieldIdFor(
+            "core", "Connection", "heartbeats_suspended"
+        )
         exists_key = ObjectFieldId(objId=identity, fieldId=fieldId)
+        heartbeat_key = ObjectFieldId(objId=identity, fieldId=heartbeatFieldId)
         exists_index = IndexId(fieldId=fieldId, indexValue=indexValueFor(bool, True))
 
         self._handleNewTransaction(
             None,
-            {exists_key: serialize(bool, True)},
+            {exists_key: serialize(bool, True), heartbeat_key: serialize(bool, False)},
             {},
             {exists_index: set([identity])},
             {},
@@ -349,12 +376,17 @@ class Server:
 
         fieldId = self._currentTypeMap().fieldIdFor("core", "Connection", " exists")
 
+        heartbeatFieldId = self._currentTypeMap().fieldIdFor(
+            "core", "Connection", "heartbeats_suspended"
+        )
+
         exists_key = ObjectFieldId(objId=identity, fieldId=fieldId)
+        heartbeat_key = ObjectFieldId(objId=identity, fieldId=heartbeatFieldId)
         exists_index = IndexId(fieldId=fieldId, indexValue=indexValueFor(bool, True))
 
         self._handleNewTransaction(
             None,
-            {exists_key: None},
+            {exists_key: None, heartbeat_key: None},
             {},
             {},
             {exists_index: set([identity])},
@@ -687,6 +719,9 @@ class Server:
                 self._typeMap = TypeMap()
                 self._typeMap.lookupOrAdd(
                     schema="core", typename="Connection", fieldname=" exists"
+                )
+                self._typeMap.lookupOrAdd(
+                    schema="core", typename="Connection", fieldname="heartbeats_suspended"
                 )
             else:
                 self._typeMap = self.serializationContext.deserialize(

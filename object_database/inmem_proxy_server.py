@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import logging
 import threading
 import time
 
@@ -40,15 +41,18 @@ class InMemProxyServer(ProxyServer):
         self.checkForDeadConnectionsLoopThread.join()
 
     def checkForDeadConnectionsLoop(self):
-        lastCheck = time.time()
-        while not self.stopped.is_set():
-            if time.time() - lastCheck > getHeartbeatInterval():
-                self.checkForDeadConnections()
-                lastCheck = time.time()
-            else:
-                self.stopped.wait(
-                    max(0.001, min(getHeartbeatInterval(), time.time() - lastCheck))
-                )
+        try:
+            lastCheck = time.time()
+            while not self.stopped.is_set():
+                if time.time() - lastCheck > getHeartbeatInterval():
+                    self.checkForDeadConnections()
+                    lastCheck = time.time()
+                else:
+                    self.stopped.wait(
+                        max(0.001, min(getHeartbeatInterval(), time.time() - lastCheck))
+                    )
+        except Exception:
+            logging.exception("InMemProxyServer checkForDeadConnectionsLoop failed")
 
     def getChannel(self):
         channel = InMemoryChannel(self)

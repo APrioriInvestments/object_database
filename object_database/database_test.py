@@ -2351,6 +2351,52 @@ class ObjectDatabaseOverChannelTestsInMemory(unittest.TestCase, ObjectDatabaseTe
         finally:
             messages.setHeartbeatInterval(old_interval)
 
+    def test_heartbeats_suspended(self):
+        old_interval = messages.getHeartbeatInterval()
+        messages.setHeartbeatInterval(0.25)
+
+        try:
+            db1 = self.createNewDb()
+            db2 = self.createNewDb()
+
+            db1.subscribeToSchema(core_schema)
+            db2.subscribeToSchema(core_schema)
+
+            db1.flush()
+
+            with db1.view():
+                self.assertTrue(len(core_schema.Connection.lookupAll()), 2)
+
+            with db2.view():
+                self.assertTrue(len(core_schema.Connection.lookupAll()), 2)
+
+            with db1.transaction():
+                db1.connectionObject.heartbeats_suspended = True
+
+            db1._stopHeartbeating()
+
+            time.sleep(3.0)
+
+            with db2.view():
+                assert len(core_schema.Connection.lookupAll()) == 2
+
+            with db1.transaction():
+                db1.connectionObject.heartbeats_suspended = False
+
+            db2.waitForCondition(
+                lambda: len(core_schema.Connection.lookupAll()) == 1,
+                5.0 * self.PERFORMANCE_FACTOR,
+            )
+
+            with db2.view():
+                self.assertEqual(len(core_schema.Connection.lookupAll()), 1)
+
+            with self.assertRaises(DisconnectedException):
+                with db1.view():
+                    pass
+        finally:
+            messages.setHeartbeatInterval(old_interval)
+
     def test_multithreading_and_cleanup(self):
         # Verify that if one thread is subscribing and the other is repeatedly looking
         # at indices, that everything works correctly.

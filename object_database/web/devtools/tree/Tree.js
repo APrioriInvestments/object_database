@@ -103,6 +103,8 @@ class Tree extends HTMLElement {
         this.onWindowResize = this.onWindowResize.bind(this);
         // event handlers
         this.onNodeDblclick = this.onNodeDblclick.bind(this);
+        this.onNodeMouseover = this.onNodeMouseover.bind(this);
+        this.onNodeMouseleave = this.onNodeMouseleave.bind(this);
         this.onKeyUp = this.onKeyUp.bind(this);
     }
 
@@ -157,6 +159,9 @@ class Tree extends HTMLElement {
             // we prepend "node-" and keep the original id in a data attribute
             node.setAttribute("id", `node-${nodeData.id}`);
             node.setAttribute("data-original-id", nodeData.id);
+            // add mouseover and leave event handlers (implemented outside of tree)
+            node.addEventListener("mouseover", this.onNodeMouseover);
+            node.addEventListener("mouseleave", this.onNodeMouseleave);
             if (root) {
                 node.setAttribute("data-root-node", true);
                 // if the node is not the root of entire tree
@@ -222,6 +227,15 @@ class Tree extends HTMLElement {
       * @param {element} endNode
       */
     addSVGPath(svg, startNode, endNode){
+        // generic svg path attributes setup here
+        const path = document.createElementNS('http://www.w3.org/2000/svg', "path");
+        path.setAttribute("stroke", "var(--palette-blue)");
+        path.setAttribute("stroke-width", "3px");
+        path.setAttribute("fill", "transparent");
+        path.setAttribute("data-start-node-id", startNode.id);
+        path.setAttribute("data-end-node-id", endNode.id);
+
+        // calculate position here
         const startRect = startNode.getBoundingClientRect();
 
         const startY = startRect.bottom;
@@ -230,46 +244,33 @@ class Tree extends HTMLElement {
         const endY = endRect.top;
         const endX = endRect.left + (endRect.width / 2);
 
-
-        /**
-        const line = document.createElementNS('http://www.w3.org/2000/svg', "line");
-        line.setAttribute("x1", `${startX}`);
-        line.setAttribute("y1", `${startY}`);
-        line.setAttribute("x2", `${endX}`);
-        line.setAttribute("y2", `${endY}`);
-        line.setAttribute("stroke", "var(--palette-blue)");
-        line.setAttribute("stroke-width", "3px");
-        line.setAttribute("data-start-node-id", startNode.id);
-        line.setAttribute("data-end-node-id", endNode.id);
-        svg.append(line);
-        **/
-        // add a quadratic bezier curve path
-        let midX;
-        let controlX;
-        const midY = startY + 0.5 * (endY - startY);
-        let controlY = startY + 0.5 * (midY - startY);
-        let controlSlope = 1;
-        if (endX < startX) {
-            midX = endX + 0.5 * (startX - endX);
-            controlX = midX + 0.5 * (startX - midX);
-            controlSlope = 1.02;
+        let d;  // this is the path data
+        if ( Math.abs(endX - startX) < 5) {
+            // draw a straight vertical line, ie the two nodes
+            // are on top of each other
+            d = `M ${startX} ${startY} L ${endX} ${endY}`;
         } else {
-            midX = startX + 0.5 * (endX - startX);
-            controlX = startX + 0.5 * (midX - startX);
-            controlSlope = 0.98;
+            // add a quadratic bezier curve path
+            let midX;
+            let controlX;
+            const midY = startY + 0.5 * (endY - startY);
+            let controlY = startY + 0.5 * (midY - startY);
+            let controlSlope = 1;
+            if (endX < startX) {
+                midX = endX + 0.5 * (startX - endX);
+                controlX = midX + 0.5 * (startX - midX);
+                controlSlope = 1.02;
+            } else {
+                midX = startX + 0.5 * (endX - startX);
+                controlX = startX + 0.5 * (midX - startX);
+                controlSlope = 0.98;
+            }
+            controlX *= controlSlope;
+            controlY *= controlSlope;
+            d = `M ${startX} ${startY} Q ${controlX} ${controlY}, ${midX} ${midY} T ${endX} ${endY}`;
         }
-        controlX *= controlSlope;
-        controlY *= controlSlope;
-        const path = document.createElementNS('http://www.w3.org/2000/svg', "path");
-        path.setAttribute("stroke", "var(--palette-blue)");
-        path.setAttribute("stroke-width", "3px");
-        path.setAttribute("fill", "transparent");
-        path.setAttribute("data-start-node-id", startNode.id);
-        path.setAttribute("data-end-node-id", endNode.id);
-        const d = `M ${startX} ${startY} Q ${controlX} ${controlY}, ${midX} ${midY} T ${endX} ${endY}`;
         path.setAttribute("d", d);
         svg.append(path);
-
     }
 
     /**
@@ -307,6 +308,14 @@ class Tree extends HTMLElement {
             // re-render from the starting root node
             this.setup(this.data, false);
         }
+    }
+
+    onNodeMouseover(event) {
+        // no-op
+    }
+
+    onNodeMouseleave(event) {
+        // no-op
     }
     /**
       * I recursively walk the tree to find the corresponding

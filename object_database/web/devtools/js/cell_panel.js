@@ -54,8 +54,23 @@ const cellsTreeDisplay = (cells) => {
     const tree = document.createElement("tree-graph");
     const main = document.getElementById("main");
     main.append(tree);
+    // setup node hover event listeners
+    // NOTE: these are defined on window by CellHandler
+    tree.onNodeMouseover = (event) => {
+        // highlight the corresponding element in the target window
+        const id = event.target.getAttribute("data-original-id");
+        chrome.devtools.inspectedWindow.eval(
+            `window.addDevtoolsHighlight(${id})`
+        );
+    }
+    tree.onNodeMouseleave = (event) => {
+        // un-highlight the corresponding element in the target window
+        const id = event.target.getAttribute("data-original-id");
+        chrome.devtools.inspectedWindow.eval(
+            `window.removeDevtoolsHighlight()`
+        );
+    }
     // displaying tree
-    console.log(cells);
     tree.setup(cells);
 }
 

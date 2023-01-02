@@ -62,6 +62,7 @@ class CellHandler {
         // devtools related messages
         this.sendMessageToDevtools = this.sendMessageToDevtools.bind(this);
         this.updateDevtools = this.updateDevtools.bind(this);
+        this.setupDevtools = this.setupDevtools.bind(this);
     }
 
     tearDownAllLiveCells() {
@@ -507,6 +508,34 @@ class CellHandler {
         }
     }
 
+    /**
+      * Setup utilities for devtools to call using chrome.devtools.inspectedWindow.eval()
+      * TODO: potentially this should pass via the content-scripts
+      */
+    setupDevtools(){
+        const = "cells-devtools-overlay";
+        window.addDevtoolsHighlight = (id) => {
+            const cell = document.querySelector(`[data-cell-id="${id}"}]`);
+            const rect = cell.getBoundingClientRect();
+            const overlay = document.createElement("div");
+            overlay.style.position = "absolute";
+            overlay.style.backgroundColor = "red";
+            overlay.style.opacity = "0.5";
+            overlay.style.left = rect.left +"px";
+            overlay.style.top = rect.top + "px";
+            overlay.style.height = rect.height + "px";
+            overlay.style.width = rect.width + "px";
+            overlay.setAttribute("id", overlayId);
+            document.body.append(overlay);
+        }
+
+        window.removeDevtoolsHighlight = () => {
+            const overlay = document.getElementById(overlayId);
+            if (overlay) {
+                overlay.remove();
+            }
+        }
+    }
     sendMessageToDevtools(msg){
         // TODO perhaps this should be run by a worker
         msg.type = "cells_devtools";

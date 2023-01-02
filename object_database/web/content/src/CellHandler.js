@@ -531,10 +531,8 @@ class CellHandler {
         }
 
         window.removeDevtoolsHighlight = () => {
-            const overlay = document.getElementById(overlayId);
-            if (overlay) {
-                overlay.remove();
-            }
+            const overlays = document.querySelectorAll(`#${overlayId}`);
+            overlays.forEach((el) => el.remove());
         }
     }
     sendMessageToDevtools(msg){

@@ -24,7 +24,9 @@
     "moment": "^2.24.0",
     "moment-timezone": "^0.5.25",
     "split.js": "^1.5.11",
-    "webpack": "^4.32.2"
+    "webpack": "^4.32.2",
+    "xterm": "^5.1.0",
+    "xterm-addon-fit": "^0.7.0"
   },
   "devDependencies": {
     "css-loader": "^2.1.1",

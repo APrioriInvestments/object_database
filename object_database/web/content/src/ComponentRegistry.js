@@ -45,6 +45,7 @@ import {Subscribed} from './components/Subscribed';
 import {Sized} from './components/Sized';
 import {Table, TableRow, TableHeader} from './components/Table';
 import {Tabs} from './components/Tabs';
+import {Terminal} from './components/Terminal';
 import {Text} from './components/Text';
 import {Editor} from './components/Editor';
 import {Traceback} from './components/Traceback';
@@ -107,6 +108,7 @@ const ComponentRegistry = {
     TableHeader,
     TableRow,
     Tabs,
+    Terminal,
     Text,
     Timestamp,
     Traceback,

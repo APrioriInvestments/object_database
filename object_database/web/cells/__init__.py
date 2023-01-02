@@ -75,6 +75,7 @@ from object_database.web.cells.single_line_text_box import SingleLineTextBox
 from object_database.web.cells.slot import Slot
 from object_database.web.cells.computed_slot import ComputedSlot
 from object_database.web.cells.views.split_view import SplitView
+from object_database.web.cells.terminal import Terminal, PopenStream
 from object_database.web.cells.editor.editor import Editor, OdbEditorState, SlotEditorState
 from object_database.web.cells.table import Table
 from object_database.web.cells.padding import Padding

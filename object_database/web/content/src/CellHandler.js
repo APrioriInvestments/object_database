@@ -514,7 +514,7 @@ class CellHandler {
       * TODO: potentially this should pass via the content-scripts
       */
     setupDevtools(){
-        const = "cells-devtools-overlay";
+        const overlayId = "cells-devtools-overlay";
         window.addDevtoolsHighlight = (id) => {
             const cell = document.querySelector(`[data-cell-id="${id}"}]`);
             const rect = cell.getBoundingClientRect();

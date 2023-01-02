@@ -66,18 +66,12 @@ svg {
 .non-final-leaf {
     background-color: var(--palette-lightblue);
     cursor: pointer;
-    pointer-events: auto;
 }
 
 .non-starting-root {
     background-color: var(--palette-cyan);
     cursor: pointer;
-    pointer-events: auto;
 
-}
-
-tree-node {
-    pointer-events: none;
 }
 
 </style>
@@ -282,16 +276,16 @@ class Tree extends HTMLElement {
 
     onNodeDblclick(event){
         // if clicking on the root node, reset back to cached this.data tree
-        if (event.target.nodeName != "TREE-NODE") {
-            this.setup(this.data);
-        } else if (event.target.hasAttribute("data-root-node")) {
-            const id = event.target.getAttribute("data-original-id");
-            const subTree = this.findParentSubTree(id, this.data);
-            this.setup(subTree, false); // do not cache this data
-        } else {
-            const id = event.target.getAttribute("data-original-id");
-            const subTree = this.findSubTree(id, this.data);
-            this.setup(subTree, false); // do not cache this data
+        if (event.target.nodeName == "TREE-NODE") {
+            if (event.target.hasAttribute("data-root-node")) {
+                const id = event.target.getAttribute("data-original-id");
+                const subTree = this.findParentSubTree(id, this.data);
+                this.setup(subTree, false); // do not cache this data
+            } else {
+                const id = event.target.getAttribute("data-original-id");
+                const subTree = this.findSubTree(id, this.data);
+                this.setup(subTree, false); // do not cache this data
+            }
         }
     }
 

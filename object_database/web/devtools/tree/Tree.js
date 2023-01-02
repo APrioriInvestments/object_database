@@ -64,7 +64,20 @@ svg {
 }
 
 .non-final-leaf {
-    background-color: var(--palette-lightblue)
+    background-color: var(--palette-lightblue);
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.non-starting-root {
+    background-color: var(--palette-cyan);
+    cursor: pointer;
+    pointer-events: auto;
+
+}
+
+tree-node {
+    pointer-events: none;
 }
 
 </style>
@@ -113,7 +126,7 @@ class Tree extends HTMLElement {
             this.data = data;
         }
         const wrapper = this.shadowRoot.querySelector("#wrapper");
-        wrapper.addEventListener("dblclick", this.onNodeDblclick);
+        // wrapper.addEventListener("dblclick", this.onNodeDblclick);
         const nodeDepth = document.createElement("div");
         nodeDepth.classList.add("depth");
         nodeDepth.setAttribute("id", "depth-0");
@@ -146,15 +159,22 @@ class Tree extends HTMLElement {
             node.setAttribute("data-original-id", nodeData.id);
             if (root) {
                 node.setAttribute("data-root-node", true);
+                // if the node is not the root of entire tree
+                // mark it as such and add the dblclick event listener
+                // to allow up the tree navigation
+                if (nodeData.id !== this.data.id) {
+                    node.classList.add("non-starting-root");
+                    node.addEventListener("dblclick", this.onNodeDblclick);
+                }
             }
             wrapperDiv.append(node);
-            node.addEventListener("dblclick", this.onNodeDblclick);
             // setup the children in a new node depth
             if (nodeData.children.length) {
                 // if we are at the display-depth don't iterate on the children
                 // simply mark that the nodes have children
                 if (depth == this.getAttribute("display-depth")){
                     node.classList.add("non-final-leaf");
+                    node.addEventListener("dblclick", this.onNodeDblclick);
                     return;
                 }
                 // if the corresponding depth has not been added, do so now
@@ -264,7 +284,7 @@ class Tree extends HTMLElement {
         if (event.target.nodeName != "TREE-NODE") {
             this.setup(this.data);
         } else if (event.target.hasAttribute("data-root-node")) {
-            const id = event.target.id;
+            const id = event.target.getAttribute("data-original-id");
             const subTree = this.findParentSubTree(id, this.data);
             this.setup(subTree, false); // do not cache this data
         } else {
@@ -275,12 +295,17 @@ class Tree extends HTMLElement {
     }
 
     onKeyUp(event){
+        event.preventDefault();
+        event.stopPropagation();
         if (event.key == "ArrowUp") {
             // re-render the tree from the parent of the current root node
             const rootNode = this.shadowRoot.querySelector("tree-node[data-root-node]");
             const rootNodeId = rootNode.getAttribute("data-original-id");
             const subTree = this.findParentSubTree(rootNodeId, this.data);
             this.setup(subTree, false); // do not cache this data
+        } else if (event.key == "Esc") {
+            // re-render from the starting root node
+            this.setup(this.data, false);
         }
     }
     /**

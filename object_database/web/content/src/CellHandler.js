@@ -132,6 +132,7 @@ class CellHandler {
                  ])
              ])
         );
+        this.setupDevtools();
         this.sendMessageToDevtools({
             status: "initial load"
         });

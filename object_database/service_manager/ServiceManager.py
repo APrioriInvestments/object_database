@@ -528,6 +528,14 @@ class ServiceManager(object):
                 if service.unbootable_count != service.effectiveTargetCount() - len(
                     actual_records
                 ):
+                    self._logger.warning(
+                        "Wanted to boot %s of service %s but could only boot %s "
+                        "because we are out of RAM or CPU on all hosts",
+                        service.effectiveTargetCount(),
+                        service.name,
+                        len(actual_records),
+                    )
+
                     service.unbootable_count = service.effectiveTargetCount() - len(
                         actual_records
                     )

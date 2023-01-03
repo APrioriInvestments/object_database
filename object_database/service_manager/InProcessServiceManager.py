@@ -20,7 +20,7 @@ from object_database.service_manager.ServiceWorker import ServiceWorker
 
 
 class InProcessServiceManager(ServiceManager):
-    def __init__(self, dbConnectionFactory, auth_token):
+    def __init__(self, dbConnectionFactory, auth_token, **kwargs):
         self.storageRoot = tempfile.TemporaryDirectory()
         self.sourceRoot = tempfile.TemporaryDirectory()
         self.auth_token = auth_token
@@ -31,6 +31,7 @@ class InProcessServiceManager(ServiceManager):
             self.sourceRoot.name,
             placementGroup="Master",
             ownHostname="localhost",
+            **kwargs,
         )
 
         self.serviceWorkers = {}
@@ -66,11 +67,14 @@ class InProcessServiceManager(ServiceManager):
         self.serviceWorkers = {}
 
         ServiceManager.stop(self)
+
+        self.storageRoot.cleanup()
+        self.sourceRoot.cleanup()
+
         return allExitedGracefully
 
     def cleanup(self):
-        self.storageRoot.cleanup()
-        self.sourceRoot.cleanup()
+        pass
 
     @staticmethod
     def createOrUpdateService(

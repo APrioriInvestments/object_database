@@ -353,6 +353,39 @@ class DatabaseConnection:
 
         return ()
 
+    def isSubscribedToIndex(self, t, lazy=False, **kwarg):
+        with self._lock:
+            if t.__schema__ not in self._schemas:
+                return False
+
+        toSubscribe = []
+
+        for fieldname, fieldvalue in kwarg.items():
+            indexVal = indexValueFor(
+                t.__schema__.indexType(t.__qualname__, fieldname),
+                fieldvalue,
+                self.serializationContext,
+            )
+
+            toSubscribe.append(
+                (
+                    t.__schema__.name,
+                    t.__qualname__,
+                    (fieldname, indexVal),
+                    self._lazinessForType(t, lazy),
+                )
+            )
+
+        with self._lock:
+            for tup in toSubscribe:
+                if tup[:3] not in self._pendingSubscriptions:
+                    return False
+
+                if not self._pendingSubscriptions[tup[:3]].is_set():
+                    return False
+
+        return True
+
     def isSubscribedToSchema(self, schema):
         return all(self.isSubscribedToType(t) for t in schema._types.values())
 
@@ -375,20 +408,18 @@ class DatabaseConnection:
                 e = self._pendingSubscriptions.get(tup)
 
                 if not e:
-                    e = self._pendingSubscriptions[
-                        (tup[0], tup[1], tup[2])
-                    ] = threading.Event()
+                    e = self._pendingSubscriptions[tup[:3]] = threading.Event()
 
-                assert tup[0] and tup[1]
+                    assert tup[0] and tup[1]
 
-                self._channel.write(
-                    ClientToServer.Subscribe(
-                        schema=tup[0],
-                        typename=tup[1],
-                        fieldname_and_value=tup[2],
-                        isLazy=tup[3],
+                    self._channel.write(
+                        ClientToServer.Subscribe(
+                            schema=tup[0],
+                            typename=tup[1],
+                            fieldname_and_value=tup[2],
+                            isLazy=tup[3],
+                        )
                     )
-                )
 
                 events.append(e)
 

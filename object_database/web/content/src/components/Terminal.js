@@ -70,8 +70,7 @@ class Terminal extends ConcreteCell {
         }
 
         this.div = h('div', {
-            class: 'cells-terminal',
-            style: 'position:relative;width:100%;height:100%',
+            class: `cell cell-terminal fill-space-horizontal fill-space-vertical`,
             onmousedown: (e) => {
                 this.focusReceived();
             },

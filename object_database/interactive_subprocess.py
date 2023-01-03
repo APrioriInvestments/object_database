@@ -12,6 +12,10 @@ import struct
 import termios
 
 
+class Disconnected:
+    pass
+
+
 class InteractiveSubprocess(object):
     def __init__(
         self,
@@ -157,10 +161,13 @@ class InteractiveSubprocess(object):
 
         try:
             while not self.isShuttingDown:
-                r, _, e = select.select([self.ttyParent, self.wakePipeRead], [], [])
+                r, _, _ = select.select([self.ttyParent, self.wakePipeRead], [], [])
 
                 if self.ttyParent in r:
-                    data = os.read(self.ttyParent, self.pipeReadBufferSize)
+                    try:
+                        data = os.read(self.ttyParent, self.pipeReadBufferSize)
+                    except OSError:
+                        data = ""
 
                     if not data:
                         return
@@ -177,6 +184,8 @@ class InteractiveSubprocess(object):
             logging.info("InteractiveSubprocess read loop shutting down")
             os.close(self.ttyParent)
             os.close(self.wakePipeRead)
+
+            self.onStdOut(Disconnected)
 
     def setSize(self, rows, cols):
         fcntl.ioctl(

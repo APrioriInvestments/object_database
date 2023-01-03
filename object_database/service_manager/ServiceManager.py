@@ -57,6 +57,7 @@ class ServiceManager(object):
         self.metricUpdateInterval = metricUpdateInterval
         self._lastMetricUpdateTimestamp = 0.0
         self.reactor = Reactor(self.db, self.doWork, metricUpdateInterval)
+        self.terminalDrivers = {}
 
         self._logger = logging.getLogger(__name__)
 
@@ -74,6 +75,22 @@ class ServiceManager(object):
 
     def stop(self):
         self.reactor.stop()
+
+    def bootTerminalsIfNecessary(self):
+        with self.db.view():
+            for session in service_schema.TerminalSession.lookupAll():
+                if session not in self.terminalDrivers:
+                    self.terminalDrivers[session] = session.createDriver(
+                        self.dbConnectionFactory()
+                    )
+
+            orphaned = []
+            for session in self.terminalDrivers:
+                if not session.exists():
+                    orphaned.append(session)
+
+            for o in orphaned:
+                self.terminalDrivers.pop(o)
 
     def checkAwsImageHash(self, pathToImageHash):
         """Check the image hash in the AwsWorkerBootService against the image in the path.
@@ -275,6 +292,10 @@ class ServiceManager(object):
         self.collectOrphanInstances()
         self.redeployServicesIfNecessary()
 
+        # boot terminals
+        self.collectOrphanTerminals()
+        self.bootTerminalsIfNecessary()
+
         # if we're the master, do some allocation
         if self.isMaster:
             self.collectDeadHosts()
@@ -315,6 +336,25 @@ class ServiceManager(object):
                 self.serviceHostObject.statsLastUpdateTime = time.time()
 
     @revisionConflictRetry
+    def collectOrphanTerminals(self):
+        """Remove terminals whose associated processes no longer exists."""
+        orphans = []
+
+        with self.db.transaction():
+            for terminal in service_schema.TerminalSession.lookupAll(
+                host=self.serviceHostObject
+            ):
+                if terminal.connection is not None and not terminal.connection.exists():
+                    orphans.append(terminal)
+
+        for o in orphans:
+            service_schema.TerminalSession.ensureSubscribed(self.db, o)
+
+        with self.db.transaction():
+            for o in orphans:
+                o.deleteSelf()
+
+    @revisionConflictRetry
     def collectOrphanInstances(self):
         """Remove instances whose associated service no longer exists."""
         orphans = []
@@ -341,6 +381,7 @@ class ServiceManager(object):
         with self.db.transaction():
             for serviceHost in service_schema.ServiceHost.lookupAll():
                 instances = service_schema.ServiceInstance.lookupAll(host=serviceHost)
+                terminals = service_schema.TerminalSession.lookupAll(host=serviceHost)
 
                 if not serviceHost.connection.exists():
                     self._logger.warning(
@@ -349,6 +390,10 @@ class ServiceManager(object):
                     )
                     for sInst in instances:
                         sInst.delete()
+
+                    for tInst in terminals:
+                        tInst.deleteSelf()
+
                     serviceHost.delete()
 
                 else:

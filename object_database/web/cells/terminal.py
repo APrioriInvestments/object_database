@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 from object_database.web.cells.cell import FocusableCell
-from object_database.web.cells.interactive_subprocess import InteractiveSubprocess
+from object_database.interactive_subprocess import InteractiveSubprocess
 import threading
 import logging
 
@@ -43,11 +43,7 @@ class PopenStream:
         self.cmd = cmd
         self.kwargs = kwargs
 
-        self.runner = InteractiveSubprocess(
-            self.cmd,
-            onStdOut=self.onData,
-            **self.kwargs
-        )
+        self.runner = InteractiveSubprocess(self.cmd, onStdOut=self.onData, **self.kwargs)
 
     def close(self):
         self.runner.stop()
@@ -79,10 +75,7 @@ class PopenStream:
 class Terminal(FocusableCell):
     """Produce a terminal emulator"""
 
-    def __init__(
-        self,
-        stream=None
-    ):
+    def __init__(self, stream=None):
         """Initialize a terminal."""
         super().__init__()
         self.stream = stream or EchoStream()
@@ -94,7 +87,7 @@ class Terminal(FocusableCell):
         self.streamDataTriggered = False
 
     def onRemovedFromTree(self):
-        self.stream.close()
+        self.cells.scheduleUnconditionalCallback(self.stream.close)
 
     def onStreamData(self, streamData):
         with self.streamDataLock:
@@ -113,7 +106,7 @@ class Terminal(FocusableCell):
 
     def onMessage(self, messageFrame):
         if messageFrame.get("size"):
-            self.stream.setSize(messageFrame['size']['rows'], messageFrame['size']['cols'])
+            self.stream.setSize(messageFrame["size"]["rows"], messageFrame["size"]["cols"])
 
         if messageFrame.get("data"):
-            self.stream.write(messageFrame['data'])
+            self.stream.write(messageFrame["data"])

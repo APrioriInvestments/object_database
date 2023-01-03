@@ -53,6 +53,15 @@ def ensureSubscribedType(t, lazy=False):
         )
 
 
+def ensureSubscribedIndex(t, lazy=False, **kwargs):
+    if not current_transaction().db().isSubscribedToIndex(t, lazy=lazy, **kwargs):
+        raise SubscribeAndRetry(
+            Timer("Subscribing to schema %s%s", t, " lazily" if lazy else "")(
+                lambda db: db.subscribeToIndex(t, lazySubscription=lazy, **kwargs)
+            )
+        )
+
+
 def ensureSubscribedSchema(t, lazy=False):
     if not current_transaction().db().isSubscribedToSchema(t):
         raise SubscribeAndRetry(

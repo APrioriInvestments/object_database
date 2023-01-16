@@ -26,8 +26,9 @@ from object_database.view import revisionConflictRetry, current_transaction
 terminal_schema = Schema("core.service.terminal")
 
 
-DEFAULT_MAX_LINES_TO_KEEP = 10000
-
+DEFAULT_MAX_BYTES_TO_KEEP = 4000000
+MIN_BLOCK_SIZE = 256
+MAX_BLOCK_SIZE = 256 * 1024
 
 @service_schema.define
 class TerminalSession:
@@ -103,13 +104,13 @@ class TerminalSession:
 
         state.onUserInput(data)
 
-    def writeDataFromSubrocessIntoBuffer(self, data):
+    def writeDataFromSubprocessIntoBuffer(self, data):
         state = TerminalState.lookupAny(session=self)
 
         if state is None:
             state = TerminalState(session=self)
 
-        state.writeDataFromSubrocessIntoBuffer(data)
+        state.writeDataFromSubprocessIntoBuffer(data)
 
     def readBytesFrom(self, offset):
         """Return any new bytes in the stream since 'offset'
@@ -137,8 +138,10 @@ class TerminalState:
     session = Indexed(service_schema.TerminalSession)
 
     topByteIx = int
+    bottomByteIx = int
 
-    maxLinesToKeep = OneOf(None, int)
+    maxBytesToKeep = OneOf(None, int)
+    maxBlockSize = OneOf(None, int)
 
     # a collection of line bufferBlocks
     bufferBlocks = TupleOf(terminal_schema.TerminalBufferBlock)
@@ -157,20 +160,63 @@ class TerminalState:
 
         return res
 
-    def writeDataFromSubrocessIntoBuffer(self, data):
+    def writeDataFromSubprocessIntoBuffer(self, data):
         if not self.bufferBlocks:
             self.bufferBlocks = (terminal_schema.TerminalBufferBlock(session=self.session),)
+
+        if len(self.bufferBlocks[-1].data) + len(data) > MIN_BLOCK_SIZE:
+            self.bufferBlocks = self.bufferBlocks + (terminal_schema.TerminalBufferBlock(session=self.session),)
 
         self.bufferBlocks[-1].data += data
         self.topByteIx += len(data)
 
+        # we don't want to rewrite the buffer back to ODB every time we make a change.
+        # this would make the system impossibly slow once a terminal has a decent amount
+        # of output. Instead, we maintain a logarithmically-sized sequence of blocks
+        while (
+            len(self.bufferBlocks) > 1
+            and len(self.bufferBlocks[-1].data) >= len(self.bufferBlocks[-2].data)
+            and len(self.bufferBlocks[-1].data) < (self.maxBlockSize or MAX_BLOCK_SIZE)
+        ):
+            # if the last block is larger than the second to last block, collapse them together
+            self.bufferBlocks[-2].data += self.bufferBlocks[-1].data
+            self.bufferBlocks = self.bufferBlocks[:-1]
+
+        # if we're holding too much data, chop some out
+        while (
+            self.topByteIx - self.bottomByteIx > (self.maxBytesToKeep or DEFAULT_MAX_BYTES_TO_KEEP)
+            and len(self.bufferBlocks) > 1
+        ):
+            chunks = self.bufferBlocks[0].data.rsplit("\n", 1)
+            self.bottomByteIx += len(chunks[0]) + 1
+
+            if len(chunks) == 2:
+                self.bufferBlocks[1].data = chunks[1] + self.bufferBlocks[1].data
+
+            self.bufferBlocks = self.bufferBlocks[1:]
+
     def readBytesFrom(self, offset):
-        if self.topByteIx > offset:
-            newBytes = self.bufferBlocks[-1].data[offset:]
+        if offset >= self.topByteIx:
+            return "", offset
 
-            return newBytes, self.topByteIx
+        res = ""
 
-        return "", offset
+        curBlockIx = len(self.bufferBlocks) - 1
+        topIx = self.topByteIx
+        bottomIx = topIx - len(self.bufferBlocks[curBlockIx].data)
+
+        while True:
+            if offset >= bottomIx:
+                return self.bufferBlocks[curBlockIx].data[offset - bottomIx:] + res, self.topByteIx
+
+            res = self.bufferBlocks[curBlockIx].data + res
+
+            if curBlockIx == 0:
+                return res, self.topByteIx
+
+            curBlockIx -= 1
+            topIx = bottomIx
+            bottomIx = topIx - len(self.bufferBlocks[curBlockIx].data)
 
 
 @terminal_schema.define
@@ -352,7 +398,7 @@ class TerminalDriver:
                 if somePackets:
                     data = "".join(somePackets)
 
-                    if not self.writeDataFromSubrocessIntoBuffer(data):
+                    if not self.writeDataFromSubprocessIntoBuffer(data):
                         self.subprocess.stop()
                         return
 
@@ -369,11 +415,11 @@ class TerminalDriver:
             self.session.deleteSelf()
 
     @revisionConflictRetry
-    def writeDataFromSubrocessIntoBuffer(self, data):
+    def writeDataFromSubprocessIntoBuffer(self, data):
         with self.db.transaction():
             if not self.session.exists():
                 return False
 
-            self.session.writeDataFromSubrocessIntoBuffer(data)
+            self.session.writeDataFromSubprocessIntoBuffer(data)
 
         return True

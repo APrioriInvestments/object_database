@@ -102,6 +102,7 @@ class Terminal(FocusableCell):
             self.streamDataBuffer = []
             self.streamDataTriggered = False
 
+        logging.info("Sending %s bytes", len("".join(dataToSend)))
         self.scheduleMessage(dict(data="".join(dataToSend)))
 
     def onMessage(self, messageFrame):

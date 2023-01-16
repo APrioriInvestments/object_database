@@ -68,7 +68,8 @@ class TerminalProcessDemo(CellsTestPage):
                 )
                 + cells.Subscribed(
                     lambda: str(len(terminal_schema.TerminalState.lookupAll()))
-                    + " total TerminalState"
+                    + " total TerminalState totalling " +
+                    str(sum(x.topByteIx - x.bottomByteIx for x in terminal_schema.TerminalState.lookupAll()))
                 )
                 + cells.Subscribed(
                     lambda: None

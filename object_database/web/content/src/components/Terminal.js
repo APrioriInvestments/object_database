@@ -5,17 +5,64 @@
 import {Terminal as XtermTerminal} from "xterm";
 import {makeDomElt as h, replaceChildren} from './Cell';
 import {ConcreteCell} from './ConcreteCell';
-import { FitAddon } from 'xterm-addon-fit';
 
 class Terminal extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
 
         this.div = null;
+        this.termDiv = null;
         this.term = null;
-        this.fitAddon = null;
         this.renderCount = 0;
+
+        // the maximum size of the terminal we could have at all as [rows, cols]
+        this.maxTerminalSize = {rows: 0, cols: 0};
+
+        // the size the server knows
+        this.serverEffectiveSize = {rows: 0, cols: 0};
+
         this.installResizeObserver = this.installResizeObserver.bind(this);
+        this.setTerminalSize = this.setTerminalSize.bind(this);
+        this.onDisconnected = this.onDisconnected.bind(this);
+    }
+
+    onDisconnected() {
+        this.div.appendChild(
+            h(
+                'div', {
+                    class: 'terminal-disconnected',
+                },
+            ["DISCONNECTED"]
+            )
+        );
+    }
+
+    setTerminalSize() {
+        let width = this.term._core._renderService.dimensions.css.cell.width;
+        let height = this.term._core._renderService.dimensions.css.cell.height;
+
+        if (width == 0) {
+            width = 9.0125;
+        }
+        if (height == 0) {
+            height = 17;
+        }
+
+        let cols = Math.max(2, Math.floor( (this.lastWidth - 25) / width));
+        let rows = Math.max(2, Math.floor(this.lastHeight / height));
+
+        if (this.maxTerminalSize.rows != rows || this.maxTerminalSize.cols != cols) {
+            this.maxTerminalSize = {rows: rows, cols: cols};
+            this.sendMessage({size: this.maxTerminalSize});
+        }
+
+        let sizeToUse = this.serverEffectiveSize;
+
+        if (sizeToUse.rows == 0 && sizeToUse.cols == 0) {
+            sizeToUse = this.maxTerminalSize;
+        }
+
+        this.term.resize(sizeToUse.cols, sizeToUse.rows);
     }
 
     installResizeObserver() {
@@ -28,9 +75,9 @@ class Terminal extends ConcreteCell {
 
                 this.lastWidth = entry.contentRect.width;
                 this.lastHeight = entry.contentRect.height;
-            }
 
-            this.fitAddon.fit();
+                this.setTerminalSize();
+            }
         });
 
         observer.observe(this.div);
@@ -59,47 +106,28 @@ class Terminal extends ConcreteCell {
         }
 
         this.installResizeObserver();
-
-        this.fitAddon.fit();
-        this.sendMessage({size: {rows: this.term.rows, cols: this.term.cols}});
     }
 
     build(){
         if (this.div !== null) {
             return this.div;
         }
+        this.termDiv = h('div', {}, []);
 
         this.div = h('div', {
+            style: 'position: relative',
             class: `cell cell-terminal fill-space-horizontal fill-space-vertical`,
             onmousedown: (e) => {
                 this.focusReceived();
             },
-        }, []);
-
-        this.fitAddon = new FitAddon();
+        }, [this.termDiv]);
 
         this.term = new XtermTerminal({convertEol: true, cursorBlink: true});
-        this.term.loadAddon(this.fitAddon);
-        this.term.open(this.div);
+        this.term.open(this.termDiv);
 
         this.term.onData(data => {
             this.sendMessage({data: data});
         });
-
-        this.term.onResize(() => {
-            this.sendMessage({size: {rows: this.term.rows, cols: this.term.cols}});
-        })
-
-        this.term.onRender(() => {
-            // for whatever reason, the first couple of renders require
-            // us to re-call 'fitAddon' because it doesn't correctly
-            // calculate the size of the upcoming terminal, even though the
-            // size of the parent div is already set and known.
-            this.renderCount += 1;
-            if (this.renderCount < 3) {
-                this.fitAddon.fit();
-            }
-        })
 
         return this.div;
     }
@@ -108,6 +136,13 @@ class Terminal extends ConcreteCell {
         messages.forEach((message) => {
             if (message.data !== undefined) {
                 this.term.write(message.data);
+            }
+            if (message.effectiveSize !== undefined) {
+                this.serverEffectiveSize = message.effectiveSize;
+                this.setTerminalSize();
+            }
+            if (message.isDisconnected) {
+                this.onDisconnected();
             }
         });
     }

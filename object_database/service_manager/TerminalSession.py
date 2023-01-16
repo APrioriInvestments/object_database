@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typed_python import TupleOf, Dict, OneOf
+from typed_python import TupleOf, Dict, OneOf, NamedTuple
 import queue
 import threading
 import logging
@@ -125,6 +125,22 @@ class TerminalSession:
 
         return state.readBytesFrom(offset)
 
+    def getEffectiveSize(self):
+        state = TerminalState.lookupAny(session=self)
+
+        if state is None:
+            return
+
+        return state.effectiveSize
+
+    def setEffectiveSize(self, curSize):
+        state = TerminalState.lookupAny(session=self)
+
+        if state is None:
+            return
+
+        state.setEffectiveSize(curSize)
+
 
 @terminal_schema.define
 class TerminalBufferBlock:
@@ -148,6 +164,19 @@ class TerminalState:
 
     # bytes we want to write _into_ the terminal
     writeBuffer = str
+
+    # the 'effective size' of the terminal, which is the minimum
+    # of all the terminal sizes that are actually looking at it.
+    # this is what we have told the terminal is its size
+    effectiveSize = OneOf(None, NamedTuple(rows=int, cols=int))
+
+    def setEffectiveSize(self, curSize):
+        newSz = NamedTuple(rows=int, cols=int)(
+            rows=curSize['rows'], cols=curSize['cols']
+        ) if curSize is not None else None
+
+        if self.effectiveSize != newSz:
+            self.effectiveSize = newSz
 
     def onUserInput(self, data):
         self.writeBuffer += data
@@ -239,17 +268,22 @@ class Stream:
         self.session = session
         self.terminalSubscription = None
         self.lastByteReadSlot = cells.Slot(0)
+        self.lastTerminalSize = cells.Slot(None)
 
     def update(self):
         """Effect callback"""
+        if not self.session.exists():
+            if self.terminalSubscription.exists():
+                self.terminalSubscription.delete()
+
+            self.onData(Disconnected)
+
+            return
+
         if self.terminalSubscription is None:
             self.terminalSubscription = TerminalSubscription(
                 session=self.session, connection=current_transaction().db().connectionObject
             )
-
-        if not self.session.exists():
-            self.terminalSubscription.delete()
-            return
 
         newBytes, newSlotIx = self.session.readBytesFrom(
             self.lastByteReadSlot.get(),
@@ -260,6 +294,12 @@ class Stream:
         if newBytes:
             self.onData(newBytes)
 
+        if self.lastTerminalSize.get() != self.session.getEffectiveSize():
+            self.lastTerminalSize.set(self.session.getEffectiveSize())
+            self.onData(
+                self.lastTerminalSize.get()
+            )
+
     def close(self):
         if self.terminalSubscription and self.terminalSubscription.exists():
             self.terminalSubscription.delete()
@@ -267,13 +307,14 @@ class Stream:
     def addDataListener(self, listener):
         self.listeners.append(listener)
 
-    def setSize(self, rows, cols):
-        if self.terminalSubscription:
-            self.terminalSubscription.rows = rows
-            self.terminalSubscription.cols = cols
+    def setSize(self, size):
+        if self.terminalSubscription and self.terminalSubscription.exists():
+            self.terminalSubscription.rows = size['rows']
+            self.terminalSubscription.cols = size['cols']
 
     def write(self, data):
-        self.session.onUserInput(data)
+        if self.session.exists():
+            self.session.onUserInput(data)
 
     def onData(self, data):
         badListeners = []
@@ -301,7 +342,7 @@ class TerminalDriver:
         self.hasStopped = False
         self.reactor = Reactor(self.db, self.writeDataIntoProcess)
 
-        self.curSizeTuple = (None, None)
+        self.curSize = None
 
     @revisionConflictRetry
     def writeDataIntoProcess(self):
@@ -312,25 +353,26 @@ class TerminalDriver:
                 sessionIsTerminated = True
             else:
                 bytesToWrite = self.session.popUserInput()
-                curSizeTuple = self._computeSizeTuple()
+                curSize = self._computeSize()
+
+                self.session.setEffectiveSize(curSize)
 
         if sessionIsTerminated:
             if not self.hasStopped:
+                logging.info("Terminating process because session was deleted")
                 self.subprocess.stop()
                 self.hasStopped = True
 
             return
 
-        if curSizeTuple != self.curSizeTuple and curSizeTuple[0] is not None:
-            self.subprocess.setSize(*curSizeTuple)
-            self.curSizeTuple = curSizeTuple
-
-            logging.info("New terminal size is %s", self.curSizeTuple)
+        if curSize != self.curSize and curSize is not None:
+            self.subprocess.setSize(rows=curSize['rows'], cols=curSize['cols'])
+            self.curSize = curSize
 
         if bytesToWrite:
             self.subprocess.write(bytesToWrite)
 
-    def _computeSizeTuple(self):
+    def _computeSize(self):
         rows = None
         cols = None
 
@@ -347,7 +389,10 @@ class TerminalDriver:
             rows = minOrNone(rows, subscription.rows)
             cols = minOrNone(cols, subscription.cols)
 
-        return (rows, cols)
+        if rows is None:
+            return None
+
+        return dict(rows=rows, cols=cols)
 
     def start(self):
         self.readThread = threading.Thread(target=self.readQueueThread)
@@ -412,7 +457,8 @@ class TerminalDriver:
         self.reactor.stop()
 
         with self.db.transaction():
-            self.session.deleteSelf()
+            if self.session.exists():
+                self.session.deleteSelf()
 
     @revisionConflictRetry
     def writeDataFromSubprocessIntoBuffer(self, data):

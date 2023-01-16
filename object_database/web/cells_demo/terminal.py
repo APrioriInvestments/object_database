@@ -89,7 +89,10 @@ class TerminalProcessDemo(CellsTestPage):
 
 class DoubleTerminalProcessDemo(CellsTestPage):
     def cell(self):
-        return TerminalProcessDemo().cell() >> TerminalProcessDemo().cell()
+        return cells.ResizablePanel(
+            TerminalProcessDemo().cell(),
+            TerminalProcessDemo().cell()
+        )
 
     def text(self):
         return (

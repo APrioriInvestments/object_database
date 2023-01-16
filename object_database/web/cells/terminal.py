@@ -12,8 +12,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from typed_python import NamedTuple
+
 from object_database.web.cells.cell import FocusableCell
-from object_database.interactive_subprocess import InteractiveSubprocess
+from object_database.interactive_subprocess import InteractiveSubprocess, Disconnected
 import threading
 import logging
 
@@ -28,7 +30,7 @@ class EchoStream:
     def addDataListener(self, listener):
         self.listeners.append(listener)
 
-    def setSize(self, rows, cols):
+    def setSize(self, size):
         pass
 
     def write(self, data):
@@ -52,8 +54,8 @@ class PopenStream:
         self.listeners.append(listener)
         self.runner.start()
 
-    def setSize(self, rows, cols):
-        self.runner.setSize(rows, cols)
+    def setSize(self, size):
+        self.runner.setSize(rows=size['rows'], cols=size['cols'])
 
     def write(self, data):
         self.runner.write(data)
@@ -102,12 +104,28 @@ class Terminal(FocusableCell):
             self.streamDataBuffer = []
             self.streamDataTriggered = False
 
-        logging.info("Sending %s bytes", len("".join(dataToSend)))
-        self.scheduleMessage(dict(data="".join(dataToSend)))
+        terminalSizes = [x for x in dataToSend if isinstance(x, NamedTuple)]
+        writes = [x for x in dataToSend if isinstance(x, str)]
+        isDisconnected = any(x is Disconnected for x in dataToSend)
+
+        if terminalSizes:
+            self.scheduleMessage(
+                dict(effectiveSize=dict(rows=terminalSizes[-1].rows, cols=terminalSizes[-1].cols))
+            )
+
+        self.scheduleMessage(dict(data="".join(writes)))
+
+        if isDisconnected:
+            self.scheduleMessage(dict(isDisconnected=True))
 
     def onMessage(self, messageFrame):
         if messageFrame.get("size"):
-            self.stream.setSize(messageFrame["size"]["rows"], messageFrame["size"]["cols"])
+            self.stream.setSize(
+                dict(
+                    rows=messageFrame["size"]["rows"],
+                    cols=messageFrame["size"]["cols"]
+                )
+            )
 
         if messageFrame.get("data"):
             self.stream.write(messageFrame["data"])

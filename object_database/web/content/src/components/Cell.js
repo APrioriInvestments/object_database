@@ -106,7 +106,13 @@ const replaceChildren = (domElement, children) => {
         return;
     }
 
-    if (domElement.replaceChildren) {
+    if (domElement.childNodes.length == children.length) {
+        for (var i = 0; i < children.length; i++) {
+            if (domElement.childNodes[i] !== children[i]) {
+                domElement.replaceChild(children[i], domElement.childNodes[i]);
+            }
+        }
+    } else if (domElement.replaceChildren) {
         // when this is available...
         domElement.replaceChildren(...children);
     } else {

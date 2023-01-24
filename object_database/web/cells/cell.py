@@ -206,7 +206,7 @@ class Cell(object):
         return res
 
     def childByIndex(self, ix):
-        return self.children[sorted(self.children)[ix]]
+        return self.children[sorted(self.children.names())[ix]]
 
     def childrenWithExceptions(self):
         return self.findChildrenMatching(

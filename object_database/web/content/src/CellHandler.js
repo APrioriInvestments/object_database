@@ -546,10 +546,12 @@ class CellHandler {
       **/
     updateDevtools(){
         const buildTree = (cell) => {
-            return {
-                name: cell.constructor.name,
-                id: cell.identity,
-                children: mapChildren(cell.namedChildren)
+            if (cell.isCell) {
+                return {
+                    name: cell.constructor.name,
+                    id: cell.identity,
+                    children: mapChildren(cell.namedChildren)
+                }
             }
         }
         // NOTE: sometimes a named child is a cell, sometimes it's an array of cells
@@ -561,10 +563,16 @@ class CellHandler {
                     if (child){
                         if (child instanceof Array){
                             child.forEach((subchild) => {
-                                children.push(buildTree(subchild));
+                                const subTree = buildTree(subchild);
+                                if (subTree){
+                                    children.push(buildTree(subchild));
+                                }
                             })
                         }
-                        children.push(buildTree(child));
+                        const subTree = buildTree(child);
+                        if (subTree) {
+                            children.push(buildTree(child));
+                        }
                     }
                 })
             }

@@ -71,7 +71,6 @@ svg {
 .non-starting-root {
     background-color: var(--palette-cyan);
     cursor: pointer;
-
 }
 
 </style>
@@ -95,10 +94,12 @@ class Tree extends HTMLElement {
         this.setupPaths = this.setupPaths.bind(this);
         this.addSVGPath = this.addSVGPath.bind(this);
         this.onWindowResize = this.onWindowResize.bind(this);
+        this.customizeNode = this.customizeNode;
         // event handlers
         this.onNodeDblclick = this.onNodeDblclick.bind(this);
         this.onNodeMouseover = this.onNodeMouseover.bind(this);
         this.onNodeMouseleave = this.onNodeMouseleave.bind(this);
+        this.onNodeClick = this.onNodeClick.bind(this);
         this.onKeyUp = this.onKeyUp.bind(this);
     }
 
@@ -113,6 +114,10 @@ class Tree extends HTMLElement {
 
     disconnectedCallback(){
         document.removeEventListener("key", this.onKeyUp);
+    }
+
+    customizeNode(node){
+        //Noop, to be used by consumers
     }
 
     setup(data, cache=true){
@@ -156,6 +161,7 @@ class Tree extends HTMLElement {
             // add mouseover and leave event handlers (implemented outside of tree)
             node.addEventListener("mouseover", this.onNodeMouseover);
             node.addEventListener("mouseleave", this.onNodeMouseleave);
+            node.addEventListener("click", this.onNodeClick);
             if (root) {
                 node.setAttribute("data-root-node", true);
                 // if the node is not the root of entire tree
@@ -166,6 +172,7 @@ class Tree extends HTMLElement {
                     node.addEventListener("dblclick", this.onNodeDblclick);
                 }
             }
+            this.customizeNode(node);
             wrapperDiv.append(node);
             // setup the children in a new node depth
             if (nodeData.children.length) {
@@ -309,6 +316,10 @@ class Tree extends HTMLElement {
     }
 
     onNodeMouseleave(event) {
+        // no-op
+    }
+
+    onNodeClick(event) {
         // no-op
     }
     /**

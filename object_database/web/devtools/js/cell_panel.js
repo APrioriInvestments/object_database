@@ -44,6 +44,18 @@ const reconnectingDisplay = () => {
     main.textContent = "Reconnecting: no cells loaded";
 }
 
+const updateInfoPanel = (node) => {
+    const infoPanel = document.getElementById("cell-info");
+    const id = node.getAttribute("data-original-id");
+    let info = `cell-id: ${id}`;
+    const tree = document.querySelector("tree-graph");
+    const parentSubtree = tree.findParentSubTree(id, tree.data);
+    if (parentSubtree.name.match("Subscribed")) {
+        info = `${info}\nsubscribed`;
+    }
+    infoPanel.innerText = info;
+}
+
 const cellsTreeDisplay = (cells) => {
     clearDisplay();
     // init and run
@@ -54,6 +66,7 @@ const cellsTreeDisplay = (cells) => {
     const tree = document.createElement("tree-graph");
     const main = document.getElementById("main");
     main.append(tree);
+    tree.setAttribute("display-depth", 4);
     // setup node hover event listeners
     // NOTE: these are defined on window by CellHandler
     tree.onNodeMouseover = (event) => {
@@ -69,6 +82,18 @@ const cellsTreeDisplay = (cells) => {
         chrome.devtools.inspectedWindow.eval(
             `window.removeDevtoolsHighlight()`
         );
+    }
+
+    tree.onNodeClick = (event) => {
+        updateInfoPanel(event.target);
+    }
+    tree.customizeNode = (node) => {
+        if (node.name == "Subscribed") {
+            node.style.backgroundColor = "var(--palette-beige)";
+        }
+        // customize a tooltip here
+        const id = node.getAttribute("data-original-id");
+        node.title = `cell-id: ${id}`;
     }
     // displaying tree
     tree.setup(cells);

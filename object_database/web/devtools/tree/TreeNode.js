@@ -30,6 +30,7 @@ div#wrapper {
 class TreeNode extends HTMLElement {
     constructor() {
         super();
+
         this.template = document.createElement("template");
         this.template.innerHTML = templateString;
         this.attachShadow({ mode: "open" });
@@ -39,7 +40,11 @@ class TreeNode extends HTMLElement {
     set name(s){
         const name = this.shadowRoot.querySelector("#name");
         name.innerText = s;
+    }
 
+    get name() {
+        const name = this.shadowRoot.querySelector("#name");
+        return name.innerText;
     }
 }
 

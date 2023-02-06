@@ -797,14 +797,17 @@ class Editor(FocusableCell):
                     )
 
                     if len(newState["events"]) % 100 == 0:
-                        t0 = time.time()
-                        newState = compressState(newState, time.time() - 10)
-                        if time.time() - t0 > 0.01:
-                            logging.info(
-                                "Spent %s compressing editor state to %s events",
-                                time.time() - t0,
-                                len(newState["events"]),
-                            )
+                        try:
+                            t0 = time.time()
+                            newState = compressState(newState, time.time() - 10)
+                            if time.time() - t0 > 0.01:
+                                logging.info(
+                                    "Spent %s compressing editor state to %s events",
+                                    time.time() - t0,
+                                    len(newState["events"]),
+                                )
+                        except Exception:
+                            logging.exception("Editor state model is corrupt: can't compress")
 
                     self.stateSlot.set(newState)
             else:

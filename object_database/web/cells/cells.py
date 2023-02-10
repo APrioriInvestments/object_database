@@ -332,7 +332,6 @@ class Cells:
 
     def renderMessages(self):
         self._recalculateAll()
-
         focusedCell = self._updateFocusedCell()
 
         packet = dict(
@@ -390,6 +389,8 @@ class Cells:
                     parent=node.parent.identity if node.parent is not None else None,
                 )
             else:
+                logging.info("Updating node %s", node)
+
                 packet["nodesUpdated"][node.identity] = dict(
                     extraData=node.getDisplayExportData(),
                     children=node.children.namedChildIdentities(),
@@ -470,7 +471,6 @@ class Cells:
             self._handleAllTransactions()
             self._updateAllDirtyCells()
             self._cleanUpAllOrphans()
-
             hadMoves = self._updateAllMovedCells()
             hadReactors = self._dependencies.recalculateDirtyReactors(self)
             hadCallbacks = self._processCallbacks()
@@ -486,25 +486,38 @@ class Cells:
         # when someone else finds it and calculates on it. As a result,
         # while we never want to recalculate an orphaned cell, we also
         # need to keep them around, since a node may become 'unorphaned'
-        while True:
-            cellsByLevel = {}
+        totalCalls = 0
+        t0 = time.time()
 
-            for node in self._dependencies._dirtyNodes:
-                if node.isActive():
-                    cellsByLevel.setdefault(node.level, []).append(node)
+        try:
+            while True:
+                cellsByLevel = {}
 
-            didAnything = False
-            for level, nodesAtThisLevel in sorted(cellsByLevel.items()):
-                for node in nodesAtThisLevel:
+                for node in self._dependencies._dirtyNodes:
                     if node.isActive():
-                        self._recalculateCell(node)
-                        self._dependencies._dirtyNodes.discard(node)
+                        cellsByLevel.setdefault(node.level, []).append(node)
 
-                        didAnything = True
+                didAnything = False
+                for level, nodesAtThisLevel in sorted(cellsByLevel.items()):
+                    for node in nodesAtThisLevel:
+                        if node.isActive():
+                            totalCalls += 1
 
-            if not didAnything:
-                self._dependencies._dirtyNodes = set()
-                return
+                            t1 = time.time()
+                            self._recalculateCell(node)
+                            if time.time() - t1 > 0.01:
+                                logging.info("Spent %.3f evaluating cell %s", time.time() - t1, node)
+
+                            self._dependencies._dirtyNodes.discard(node)
+
+                            didAnything = True
+
+                if not didAnything:
+                    self._dependencies._dirtyNodes = set()
+                    return
+        finally:
+            if time.time() - t0 > 0.01:
+                logging.info("Spent %.3f evaluating %s clells", time.time() - t0, totalCalls)
 
     def _updateAllMovedCells(self):
         didAnything = False

@@ -616,8 +616,7 @@ class Cells:
         for c in cell.children.allChildren:
             if c.parent is cell:
                 self._cellOutOfScope(c)
-            else:
-                c.removeParent(cell)
+            c.removeParent(cell)
 
         if cell.identity in self._nodesKnownToChannel:
             self._nodeIdsToDiscard.add(cell.identity)

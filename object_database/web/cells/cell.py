@@ -244,7 +244,12 @@ class Cell(object):
 
         if len(self.allParents) > 1:
             for p in self.allParents:
-                p.onError(Exception(f"Child cell({self}) can't have two parents"))
+                p.onError(
+                    Exception(
+                        f"Child cell({self}) can't have two parents. it has:\n"
+                        + "\n".join([str(aParent) for aParent in self.allParents])
+                    )
+                )
 
         if self.isAncestorOf(self.parent):
             raise Exception(

@@ -24,6 +24,7 @@ class TimeIsAfter:
     This lets us build UI that depends on when something has changed without going into
     a recalculation loop.
     """
+
     def __init__(self, timestamp):
         self._timestamp = timestamp
         self._registered = False
@@ -55,9 +56,7 @@ class TimeIsAfter:
             if cells is None:
                 raise Exception("Please call 'get' inside of a valid cells context first.")
 
-            cells.scheduleUnconditionalCallback(
-                self._trigger, atTimestamp=self._timestamp
-            )
+            cells.scheduleUnconditionalCallback(self._trigger, atTimestamp=self._timestamp)
 
         self._registered = True
 

@@ -13,12 +13,12 @@
 #   limitations under the License.
 import unittest
 
-from object_database.schema import Indexed, Schema
 from object_database.inmem_server import InMemServer
 from object_database.persistence import InMemoryPersistence
 
 from object_database.service_manager.TerminalSession import service_schema
 from object_database.service_manager.TerminalSession import terminal_schema
+
 
 class TerminalSessionTest(unittest.TestCase):
     def setUp(self):
@@ -46,6 +46,7 @@ class TerminalSessionTest(unittest.TestCase):
             state.maxBlockSize = 1024
 
         totalBuffer = [""]
+
         def write(x):
             totalBuffer[0] += x
             state.writeDataFromSubprocessIntoBuffer(x)
@@ -56,7 +57,9 @@ class TerminalSessionTest(unittest.TestCase):
 
                 # make sure we keep enough bytes around
                 assert state.topByteIx == len(totalBuffer[0])
-                assert state.bottomByteIx <= max(0, state.topByteIx - state.maxBytesToKeep + state.maxBlockSize * 2)
+                assert state.bottomByteIx <= max(
+                    0, state.topByteIx - state.maxBytesToKeep + state.maxBlockSize * 2
+                )
 
                 # and that if we request them we get what we expect
                 readFrom = state.bottomByteIx

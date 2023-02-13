@@ -68,8 +68,13 @@ class TerminalProcessDemo(CellsTestPage):
                 )
                 + cells.Subscribed(
                     lambda: str(len(terminal_schema.TerminalState.lookupAll()))
-                    + " total TerminalState totalling " +
-                    str(sum(x.topByteIx - x.bottomByteIx for x in terminal_schema.TerminalState.lookupAll()))
+                    + " total TerminalState totalling "
+                    + str(
+                        sum(
+                            x.topByteIx - x.bottomByteIx
+                            for x in terminal_schema.TerminalState.lookupAll()
+                        )
+                    )
                 )
                 + cells.Subscribed(
                     lambda: None
@@ -89,10 +94,7 @@ class TerminalProcessDemo(CellsTestPage):
 
 class DoubleTerminalProcessDemo(CellsTestPage):
     def cell(self):
-        return cells.ResizablePanel(
-            TerminalProcessDemo().cell(),
-            TerminalProcessDemo().cell()
-        )
+        return cells.ResizablePanel(TerminalProcessDemo().cell(), TerminalProcessDemo().cell())
 
     def text(self):
         return (

@@ -30,6 +30,7 @@ DEFAULT_MAX_BYTES_TO_KEEP = 4000000
 MIN_BLOCK_SIZE = 256
 MAX_BLOCK_SIZE = 256 * 1024
 
+
 @service_schema.define
 class TerminalSession:
     """Models a process on a host running an interactive TTY."""
@@ -171,9 +172,11 @@ class TerminalState:
     effectiveSize = OneOf(None, NamedTuple(rows=int, cols=int))
 
     def setEffectiveSize(self, curSize):
-        newSz = NamedTuple(rows=int, cols=int)(
-            rows=curSize['rows'], cols=curSize['cols']
-        ) if curSize is not None else None
+        newSz = (
+            NamedTuple(rows=int, cols=int)(rows=curSize["rows"], cols=curSize["cols"])
+            if curSize is not None
+            else None
+        )
 
         if self.effectiveSize != newSz:
             self.effectiveSize = newSz
@@ -194,7 +197,9 @@ class TerminalState:
             self.bufferBlocks = (terminal_schema.TerminalBufferBlock(session=self.session),)
 
         if len(self.bufferBlocks[-1].data) + len(data) > MIN_BLOCK_SIZE:
-            self.bufferBlocks = self.bufferBlocks + (terminal_schema.TerminalBufferBlock(session=self.session),)
+            self.bufferBlocks = self.bufferBlocks + (
+                terminal_schema.TerminalBufferBlock(session=self.session),
+            )
 
         self.bufferBlocks[-1].data += data
         self.topByteIx += len(data)
@@ -213,7 +218,8 @@ class TerminalState:
 
         # if we're holding too much data, chop some out
         while (
-            self.topByteIx - self.bottomByteIx > (self.maxBytesToKeep or DEFAULT_MAX_BYTES_TO_KEEP)
+            self.topByteIx - self.bottomByteIx
+            > (self.maxBytesToKeep or DEFAULT_MAX_BYTES_TO_KEEP)
             and len(self.bufferBlocks) > 1
         ):
             chunks = self.bufferBlocks[0].data.rsplit("\n", 1)
@@ -236,7 +242,10 @@ class TerminalState:
 
         while True:
             if offset >= bottomIx:
-                return self.bufferBlocks[curBlockIx].data[offset - bottomIx:] + res, self.topByteIx
+                return (
+                    self.bufferBlocks[curBlockIx].data[offset - bottomIx :] + res,
+                    self.topByteIx,
+                )
 
             res = self.bufferBlocks[curBlockIx].data + res
 
@@ -296,9 +305,7 @@ class Stream:
 
         if self.lastTerminalSize.get() != self.session.getEffectiveSize():
             self.lastTerminalSize.set(self.session.getEffectiveSize())
-            self.onData(
-                self.lastTerminalSize.get()
-            )
+            self.onData(self.lastTerminalSize.get())
 
     def close(self):
         if self.terminalSubscription and self.terminalSubscription.exists():
@@ -309,8 +316,8 @@ class Stream:
 
     def setSize(self, size):
         if self.terminalSubscription and self.terminalSubscription.exists():
-            self.terminalSubscription.rows = size['rows']
-            self.terminalSubscription.cols = size['cols']
+            self.terminalSubscription.rows = size["rows"]
+            self.terminalSubscription.cols = size["cols"]
 
     def write(self, data):
         if self.session.exists():
@@ -366,7 +373,7 @@ class TerminalDriver:
             return
 
         if curSize != self.curSize and curSize is not None:
-            self.subprocess.setSize(rows=curSize['rows'], cols=curSize['cols'])
+            self.subprocess.setSize(rows=curSize["rows"], cols=curSize["cols"])
             self.curSize = curSize
 
         if bytesToWrite:

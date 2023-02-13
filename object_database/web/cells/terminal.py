@@ -55,7 +55,7 @@ class PopenStream:
         self.runner.start()
 
     def setSize(self, size):
-        self.runner.setSize(rows=size['rows'], cols=size['cols'])
+        self.runner.setSize(rows=size["rows"], cols=size["cols"])
 
     def write(self, data):
         self.runner.write(data)
@@ -110,7 +110,11 @@ class Terminal(FocusableCell):
 
         if terminalSizes:
             self.scheduleMessage(
-                dict(effectiveSize=dict(rows=terminalSizes[-1].rows, cols=terminalSizes[-1].cols))
+                dict(
+                    effectiveSize=dict(
+                        rows=terminalSizes[-1].rows, cols=terminalSizes[-1].cols
+                    )
+                )
             )
 
         self.scheduleMessage(dict(data="".join(writes)))
@@ -121,10 +125,7 @@ class Terminal(FocusableCell):
     def onMessage(self, messageFrame):
         if messageFrame.get("size"):
             self.stream.setSize(
-                dict(
-                    rows=messageFrame["size"]["rows"],
-                    cols=messageFrame["size"]["cols"]
-                )
+                dict(rows=messageFrame["size"]["rows"], cols=messageFrame["size"]["cols"])
             )
 
         if messageFrame.get("data"):

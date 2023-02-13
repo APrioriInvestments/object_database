@@ -589,7 +589,7 @@ class CellsTests(unittest.TestCase):
 
     def test_time_is_after(self):
         t0 = time.time()
-        timeIsAfter = TimeIsAfter(t0 + .5)
+        timeIsAfter = TimeIsAfter(t0 + 0.5)
 
         self.cells.withRoot(Subscribed(lambda: "Yes" if timeIsAfter.get() else "No"))
 
@@ -602,6 +602,6 @@ class CellsTests(unittest.TestCase):
 
         elapsed = time.time() - t0
 
-        assert .5 < elapsed < .6
+        assert 0.5 < elapsed < 0.6
 
         assert timeIsAfter.getWithoutRegisteringDependency()

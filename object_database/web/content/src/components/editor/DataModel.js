@@ -597,7 +597,12 @@ class DataModel {
                     let firstWS = firstWhitespaceIx(this.lines[i]);
 
                     if (firstWS < this.lines[i].length && this.lines[i][firstWS] == '#') {
-                        this.deleteRange(i, firstWS, firstWS + 1);
+                        if (firstWS + 1 < this.lines[i].length
+                            && this.lines[i][firstWS + 1] == ' ') {
+                            this.deleteRange(i, firstWS, firstWS + 2);
+                        } else {
+                            this.deleteRange(i, firstWS, firstWS + 1);
+                        }
                     }
                 }
             } else {
@@ -615,6 +620,7 @@ class DataModel {
                 if (minWs >= 0) {
                     for (let i = topLine; i <= bottomLine; i++) {
                         if (firstWhitespaceIx(this.lines[i]) < this.lines[i].length) {
+                            this.insertCharOnRange(i, minWs, ' ')
                             this.insertCharOnRange(i, minWs, '#')
                         }
                     }

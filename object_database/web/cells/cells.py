@@ -18,6 +18,8 @@ import traceback
 import logging
 import types
 
+from typed_python.lib.sorted_dict import SortedDict
+
 from object_database.web.cells.session_state import SessionState
 from object_database.web.cells.cell import Cell
 from object_database.web.cells.slot import Slot
@@ -93,6 +95,10 @@ class Cells:
 
         # a list of pending callbacks that want to run on the main thread
         self._callbacks = queue.Queue()
+
+        # a dict from timestamp to a list of callbacks
+        self._timedCallbacksQueue = queue.Queue()
+        self._timedCallbacks = SortedDict(float, list)()
 
         # cell identity to list of json messages to process in each cell object
         self._pendingOutgoingMessages = {}
@@ -212,16 +218,25 @@ class Cells:
 
         walk(self._root)
 
-    def scheduleUnconditionalCallback(self, callback):
+    def scheduleUnconditionalCallback(self, callback, atTimestamp=None):
         """Place a callback on the callback queue unconditionally.
 
         This means that even if the current 'transaction' fails for some reason, the callback
         will be executed.  Normally, when processing cell messages or Effects, you should use
         Cell.scheduleCallback which works through the DependencyContext to only register the
         callback if the current transaction doesn't fail.
+
+        Args:
+            callback - a callback to fire
+            atTimestamp - if not None, wait until this timestamp or greater before firing
+                the callback
         """
-        self._callbacks.put(callback)
-        self._eventHasTransactions.put(1)
+        if atTimestamp is None or time.time() >= atTimestamp:
+            self._callbacks.put(callback)
+            self._eventHasTransactions.put(1)
+        else:
+            self._timedCallbacksQueue.put((callback, atTimestamp))
+            self._eventHasTransactions.put(1)
 
     def _scheduleCallbacks(self, callbacks):
         if not callbacks:
@@ -267,11 +282,27 @@ class Cells:
         self._id += 1
         return str(self._id)
 
-    def wait(self):
-        self._eventHasTransactions.get()
+    def wait(self, timeout=None):
+        if self._timedCallbacks:
+            curTime = time.time()
+
+            while self._timedCallbacks and self._timedCallbacks.first() <= curTime:
+                firstTime = self._timedCallbacks.first()
+                if firstTime <= curTime:
+                    self._scheduleCallbacks(self._timedCallbacks.pop(firstTime))
+
+            if self._timedCallbacks:
+                if timeout is None:
+                    timeout = self._timedCallbacks.first() - curTime
+                else:
+                    timeout = min(timeout, self._timedCallbacks.first() - curTime)
+
+                assert timeout > 0
 
         # drain the queue
         try:
+            self._eventHasTransactions.get(timeout=timeout)
+
             while True:
                 self._eventHasTransactions.get_nowait()
         except queue.Empty:
@@ -332,6 +363,7 @@ class Cells:
 
     def renderMessages(self):
         self._recalculateAll()
+
         focusedCell = self._updateFocusedCell()
 
         packet = dict(
@@ -389,8 +421,6 @@ class Cells:
                     parent=node.parent.identity if node.parent is not None else None,
                 )
             else:
-                logging.info("Updating node %s", node)
-
                 packet["nodesUpdated"][node.identity] = dict(
                     extraData=node.getDisplayExportData(),
                     children=node.children.namedChildIdentities(),
@@ -471,6 +501,7 @@ class Cells:
             self._handleAllTransactions()
             self._updateAllDirtyCells()
             self._cleanUpAllOrphans()
+
             hadMoves = self._updateAllMovedCells()
             hadReactors = self._dependencies.recalculateDirtyReactors(self)
             hadCallbacks = self._processCallbacks()
@@ -486,38 +517,30 @@ class Cells:
         # when someone else finds it and calculates on it. As a result,
         # while we never want to recalculate an orphaned cell, we also
         # need to keep them around, since a node may become 'unorphaned'
-        totalCalls = 0
-        t0 = time.time()
+        while True:
+            cellsByLevel = {}
 
-        try:
-            while True:
-                cellsByLevel = {}
+            for node in self._dependencies._dirtyNodes:
+                if node.isActive():
+                    cellsByLevel.setdefault(node.level, []).append(node)
 
-                for node in self._dependencies._dirtyNodes:
+            didAnything = False
+            for level, nodesAtThisLevel in sorted(cellsByLevel.items()):
+                for node in nodesAtThisLevel:
                     if node.isActive():
-                        cellsByLevel.setdefault(node.level, []).append(node)
+                        t0 = time.time()
+                        self._recalculateCell(node)
+                        if time.time() - t0 > 0.01:
+                            logging.warning(
+                                "recalculating %s took %.3f seconds", node, time.time() - t0
+                            )
+                        self._dependencies._dirtyNodes.discard(node)
 
-                didAnything = False
-                for level, nodesAtThisLevel in sorted(cellsByLevel.items()):
-                    for node in nodesAtThisLevel:
-                        if node.isActive():
-                            totalCalls += 1
+                        didAnything = True
 
-                            t1 = time.time()
-                            self._recalculateCell(node)
-                            if time.time() - t1 > 0.01:
-                                logging.info("Spent %.3f evaluating cell %s", time.time() - t1, node)
-
-                            self._dependencies._dirtyNodes.discard(node)
-
-                            didAnything = True
-
-                if not didAnything:
-                    self._dependencies._dirtyNodes = set()
-                    return
-        finally:
-            if time.time() - t0 > 0.01:
-                logging.info("Spent %.3f evaluating %s clells", time.time() - t0, totalCalls)
+            if not didAnything:
+                self._dependencies._dirtyNodes = set()
+                return
 
     def _updateAllMovedCells(self):
         didAnything = False
@@ -656,6 +679,16 @@ class Cells:
         try:
             while True:
                 callbacksToExecute.append(self._callbacks.get(block=False))
+        except queue.Empty:
+            pass
+
+        try:
+            while True:
+                callback, atTimestamp = self._timedCallbacksQueue.get(block=False)
+                if atTimestamp < time.time():
+                    callbacksToExecute.append(callback)
+                else:
+                    self._timedCallbacks.setdefault(atTimestamp).append(callback)
         except queue.Empty:
             pass
 

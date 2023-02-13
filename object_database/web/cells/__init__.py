@@ -99,4 +99,7 @@ from object_database.web.cells.views.resizable_panel import ResizablePanel
 
 from object_database.web.cells.children import Children
 
+from object_database.web.cells.time_is_after_slot import TimeIsAfter
+
+
 MAX_FPS = 50

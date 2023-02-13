@@ -13,8 +13,6 @@
 #   limitations under the License.
 
 import threading
-import time
-import logging
 
 
 _cur_cell = threading.local()
@@ -33,11 +31,6 @@ class RecomputingCellContext:
     def __enter__(self):
         assert getattr(_cur_cell, "cell", None) is None
         _cur_cell.cell = self.cell
-        self.t0 = time.time()
 
     def __exit__(self, *args):
-        elapsed = time.time() - self.t0
-        if elapsed > .01:
-            logging.info("Spent %.3f seconds recalculating %s", elapsed, self.cell)
-
         _cur_cell.cell = None

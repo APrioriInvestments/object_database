@@ -25,6 +25,7 @@ from object_database.web.cells import (
     Span,
     Text,
     Slot,
+    TimeIsAfter,
     HeaderBar,
     ensureSubscribedType,
 )
@@ -37,6 +38,7 @@ from object_database.frontends.service_manager import (
 from object_database.test_util import currentMemUsageMb, log_cells_stats
 
 import logging
+import time
 import unittest
 import threading
 import pytest
@@ -584,3 +586,22 @@ class CellsTests(unittest.TestCase):
 
         assert subA.isErrored()
         assert subB.isErrored()
+
+    def test_time_is_after(self):
+        t0 = time.time()
+        timeIsAfter = TimeIsAfter(t0 + .5)
+
+        self.cells.withRoot(Subscribed(lambda: "Yes" if timeIsAfter.get() else "No"))
+
+        self.cells.renderMessages()
+        assert not timeIsAfter.getWithoutRegisteringDependency()
+
+        while not timeIsAfter.getWithoutRegisteringDependency() and time.time() < t0 + 1.0:
+            self.cells.wait(timeout=t0 + 1.0 - time.time())
+            self.cells.renderMessages()
+
+        elapsed = time.time() - t0
+
+        assert .5 < elapsed < .6
+
+        assert timeIsAfter.getWithoutRegisteringDependency()

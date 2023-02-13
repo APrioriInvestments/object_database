@@ -18,8 +18,6 @@ import traceback
 import logging
 import types
 
-from typed_python.lib.sorted_dict import SortedDict
-
 from object_database.web.cells.session_state import SessionState
 from object_database.web.cells.cell import Cell
 from object_database.web.cells.slot import Slot
@@ -98,7 +96,7 @@ class Cells:
 
         # a dict from timestamp to a list of callbacks
         self._timedCallbacksQueue = queue.Queue()
-        self._timedCallbacks = SortedDict(float, list)()
+        self._timedCallbacks = {}
 
         # cell identity to list of json messages to process in each cell object
         self._pendingOutgoingMessages = {}
@@ -286,16 +284,16 @@ class Cells:
         if self._timedCallbacks:
             curTime = time.time()
 
-            while self._timedCallbacks and self._timedCallbacks.first() <= curTime:
-                firstTime = self._timedCallbacks.first()
+            while self._timedCallbacks and min(self._timedCallbacks) <= curTime:
+                firstTime = min(self._timedCallbacks)
                 if firstTime <= curTime:
                     self._scheduleCallbacks(self._timedCallbacks.pop(firstTime))
 
             if self._timedCallbacks:
                 if timeout is None:
-                    timeout = self._timedCallbacks.first() - curTime
+                    timeout = min(self._timedCallbacks) - curTime
                 else:
-                    timeout = min(timeout, self._timedCallbacks.first() - curTime)
+                    timeout = min(timeout, min(self._timedCallbacks) - curTime)
 
                 assert timeout > 0
 
@@ -688,7 +686,7 @@ class Cells:
                 if atTimestamp < time.time():
                     callbacksToExecute.append(callback)
                 else:
-                    self._timedCallbacks.setdefault(atTimestamp).append(callback)
+                    self._timedCallbacks.setdefault(atTimestamp, []).append(callback)
         except queue.Empty:
             pass
 

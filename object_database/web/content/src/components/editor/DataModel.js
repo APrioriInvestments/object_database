@@ -973,7 +973,7 @@ class DataModel {
             return true;
         }
 
-        if (event.key == 'Enter' && !hasModifier({ctrl: true, meta: true, alt: true})) {
+        if (event.key == 'Enter' && !hasModifier({ctrl: true, meta: true, alt: true, shift: true})) {
             if (this.readOnly) {
                 return false;
             }

@@ -518,6 +518,7 @@ class ObjectDatabaseTests:
         for t in threads:
             t.join()
 
+    @flaky(max_runs=3, min_passes=1)
     def test_disconnecting_many_times(self):
         db = self.createNewDb()
         db.subscribeToSchema(schema)

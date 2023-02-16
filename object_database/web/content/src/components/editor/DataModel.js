@@ -742,7 +742,22 @@ class DataModel {
 
     // handle an event and return true if we consume the event.
     handleKey(event) {
-        if (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+        // return true if any of the included modifier keys is present
+        let hasModifier = ({shift, ctrl, alt, meta}={}) => {
+            if (shift && event.shiftKey) {
+                return true;
+            } else if (ctrl && event.ctrlKey) {
+                return true;
+            } else if (alt && event.altKey) {
+                return true;
+            } else if (meta && event.metaKey) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        if (event.ctrlKey && !hasModifier({meta: true, alt: true, shift: true})) {
             if (event.key == 'a') {
                 // select all
                 this.cursors = [new Cursor(0, 0, 0, 0, 0)];
@@ -752,7 +767,7 @@ class DataModel {
             }
         }
 
-        if (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+        if (event.ctrlKey && !hasModifier({meta: true, alt: true, shift: true})) {
             if (event.key == 'd') {
                 // take the last cursor
                 let lastCursor = this.cursors[this.cursors.length-1];
@@ -774,17 +789,18 @@ class DataModel {
             }
         }
 
-        if (event.ctrlKey && !event.metaKey && !event.altKey && event.key == '/') {
+        // if (event.ctrlKey && event.key == '/' && !hasModifier({meta: true, alt: true})) {
+        if (event.ctrlKey && event.key == '/' && !event.metaKey && !event.altKey) {
             this.toggleComment(this.constants);
             return true;
         }
 
-        if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key == 'Tab') {
+        if (event.key == 'Tab' && !hasModifier({ctrl: true, alt: true, meta: true})) {
             this.tabKey(event.shiftKey, this.constants);
             return true;
         }
 
-        if (!event.ctrlKey && !event.metaKey) {
+        if (!hasModifier({ctrl: true, meta: true})) {
             if (event.key == 'ArrowRight' || event.key == 'ArrowLeft' ||
                     event.key == 'ArrowUp' || event.key == 'ArrowDown') {
                 var x = 0;
@@ -842,7 +858,7 @@ class DataModel {
             }
         }
 
-        if (event.ctrlKey && !event.altKey && !event.metaKey) {
+        if (event.ctrlKey && !hasModifier({alt: true, meta: true})) {
             if (event.key == 'ArrowRight' || event.key == 'ArrowLeft') {
                 this.cursors.map(
                     (cursor) => {
@@ -858,7 +874,7 @@ class DataModel {
             }
         }
 
-        if (event.key == 'End' && !event.metaKey && !event.altKey) {
+        if (event.key == 'End' && !hasModifier({meta: true, alt: true})) {
             this.cursors.map((cursor) => {
                 if (event.ctrlKey) {
                     cursor.toEndOfDocument(this.lines);
@@ -873,7 +889,7 @@ class DataModel {
             return true;
         }
 
-        if (event.key == 'Home' && !event.metaKey && !event.altKey) {
+        if (event.key == 'Home' && !hasModifier({meta: true, alt: true})) {
             this.cursors.map((cursor) => {
                 if (event.ctrlKey) {
                     cursor.toStartOfDocument(this.lines);
@@ -949,7 +965,7 @@ class DataModel {
             return true;
         }
 
-        if (event.key.length == 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (event.key.length == 1 && !hasModifier({ctrl: true, meta: true, alt: true})) {
             if (this.readOnly) {
                 return false;
             }
@@ -957,7 +973,7 @@ class DataModel {
             return true;
         }
 
-        if (event.key == 'Enter' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (event.key == 'Enter' && !hasModifier({ctrl: true, meta: true, alt: true})) {
             if (this.readOnly) {
                 return false;
             }

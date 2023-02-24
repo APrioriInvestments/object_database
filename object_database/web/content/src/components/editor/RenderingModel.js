@@ -530,6 +530,7 @@ class RenderingModel {
 
     resetDataModel(dataModel) {
         this.dataModel = dataModel;
+        this.autocompletions.dataModel = dataModel;
     }
 
     setOtherCursors(otherCursors) {

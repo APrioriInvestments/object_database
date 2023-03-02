@@ -79,7 +79,8 @@ class TransactionManager {
             editSessionId: isForUndo ? this.editSessionId : event.editSessionId,
             priorEventGuid: null,
             eventGuid: null,
-            reason: event.reason
+            reason: event.reason,
+            undoing: event.eventGuid
         };
     }
 
@@ -139,7 +140,8 @@ class TransactionManager {
             editSessionId: event.editSessionId,
             eventGuid: event.eventGuid,
             priorEventGuid: event.priorEventGuid,
-            reason: event.reason
+            reason: event.reason,
+            undoing: event.undoing
         };
     }
 

@@ -157,7 +157,8 @@ class DataModel {
             editSessionId: editSessionId,
             priorEventGuid: priorEventGuid,
             eventGuid: eventGuid,
-            reason: reason
+            reason: reason,
+            undoing: null
         };
     }
 

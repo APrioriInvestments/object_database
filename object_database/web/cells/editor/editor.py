@@ -25,6 +25,7 @@ from object_database.web.cells.editor.event_model import (
     eventsAreValidInContextOfLines,
     computeStateFromEvents,
     compressState,
+    computeDeltaEvent,
 )
 
 import threading
@@ -202,63 +203,6 @@ class OdbEditorState(EditorStateBase):
     @userSelectionData.setter
     def userSelectionData(self, newValue):
         setattr(self.storageObject, self.userSelectionDataName, newValue)
-
-
-def computeDeltaEvent(curContents, newContents, reason, topEventGuid):
-    curContents = curContents.split("\n")
-    newContents = newContents.split("\n")
-
-    if curContents == newContents:
-        return
-
-    i = 0
-    while i < len(curContents) and i < len(newContents):
-        if curContents[i] == newContents[i]:
-            i += 1
-        else:
-            break
-
-    j = 0
-
-    while (
-        j < len(curContents)
-        and j < len(newContents)
-        and i + j < len(curContents)
-        and i + j < len(newContents)
-    ):
-        if curContents[len(curContents) - 1 - j] == newContents[len(newContents) - 1 - j]:
-            j += 1
-        else:
-            break
-
-    startCursor = dict(
-        pos=[min(max(len(curContents) - j, 0), len(curContents) - 1), 0],
-        tail=[min(i, len(curContents) - 1), 0],
-        desiredCol=0,
-    )
-    endCursor = dict(
-        pos=[min(max(len(newContents) - j, 0), len(newContents) - 1), 0],
-        tail=[min(i, len(newContents) - 1), 0],
-        desiredCol=0,
-    )
-
-    return dict(
-        changes=[
-            dict(
-                lineIndex=i,
-                oldLines=curContents[i : len(curContents) - j],
-                newLines=newContents[i : len(newContents) - j],
-            )
-        ],
-        startCursors=[startCursor],
-        newCursors=[endCursor],
-        timestamp=time.time(),
-        eventGuid=str(uuid.uuid4()),
-        priorEventGuid=topEventGuid,
-        undoState=None,
-        editSessionId=None,
-        reason=reason,
-    )
 
 
 class AutocompleteRequest:

@@ -32,7 +32,9 @@ class EditorModel:
         applyEventsToLines(self.lines, [event])
 
     def undo(self):
-        for e in computeUndoEvents(self.events, "session", self.topEventGuid):
+        undoEvents = computeUndoEvents(self.events, "session", self.topEventGuid)
+
+        for e in undoEvents:
             self.pushEvent(e)
 
     def redo(self):
@@ -49,6 +51,7 @@ class EditorModel:
                 undoState=None,
                 editSessionId="session",
                 reason=reason,
+                undoing=None,
             )
         )
 
@@ -62,6 +65,7 @@ class EditorModel:
                 undoState=None,
                 editSessionId="session",
                 reason=reason,
+                undoing=None,
             )
         )
 
@@ -77,6 +81,7 @@ class EditorModel:
                 undoState=None,
                 editSessionId="session",
                 reason=reason,
+                undoing=None,
             )
         )
 

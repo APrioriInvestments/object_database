@@ -102,6 +102,10 @@ const childListsAreIdentical = (nodes1, nodes2) => {
 };
 
 const replaceChildren = (domElement, children) => {
+    // duplicate the array, since it may get modified if it
+    // comes out of the DOM stack
+    children = new Array(...children);
+
     if (childListsAreIdentical(domElement.childNodes, children)) {
         return;
     }

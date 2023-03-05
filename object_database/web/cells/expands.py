@@ -47,18 +47,10 @@ class Expands(Cell):
     def recalculate(self):
         isExpanded = self.isExpanded
 
-        self.children.addFromDict(
-            {
-                "content": self.open if isExpanded else self.closed,
-                "icon": self.openedIcon if isExpanded else self.closedIcon,
-            }
-        )
+        self.children['content'] = self.open if isExpanded else self.closed
+        self.children['icon'] = self.openedIcon if isExpanded else self.closedIcon
 
         self.exportData["isOpen"] = isExpanded
-
-        for c in self.children.allChildren:
-            if c.cells is not None:
-                c.prepareForReuse()
 
     def onMessage(self, msgFrame):
         self.isExpanded = not self.isExpanded

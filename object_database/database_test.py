@@ -330,6 +330,20 @@ class ObjectDatabaseTests:
             z2 = ThingWithDicts()
             z2.x = z.x
 
+    def test_object_equality(self):
+        db = self.createNewDb()
+        db.subscribeToSchema(schema)
+
+        with db.transaction():
+            z1 = ThingWithDicts()
+            z2 = ThingWithDicts()
+            z3 = Object()
+
+            assert z1 == z1
+            assert z3 == z3
+            assert z1 != z2
+            assert z1 != z3
+
     def test_construct_with_init(self):
         db = self.createNewDb()
         db.subscribeToSchema(schema)

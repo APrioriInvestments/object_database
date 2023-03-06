@@ -78,7 +78,9 @@ class ServiceManager(object):
 
     def bootTerminalsIfNecessary(self):
         with self.db.view():
-            for session in service_schema.TerminalSession.lookupAll():
+            for session in service_schema.TerminalSession.lookupAll(
+                host=self.serviceHostObject
+            ):
                 if session not in self.terminalDrivers:
                     self.terminalDrivers[session] = session.createDriver(
                         self.dbConnectionFactory()

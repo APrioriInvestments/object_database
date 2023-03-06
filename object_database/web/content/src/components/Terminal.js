@@ -3,6 +3,7 @@
  */
 
 import {Terminal as XtermTerminal} from "xterm";
+import {WebglAddon} from 'xterm-addon-webgl';
 import {makeDomElt as h, replaceChildren} from './Cell';
 import {ConcreteCell} from './ConcreteCell';
 
@@ -124,6 +125,12 @@ class Terminal extends ConcreteCell {
 
         this.term = new XtermTerminal({convertEol: true, cursorBlink: true});
         this.term.open(this.termDiv);
+
+        const addon = new WebglAddon();
+        addon.onContextLoss(e => {
+          addon.dispose();
+        });
+        this.term.loadAddon(addon);
 
         this.term.onData(data => {
             this.sendMessage({data: data});

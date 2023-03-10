@@ -733,6 +733,34 @@ class Editor(FocusableCell):
                         events=currentState["events"] + (event,),
                     )
 
+                    # check internal system validity
+                    t0 = time.time()
+                    if not eventsAreValidInContextOfLines(
+                        newState["events"],
+                        newState["lines"],
+                        newState["events"][0]["priorEventGuid"],
+                        [],
+                    ):
+                        self.scheduleMessage(
+                            {"resetState": collapseStateToTopmost(currentState)}
+                        )
+                        self.sentEventGuidSlot.set(currentState["topEventGuid"])
+                        logging.error(
+                            "Resetting session %s/%s on eventGuid %s: bad event %s.",
+                            self.username,
+                            self.editSessionId,
+                            currentState["topEventGuid"],
+                            event,
+                        )
+                        return
+
+                    if time.time() - t0 > 0.01:
+                        logging.warning(
+                            "Validation of %s events took %.3f seconds",
+                            len(currentState["events"]),
+                            time.time() - t0,
+                        )
+
                     logging.debug(
                         "Accepting event on %s/%s: %s",
                         self.username,

@@ -793,6 +793,17 @@ def computeLowestEventIxReferencedByUndoEvents(events):
     return minReffedIx
 
 
+def resetUndoState(events):
+    """Return a copy of the events with no undo state information within."""
+    newEvents = list(events)
+
+    for e in newEvents:
+        e["undoState"] = None
+        e["undoing"] = None
+
+    return newEvents
+
+
 def compressState(state, maxTimestamp, maxWordUndos=1000, maxLineUndos=10000):
     """Compress events so that the state doesn't build up.
 
@@ -825,6 +836,14 @@ def compressState(state, maxTimestamp, maxWordUndos=1000, maxLineUndos=10000):
 
     if not events:
         return state
+
+    if not eventsAreValidInContextOfLines(events, lines, events[0]["priorEventGuid"], []):
+        # somehow we got into a bad state. Obviously we need to fix this. but in the meantime
+        # the strategy is to simply erase the undo/redo state so that the system is
+        # at least self consistent. undo/redo will be a little weird though.
+        events = resetUndoState(events)
+
+        assert eventsAreValidInContextOfLines(events, lines, events[0]["priorEventGuid"], [])
 
     events = compressAwayUnreachableEvents(lines, events, maxTimestamp)
 

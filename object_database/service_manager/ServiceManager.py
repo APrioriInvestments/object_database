@@ -380,6 +380,8 @@ class ServiceManager(object):
     @revisionConflictRetry
     def collectDeadHosts(self):
         # reset the state
+        terminalsToDelete = []
+
         with self.db.transaction():
             for serviceHost in service_schema.ServiceHost.lookupAll():
                 instances = service_schema.ServiceInstance.lookupAll(host=serviceHost)
@@ -393,8 +395,7 @@ class ServiceManager(object):
                     for sInst in instances:
                         sInst.delete()
 
-                    for tInst in terminals:
-                        tInst.deleteSelf()
+                    terminalsToDelete.extend(terminals)
 
                     serviceHost.delete()
 
@@ -407,6 +408,12 @@ class ServiceManager(object):
 
                     if serviceHost.coresUsed != actualCores:
                         serviceHost.coresUsed = actualCores
+
+        for t in terminalsToDelete:
+            service_schema.TerminalSession.ensureSubscribed(self.db, t)
+
+            with self.db.transaction():
+                t.deleteSelf()
 
     @revisionConflictRetry
     def collectDeadConnections(self):

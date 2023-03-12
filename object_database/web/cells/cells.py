@@ -702,7 +702,7 @@ class Cells:
 
         processed = len(callbacksToExecute)
 
-        if processed:
+        if processed and time.time() - t0 > .01:
             logging.info("Processed %s callbacks in %s seconds", processed, time.time() - t0)
 
         return processed > 0

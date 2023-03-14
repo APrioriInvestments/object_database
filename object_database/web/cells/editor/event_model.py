@@ -68,6 +68,12 @@ import uuid
 import pprint
 
 
+COMPRESS_EVERY_N_EDITS = 100
+COMPRESS_MIN_AGE_SECONDS = 10
+COMPRESS_MAX_WORD_UNDOS = 1000
+COMPRESS_MAX_LINE_UNDOS = 10000
+
+
 def isValidChange(change):
     """Return 'True' if 'change' is a valid change object."""
     if not isinstance(change, dict):
@@ -804,7 +810,12 @@ def resetUndoState(events):
     return newEvents
 
 
-def compressState(state, maxTimestamp, maxWordUndos=1000, maxLineUndos=10000):
+def compressState(
+    state,
+    maxTimestamp,
+    maxWordUndos=COMPRESS_MAX_WORD_UNDOS,
+    maxLineUndos=COMPRESS_MAX_LINE_UNDOS,
+):
     """Compress events so that the state doesn't build up.
 
     We have to be a little careful - we can break the undo model if we
@@ -830,12 +841,17 @@ def compressState(state, maxTimestamp, maxWordUndos=1000, maxLineUndos=10000):
             so that all events after this are unmodified.
         maxWordUndos - the maximum number of single-word undo events to tolerate
         maxLineUndos - the maximum number of line-level undos to tolerate
+
+    Returns
+        a tuple (newState, guaranteedEventGuid) where n
+            newState - the newly compressed state
+            guaranteedEventGuid - the eventGuid before which data may have been compressed.
     """
     lines = list(state["lines"])
     events = list(state["events"])
 
     if not events:
-        return state
+        return state, None
 
     if not eventsAreValidInContextOfLines(events, lines, events[0]["priorEventGuid"], []):
         # somehow we got into a bad state. Obviously we need to fix this. but in the meantime
@@ -861,6 +877,21 @@ def compressState(state, maxTimestamp, maxWordUndos=1000, maxLineUndos=10000):
             i += 1
     else:
         i = maxIxModifiable - 1
+
+    # make sure we don't attempt to compress across events in the same undo stream.
+    # when we're done with this block, if we do compress event 'i' into the event before it
+    # then we're not creating an 'extra' undo point
+    while (
+        i > 0 and i + 1 < len(events) and eventsAreInSameUndoStream(events[i], events[i + 1])
+    ):
+        i -= 1
+
+    # compute the guid of the highest event that might be modified
+    # this guid should definitely still be in our stream when we're done
+    if i >= 0:
+        maxIxGuid = events[i]["eventGuid"]
+    else:
+        maxIxGuid = events[0]["priorEventGuid"]
 
     eventsKept = 0
 
@@ -895,4 +926,9 @@ def compressState(state, maxTimestamp, maxWordUndos=1000, maxLineUndos=10000):
 
     assert state1 == state2, (state1, state2)
 
-    return dict(lines=lines, topEventGuid=events[-1]["eventGuid"], events=events)
+    # make sure this event guid is valid
+    assert maxIxGuid == events[0]["priorEventGuid"] or maxIxGuid in set(
+        e["eventGuid"] for e in events
+    )
+
+    return (dict(lines=lines, topEventGuid=events[-1]["eventGuid"], events=events), maxIxGuid)

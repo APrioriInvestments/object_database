@@ -6,6 +6,7 @@ from object_database.web.cells.editor.event_model import (
     computeUndoEvents,
     computeRedoEvents,
     compressState,
+    eventsAreInSameUndoStream,
 )
 from object_database.web.cells.editor.editor import computeStateFromEvents
 import numpy.random
@@ -97,7 +98,9 @@ class EditorModel:
 
         state = dict(topEventGuid=self.topEventGuid, lines=self.initLines, events=self.events)
 
-        newState = compressState(state, maxTimestamp, maxWordUndos, maxLineUndos)
+        newState, guaranteedEventGuid = compressState(
+            state, maxTimestamp, maxWordUndos, maxLineUndos
+        )
 
         self.events = list(newState["events"])
         self.topEventGuid = newState["topEventGuid"]
@@ -199,3 +202,33 @@ def test_undo():
     em.undo()
 
     print(em.lines)
+
+
+def test_event_collapsing():
+    e1 = {
+        "changes": [{"oldLines": [], "newLines": [""], "lineIndex": 12}],
+        "startCursors": [{"pos": [11, 0], "tail": [11, 0], "desiredCol": 0}],
+        "newCursors": [{"pos": [12, 0], "tail": [12, 0], "desiredCol": 0}],
+        "timestamp": 1678819176.375,
+        "undoState": None,
+        "editSessionId": "session",
+        "priorEventGuid": "session-12",
+        "eventGuid": "session-13",
+        "reason": {"keystroke": "Enter"},
+        "undoing": None,
+    }
+
+    e2 = {
+        "changes": [{"oldLines": [], "newLines": [""], "lineIndex": 13}],
+        "startCursors": [{"pos": [12, 0], "tail": [12, 0], "desiredCol": 0}],
+        "newCursors": [{"pos": [13, 0], "tail": [13, 0], "desiredCol": 0}],
+        "timestamp": 1678819176.409,
+        "undoState": None,
+        "editSessionId": "session",
+        "priorEventGuid": "session-13",
+        "eventGuid": "session-14",
+        "reason": {"keystroke": "Enter"},
+        "undoing": None,
+    }
+
+    assert eventsAreInSameUndoStream(e1, e2)

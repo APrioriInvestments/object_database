@@ -525,6 +525,14 @@ class Editor extends ConcreteCell {
                 this.requestAnimationFrame();
             }
 
+            if (message.chopHistoryBeforeGuid !== undefined) {
+                // the server is indicating that any events before this guid may have been
+                // rewritten
+                this.transactionManager.chopHistoryBeforeGuid(
+                    message.chopHistoryBeforeGuid
+                );
+            }
+
             if (message.resetState !== undefined) {
                 // we're being completely reset -> reset the state of the system completely
                 let oldCursors = this.dataModel.cursors;

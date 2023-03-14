@@ -24,12 +24,26 @@ class TransactionManager {
         this.offsetEvent = this.offsetEvent.bind(this);
         this.computeNextUndo = this.computeNextUndo.bind(this);
         this.computeNextRedo = this.computeNextRedo.bind(this);
+        this.chopHistoryBeforeGuid = this.chopHistoryBeforeGuid.bind(this);
+
         this.allocateNewEventGuid = allocateNewEventGuid ? allocateNewEventGuid : () => { '' };
 
         this.eventsAreInSameUndoStream = this.eventsAreInSameUndoStream.bind(this);
 
         // should take (event)
         this.onEvent = onEvent;
+    }
+
+    chopHistoryBeforeGuid(eventGuid) {
+        for (let i = 0; i < this.priorEvents.length; i++) {
+            if (this.priorEvents[i].eventGuid == eventGuid) {
+                console.log("Server compression dropping " + i + " of " + this.priorEvents.length + " events");
+                this.priorEvents.splice(0, i);
+                return;
+            }
+        }
+
+        console.log("Server compression dropping event guid " + eventGuid + " which we don't have.");
     }
 
     snapshot(reason='unknown') {

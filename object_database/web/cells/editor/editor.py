@@ -26,6 +26,8 @@ from object_database.web.cells.editor.event_model import (
     computeStateFromEvents,
     compressState,
     computeDeltaEvent,
+    COMPRESS_EVERY_N_EDITS,
+    COMPRESS_MIN_AGE_SECONDS,
 )
 
 import threading
@@ -768,16 +770,32 @@ class Editor(FocusableCell):
                         event,
                     )
 
-                    if len(newState["events"]) % 100 == 0:
+                    if len(newState["events"]) % COMPRESS_EVERY_N_EDITS == 0:
                         try:
                             t0 = time.time()
-                            newState = compressState(newState, time.time() - 10)
+
+                            compressedState, guaranteedEventGuid = compressState(
+                                newState, time.time() - COMPRESS_MIN_AGE_SECONDS
+                            )
+
                             if time.time() - t0 > 0.01:
                                 logging.info(
                                     "Spent %s compressing editor state to %s events",
                                     time.time() - t0,
                                     len(newState["events"]),
                                 )
+                            if newState != compressedState:
+                                # find the point at which we did the compression and
+                                # send that point to the browser for it to merge into its
+                                # history
+
+                                newState = compressedState
+
+                                if guaranteedEventGuid is not None:
+                                    self.scheduleMessage(
+                                        {"chopHistoryBeforeGuid": guaranteedEventGuid}
+                                    )
+
                         except Exception:
                             logging.exception("Editor state model is corrupt: can't compress")
 

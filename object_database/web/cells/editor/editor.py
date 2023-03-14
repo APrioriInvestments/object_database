@@ -587,7 +587,7 @@ class Editor(FocusableCell):
                 self.scheduleMessage({"acceptedEvents": events[eventIx:]})
                 self.sentEventGuidSlot.set(events[-1]["eventGuid"])
 
-                logging.info(
+                logging.debug(
                     "Client %s/%s updating to event %s",
                     self.username,
                     self.editSessionId,

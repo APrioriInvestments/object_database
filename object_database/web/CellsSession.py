@@ -286,7 +286,7 @@ class CellsSession:
                         len(message.get("nodesCreated", ())) for message in messages
                     )
 
-                    if updateCount or createCount:
+                    if (updateCount or createCount) and time.time() - t0 > 0.01:
                         logging.info(
                             "Rendering message packet with %s updates "
                             "and %s new cells took %.4f seconds. Bytecount is %.2f kb",

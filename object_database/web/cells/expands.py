@@ -47,8 +47,8 @@ class Expands(Cell):
     def recalculate(self):
         isExpanded = self.isExpanded
 
-        self.children['content'] = self.open if isExpanded else self.closed
-        self.children['icon'] = self.openedIcon if isExpanded else self.closedIcon
+        self.children["content"] = self.open if isExpanded else self.closed
+        self.children["icon"] = self.openedIcon if isExpanded else self.closedIcon
 
         self.exportData["isOpen"] = isExpanded
 

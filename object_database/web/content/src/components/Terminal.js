@@ -7,6 +7,9 @@ import {WebglAddon} from 'xterm-addon-webgl';
 import {makeDomElt as h, replaceChildren} from './Cell';
 import {ConcreteCell} from './ConcreteCell';
 
+
+let unusedTerminals = [];
+
 class Terminal extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
@@ -36,6 +39,12 @@ class Terminal extends ConcreteCell {
             ["DISCONNECTED"]
             )
         );
+    }
+
+    cellWillUnload () {
+        if (this.term) {
+            unusedTerminals.push([this.term, this.termDiv]);
+        }
     }
 
     setTerminalSize() {
@@ -113,7 +122,49 @@ class Terminal extends ConcreteCell {
         if (this.div !== null) {
             return this.div;
         }
-        this.termDiv = h('div', {}, []);
+        if (unusedTerminals.length) {
+            // reuse this terminal by pointing its active cell at us
+            [this.term, this.termDiv] = unusedTerminals.pop()
+            this.term.activeCell = this;
+            this.term.reset();
+        } else {
+            // make a new terminal. we need to reuse them sometimes because they
+            // allocate gl contexts, and that's slow and can lead to memory bloat.
+            this.term = new XtermTerminal({convertEol: true, cursorBlink: true});
+            this.termDiv = h('div', {}, []);
+            this.term.open(this.termDiv);
+            this.term.activeCell = this;
+
+            // capture locally so its visible in closures
+            let term = this.term;
+
+            // route sending data through 'activeCell' on the terminal itself
+            this.term.onData((data) => { term.activeCell.sendMessage({data:data}); });
+
+            // attach a copy/paste model.
+            this.term.attachCustomKeyEventHandler((arg) => {
+                if (arg.ctrlKey && arg.code === "KeyC" && arg.type === "keydown") {
+                    const selection = term.getSelection();
+                    if (selection) {
+                        navigator.clipboard.writeText(selection);
+                        return false;
+                    }
+                }
+                if (arg.ctrlKey && arg.code === "KeyV" && arg.type === "keydown") {
+                    navigator.clipboard.readText()
+                    .then(
+                        text => {  term.write(text); }
+                    )
+                }
+                return true;
+            });
+
+            const addon = new WebglAddon();
+            addon.onContextLoss(e => {
+              addon.dispose();
+            });
+            this.term.loadAddon(addon);
+        }
 
         this.div = h('div', {
             style: 'position: relative',
@@ -122,19 +173,6 @@ class Terminal extends ConcreteCell {
                 this.focusReceived();
             },
         }, [this.termDiv]);
-
-        this.term = new XtermTerminal({convertEol: true, cursorBlink: true});
-        this.term.open(this.termDiv);
-
-        const addon = new WebglAddon();
-        addon.onContextLoss(e => {
-          addon.dispose();
-        });
-        this.term.loadAddon(addon);
-
-        this.term.onData(data => {
-            this.sendMessage({data: data});
-        });
 
         return this.div;
     }

@@ -112,6 +112,9 @@ const replaceChildren = (domElement, children) => {
 
     if (domElement.childNodes.length == children.length) {
         for (var i = 0; i < children.length; i++) {
+            if (domElement.childNodes.length <= i) {
+                domElement.appendChild(children[i]);
+            } else
             if (domElement.childNodes[i] !== children[i]) {
                 domElement.replaceChild(children[i], domElement.childNodes[i]);
             }

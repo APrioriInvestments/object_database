@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 from typed_python import TupleOf, Dict, OneOf, NamedTuple
+import os
 import queue
 import threading
 import logging
@@ -40,6 +41,10 @@ class TerminalSession:
     env = OneOf(None, Dict(str, str))
     command = TupleOf(str)
     shell = bool
+
+    # stats for the terminal
+    pid = OneOf(None, int)
+    cwd = OneOf(None, str)
 
     # connection object for the process handling this connection
     connection = Indexed(OneOf(None, core_schema.Connection))
@@ -364,6 +369,8 @@ class TerminalDriver:
 
                 self.session.setEffectiveSize(curSize)
 
+            self._updateCwd()
+
         if sessionIsTerminated:
             if not self.hasStopped:
                 logging.info("Terminating process because session was deleted")
@@ -421,9 +428,11 @@ class TerminalDriver:
             shell = self.session.shell
 
         self.subprocess = InteractiveSubprocess(command, self.onStdOut, env=env, shell=shell)
-
         self.subprocess.start()
         self.reactor.start()
+
+        with self.db.transaction():
+            self.session.pid = self.subprocess.pid
 
     def readQueueThread(self):
         logging.info("Terminal driver started")
@@ -475,4 +484,11 @@ class TerminalDriver:
 
             self.session.writeDataFromSubprocessIntoBuffer(data)
 
+            self._updateCwd()
+
         return True
+
+    def _updateCwd(self):
+        cwd = os.readlink(f"/proc/{self.subprocess.pid}/cwd")
+        if self.session.cwd != cwd:
+            self.session.cwd = cwd

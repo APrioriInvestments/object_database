@@ -201,7 +201,7 @@ class Autocompletion {
 
         return (
             event.key.length == 1
-            && 'abcdefghijklmnopqrstuvwxyz._'.includes(event.key.toLowerCase())
+            && 'abcdefghijklmnopqrstuvwxyz._0123456789'.includes(event.key.toLowerCase())
         );
     }
 

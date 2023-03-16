@@ -139,7 +139,10 @@ class Terminal extends ConcreteCell {
             let term = this.term;
 
             // route sending data through 'activeCell' on the terminal itself
-            this.term.onData((data) => { term.activeCell.sendMessage({data:data}); });
+            this.term.onData((data) => {
+                console.log({data:data});
+                term.activeCell.sendMessage({data:data});
+            });
 
             // attach a copy/paste model.
             this.term.attachCustomKeyEventHandler((arg) => {
@@ -151,10 +154,9 @@ class Terminal extends ConcreteCell {
                     }
                 }
                 if (arg.ctrlKey && arg.code === "KeyV" && arg.type === "keydown") {
-                    navigator.clipboard.readText()
-                    .then(
-                        text => {  term.write(text); }
-                    )
+                    // we don't actually need to do anything here - the default handler
+                    // will take care of it
+                    return false;
                 }
                 return true;
             });

@@ -242,12 +242,15 @@ class CellHandler {
                 document.head.appendChild(styleSheetElement)
             });
 
-            if (Object.keys(message.nodesUpdated).length > 0) {
-                console.log(
-                    "Updating " + (Object.keys(message.nodesUpdated).length) + " nodes "
-                    + "and creating " + (Object.keys(message.nodesCreated).length) + " nodes "
-                    + "at ms%1000 == " + (Date.now() % 1000))
-            }
+            // uncomment to see when messages are processed. this can be useful for
+            // estimating the delay between sending a message on the python side and
+            // receiving it here
+            // if (Object.keys(message.nodesUpdated).length > 0) {
+            //     console.log(
+            //         "Updating " + (Object.keys(message.nodesUpdated).length) + " nodes "
+            //         + "and creating " + (Object.keys(message.nodesCreated).length) + " nodes "
+            //         + "at ms%1000 == " + (Date.now() % 1000))
+            // }
 
             // indicate to each cell that's going out of scope that we're
             // getting rid of it

@@ -180,6 +180,18 @@ class Editor extends ConcreteCell {
         }
     }
 
+    sanitizeClipboardText(text) {
+        // replace tabs and nonbreaking spaces
+        text = text.replaceAll('\u00A0', ' ').replaceAll('\t', '    ');
+
+        // sanitize line endings
+        text = text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+
+        // replace non-printable characters
+        text = text.replace(/[^a-zA-Z0-9_ \n!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]/g, '');
+        return text
+    }
+
     // get a GUID for the event index
     allocateNewEventGuid() {
         this.uniqueEventIndex += 1;
@@ -816,7 +828,9 @@ class Editor extends ConcreteCell {
             if (event.key == 'v') {
                 // handle paste event
                 navigator.clipboard.readText().then((clipboardText) => {
-                    this.dataModel.pasteText(clipboardText);
+                    this.dataModel.pasteText(
+                        this.sanitizeClipboardText(clipboardText)
+                    );
                     this.renderModel.sync();
                     this.transactionManager.snapshot({'event': 'paste'});
                     this.requestAnimationFrame();

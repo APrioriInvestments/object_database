@@ -24,7 +24,7 @@ from object_database.interactive_subprocess import InteractiveSubprocess, Discon
 from object_database.reactor import Reactor
 from object_database.view import revisionConflictRetry, current_transaction
 
-terminal_schema = Schema("core.service.terminal")
+terminal_schema = Schema("core.service.terminal.2")
 
 
 DEFAULT_MAX_BYTES_TO_KEEP = 4000000
@@ -219,6 +219,8 @@ class TerminalState:
         ):
             # if the last block is larger than the second to last block, collapse them together
             self.bufferBlocks[-2].data += self.bufferBlocks[-1].data
+            self.bufferBlocks[-1].delete()
+
             self.bufferBlocks = self.bufferBlocks[:-1]
 
         # if we're holding too much data, chop some out
@@ -233,6 +235,7 @@ class TerminalState:
             if len(chunks) == 2:
                 self.bufferBlocks[1].data = chunks[1] + self.bufferBlocks[1].data
 
+            self.bufferBlocks[0].delete()
             self.bufferBlocks = self.bufferBlocks[1:]
 
     def readBytesFrom(self, offset):

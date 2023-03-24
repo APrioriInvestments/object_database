@@ -131,7 +131,7 @@ class Terminal extends ConcreteCell {
             // make a new terminal. we need to reuse them sometimes because they
             // allocate gl contexts, and that's slow and can lead to memory bloat.
             this.term = new XtermTerminal({convertEol: true, cursorBlink: true});
-            this.termDiv = h('div', {}, []);
+            this.termDiv = h('div', {style: 'position: absolute'}, []);
             this.term.open(this.termDiv);
             this.term.activeCell = this;
 
@@ -169,7 +169,6 @@ class Terminal extends ConcreteCell {
         }
 
         this.div = h('div', {
-            style: 'position: relative',
             class: `cell cell-terminal fill-space-horizontal fill-space-vertical`,
             onmousedown: (e) => {
                 this.focusReceived();

@@ -59,6 +59,7 @@ class TerminalSession:
 
     @staticmethod
     def ensureSubscribed(db, session):
+        db.subscribeToSchema(core_schema)
         db.subscribeToIndex(TerminalBufferBlock, session=session)
         db.subscribeToIndex(TerminalState, session=session)
         db.subscribeToIndex(TerminalSubscription, session=session)
@@ -383,6 +384,7 @@ class TerminalDriver:
             return
 
         if curSize != self.curSize and curSize is not None:
+            logging.info("Terminal resizing itself to %s/%s", curSize["rows"], curSize["cols"])
             self.subprocess.setSize(rows=curSize["rows"], cols=curSize["cols"])
             self.curSize = curSize
 
@@ -403,8 +405,11 @@ class TerminalDriver:
             return min(a, b)
 
         for subscription in TerminalSubscription.lookupAll(session=self.session):
-            rows = minOrNone(rows, subscription.rows)
-            cols = minOrNone(cols, subscription.cols)
+            if subscription.connection.exists():
+                rows = minOrNone(rows, subscription.rows)
+                cols = minOrNone(cols, subscription.cols)
+            else:
+                subscription.delete()
 
         if rows is None:
             return None

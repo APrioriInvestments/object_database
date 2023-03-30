@@ -8,9 +8,16 @@ import {ConcreteCell} from './ConcreteCell';
 class Text extends ConcreteCell {
     constructor(props, ...args){
         super(props, ...args);
+        this.onClick = this.onClick.bind(this);
 
-        this.style = "display:inline-block;user-select:none";
+        this.style = "display:inline-block";
         this.extraClasses = "";
+
+        if (this.props.selectable) {
+            this.style += ";user-select: text";
+        } else {
+            this.style += ";user-select: none";
+        }
 
         if (this.props.textColor) {
             this.style += ";color:" + this.props.textColor;
@@ -38,11 +45,19 @@ class Text extends ConcreteCell {
         }
     }
 
+    onClick(event) {
+        if (this.props.selectable) {
+            event.stopPropagation();
+        }
+    }
+
     build() {
         let divArgs = {
             class: "cell cell-focus-no-outline" + this.extraClasses,
             id: this.getElementId(),
             style: this.style,
+            onclick: this.onClick,
+            onmousedown: this.onClick,
             "data-cell-id": `${this.identity}`,
             "data-cell-type": "Text",
             'tabindex': 0

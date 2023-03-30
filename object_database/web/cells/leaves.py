@@ -59,6 +59,7 @@ class Text(Cell):
         monospace=False,
         fontSize=None,
         nowrap=None,
+        selectable=False
     ):
         super().__init__()
         self.text = str(text)
@@ -69,6 +70,7 @@ class Text(Cell):
         self.preformatted = preformatted
         self.monospace = monospace
         self.preformatted = preformatted
+        self.selectable = selectable
         self._sortAs = sortAs if sortAs is not None else text
         self.text_color = text_color
 
@@ -85,6 +87,7 @@ class Text(Cell):
         self.exportData["preformatted"] = self.preformatted
         self.exportData["fontSize"] = self.fontSize
         self.exportData["nowrap"] = self.nowrap
+        self.exportData["selectable"] = self.selectable
 
 
 class Traceback(FocusableCell):
@@ -102,7 +105,11 @@ class Code(FocusableCell):
     def __init__(self, codeContents):
         super().__init__()
         self.codeContents = codeContents
-        codeContentsCell = Cell.makeCell(codeContents)
+        if isinstance(codeContents, str):
+            codeContentsCell = Text(codeContents, selectable=True)
+        else:
+            codeContentsCell = Cell.makeCell(codeContents)
+
         self.children["code"] = codeContentsCell
 
     def sortsAs(self):

@@ -16,15 +16,23 @@ class Code extends ConcreteCell {
 
         // Bind Cell methods
         this.makeCode = this.makeCode.bind(this);
+        this.onClick = this.onClick.bind(this);
+    }
+
+    onClick(e) {
+        e.stopPropagation();
     }
 
     build(){
         return h('pre',
                  {
                      class: "cell code cell-focus-no-outline",
+                     style: 'user-select: text',
+                     onMousedown: this.onClick,
+                     onClick: this.onClick,
                      id: this.getElementId(),
                      "data-cell-type": "Code",
-                    tabindex: 0,
+                     tabindex: 0,
                      onfocus: this.focusReceived
                  }, [
                      h("code", {}, [this.makeCode()])

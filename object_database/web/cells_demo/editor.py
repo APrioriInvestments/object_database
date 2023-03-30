@@ -90,6 +90,32 @@ class EditorSectionDemo(CellsTestPage):
         )
 
 
+class EditorOverlayDisplay(CellsTestPage):
+    def cell(self):
+        slotState = cells.Slot(0)
+
+        edState = cells.SlotEditorState("# - asdf\n\n# - bsdf\n\n")
+
+        def overlayDisplayFun():
+            return (
+                cells.Text("Some Text")
+                + cells.Text("Some selectable text", selectable=True)
+                + cells.Code("Some Code\n\nSome More Code")
+            )
+
+        return cells.Editor(
+            editorState=edState, username="A", overlayDisplayFun=overlayDisplayFun
+        ) + cells.Button(
+            "change the section headers", lambda: slotState.set(slotState.get() + 1)
+        )
+
+    def text(self):
+        return (
+            "You should see a text editor with a 'sections' display to the right. "
+            "There should be a section for every line starting with '# - '."
+        )
+
+
 class PrefocusedEditor(CellsTestPage):
     def cell(self):
         slotState = cells.Slot(False)

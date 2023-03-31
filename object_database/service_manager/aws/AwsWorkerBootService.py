@@ -45,6 +45,14 @@ valid_instance_types = {
     "m5.4xlarge": {"RAM": 64, "CPU": 16, "COST": 0.768},
     "m5.12xlarge": {"RAM": 192, "CPU": 48, "COST": 2.304},
     "m5.24xlarge": {"RAM": 384, "CPU": 96, "COST": 4.608},
+    "m6i.xlarge": {"RAM" : 16, "CPU": 4, "COST": 0.192},
+    "m6i.2xlarge": {"RAM": 32, "CPU": 8, "COST": 0.384},
+    "m6i.4xlarge": {"RAM": 64, "CPU": 16, "COST": 0.768},
+    "m6i.8xlarge": {"RAM": 128, "CPU": 32, "COST": 1.5360},
+    "m6i.12xlarge": {"RAM": 192, "CPU": 48, "COST": 2.304},
+    "m6i.16xlarge": {"RAM": 256, "CPU": 64, "COST": 3.072},
+    "m6i.24xlarge": {"RAM": 384, "CPU": 96, "COST": 4.608},
+    "m6i.32xlarge": {"RAM": 512, "CPU": 128, "COST": 6.144},
     "m4.large": {"RAM": 8, "CPU": 2, "COST": 0.1},
     "m4.xlarge": {"RAM": 16, "CPU": 4, "COST": 0.2},
     "m4.2xlarge": {"RAM": 32, "CPU": 8, "COST": 0.4},
@@ -166,7 +174,7 @@ instance_types_to_show = set(
         x
         for x in valid_instance_types
         if ("xlarge" in x and ".xlarge" not in x)
-        and x.split(".")[0] in ["m4", "m5", "c4", "c5", "r4", "r5", "i3", "g5", "x1"]
+        and x.split(".")[0] in ["m4", "m5", "m6i", "c4", "c5", "r4", "r5", "i3", "g5", "x1"]
     ]
 )
 

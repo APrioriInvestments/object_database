@@ -2,6 +2,7 @@ import pytest
 
 from object_database import service_schema
 from object_database.service_manager.ServiceManager import ServiceManager
+from object_database.service_manager.ServiceInstance import MAX_BAD_BOOTS
 from object_database.web import cells
 from object_database.service_manager.ServiceManager_test import (
     SimpleTestService,
@@ -99,3 +100,37 @@ def test_displayAndHeadersForPathAndQueryArgs(in_mem_odb_connection):
         )
         assert not isinstance(res[0], cells.Traceback)
         assert res[1] == []
+
+
+def test_resetButton(in_mem_odb_connection):
+    db = in_mem_odb_connection
+    db.subscribeToSchema(service_schema)
+
+    with db.transaction():
+        ServiceManager.createOrUpdateService(
+            SimpleTestService, "SimpleTestService", target_count=1
+        )
+
+    with db.view():
+        serviceObj = service_schema.Service.lookupAny(name="SimpleTestService")
+        splitView, _ = displayAndHeadersForPathAndQueryArgs(["services"], {})
+        tabs = splitView.childrenTuples[1][0]
+        table = tabs.headersAndChildren[0][1]
+        resetButton = table.rendererFun(serviceObj, "Reset").cellFactory()
+        bootStatusFun = table.rendererFun(serviceObj, "Boot Status").cellFactory
+        assert not serviceObj.isThrottled()
+        assert bootStatusFun() == ""
+
+    with db.transaction():
+        serviceObj.timesBootedUnsuccessfully = MAX_BAD_BOOTS
+
+    with db.view():
+        assert serviceObj.isThrottled()
+        assert isinstance(bootStatusFun(), cells.Popover)
+
+    with db.transaction():
+        resetButton.onClick()
+
+    with db.view():
+        assert not serviceObj.isThrottled()
+        assert bootStatusFun() == ""

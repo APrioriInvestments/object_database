@@ -175,6 +175,7 @@ def servicesTable():
             "Cores",
             "RAM",
             "Boot Status",
+            "Reset",
         ],
         rowFun=lambda: sorted(service_schema.Service.lookupAll(), key=lambda s: s.name),
         headerFun=lambda x: x,
@@ -249,6 +250,8 @@ def servicesTableDataPrep(s, field, serviceCounts):
             if s.isThrottled()
             else ""
         )
+    elif field == "Reset":
+        data = Button("Reset", lambda: s.resetCounters())
     else:
         data = ""
     return data

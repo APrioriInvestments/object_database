@@ -458,6 +458,12 @@ class Cursor {
         this.colOffset = wordEnd;
     }
 
+    selectLine(lines) {
+        this.removeTail();
+        this.tailColOffset = 0;
+        this.colOffset = lines[this.lineOffset].length;
+    }
+
     searchForwardFor(lines, text) {
         let searchLines = text.split('\n');
 

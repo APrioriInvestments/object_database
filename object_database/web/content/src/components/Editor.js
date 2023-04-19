@@ -130,6 +130,7 @@ class Editor extends ConcreteCell {
         this.lastClickTs = null;
         this.lastClickPos = null;
         this.isDoubleClick = false;
+        this.isTripleClick = false;
 
         this.lastAutoscrollTs = null;
         this.lastAutoscrollPoint = null;
@@ -405,13 +406,24 @@ class Editor extends ConcreteCell {
 
         let pos = this.mouseEventToPos([event.pageX, event.pageY]);
 
-        this.isDoubleClick = false;
-        if (Date.now() - this.lastClickTs < 300 && !isCtrl && !isShift) {
-            if (pos.lineOffset == this.lastClickPos.lineOffset &&
-                Math.abs(pos.colOffset - this.lastClickPos.colOffset) < 3
-            ) {
+        if (
+            !this.isTripleClick
+            && Date.now() - this.lastClickTs < 300
+            && !isCtrl
+            && !isShift
+            && pos.lineOffset == this.lastClickPos.lineOffset
+            && Math.abs(pos.colOffset - this.lastClickPos.colOffset) < 3
+        ) {
+            if (this.isDoubleClick) {
+                this.isDoubleClick = false;
+                this.isTripleClick = true;
+            } else {
                 this.isDoubleClick = true;
+                this.isTripleClick = false;
             }
+        } else {
+            this.isDoubleClick = false;
+            this.isTripleClick = false;
         }
 
         this.dataModel.startClick(pos.lineOffset, pos.colOffset, isCtrl, isShift);
@@ -424,6 +436,22 @@ class Editor extends ConcreteCell {
             this.sendMessageWithDelay(
                 {
                     'msg': 'doubleClick',
+                    'lineOffset': pos.lineOffset,
+                    'colOffset': pos.colOffset,
+                    'ctrl': isCtrl,
+                    'shift': isShift,
+                    'alt': isAlt,
+                    'meta': isMeta
+                }
+            )
+        }
+
+        if (this.isTripleClick) {
+            this.dataModel.cursors[this.dataModel.cursors.length - 1].selectLine(this.dataModel.lines);
+
+            this.sendMessageWithDelay(
+                {
+                    'msg': 'tripleClick',
                     'lineOffset': pos.lineOffset,
                     'colOffset': pos.colOffset,
                     'ctrl': isCtrl,
@@ -464,7 +492,7 @@ class Editor extends ConcreteCell {
 
                 } else {
                     let pos = this.mouseEventToPos(curPoint);
-                    this.dataModel.continueClick(pos.lineOffset, pos.colOffset, this.isDoubleClick);
+                    this.dataModel.continueClick(pos.lineOffset, pos.colOffset, this.isDoubleClick, this.isTripleClick);
                     this.renderModel.ensureTopCursorOnscreen(true);
                     this.requestAnimationFrame();
                     this.lastAutoscrollTs = null;

@@ -338,6 +338,7 @@ class Editor(FocusableCell):
         splitFractionSlot=None,
         autocompleteFunction=None,
         onDoubleClick=None,
+        onTripleClick=None,
     ):
         """Initialize a collaborative code editor.
 
@@ -366,6 +367,8 @@ class Editor(FocusableCell):
                 an overlay where all the section header cells normally go.
             onDoubleClick - a function of (line, col, ctrl, shift, alt, meta) whenever we
                 detect a double-click
+            onTripleClick - a function of (line, col, ctrl, shift, alt, meta) whenever we
+                detect a triple-click
         """
         super().__init__()
 
@@ -376,6 +379,7 @@ class Editor(FocusableCell):
             self.editorState = SlotEditorState()
 
         self.onDoubleClick = onDoubleClick
+        self.onTripleClick = onTripleClick
 
         self.stateSlot = self.editorState.getStateSlot()
         self.stateSlotWatcher = SlotWatcher(self.stateSlot, self.onStateSlotChanged)
@@ -644,6 +648,17 @@ class Editor(FocusableCell):
         if messageFrame.get("msg") == "doubleClick":
             if self.onDoubleClick:
                 self.onDoubleClick(
+                    messageFrame["lineOffset"],
+                    messageFrame["colOffset"],
+                    messageFrame["ctrl"],
+                    messageFrame["shift"],
+                    messageFrame["alt"],
+                    messageFrame["meta"],
+                )
+
+        if messageFrame.get("msg") == "tripleClick":
+            if self.onTripleClick:
+                self.onTripleClick(
                     messageFrame["lineOffset"],
                     messageFrame["colOffset"],
                     messageFrame["ctrl"],

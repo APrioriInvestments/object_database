@@ -22,6 +22,7 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 
 # from selenium.webdriver.common.keys import Keys
 from requests.exceptions import ConnectionError
@@ -33,6 +34,8 @@ from object_database.web.ActiveWebService import ActiveWebService
 from object_database.service_manager.ServiceManager import ServiceManager
 from object_database.web.ActiveWebServiceSchema import active_webservice_schema
 from object_database.frontends.service_manager import startServiceManagerProcess
+
+BROWSER_TIMEOUT = 10
 
 TEST_SERVICE = """
     from object_database.service_manager.ServiceBase import ServiceBase
@@ -172,7 +175,7 @@ def bootup_webdriver():
 
 
 class HeadlessTester:
-    def __init__(self, endpoint=None, demo_root_name="demo_root"):
+    def __init__(self, endpoint=None, demo_root_name="demo_root", timeout=BROWSER_TIMEOUT):
         if not endpoint:
             self.endpoint = "http://127.0.0.1:8000"
         else:
@@ -181,6 +184,8 @@ class HeadlessTester:
         # Set the demo root data attr
         # tag value to use when querying
         self.demo_root_name = demo_root_name
+
+        self.timeout = timeout
 
         # Note that here we start the server
         # and the webdriver on initialization
@@ -194,6 +199,8 @@ class HeadlessTester:
             self.server.terminate()
             self.server.wait()
             raise
+
+        self.action = ActionChains(self.webdriver)
 
     @property
     def expect(self):
@@ -259,10 +266,12 @@ class HeadlessTester:
     def demo_root_selector(self):
         return '[data-tag="{}"]'.format(self.demo_root_name)
 
-    def wait(self, seconds):
+    def wait(self, timeout=None):
+        if timeout is None:
+            timeout = self.timeout
         try:
             self.dumpLogs(True)
-            return WebDriverWait(self.webdriver, seconds)
+            return WebDriverWait(self.webdriver, timeout)
         finally:
             self.dumpLogs(True)
 
@@ -273,14 +282,16 @@ class HeadlessTester:
             self.endpoint, inst.querystring(noHarness=True)
         )
 
-    def load_demo_page(self, DemoClass):
+    def load_demo_page(self, DemoClass, timeout=None):
         """Loads the specified DemoClass of a
         CellsTestPage into the headless browser
         """
+        if timeout is None:
+            timeout = self.timeout
         try:
             self.dumpLogs(True)
             self.webdriver.get(self.url_for_demo(DemoClass))
-            self.wait(10).until(
+            self.wait(timeout).until(
                 self.expect.visibility_of_element_located((self.by.CSS_SELECTOR, "body"))
             )
         finally:

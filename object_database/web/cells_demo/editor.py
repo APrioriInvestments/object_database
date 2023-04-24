@@ -182,15 +182,12 @@ class EditorWithDoubleClick(CellsTestPage):
 
 class EditorWithTripleClick(CellsTestPage):
     def cell(self):
-        editor = cells.Editor(
-            onTripleClick=lambda *args: (
-                currentContents := editor.getCurrentContents(),
-                lines := currentContents.split("\n"),
-                editor.setContents(
-                    currentContents + "\n" + lines[min(args[0], len(lines) - 1)]
-                ),
-            )
-        )
+        def addHighlightedLine(editor, *args):
+            currentContents = editor.getCurrentContents()
+            lines = currentContents.split("\n")
+            editor.setContents(f"{currentContents}\n{lines[min(args[0], len(lines) - 1)]}")
+
+        editor = cells.Editor(onTripleClick=lambda *args: addHighlightedLine(editor, *args))
 
         return editor
 

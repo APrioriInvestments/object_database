@@ -275,7 +275,7 @@ def test_editor_with_triple_click(headless_browser):
     editor_selection_highlights = demo_root.find_elements(
         headless_browser.by.XPATH, editor_selection_highlight_query
     )
-    assert len(editor_selection_highlights) == 2
+    assert len(editor_selection_highlights) == 3
     value = editor_selection_highlights[1].get_attribute("style")
     result = re.search(r"left:\s*(-?\d+)px;\s*top:\s*(-?\d+)px", value)
     assert result

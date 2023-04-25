@@ -726,17 +726,9 @@ class DataModel {
     continueClick(lineOffset, colOffset, isDoubleClick, isTripleClick) {
         let curs = this.cursors[this.cursors.length - 1];
 
-        curs.colOffset = colOffset;
-        curs.lineOffset = lineOffset;
-
-        let isToRight = (curs.lineOffset > curs.tailLineOffset ||
-            curs.lineOffset == curs.tailLineOffset && curs.colOffset > curs.tailColOffset
-        );
-
-        if (isDoubleClick) {
-            curs.offsetWord(this.lines, isToRight);
-        } else if (isTripleClick) {
-            curs.toEndOfLine(this.lines);
+        if (!isDoubleClick && !isTripleClick) {
+            curs.colOffset = colOffset;
+            curs.lineOffset = lineOffset;
         }
 
         curs.touch();

@@ -456,12 +456,21 @@ class Cursor {
         this.tailLineOffset = this.lineOffset;
         this.tailColOffset = wordStart;
         this.colOffset = wordEnd;
+        this.desiredColOffset = this.colOffset;
     }
 
-    selectLine(lines) {
+    selectLine(lines, goToNextLine=true) {
         this.removeTail();
         this.tailColOffset = 0;
-        this.colOffset = lines[this.lineOffset].length;
+
+        if (goToNextLine && this.lineOffset < lines.length - 1) {
+            this.lineOffset += 1;
+            this.colOffset = 0;
+            this.desiredColOffset = 0;
+        } else {
+            this.colOffset = lines[this.lineOffset].length;
+            this.desiredColOffset = this.colOffset;
+        }
     }
 
     searchForwardFor(lines, text) {

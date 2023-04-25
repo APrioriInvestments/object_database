@@ -857,7 +857,7 @@ class DataModel {
             if (event.key == 'ArrowRight' || event.key == 'ArrowLeft') {
                 this.cursors.map(
                     (cursor) => {
-                        cursor.offsetWord(this.lines, event.key == 'ArrowRight');
+                        cursor.offsetWord(this.lines, event.key == 'ArrowRight', true);
 
                         if (!event.shiftKey) {
                             cursor.removeTail();

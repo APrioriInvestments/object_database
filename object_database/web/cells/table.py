@@ -311,6 +311,37 @@ class Table(Cell):
         self.rowDict = {}
         self.curPageSlot = Slot(0)
 
+    @classmethod
+    def from_rows(cls, rows, header_map=None, **kwargs):
+        """Utility method to generate Tables without having to use lambdas.
+
+        Args:
+            rows: A list of dictionaries where each key is a column and the value is the element.
+                All rows should have the same set of keys.
+            header_map: A map from the keys of <rows> to displayable header names.
+                If not present, use the list of keys.
+
+        Surprise! the rows must be hashable. all the below complication is downstream of that.
+        """
+        assert rows, f"rows must be a list with at least one element, got {rows}"
+        if header_map is None:
+            header_map = {x: x for x in rows[0].keys()}
+
+        def render(row, col) -> str:
+            """Row is a list of (row name, row val) pairs. col is the name. This is O(N) in column names."""
+            for key, val in row:
+                if key == col:
+                    return val
+            return 'None'
+
+        return cls(
+            colFun=lambda: list(rows[0].keys()),
+            rowFun=lambda: (tuple(x.items()) for x in rows),
+            headerFun=lambda x: header_map[x],
+            rendererFun=render,
+            **kwargs,
+        )
+
     def recalculate(self):
         # check that this isn't throwing an exception.
         self.columnsComputedSlot.get()

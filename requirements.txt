@@ -2,7 +2,7 @@
 
 beautifulsoup4
 boto3
-flask >= 2.0, < 3.0
+flask >= 2.0, < 2.3
 flask-cors
 flask-login
 flask-sockets @ git+https://github.com/APrioriInvestments/flask-sockets.git@2b767f456d166c02d8507f88a65926335a045789#egg=flask-sockets

@@ -17,6 +17,29 @@ import time
 from object_database.web import cells as cells
 from object_database.web.CellsTestPage import CellsTestPage
 
+TEST_TEXT = (
+    "Line 1\n"
+    " Line 2 with a leading space\n"
+    "Line 3 with a trailing space \n"
+    " Line 4 with a leading and a trailing space \n"
+    "Line 5 which is the last line with text\n"
+)
+TEST_TEXT_LENGTH = len(TEST_TEXT.split("\n"))
+EDITOR_LINE_QUERY = "//*[@class='editor-line']"
+EDITOR_SELECTION_HIGHLIGHT_QUERY = "//*[@class='editor-selection-highlight']"
+CHARACTER_WIDTH = 7
+CHARACTER_HEIGHT = 14
+TEXT_LEFT_PIXEL_OFFSET = 50
+TEXT_TOP_PIXEL_OFFSET = 2
+
+
+class BaseEditor(CellsTestPage):
+    def cell(self):
+        return cells.Editor()
+
+    def text(self):
+        return "You should see an editor without any modifications"
+
 
 class EditorDemo(CellsTestPage):
     def cell(self):
@@ -198,7 +221,204 @@ class EditorWithTripleClick(CellsTestPage):
         )
 
 
-def test_editor_with_triple_click(headless_browser):
+def type_letters(element, text, delay=0.1):
+    for c in text:
+        element.send_keys(c)
+        time.sleep(delay)
+
+
+def line_condition(headless_browser, text_length):
+    return (
+        lambda browser: len(
+            browser.find_elements(headless_browser.by.XPATH, EDITOR_LINE_QUERY)
+        )
+        >= text_length
+    )
+
+
+def highlight_condition(headless_browser, selection_length):
+    return (
+        lambda browser: len(
+            browser.find_elements(headless_browser.by.XPATH, EDITOR_SELECTION_HIGHLIGHT_QUERY)
+        )
+        >= selection_length
+    )
+
+
+def cursor_location(headless_browser):
+    editor_cursor = headless_browser.find_by_xpath("//*[@class='editor-cursor']")
+    result = re.search(
+        r"left:\s*(-?\d+)px;\s*top:\s*(-?\d+)px", editor_cursor.get_attribute("style")
+    )
+    assert result
+    x = (int(result.group(1)) - TEXT_LEFT_PIXEL_OFFSET + 1) / CHARACTER_WIDTH
+    y = int(result.group(2)) / CHARACTER_HEIGHT
+    return x, y
+
+
+def highlight_location(editor_selection_highlight):
+    result = re.search(
+        r"left:\s*(-?\d+)px;\s*top:\s*(-?\d+)px;.*width:\s*(-?\d*\.?\d+|-?\d+)px",
+        editor_selection_highlight.get_attribute("style"),
+    )
+    assert result
+    x = (int(result.group(1)) - TEXT_LEFT_PIXEL_OFFSET) / CHARACTER_WIDTH
+    y = (int(result.group(2)) - TEXT_TOP_PIXEL_OFFSET) / CHARACTER_HEIGHT
+    width = float(result.group(3)) / CHARACTER_WIDTH
+    return x, y, width
+
+
+def test_ctrl_shift_left_right_arrow(headless_browser):
+    def get_start_space_count(string):
+        return len(string) - len(string.lstrip())
+
+    def get_nth_word_length(string, n):
+        result = re.findall(r"\w+", string)
+        try:
+            return len(result[n])
+        except IndexError:
+            return 0
+
+    keys = headless_browser.keys
+    demo_root = headless_browser.get_demo_root_for(BaseEditor)
+    assert demo_root
+    assert demo_root.get_attribute("data-cell-type") == "Editor"
+
+    type_letters(demo_root, TEST_TEXT)
+
+    headless_browser.wait().until(line_condition(headless_browser, TEST_TEXT_LENGTH))
+
+    editor_selection_highlights = headless_browser.find_by_xpath(
+        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
+    )
+    assert len(editor_selection_highlights) == 1
+
+    demo_root.send_keys(keys.CONTROL, keys.SHIFT, keys.ARROW_LEFT)
+
+    lines = TEST_TEXT.split("\n")
+    start_space_count = 0
+    for line in lines:
+        start_space_count += get_start_space_count(line)
+
+    headless_browser.wait().until(highlight_condition(headless_browser, 2))
+    editor_selection_highlights = headless_browser.find_by_xpath(
+        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
+    )
+    assert len(editor_selection_highlights) == 2
+    x, y, width = highlight_location(editor_selection_highlights[1])
+    assert x == 0
+    assert y == TEST_TEXT_LENGTH - 1
+    assert width == start_space_count
+
+    x, y = cursor_location(headless_browser)
+    assert x == 0
+    assert y == TEST_TEXT_LENGTH - 1
+
+    demo_root.send_keys(keys.CONTROL, keys.SHIFT, keys.ARROW_LEFT)
+
+    test_line = " " * start_space_count + lines[-2]
+    test_line_index = TEST_TEXT_LENGTH - 2
+
+    headless_browser.wait().until(highlight_condition(headless_browser, 3))
+    editor_selection_highlights = headless_browser.find_by_xpath(
+        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
+    )
+    assert len(editor_selection_highlights) == 3
+    x, y, width = highlight_location(editor_selection_highlights[1])
+    assert x == len(test_line)
+    assert y == test_line_index
+    assert width == get_start_space_count(test_line[::-1]) + 0.5
+    x, y, width = highlight_location(editor_selection_highlights[2])
+    assert x == 0
+    assert y == test_line_index + 1
+    assert width == start_space_count
+
+    x, y = cursor_location(headless_browser)
+    assert x == len(test_line)
+    assert y == test_line_index
+
+    demo_root.send_keys(keys.CONTROL, keys.SHIFT, keys.ARROW_LEFT)
+
+    last_word_length = get_nth_word_length(test_line, -1)
+
+    headless_browser.wait().until(highlight_condition(headless_browser, 3))
+    editor_selection_highlights = headless_browser.find_by_xpath(
+        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
+    )
+    assert len(editor_selection_highlights) == 3
+    x, y, width = highlight_location(editor_selection_highlights[1])
+    assert x == len(test_line) - last_word_length
+    assert y == test_line_index
+    assert width == last_word_length + get_start_space_count(test_line[::-1]) + 0.5
+
+    x, y = cursor_location(headless_browser)
+    assert x == len(test_line) - last_word_length
+    assert y == test_line_index
+
+    demo_root.send_keys(keys.ARROW_LEFT)
+    headless_browser.wait().until(highlight_condition(headless_browser, 1))
+
+    demo_root.send_keys(keys.CONTROL, keys.SHIFT, keys.ARROW_LEFT)
+
+    line_without_last_word = test_line.rstrip()[:-last_word_length]
+    second_last_word_length = get_nth_word_length(test_line, -2)
+    space_count = get_start_space_count(line_without_last_word[::-1])
+    highlight_length = second_last_word_length + space_count
+
+    headless_browser.wait().until(highlight_condition(headless_browser, 2))
+    editor_selection_highlights = headless_browser.find_by_xpath(
+        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
+    )
+    assert len(editor_selection_highlights) == 2
+    x, y, width = highlight_location(editor_selection_highlights[1])
+    assert x == len(line_without_last_word) - highlight_length
+    assert y == test_line_index
+    assert width == highlight_length
+
+    x, y = cursor_location(headless_browser)
+    assert x == len(line_without_last_word) - highlight_length
+    assert y == test_line_index
+
+    demo_root.send_keys(keys.ARROW_LEFT)
+    headless_browser.wait().until(highlight_condition(headless_browser, 1))
+
+    demo_root.send_keys(keys.CONTROL, keys.SHIFT, keys.ARROW_RIGHT)
+
+    headless_browser.wait().until(highlight_condition(headless_browser, 2))
+    editor_selection_highlights = headless_browser.find_by_xpath(
+        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
+    )
+    assert len(editor_selection_highlights) == 2
+    x, y, width = highlight_location(editor_selection_highlights[1])
+    assert x == len(line_without_last_word) - highlight_length
+    assert y == test_line_index
+    assert width == second_last_word_length
+
+    x, y = cursor_location(headless_browser)
+    assert x == len(line_without_last_word) - space_count
+    assert y == test_line_index
+
+    demo_root.send_keys(keys.ARROW_RIGHT)
+    headless_browser.wait().until(highlight_condition(headless_browser, 1))
+
+    demo_root.send_keys(keys.CONTROL, keys.SHIFT, keys.ARROW_RIGHT)
+
+    headless_browser.wait().until(highlight_condition(headless_browser, 2))
+    editor_selection_highlights = headless_browser.find_by_xpath(
+        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
+    )
+    assert len(editor_selection_highlights) == 2
+    x, y, width = highlight_location(editor_selection_highlights[1])
+    assert x == len(line_without_last_word) - space_count
+    assert y == test_line_index
+    assert width == last_word_length + space_count
+
+    x, y = cursor_location(headless_browser)
+    assert x == len(test_line.rstrip())
+    assert y == test_line_index
+
+
+def test_triple_click(headless_browser):
     def triple_click(element, delay=0.1):
         headless_browser.action.move_to_element(element).click().perform()
         time.sleep(delay)
@@ -206,81 +426,41 @@ def test_editor_with_triple_click(headless_browser):
         time.sleep(delay)
         headless_browser.action.move_to_element(element).click().perform()
 
-    def type_letters(element, text, delay=0.1):
-        for c in text:
-            element.send_keys(c)
-            time.sleep(delay)
-
     demo_root = headless_browser.get_demo_root_for(EditorWithTripleClick)
     assert demo_root
     assert demo_root.get_attribute("data-cell-type") == "Editor"
-    editor_line_layer = demo_root.find_element(
-        headless_browser.by.XPATH, ".//*[@class='editor-line-layer']"
-    )
-    assert editor_line_layer
-    editor_line_query = "//*[@class='editor-line']"
-    editor_lines = editor_line_layer.find_elements(
-        headless_browser.by.XPATH, editor_line_query
-    )
+    editor_lines = headless_browser.find_by_xpath(EDITOR_LINE_QUERY, many=True)
     assert len(editor_lines) == 1
-    editor_selection_highlight_query = "//*[@class='editor-selection-highlight']"
-    editor_selection_highlights = demo_root.find_elements(
-        headless_browser.by.XPATH, editor_selection_highlight_query
+    editor_selection_highlights = headless_browser.find_by_xpath(
+        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
     )
     assert len(editor_selection_highlights) == 1
 
-    test_text = (
-        "Line 1\n"
-        " Line 2 with a leading space\n"
-        "Line 3 with a trailing space\n"
-        " Line 4 with a leading and a trailing space \n"
-        "Line 5 which is the last line with text\n"
-    )
+    type_letters(demo_root, TEST_TEXT)
+    text_length = len(TEST_TEXT.split("\n"))
 
-    text_length = len(test_text.split("\n"))
-
-    def line_condition(browser, text_length):
-        return (
-            len(browser.find_elements(headless_browser.by.XPATH, editor_line_query))
-            >= text_length
-        )
-
-    type_letters(demo_root, test_text)
-
-    headless_browser.wait().until(lambda browser: line_condition(browser, text_length))
-    editor_lines = editor_line_layer.find_elements(
-        headless_browser.by.XPATH, editor_line_query
-    )
+    headless_browser.wait().until(line_condition(headless_browser, text_length))
+    editor_lines = headless_browser.find_by_xpath(EDITOR_LINE_QUERY, many=True)
     lines = [editor_line.text for editor_line in editor_lines]
     assert len(lines) == text_length
 
     line_index = 4
-    result = re.search(r"top:\s*(-?\d+)px", editor_lines[line_index].get_attribute("style"))
-    assert result
-    assert len(result.groups()) == 1
-    line_top = int(result.group(1))
     triple_click(editor_lines[line_index])
     text_length += 1
     lines.append(str(text_length) + lines[line_index].replace("\n", "")[1:])
 
-    headless_browser.wait().until(lambda browser: line_condition(browser, text_length))
-    editor_lines = editor_line_layer.find_elements(
-        headless_browser.by.XPATH, editor_line_query
-    )
+    headless_browser.wait().until(line_condition(headless_browser, text_length))
+    editor_lines = headless_browser.find_by_xpath(EDITOR_LINE_QUERY, many=True)
     assert len(editor_lines) == len(lines)
 
     for i, editor_line in enumerate(editor_lines):
         assert editor_line.text == lines[i]
 
-    editor_selection_highlights = demo_root.find_elements(
-        headless_browser.by.XPATH, editor_selection_highlight_query
+    editor_selection_highlights = headless_browser.find_by_xpath(
+        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
     )
     assert len(editor_selection_highlights) == 3
-    value = editor_selection_highlights[1].get_attribute("style")
-    result = re.search(r"left:\s*(-?\d+)px;\s*top:\s*(-?\d+)px", value)
-    assert result
-    assert len(result.groups()) == 2
-    selection_left = int(result.group(1))
-    selection_top = int(result.group(2))
-    assert selection_left == 50
-    assert abs(selection_top - line_top) < 5
+    x, y, width = highlight_location(editor_selection_highlights[1])
+    assert x == 0
+    assert y == line_index
+    assert width == len(lines[line_index]) - 2.5

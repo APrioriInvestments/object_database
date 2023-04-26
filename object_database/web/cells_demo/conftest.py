@@ -22,9 +22,9 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 
-# from selenium.webdriver.common.keys import Keys
 from requests.exceptions import ConnectionError
 from object_database.util import genToken
 from object_database.web.LoginPlugin import LoginIpPlugin
@@ -212,6 +212,11 @@ class HeadlessTester:
         self.dumpLogs(True)
         return By
 
+    @property
+    def keys(self):
+        self.dumpLogs(True)
+        return Keys
+
     def dumpLogs(self, useLogging=False):
         for msg in self.webdriver.get_log("browser"):
             try:
@@ -313,6 +318,15 @@ class HeadlessTester:
             if many:
                 return self.webdriver.find_elements_by_css_selector(css_string)
             return self.webdriver.find_element_by_css_selector(css_string)
+        finally:
+            self.dumpLogs(True)
+
+    def find_by_xpath(self, xpath_string, many=False):
+        try:
+            self.dumpLogs(True)
+            if many:
+                return self.webdriver.find_elements(By.XPATH, xpath_string)
+            return self.webdriver.find_element(By.XPATH, xpath_string)
         finally:
             self.dumpLogs(True)
 

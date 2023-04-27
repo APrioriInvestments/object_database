@@ -269,6 +269,11 @@ def highlight_location(editor_selection_highlight):
 
 
 def test_ctrl_shift_left_right_arrow(headless_browser):
+    keys = headless_browser.keys
+    demo_root = headless_browser.get_demo_root_for(BaseEditor)
+    assert demo_root
+    assert demo_root.get_attribute("data-cell-type") == "Editor"
+
     def get_start_space_count(string):
         return len(string) - len(string.lstrip())
 
@@ -279,143 +284,130 @@ def test_ctrl_shift_left_right_arrow(headless_browser):
         except IndexError:
             return 0
 
-    keys = headless_browser.keys
-    demo_root = headless_browser.get_demo_root_for(BaseEditor)
-    assert demo_root
-    assert demo_root.get_attribute("data-cell-type") == "Editor"
+    def check_highlight(editor_selection_highlight, expected_x, expected_y, expected_width):
+        x, y, width = highlight_location(editor_selection_highlight)
+        assert x == expected_x
+        assert y == expected_y
+        assert width == expected_width
 
-    type_letters(demo_root, TEST_TEXT)
+    def check_cursor(expected_x, expected_y):
+        x, y = cursor_location(headless_browser)
+        assert x == expected_x
+        assert y == expected_y
 
-    headless_browser.wait().until(line_condition(headless_browser, TEST_TEXT_LENGTH))
-
-    editor_selection_highlights = headless_browser.find_by_xpath(
-        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
-    )
-    assert len(editor_selection_highlights) == 1
-
-    demo_root.send_keys(keys.CONTROL, keys.SHIFT, keys.ARROW_LEFT)
+    def send(*args, expected_number=1, times=1):
+        if args:
+            for i in range(times):
+                demo_root.send_keys(*args)
+        headless_browser.wait().until(highlight_condition(headless_browser, expected_number))
+        editor_selection_highlights = headless_browser.find_by_xpath(
+            EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
+        )
+        assert len(editor_selection_highlights) == expected_number
+        return editor_selection_highlights
 
     lines = TEST_TEXT.split("\n")
     start_space_count = 0
     for line in lines:
         start_space_count += get_start_space_count(line)
 
-    headless_browser.wait().until(highlight_condition(headless_browser, 2))
-    editor_selection_highlights = headless_browser.find_by_xpath(
-        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
+    type_letters(demo_root, TEST_TEXT)
+    headless_browser.wait().until(line_condition(headless_browser, TEST_TEXT_LENGTH))
+    send()
+
+    # Highlight the spaces in the last line
+    highlights = send(keys.CONTROL, keys.SHIFT, keys.ARROW_LEFT, expected_number=2)
+    check_highlight(highlights[1], 0, TEST_TEXT_LENGTH - 1, start_space_count)
+    check_cursor(0, TEST_TEXT_LENGTH - 1)
+
+    line = " " * start_space_count + lines[-2]
+    line_length = len(line)
+    line_index = TEST_TEXT_LENGTH - 2
+    line_trailing_space_count = get_start_space_count(line[::-1])
+
+    # Highlight the last line and the end of the previous line
+    highlights = send(keys.CONTROL, keys.SHIFT, keys.ARROW_LEFT, expected_number=3)
+    check_highlight(
+        highlights[1],
+        line_length,
+        line_index,
+        line_trailing_space_count + 0.5,
     )
-    assert len(editor_selection_highlights) == 2
-    x, y, width = highlight_location(editor_selection_highlights[1])
-    assert x == 0
-    assert y == TEST_TEXT_LENGTH - 1
-    assert width == start_space_count
+    check_highlight(highlights[2], 0, line_index + 1, start_space_count)
+    check_cursor(line_length, line_index)
 
-    x, y = cursor_location(headless_browser)
-    assert x == 0
-    assert y == TEST_TEXT_LENGTH - 1
+    last_word_length = get_nth_word_length(line, -1)
 
-    demo_root.send_keys(keys.CONTROL, keys.SHIFT, keys.ARROW_LEFT)
-
-    test_line = " " * start_space_count + lines[-2]
-    test_line_index = TEST_TEXT_LENGTH - 2
-
-    headless_browser.wait().until(highlight_condition(headless_browser, 3))
-    editor_selection_highlights = headless_browser.find_by_xpath(
-        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
+    # Highlight the last word and the last line
+    highlights = send(keys.CONTROL, keys.SHIFT, keys.ARROW_LEFT, expected_number=3)
+    check_highlight(
+        highlights[1],
+        line_length - last_word_length,
+        line_index,
+        last_word_length + line_trailing_space_count + 0.5,
     )
-    assert len(editor_selection_highlights) == 3
-    x, y, width = highlight_location(editor_selection_highlights[1])
-    assert x == len(test_line)
-    assert y == test_line_index
-    assert width == get_start_space_count(test_line[::-1]) + 0.5
-    x, y, width = highlight_location(editor_selection_highlights[2])
-    assert x == 0
-    assert y == test_line_index + 1
-    assert width == start_space_count
+    check_cursor(line_length - last_word_length, line_index)
 
-    x, y = cursor_location(headless_browser)
-    assert x == len(test_line)
-    assert y == test_line_index
+    line_slice = line.rstrip()[:-last_word_length]
+    line_slice_length = len(line_slice)
+    second_last_word_length = get_nth_word_length(line, -2)
+    line_slice_trailing_space_count = get_start_space_count(line_slice[::-1])
 
-    demo_root.send_keys(keys.CONTROL, keys.SHIFT, keys.ARROW_LEFT)
-
-    last_word_length = get_nth_word_length(test_line, -1)
-
-    headless_browser.wait().until(highlight_condition(headless_browser, 3))
-    editor_selection_highlights = headless_browser.find_by_xpath(
-        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
+    # Highlight the second to last word and the trailing spaces
+    send(keys.ARROW_LEFT)
+    highlights = send(keys.CONTROL, keys.SHIFT, keys.ARROW_LEFT, expected_number=2)
+    highlight_length = second_last_word_length + line_slice_trailing_space_count
+    check_highlight(
+        highlights[1],
+        line_slice_length - highlight_length,
+        line_index,
+        highlight_length,
     )
-    assert len(editor_selection_highlights) == 3
-    x, y, width = highlight_location(editor_selection_highlights[1])
-    assert x == len(test_line) - last_word_length
-    assert y == test_line_index
-    assert width == last_word_length + get_start_space_count(test_line[::-1]) + 0.5
+    check_cursor(line_slice_length - highlight_length, line_index)
 
-    x, y = cursor_location(headless_browser)
-    assert x == len(test_line) - last_word_length
-    assert y == test_line_index
-
-    demo_root.send_keys(keys.ARROW_LEFT)
-    headless_browser.wait().until(highlight_condition(headless_browser, 1))
-
-    demo_root.send_keys(keys.CONTROL, keys.SHIFT, keys.ARROW_LEFT)
-
-    line_without_last_word = test_line.rstrip()[:-last_word_length]
-    second_last_word_length = get_nth_word_length(test_line, -2)
-    space_count = get_start_space_count(line_without_last_word[::-1])
-    highlight_length = second_last_word_length + space_count
-
-    headless_browser.wait().until(highlight_condition(headless_browser, 2))
-    editor_selection_highlights = headless_browser.find_by_xpath(
-        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
+    # Highlight the second to last word
+    send(keys.ARROW_LEFT)
+    highlights = send(keys.CONTROL, keys.SHIFT, keys.ARROW_RIGHT, expected_number=2)
+    check_highlight(
+        highlights[1],
+        line_slice_length - line_slice_trailing_space_count - second_last_word_length,
+        line_index,
+        second_last_word_length,
     )
-    assert len(editor_selection_highlights) == 2
-    x, y, width = highlight_location(editor_selection_highlights[1])
-    assert x == len(line_without_last_word) - highlight_length
-    assert y == test_line_index
-    assert width == highlight_length
+    check_cursor(line_slice_length - line_slice_trailing_space_count, line_index)
 
-    x, y = cursor_location(headless_browser)
-    assert x == len(line_without_last_word) - highlight_length
-    assert y == test_line_index
-
-    demo_root.send_keys(keys.ARROW_LEFT)
-    headless_browser.wait().until(highlight_condition(headless_browser, 1))
-
-    demo_root.send_keys(keys.CONTROL, keys.SHIFT, keys.ARROW_RIGHT)
-
-    headless_browser.wait().until(highlight_condition(headless_browser, 2))
-    editor_selection_highlights = headless_browser.find_by_xpath(
-        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
+    # Highlight the last word and the leading spaces
+    send(keys.ARROW_RIGHT)
+    highlights = send(keys.CONTROL, keys.SHIFT, keys.ARROW_RIGHT, expected_number=2)
+    check_highlight(
+        highlights[1],
+        line_slice_length - line_slice_trailing_space_count,
+        line_index,
+        last_word_length + line_slice_trailing_space_count,
     )
-    assert len(editor_selection_highlights) == 2
-    x, y, width = highlight_location(editor_selection_highlights[1])
-    assert x == len(line_without_last_word) - highlight_length
-    assert y == test_line_index
-    assert width == second_last_word_length
+    check_cursor(line_length - line_trailing_space_count, line_index)
 
-    x, y = cursor_location(headless_browser)
-    assert x == len(line_without_last_word) - space_count
-    assert y == test_line_index
+    slice_amount = 2
 
-    demo_root.send_keys(keys.ARROW_RIGHT)
-    headless_browser.wait().until(highlight_condition(headless_browser, 1))
-
-    demo_root.send_keys(keys.CONTROL, keys.SHIFT, keys.ARROW_RIGHT)
-
-    headless_browser.wait().until(highlight_condition(headless_browser, 2))
-    editor_selection_highlights = headless_browser.find_by_xpath(
-        EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
+    # Highlight first part of the last word
+    send(keys.ARROW_RIGHT)
+    send(keys.ARROW_LEFT, times=slice_amount)
+    highlights = send(keys.CONTROL, keys.SHIFT, keys.ARROW_LEFT, expected_number=2)
+    check_highlight(
+        highlights[1], line_slice_length, line_index, last_word_length - slice_amount
     )
-    assert len(editor_selection_highlights) == 2
-    x, y, width = highlight_location(editor_selection_highlights[1])
-    assert x == len(line_without_last_word) - space_count
-    assert y == test_line_index
-    assert width == last_word_length + space_count
+    check_cursor(line_slice_length, line_index)
 
-    x, y = cursor_location(headless_browser)
-    assert x == len(test_line.rstrip())
-    assert y == test_line_index
+    # Highlight second part of the last word
+    send(keys.ARROW_RIGHT)
+    highlights = send(keys.CONTROL, keys.SHIFT, keys.ARROW_RIGHT, expected_number=2)
+    check_highlight(
+        highlights[1],
+        line_slice_length + (last_word_length - slice_amount),
+        line_index,
+        slice_amount,
+    )
+    check_cursor(line_length - line_trailing_space_count, line_index)
 
 
 def test_triple_click(headless_browser):

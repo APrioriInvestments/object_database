@@ -3,5 +3,5 @@ requires = [
     "setuptools",
     "wheel",
     "oldest-supported-numpy",
-    "typed_python @ git+https://github.com/aprioriinvestments/typed_python.git@5322a883e8ee1eddadf25464fc8837019efdc292#egg=typed_python-999.999.999"
+    "typed_python @ git+https://github.com/aprioriinvestments/typed_python.git@0703b35b4815fed7dc92aac3d462f6d009a64d53#egg=typed_python-999.999.999"
 ]

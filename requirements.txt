@@ -19,5 +19,5 @@ pyyaml
 redis
 requests
 sortedcontainers
-typed_python == 0.2.6
+typed_python @ git+https://github.com/APrioriInvestments/typed_python@0703b35b4815fed7dc92aac3d462f6d009a64d53#egg=typed_python
 wtforms

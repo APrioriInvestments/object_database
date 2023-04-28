@@ -25,7 +25,10 @@ b) run a container such as the example one docker run -d -p 80:80 docker/getting
 The recommended way to install object_database is by cloning the repo and pip install 
 from the repo. The public PyPI release is out of date.
 
-0. Make sure you have python3-dev and openssl installed (ie run `apt-get install python3-dev` and `apt-get install libssl-dev`)
+0. Make sure you have python3-dev and openssl and gcc are installed 
+    1. apt-get install gcc
+    2. run `apt-get install python3-dev && apt-get install libssl-dev`
+    3. it is also advisable to run `apt-get update && sudo apt-get install --reinstall build-essential` (especially if you are getting gcc cc1/execvp related build/install errors)
 1. Clone repo `git clone git@github.com:APrioriInvestments/object_database`
 2. Create a fresh virtual environment with python 3.6-3.8
 

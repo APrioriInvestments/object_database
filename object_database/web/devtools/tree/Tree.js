@@ -246,14 +246,29 @@ class Tree extends HTMLElement {
         const endX = endRect.left + (endRect.width / 2);
 
         let d;  // this is the path data
-        if ( Math.abs(endX - startX) < 5) {
+        if ( Math.abs(endX - startX) < 100) {
             // draw a straight vertical line, ie the two nodes
             // are on top of each other
             d = `M ${startX} ${startY} L ${endX} ${endY}`;
         } else {
             // add a quadratic bezier curve path
             let midX;
+            const midY = startY + 0.5 * (endY - startY);
             let controlX;
+            let controlY;
+            if (endX < startX) {
+                midX = endX + 0.5 * (startX - endX);
+                controlX = midX + 0.5 * (startX - midX);
+            } else {
+                midX = startX + 0.5 * (endX - startX);
+                controlX = startX + 0.5 * (midX - startX);
+            }
+            // the controlLine is perpendicular to the line which connects
+            // the start to the end points
+            const clSlope = -1 * (endY - startY) / (endX - startX);
+            const clYInt = midY - clSlope * midX;
+            controlY = clSlope * controlX + clYInt;
+            /*
             const midY = startY + 0.5 * (endY - startY);
             let controlY = startY + 0.5 * (midY - startY);
             let controlSlope = 1;
@@ -268,6 +283,9 @@ class Tree extends HTMLElement {
             }
             controlX *= controlSlope;
             controlY *= controlSlope;
+            */
+            console.log("new controls")
+
             d = `M ${startX} ${startY} Q ${controlX} ${controlY}, ${midX} ${midY} T ${endX} ${endY}`;
         }
         path.setAttribute("d", d);

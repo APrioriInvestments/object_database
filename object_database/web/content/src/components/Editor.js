@@ -54,6 +54,7 @@ class Constants {
             this.selectionColor = '#666666';
             this.cursorColorOther = '#007bff88';
             this.selectionColorOther = '#007bff88';
+            this.selectionColorBasic = '#333333';
             this.nameLabelBackgroundColor = '#007bff88';
             this.nameLabelColor = '#FFFFFFBB';
             this.nameLabelCalloutColor = '#007bff88';
@@ -76,11 +77,10 @@ class Constants {
             this.selectionColor = '#BBBBBB';
             this.cursorColorOther = '#007bff88';
             this.selectionColorOther = '#007bff88';
-
+            this.selectionColorBasic = '#e6e6e6';
             this.autocompleteBackgroundColor = '#DDDDDD';
             this.autocompleteSelectionColor = '#BBBBBB';
             this.autocompleteBorderColor = '#AAAAAA';
-
             this.nameLabelBackgroundColor = '#007bff88';
             this.nameLabelColor = '#000000BB';
             this.nameLabelCalloutColor = '#007bff88';
@@ -498,6 +498,12 @@ class Editor extends ConcreteCell {
                     this.lastAutoscrollTs = null;
                 }
 
+                if (this.isTripleClick) {
+                    this.dataModel.clearHighlights();
+                } else {
+                    this.dataModel.updateHighlights();
+                }
+
                 if (event == 'end') {
                     this.currentDragHelper = null;
                 }
@@ -843,6 +849,7 @@ class Editor extends ConcreteCell {
                         }
                     });
 
+                    this.dataModel.clearHighlights();
                     this.renderModel.sync();
                     this.transactionManager.snapshot({'event': 'paste'});
                     this.requestAnimationFrame();
@@ -859,6 +866,7 @@ class Editor extends ConcreteCell {
                     this.dataModel.pasteText(
                         this.sanitizeClipboardText(clipboardText)
                     );
+                    this.dataModel.clearHighlights();
                     this.renderModel.sync();
                     this.transactionManager.snapshot({'event': 'paste'});
                     this.requestAnimationFrame();
@@ -889,6 +897,7 @@ class Editor extends ConcreteCell {
                     }
                 }
 
+                this.dataModel.clearHighlights();
                 this.renderModel.sync();
 
                 this.requestAnimationFrame();

@@ -817,6 +817,10 @@ pre {
     position: absolute;
 }
 
+.editor-selection-highlight-basic {
+    position: absolute;
+}
+
 .editor-background-layer {
     position: absolute;
     top: 0px;
@@ -920,7 +924,7 @@ pre {
     position: absolute;
     height: 100%;
     background-color: rgba(200, 200, 200, 0.5);
-    transition background-color 150ms linear;
+    transition: background-color 150ms linear;
     cursor: ew-resize;
 }
 

@@ -473,6 +473,7 @@ class RenderingModel {
 
         this.selectionLayer = h('div', {'class': 'editor-selection-layer'}, []);
         this.otherSelectionLayer = h('div', {'class': 'editor-selection-layer'}, []);
+        this.highlightSelectionLayer = h('div', {'class': 'editor-selection-layer'}, []);
         this.cursorLayer = h('div', {'class': 'editor-cursor-layer'}, []);
         this.autocompleteLayer = h('div', {'class': 'editor-cursor-layer'}, []);
         this.otherCursorLayer = h('div', {'class': 'editor-cursor-layer'}, []);
@@ -503,7 +504,9 @@ class RenderingModel {
         this.divs = [this.backgroundLayer,
             this.cursorBackgroundLayer,
             this.lineGutterLayer,
-            this.otherSelectionLayer, this.selectionLayer,
+            this.otherSelectionLayer,
+            this.highlightSelectionLayer,
+            this.selectionLayer,
             this.lineLayer,
             this.otherCursorLayer,
             this.cursorLayer,
@@ -512,6 +515,7 @@ class RenderingModel {
         ];
 
         this.render = this.render.bind(this);
+        this.renderHighlights = this.renderHighlights.bind(this);
         this.setOtherCursors = this.setOtherCursors.bind(this);
         this.resetDataModel = this.resetDataModel.bind(this);
         this.buildRenderedLines = this.buildRenderedLines.bind(this);
@@ -687,6 +691,31 @@ class RenderingModel {
         this.scrollbar.style.top = Math.round(offsetPx) + "px";
     }
 
+    renderHighlights() {
+        let result = [];
+        let constants = this.constants;
+
+        this.dataModel.highlights.map((range) => {
+            let [lineOffset, colOffset, tailColOffset] = range;
+
+            let startX = constants.gutterWidth + colOffset * constants.charWidth;
+            let startY = lineOffset * constants.lineHeight + constants.topPxOffset;
+            let widthPx = (tailColOffset - colOffset) * constants.charWidth;
+            let heightPx = constants.lineHeight;
+
+            result.push(
+                h('div', {
+                    'class': 'editor-selection-highlight-basic',
+                    'style': 'left:' + startX + 'px;' + 'top:' + startY + 'px;'
+                        +    'height:' + heightPx + 'px;' + 'width:' + widthPx + 'px;'
+                        +    'background-color:' + constants.selectionColorBasic
+                })
+            );
+        });
+
+        return result;
+    }
+
     render() {
         let t0 = Date.now();
 
@@ -699,6 +728,7 @@ class RenderingModel {
         this.otherSelectionLayer.style.top = offsetStyle;
         this.autocompleteLayer.style.top = offsetStyle;
         this.cursorBackgroundLayer.style.top = offsetStyle;
+        this.highlightSelectionLayer.style.top = offsetStyle;
 
         this.buildRenderedLines();
         this.buildRenderedCursors();
@@ -742,6 +772,11 @@ class RenderingModel {
             this.renderedOtherCursors.map(
                 (cursor) => cursor.renderSelections(this.dataModel.lines, this.constants)
             ).flat()
+        );
+
+        ConcreteCell.replaceChildren(
+            this.highlightSelectionLayer,
+            this.renderHighlights()
         );
 
         this.setScrollbarPosition()

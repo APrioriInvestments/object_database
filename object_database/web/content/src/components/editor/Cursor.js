@@ -58,6 +58,7 @@ class Cursor {
         this.newlineInserted = this.newlineInserted.bind(this);
         this.selectedRanges = this.selectedRanges.bind(this);
         this.getSelectedText = this.getSelectedText.bind(this);
+        this.getHighlights = this.getHighlights.bind(this);
         this.getIdentity = this.getIdentity.bind(this);
         this.toEndOfLine = this.toEndOfLine.bind(this);
         this.toEndOfDocument = this.toEndOfDocument.bind(this);
@@ -212,6 +213,194 @@ class Cursor {
         }
 
         return res;
+    }
+
+    getHighlights(lines, includeLineGutterHighlight=true, includeEndOfLineOffsets=true) {
+        let searchText = this.getSelectedText(lines);
+        let found = false;
+
+        for (let i = 0; i < searchText.length; i++) {
+            if (!(searchText[i] == '\n' || isSpace(searchText[i]))) {
+                found = true;
+                break;
+            }
+        }
+
+        let result = [];
+
+        if (!found) {
+            return result;
+        }
+
+        let ranges = this.selectedRanges(lines, false, false);
+        let lineGutterColOffset = -10;
+        let lineGutterTailColOffset = -1;
+
+        if (ranges.length == 0) {
+            return result;
+        } else if (ranges.length == 1) {
+            let [lineOffset, colOffset, tailColOffset] = ranges[0];
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                let k = 0;
+
+                if (i == lineOffset) {
+                    let j = 0;
+
+                    if (includeLineGutterHighlight) {
+                        result.push([i, lineGutterColOffset, lineGutterTailColOffset]);
+                    }
+
+                    while (j < line.length) {
+                        if (j == colOffset) {
+                            result.push(ranges[0]);
+                            j = tailColOffset + 1;
+                            k = 0;
+                            continue;
+                        }
+
+                        if (line[j] == searchText[k]) {
+                            if (k == searchText.length - 1) {
+                                result.push([i, j - searchText.length + 1, j + 1]);
+                                k = 0;
+                            } else {
+                                k++;
+                            }
+                        } else {
+                            k = 0;
+                        }
+
+                        j++;
+                    }
+                } else {
+                    let addedLineGutterHighlight = false;
+
+                    for (let j = 0; j < line.length; j++) {
+                        if (line[j] == searchText[k]) {
+                            if (k == searchText.length - 1) {
+                                if (includeLineGutterHighlight && !addedLineGutterHighlight) {
+                                    result.push([
+                                        i,
+                                        lineGutterColOffset,
+                                        lineGutterTailColOffset
+
+                                    ]);
+                                }
+
+                                result.push([i, j - searchText.length + 1, j + 1]);
+                                k = 0;
+                            } else {
+                                k++;
+                            }
+                        } else {
+                            k = 0;
+                        }
+                    }
+                }
+            }
+        } else {
+            let previousLineOffset = ranges[0][0] - 1;
+
+            for (let i = 0; i < ranges.length; i++) {
+                let [lineOffset, colOffset, tailColOffset] = ranges[i];
+
+                if (lineOffset - 1 != previousLineOffset) {
+                    return result;
+                }
+
+                if (i != 0) {
+                    if (colOffset != 0) {
+                        return result;
+                    }
+                }
+
+                if (i != ranges.length - 1) {
+                    if (tailColOffset != lines[lineOffset].length) {
+                        return result;
+                    }
+                }
+
+                previousLineOffset = lineOffset;
+            }
+
+
+            let i = 0;
+            let k = 0;
+            let firstLineOffset = ranges[0][0];
+            let lastLineOffset = ranges[ranges.length - 1][0];
+            let found = false;
+            let endOfLineOffset = includeEndOfLineOffsets ? 0.5 : 0;
+
+            var pushRange = function(range, i, j, k) {
+                let tailColOffset = range[2];
+                let lineOffset = i - k + j;
+
+                if (j != ranges.length - 1) {
+                    tailColOffset += endOfLineOffset;
+                }
+
+                if (includeLineGutterHighlight
+                    && (
+                        result.length == 0
+                        || result[result.length - 1][0] != lineOffset
+                    )
+                ) {
+                    result.push([lineOffset, lineGutterColOffset, lineGutterTailColOffset]);
+                }
+
+                result.push([lineOffset, range[1], tailColOffset]);
+            };
+
+            while (i < lines.length) {
+                let [lineOffset, colOffset, tailColOffset] = ranges[k];
+                let currentSubString = lines[i].substring(colOffset, tailColOffset);
+                let testSubString = lines[lineOffset].substring(colOffset, tailColOffset);
+
+                if (currentSubString == testSubString) {
+                    if (k == ranges.length - 1) {
+                        if (i == firstLineOffset) {
+                            if (tailColOffset <= ranges[0][1]) {
+                                ranges.forEach((range, j) => {
+                                    pushRange(range, i, j, k);
+                                });
+                            }
+                        } else {
+                            ranges.forEach((range, j) => {
+                                pushRange(range, i, j, k);
+                            });
+                        }
+
+                        found = true;
+                        k = 0;
+                    } else {
+                        k++;
+                    }
+                } else {
+                    k = 0;
+                }
+
+                if (i == firstLineOffset) {
+                    ranges.forEach((range, j) => {
+                        pushRange(range, i, j, 0);
+                    });
+
+                    if (ranges[ranges.length - 1][2] == 0) {
+                        i = lastLineOffset;
+                    } else {
+                        i = lastLineOffset + 1;
+                    }
+
+                    k = 0;
+                } else if (!found || ranges[ranges.length - 1][2] != 0) {
+                    i++;
+                }
+
+                found = false;
+            }
+        }
+
+        return result;
     }
 
     newlineInserted(lines, lineIx, colIx) {

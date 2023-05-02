@@ -62,8 +62,8 @@ class DataModel {
 
         this.readOnly = readOnly;
         this.cursors = initialCursors === null ? [new Cursor(0, 0, 0, 0, 0)] : initialCursors.map((x) => x);
-
         this.cursorAtLastCheckpoint = this.cursors.map((cursor) => cursor.toJson());
+        this.highlights = [];
         this.changesSinceLastCheckpoint = [];
 
         // direct manipulation of the lines collection. will update cursors.
@@ -87,6 +87,8 @@ class DataModel {
         this.pageBy = this.pageBy.bind(this);
         this.getIsInMultilineString = this.getIsInMultilineString.bind(this);
         this.updateCursorAtLastCheckpoint = this.updateCursorAtLastCheckpoint.bind(this);
+        this.updateHighlights = this.updateHighlights.bind(this);
+        this.clearHighlights = this.clearHighlights.bind(this);
 
         // handle a keystroke
         this.handleKey = this.handleKey.bind(this);
@@ -701,6 +703,9 @@ class DataModel {
 
             if (!event.shiftKey) {
                 cursor.removeTail();
+                this.clearHighlights();
+            } else {
+                this.updateHighlights();
             }
         });
     }
@@ -757,7 +762,7 @@ class DataModel {
                 // select all
                 this.cursors = [new Cursor(0, 0, 0, 0, 0)];
                 this.cursors[0].toEndOfDocument(this.lines);
-
+                this.clearHighlights();
                 return true;
             }
         }
@@ -769,6 +774,7 @@ class DataModel {
 
                 if (!lastCursor.hasTail()) {
                     lastCursor.selectWord(this.lines);
+                    this.updateHighlights();
                 } else {
                     let text = lastCursor.getSelectedText(this.lines);
 
@@ -787,11 +793,13 @@ class DataModel {
         // if (event.ctrlKey && event.key == '/' && !hasModifier({meta: true, alt: true})) {
         if (event.ctrlKey && event.key == '/' && !event.metaKey && !event.altKey) {
             this.toggleComment(this.constants);
+            this.updateHighlights();
             return true;
         }
 
         if (event.key == 'Tab' && !hasModifier({ctrl: true, alt: true, meta: true})) {
             this.tabKey(event.shiftKey, this.constants);
+            this.clearHighlights();
             return true;
         }
 
@@ -827,6 +835,7 @@ class DataModel {
                         }
                     );
 
+                    this.clearHighlights();
                     return true;
                 }
 
@@ -847,6 +856,8 @@ class DataModel {
                             }
                         }
                     );
+
+                    this.updateHighlights();
                 }
 
                 return true;
@@ -865,6 +876,7 @@ class DataModel {
                     }
                 );
 
+                this.updateHighlights();
                 return true;
             }
         }
@@ -881,6 +893,13 @@ class DataModel {
                     cursor.removeTail();
                 }
             });
+
+            if (event.shiftKey) {
+                this.updateHighlights();
+            } else {
+                this.clearHighlights();
+            }
+
             return true;
         }
 
@@ -896,11 +915,19 @@ class DataModel {
                     cursor.removeTail();
                 }
             });
+
+            if (event.shiftKey) {
+                this.updateHighlights();
+            } else {
+                this.clearHighlights();
+            }
+
             return true;
         }
 
         if (event.key == 'Escape') {
             this.cursors = [this.cursors[0]];
+            this.updateHighlights();
             return true;
         }
 
@@ -924,6 +951,8 @@ class DataModel {
                     this.deleteChar(cursor, 1);
                 }
             });
+
+            this.clearHighlights();
             return true;
         }
 
@@ -957,6 +986,8 @@ class DataModel {
                     this.deleteChar(cursor, -1)
                 }
             });
+
+            this.clearHighlights();
             return true;
         }
 
@@ -964,7 +995,9 @@ class DataModel {
             if (this.readOnly) {
                 return false;
             }
+
             this.cursors.map((cursor) => this.insertChar(cursor, event.key));
+            this.updateHighlights();
             return true;
         }
 
@@ -972,11 +1005,24 @@ class DataModel {
             if (this.readOnly) {
                 return false;
             }
+
             this.cursors.map((cursor) => this.insertNewline(cursor, true));
+            this.updateHighlights();
             return true;
         }
 
         return false;
+    }
+
+    clearHighlights() {
+        this.highlights = [];
+    }
+
+    updateHighlights() {
+        this.highlights = [];
+        this.cursors.forEach((cursor) => {
+            this.highlights.push(...cursor.getHighlights(this.lines));
+        });
     }
 }
 

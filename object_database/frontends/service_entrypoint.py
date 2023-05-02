@@ -68,7 +68,7 @@ def main(argv):
     else:
         updates = {}
 
-    configureLogging(preamble=str(parsedArgs.instanceid), level=level, config_updates=updates)
+    configureLogging(level=level, config_updates=updates)
 
     logger = logging.getLogger(__name__)
 

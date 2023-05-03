@@ -309,7 +309,7 @@ class Cursor {
             let firstLineOffset = ranges[0][0];
             let firstColOffset = ranges[0][1];
             let lastLineOffset = ranges[ranges.length - 1][0];
-            let lastLineEmpty = ranges[ranges.length - 1][2] == 0;
+            let lastTailColOffset = ranges[ranges.length - 1][2];
             let subResults = [];
             let endOfLineOffset = includeEndOfLineOffsets ? 0.5 : 0;
 
@@ -340,11 +340,21 @@ class Cursor {
                 if (subResults.length == 0) {
                     colOffset = lines[i].length - testSubString.length;
                     tailColOffset = lines[i].length
-                    currentSubString = lines[i].substring(lines[i].length - testSubString.length, lines[i].length);
+                    currentSubString = lines[i].substring(colOffset, tailColOffset);
                 }
 
                 if (currentSubString == testSubString) {
-                    subResults.push([i, colOffset, tailColOffset]);
+                    if (
+                        subResults.length == 0
+                        && result.length != 0
+                        && result[result.length - 1][0] == i
+                    ) {
+                        if (colOffset >= lastTailColOffset) {
+                            subResults.push([i, colOffset, tailColOffset]);
+                        }
+                    } else {
+                        subResults.push([i, colOffset, tailColOffset]);
+                    }
 
                     if (subResults.length == ranges.length) {
                         if (i == firstLineOffset) {
@@ -362,18 +372,9 @@ class Cursor {
                 if (i == firstLineOffset) {
                     subResults = [];
                     ranges.forEach(pushRange);
-
-                    if (lastLineEmpty) {
-                        i = lastLineOffset;
-                    } else {
-                        i = lastLineOffset + 1;
-                    }
+                    i = lastLineOffset;
                 } else if (subResults.length == ranges.length) {
                     subResults = [];
-
-                    if (!lastLineEmpty) {
-                        i++;
-                    }
                 } else {
                     i++;
                 }

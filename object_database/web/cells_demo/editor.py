@@ -27,6 +27,7 @@ TEST_TEXT = (
 TEST_TEXT_LENGTH = len(TEST_TEXT.split("\n"))
 EDITOR_LINE_QUERY = "//*[@class='editor-line']"
 EDITOR_SELECTION_HIGHLIGHT_QUERY = "//*[@class='editor-selection-highlight']"
+EDITOR_SELECTION_HIGHLIGHT_BASIC_QUERY = "//*[@class='editor-selection-highlight-basic']"
 CHARACTER_WIDTH = 7
 CHARACTER_HEIGHT = 14
 TEXT_LEFT_PIXEL_OFFSET = 50
@@ -221,28 +222,33 @@ class EditorWithTripleClick(CellsTestPage):
         )
 
 
+def get_start_space_count(string):
+    return len(string) - len(string.lstrip())
+
+
 def type_letters(element, text, delay=0.1):
     for c in text:
         element.send_keys(c)
         time.sleep(delay)
 
 
+def send_keys(element, *args, times=1, delay=0.1):
+    if args:
+        for i in range(times):
+            element.send_keys(*args)
+            time.sleep(delay)
+
+
+def condition(headless_browser, n, query):
+    return lambda browser: len(browser.find_elements(headless_browser.by.XPATH, query)) >= n
+
+
 def line_condition(headless_browser, text_length):
-    return (
-        lambda browser: len(
-            browser.find_elements(headless_browser.by.XPATH, EDITOR_LINE_QUERY)
-        )
-        >= text_length
-    )
+    return condition(headless_browser, text_length, EDITOR_LINE_QUERY)
 
 
 def highlight_condition(headless_browser, selection_length):
-    return (
-        lambda browser: len(
-            browser.find_elements(headless_browser.by.XPATH, EDITOR_SELECTION_HIGHLIGHT_QUERY)
-        )
-        >= selection_length
-    )
+    return condition(headless_browser, selection_length, EDITOR_SELECTION_HIGHLIGHT_QUERY)
 
 
 def cursor_location(headless_browser):
@@ -274,9 +280,6 @@ def test_ctrl_shift_left_right_arrow(headless_browser):
     assert demo_root
     assert demo_root.get_attribute("data-cell-type") == "Editor"
 
-    def get_start_space_count(string):
-        return len(string) - len(string.lstrip())
-
     def get_nth_word_length(string, n):
         result = re.findall(r"\w+", string)
         try:
@@ -295,10 +298,8 @@ def test_ctrl_shift_left_right_arrow(headless_browser):
         assert x == expected_x
         assert y == expected_y
 
-    def send(*args, expected_number=1, times=1):
-        if args:
-            for i in range(times):
-                demo_root.send_keys(*args)
+    def send(*args, expected_number=1, times=1, delay=0.1):
+        send_keys(demo_root, *args, times=times, delay=delay)
         headless_browser.wait().until(highlight_condition(headless_browser, expected_number))
         editor_selection_highlights = headless_browser.find_by_xpath(
             EDITOR_SELECTION_HIGHLIGHT_QUERY, many=True
@@ -456,3 +457,59 @@ def test_triple_click(headless_browser):
     assert x == 0
     assert y == line_index
     assert width == len(lines[line_index]) - 2.5
+
+
+def test_highlights(headless_browser):
+    keys = headless_browser.keys
+    demo_root = headless_browser.get_demo_root_for(BaseEditor)
+    assert demo_root
+    assert demo_root.get_attribute("data-cell-type") == "Editor"
+
+    type_letters(demo_root, TEST_TEXT)
+    headless_browser.wait().until(line_condition(headless_browser, TEST_TEXT_LENGTH))
+
+    start_text = ""
+    lines = []
+    for line in TEST_TEXT.split("\n"):
+        lines.append(start_text + line)
+        start_text += " " * get_start_space_count(line)
+
+    line_index = 2
+    word_index = 2
+
+    send_keys(demo_root, keys.CONTROL, keys.HOME)
+    send_keys(demo_root, keys.ARROW_DOWN, times=line_index)
+    send_keys(demo_root, keys.CONTROL, keys.ARROW_RIGHT, times=word_index + 1)
+    send_keys(demo_root, keys.CONTROL, keys.SHIFT, keys.ARROW_LEFT)
+
+    result = re.findall(r"\w+", lines[line_index])
+    word = result[word_index]
+
+    indices = []
+    for i, line in enumerate(lines):
+        added_gutter = False
+
+        for j in range(len(line)):
+            if line[j:].startswith(word):
+                if not added_gutter:
+                    indices.append((i, -10))
+                    added_gutter = True
+
+                indices.append((i, j))
+
+    headless_browser.wait().until(
+        condition(headless_browser, len(indices), EDITOR_SELECTION_HIGHLIGHT_BASIC_QUERY)
+    )
+    editor_selection_highlight_basics = headless_browser.find_by_xpath(
+        EDITOR_SELECTION_HIGHLIGHT_BASIC_QUERY, many=True
+    )
+    assert len(editor_selection_highlight_basics) == len(indices)
+
+    for k, indice in enumerate(indices):
+        x, y, width = highlight_location(editor_selection_highlight_basics[k])
+        assert x == indice[1]
+        assert y == indice[0]
+        if x < 0:
+            assert width == 9
+        else:
+            assert width == len(word)

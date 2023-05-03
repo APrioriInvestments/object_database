@@ -32,6 +32,8 @@ CHARACTER_WIDTH = 7
 CHARACTER_HEIGHT = 14
 TEXT_LEFT_PIXEL_OFFSET = 50
 TEXT_TOP_PIXEL_OFFSET = 2
+INT_REGEX = r"-?\d+"
+FLOAT_REGEX = r"-?\d*\.?\d+|-?\d+"
 
 
 class BaseEditor(CellsTestPage):
@@ -253,9 +255,8 @@ def highlight_condition(headless_browser, selection_length):
 
 def cursor_location(headless_browser):
     editor_cursor = headless_browser.find_by_xpath("//*[@class='editor-cursor']")
-    result = re.search(
-        r"left:\s*(-?\d+)px;\s*top:\s*(-?\d+)px", editor_cursor.get_attribute("style")
-    )
+    regex = rf"left:\s*({INT_REGEX})px;\s*top:\s*({INT_REGEX})px"
+    result = re.search(regex, editor_cursor.get_attribute("style"))
     assert result
     x = (int(result.group(1)) - TEXT_LEFT_PIXEL_OFFSET + 1) / CHARACTER_WIDTH
     y = int(result.group(2)) / CHARACTER_HEIGHT
@@ -263,10 +264,8 @@ def cursor_location(headless_browser):
 
 
 def highlight_location(editor_selection_highlight):
-    result = re.search(
-        r"left:\s*(-?\d+)px;\s*top:\s*(-?\d+)px;.*width:\s*(-?\d*\.?\d+|-?\d+)px",
-        editor_selection_highlight.get_attribute("style"),
-    )
+    regex = rf"left:\s*({INT_REGEX})px;\s*top:\s*({INT_REGEX})px;.*width:\s*({FLOAT_REGEX})px"
+    result = re.search(regex, editor_selection_highlight.get_attribute("style"))
     assert result
     x = (int(result.group(1)) - TEXT_LEFT_PIXEL_OFFSET) / CHARACTER_WIDTH
     y = (int(result.group(2)) - TEXT_TOP_PIXEL_OFFSET) / CHARACTER_HEIGHT
@@ -415,9 +414,9 @@ def test_triple_click(headless_browser):
     def triple_click(element, delay=0.1):
         headless_browser.action.move_to_element(element).click().perform()
         time.sleep(delay)
-        headless_browser.action.move_to_element(element).click().perform()
+        headless_browser.action.click().perform()
         time.sleep(delay)
-        headless_browser.action.move_to_element(element).click().perform()
+        headless_browser.action.click().perform()
 
     demo_root = headless_browser.get_demo_root_for(EditorWithTripleClick)
     assert demo_root

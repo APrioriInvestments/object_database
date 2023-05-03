@@ -77,7 +77,7 @@ class Constants {
             this.selectionColor = '#BBBBBB';
             this.cursorColorOther = '#007bff88';
             this.selectionColorOther = '#007bff88';
-            this.selectionColorBasic = '#e6e6e6';
+            this.selectionColorBasic = '#FFFF00';
             this.autocompleteBackgroundColor = '#DDDDDD';
             this.autocompleteSelectionColor = '#BBBBBB';
             this.autocompleteBorderColor = '#AAAAAA';

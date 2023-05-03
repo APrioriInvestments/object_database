@@ -53,6 +53,14 @@ const updateInfoPanel = (node) => {
     if (parentSubtree.name.match("Subscribed")) {
         info = `${info}\nsubscribed`;
     }
+    const nodeTree = parentSubtree.children.filter((n) => {
+        return n.id = node.id;
+    })[0]
+    let childIds = "";
+    nodeTree.children.forEach((c) => {
+        childIds = `${childIds}, ${c.id}`;
+    });
+    info = `${info}\nchild node ids: ${childIds}`;
     infoPanel.innerText = info;
 }
 
@@ -78,7 +86,6 @@ const cellsTreeDisplay = (cells) => {
     }
     tree.onNodeMouseleave = (event) => {
         // un-highlight the corresponding element in the target window
-        const id = event.target.getAttribute("data-original-id");
         chrome.devtools.inspectedWindow.eval(
             `window.removeDevtoolsHighlight()`
         );

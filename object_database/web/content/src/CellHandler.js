@@ -520,7 +520,7 @@ class CellHandler {
             const rect = cell.getBoundingClientRect();
             const overlay = document.createElement("div");
             overlay.style.position = "absolute";
-            overlay.style.backgroundColor = "red";
+            overlay.style.backgroundColor = "#cec848";
             overlay.style.opacity = "0.5";
             overlay.style.left = rect.left +"px";
             overlay.style.top = rect.top + "px";

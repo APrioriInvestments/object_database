@@ -217,18 +217,9 @@ class Cursor {
 
     getHighlights(lines, includeLineGutterHighlight=true, includeEndOfLineOffsets=true) {
         let searchText = this.getSelectedText(lines);
-        let found = false;
-
-        for (let i = 0; i < searchText.length; i++) {
-            if (!(searchText[i] == '\n' || isSpace(searchText[i]))) {
-                found = true;
-                break;
-            }
-        }
-
         let result = [];
 
-        if (!found) {
+        if (searchText.trim() == '') {
             return result;
         }
 
@@ -239,67 +230,56 @@ class Cursor {
         if (ranges.length == 0) {
             return result;
         } else if (ranges.length == 1) {
+            // Search for a single line of text
             let [lineOffset, colOffset, tailColOffset] = ranges[0];
 
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i];
-                let k = 0;
+                let j = 0;
 
                 if (i == lineOffset) {
-                    let j = 0;
-
                     if (includeLineGutterHighlight) {
                         result.push([i, lineGutterColOffset, lineGutterTailColOffset]);
                     }
 
                     while (j < line.length) {
-                        if (j == colOffset) {
-                            result.push(ranges[0]);
+                        if (j + searchText > colOffset && j <= colOffset) {
+                            result.push(ranges[0])
                             j = tailColOffset + 1;
-                            k = 0;
                             continue;
                         }
 
-                        if (line[j] == searchText[k]) {
-                            if (k == searchText.length - 1) {
-                                result.push([i, j - searchText.length + 1, j + 1]);
-                                k = 0;
-                            } else {
-                                k++;
-                            }
+                        if (line.substring(j).startsWith(searchText)) {
+                            result.push([i, j, j + searchText.length]);
+                            j += searchText.length
                         } else {
-                            k = 0;
+                            j++;
                         }
-
-                        j++;
                     }
                 } else {
                     let addedLineGutterHighlight = false;
 
-                    for (let j = 0; j < line.length; j++) {
-                        if (line[j] == searchText[k]) {
-                            if (k == searchText.length - 1) {
-                                if (includeLineGutterHighlight && !addedLineGutterHighlight) {
-                                    result.push([
-                                        i,
-                                        lineGutterColOffset,
-                                        lineGutterTailColOffset
+                    while (j < line.length) {
+                        if (line.substring(j).startsWith(searchText)) {
+                            if (includeLineGutterHighlight && !addedLineGutterHighlight) {
+                                result.push([
+                                    i,
+                                    lineGutterColOffset,
+                                    lineGutterTailColOffset
 
-                                    ]);
-                                }
-
-                                result.push([i, j - searchText.length + 1, j + 1]);
-                                k = 0;
-                            } else {
-                                k++;
+                                ]);
                             }
+
+                            result.push([i, j, j + searchText.length]);
+                            j += searchText.length
                         } else {
-                            k = 0;
+                            j ++;
                         }
                     }
                 }
             }
         } else {
+            // Check the lines are contiguous
             let previousLineOffset = ranges[0][0] - 1;
 
             for (let i = 0; i < ranges.length; i++) {
@@ -324,19 +304,19 @@ class Cursor {
                 previousLineOffset = lineOffset;
             }
 
-
+            // Search for multiple lines of text
             let i = 0;
-            let k = 0;
             let firstLineOffset = ranges[0][0];
+            let firstColOffset = ranges[0][1];
             let lastLineOffset = ranges[ranges.length - 1][0];
-            let found = false;
+            let lastLineEmpty = ranges[ranges.length - 1][2] == 0;
+            let subResults = [];
             let endOfLineOffset = includeEndOfLineOffsets ? 0.5 : 0;
 
-            var pushRange = function(range, i, j, k) {
-                let tailColOffset = range[2];
-                let lineOffset = i - k + j;
+            var pushRange = function(range, i) {
+                let [lineOffset, colOffset, tailColOffset] = range;
 
-                if (j != ranges.length - 1) {
+                if (includeEndOfLineOffsets && i != ranges.length - 1) {
                     tailColOffset += endOfLineOffset;
                 }
 
@@ -349,54 +329,54 @@ class Cursor {
                     result.push([lineOffset, lineGutterColOffset, lineGutterTailColOffset]);
                 }
 
-                result.push([lineOffset, range[1], tailColOffset]);
+                result.push([lineOffset, colOffset, tailColOffset]);
             };
 
             while (i < lines.length) {
-                let [lineOffset, colOffset, tailColOffset] = ranges[k];
-                let currentSubString = lines[i].substring(colOffset, tailColOffset);
+                let [lineOffset, colOffset, tailColOffset] = ranges[subResults.length];
                 let testSubString = lines[lineOffset].substring(colOffset, tailColOffset);
+                let currentSubString = lines[i].substring(colOffset, tailColOffset);
+
+                if (subResults.length == 0) {
+                    colOffset = lines[i].length - testSubString.length;
+                    tailColOffset = lines[i].length
+                    currentSubString = lines[i].substring(lines[i].length - testSubString.length, lines[i].length);
+                }
 
                 if (currentSubString == testSubString) {
-                    if (k == ranges.length - 1) {
+                    subResults.push([i, colOffset, tailColOffset]);
+
+                    if (subResults.length == ranges.length) {
                         if (i == firstLineOffset) {
-                            if (tailColOffset <= ranges[0][1]) {
-                                ranges.forEach((range, j) => {
-                                    pushRange(range, i, j, k);
-                                });
+                            if (tailColOffset <= firstColOffset) {
+                                subResults.forEach(pushRange);
                             }
                         } else {
-                            ranges.forEach((range, j) => {
-                                pushRange(range, i, j, k);
-                            });
+                            subResults.forEach(pushRange);
                         }
-
-                        found = true;
-                        k = 0;
-                    } else {
-                        k++;
                     }
                 } else {
-                    k = 0;
+                    subResults = [];
                 }
 
                 if (i == firstLineOffset) {
-                    ranges.forEach((range, j) => {
-                        pushRange(range, i, j, 0);
-                    });
+                    subResults = [];
+                    ranges.forEach(pushRange);
 
-                    if (ranges[ranges.length - 1][2] == 0) {
+                    if (lastLineEmpty) {
                         i = lastLineOffset;
                     } else {
                         i = lastLineOffset + 1;
                     }
+                } else if (subResults.length == ranges.length) {
+                    subResults = [];
 
-                    k = 0;
-                } else if (!found || ranges[ranges.length - 1][2] != 0) {
+                    if (!lastLineEmpty) {
+                        i++;
+                    }
+                } else {
                     i++;
                 }
-
-                found = false;
             }
         }
 

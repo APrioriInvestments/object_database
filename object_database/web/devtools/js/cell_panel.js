@@ -53,6 +53,7 @@ const updateInfoPanel = (node) => {
     if (parentSubtree.name.match("Subscribed")) {
         info = `${info}\nsubscribed`;
     }
+    /*
     const nodeTree = parentSubtree.children.filter((n) => {
         return n.id = node.id;
     })[0]
@@ -61,6 +62,7 @@ const updateInfoPanel = (node) => {
         childIds = `${childIds}, ${c.id}`;
     });
     info = `${info}\nchild node ids: ${childIds}`;
+    */
     infoPanel.innerText = info;
 }
 

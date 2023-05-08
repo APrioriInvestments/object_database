@@ -1019,10 +1019,7 @@ class DataModel {
     }
 
     updateHighlights() {
-        this.highlights = [];
-        this.cursors.forEach((cursor) => {
-            this.highlights.push(...cursor.getHighlights(this.lines));
-        });
+        this.highlights = this.cursors;
     }
 }
 

@@ -215,17 +215,24 @@ class Cursor {
         return res;
     }
 
-    getHighlights(lines, includeLineGutterHighlight=true, includeEndOfLineOffsets=true) {
-        let searchText = this.getSelectedText(lines);
+    getHighlights(
+        lines,
+        startLineIndex=0,
+        endLineIndex=null,
+        includeLineGutterHighlight=true,
+        includeEndOfLineOffsets=true
+    ) {
         let result = [];
+        let text = this.getSelectedText(lines);
 
-        if (searchText.trim() == '') {
+        if (text.trim() == '') {
             return result;
         }
 
         let ranges = this.selectedRanges(lines, false, false);
         let lineGutterColOffset = -10;
         let lineGutterTailColOffset = -1;
+        endLineIndex = endLineIndex === null ? lines.length : endLineIndex;
 
         if (ranges.length == 0) {
             return result;
@@ -233,7 +240,7 @@ class Cursor {
             // Search for a single line of text
             let [lineOffset, colOffset, tailColOffset] = ranges[0];
 
-            for (let i = 0; i < lines.length; i++) {
+            for (let i = startLineIndex; i < endLineIndex; i++) {
                 let line = lines[i];
                 let j = 0;
 
@@ -243,15 +250,12 @@ class Cursor {
                     }
 
                     while (j < line.length) {
-                        if (j + searchText > colOffset && j <= colOffset) {
-                            result.push(ranges[0])
+                        if (j + text.length > colOffset && j <= colOffset) {
+                            result.push(ranges[0]);
                             j = tailColOffset + 1;
-                            continue;
-                        }
-
-                        if (line.substring(j).startsWith(searchText)) {
-                            result.push([i, j, j + searchText.length]);
-                            j += searchText.length
+                        } else if (line.substring(j).startsWith(text)) {
+                            result.push([i, j, j + text.length]);
+                            j += text.length;
                         } else {
                             j++;
                         }
@@ -260,7 +264,7 @@ class Cursor {
                     let addedLineGutterHighlight = false;
 
                     while (j < line.length) {
-                        if (line.substring(j).startsWith(searchText)) {
+                        if (line.substring(j).startsWith(text)) {
                             if (includeLineGutterHighlight && !addedLineGutterHighlight) {
                                 result.push([
                                     i,
@@ -268,49 +272,25 @@ class Cursor {
                                     lineGutterTailColOffset
 
                                 ]);
+                                addedLineGutterHighlight = true;
                             }
 
-                            result.push([i, j, j + searchText.length]);
-                            j += searchText.length
+                            result.push([i, j, j + text.length]);
+                            j += text.length;
                         } else {
-                            j ++;
+                            j++;
                         }
                     }
                 }
             }
         } else {
-            // Check the lines are contiguous
-            let previousLineOffset = ranges[0][0] - 1;
-
-            for (let i = 0; i < ranges.length; i++) {
-                let [lineOffset, colOffset, tailColOffset] = ranges[i];
-
-                if (lineOffset - 1 != previousLineOffset) {
-                    return result;
-                }
-
-                if (i != 0) {
-                    if (colOffset != 0) {
-                        return result;
-                    }
-                }
-
-                if (i != ranges.length - 1) {
-                    if (tailColOffset != lines[lineOffset].length) {
-                        return result;
-                    }
-                }
-
-                previousLineOffset = lineOffset;
-            }
-
             // Search for multiple lines of text
-            let i = 0;
+            let i = startLineIndex;
             let firstLineOffset = ranges[0][0];
             let firstColOffset = ranges[0][1];
             let lastLineOffset = ranges[ranges.length - 1][0];
             let lastTailColOffset = ranges[ranges.length - 1][2];
-            let subResults = [];
+            let subResult = [];
             let endOfLineOffset = includeEndOfLineOffsets ? 0.5 : 0;
 
             var pushRange = function(range, i) {
@@ -332,49 +312,50 @@ class Cursor {
                 result.push([lineOffset, colOffset, tailColOffset]);
             };
 
-            while (i < lines.length) {
-                let [lineOffset, colOffset, tailColOffset] = ranges[subResults.length];
+            while (i < endLineIndex) {
+                let line = lines[i];
+                let [lineOffset, colOffset, tailColOffset] = ranges[subResult.length];
                 let testSubString = lines[lineOffset].substring(colOffset, tailColOffset);
-                let currentSubString = lines[i].substring(colOffset, tailColOffset);
+                let currentSubString = line.substring(colOffset, tailColOffset);
 
-                if (subResults.length == 0) {
-                    colOffset = lines[i].length - testSubString.length;
-                    tailColOffset = lines[i].length
-                    currentSubString = lines[i].substring(colOffset, tailColOffset);
+                if (subResult.length == 0) {
+                    colOffset = line.length - testSubString.length;
+                    tailColOffset = line.length
+                    currentSubString = line.substring(colOffset, tailColOffset);
                 }
 
                 if (currentSubString == testSubString) {
                     if (
-                        subResults.length == 0
+                        subResult.length == 0
                         && result.length != 0
                         && result[result.length - 1][0] == i
                     ) {
                         if (colOffset >= lastTailColOffset) {
-                            subResults.push([i, colOffset, tailColOffset]);
+                            subResult.push([i, colOffset, tailColOffset]);
                         }
                     } else {
-                        subResults.push([i, colOffset, tailColOffset]);
+                        subResult.push([i, colOffset, tailColOffset]);
                     }
 
-                    if (subResults.length == ranges.length) {
+                    if (subResult.length == ranges.length) {
                         if (i == firstLineOffset) {
                             if (tailColOffset <= firstColOffset) {
-                                subResults.forEach(pushRange);
+                                subResult.forEach(pushRange);
                             }
                         } else {
-                            subResults.forEach(pushRange);
+                            subResult.forEach(pushRange);
                         }
                     }
                 } else {
-                    subResults = [];
+                    subResult = [];
                 }
 
                 if (i == firstLineOffset) {
-                    subResults = [];
+                    subResult = [];
                     ranges.forEach(pushRange);
                     i = lastLineOffset;
-                } else if (subResults.length == ranges.length) {
-                    subResults = [];
+                } else if (subResult.length == ranges.length) {
+                    subResult = [];
                 } else {
                     i++;
                 }

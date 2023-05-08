@@ -694,10 +694,11 @@ class RenderingModel {
     renderHighlights() {
         let result = [];
         let constants = this.constants;
+        let lines = this.dataModel.lines;
+        let startLineIndex = this.topLineNumber;
+        let endLineIndex = Math.min(startLineIndex + this.viewHeight + 1, lines.length);
 
-        this.dataModel.highlights.map((range) => {
-            let [lineOffset, colOffset, tailColOffset] = range;
-
+        var pushDiv = function(lineOffset, colOffset, tailColOffset) {
             let startX = constants.gutterWidth + colOffset * constants.charWidth;
             let startY = lineOffset * constants.lineHeight + constants.topPxOffset;
             let widthPx = (tailColOffset - colOffset) * constants.charWidth;
@@ -711,6 +712,13 @@ class RenderingModel {
                         +    'background-color:' + constants.selectionColorBasic
                 })
             );
+        }
+
+        this.dataModel.highlights.forEach((cursor) => {
+            cursor.getHighlights(lines, startLineIndex, endLineIndex).forEach((range) => {
+                let [lineOffset, colOffset, tailColOffset] = range;
+                pushDiv(lineOffset, colOffset, tailColOffset);
+            });
         });
 
         return result;

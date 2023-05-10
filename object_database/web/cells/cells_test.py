@@ -17,6 +17,7 @@ from object_database.web.cells import (
     Cells,
     Effect,
     Subscribed,
+    Expands,
     Card,
     Container,
     Sequence,
@@ -28,6 +29,7 @@ from object_database.web.cells import (
     TimeIsAfter,
     HeaderBar,
     ensureSubscribedType,
+    SessionState
 )
 
 from object_database import InMemServer, Schema, Indexed, connect
@@ -605,3 +607,47 @@ class CellsTests(unittest.TestCase):
         assert 0.5 < elapsed < 0.6
 
         assert timeIsAfter.getWithoutRegisteringDependency()
+
+    def test_expands(self):
+        sessionState = SessionState("sessionId")
+        sessionState.setup(self.db)
+
+        def makesAnExpander():
+            return Expands(
+                open=Subscribed(makesAnExpander) + Subscribed(makesAnExpander),
+                closed=Text("closed")
+            )
+
+        self.cells.withRoot(
+            Subscribed(makesAnExpander),
+            sessionState
+        )
+
+        self.cells.renderMessages()
+
+        print("INITIAL TREE")
+        self.cells.dumpTree()
+
+        closed = (
+            self.cells.calculateExpression(
+                lambda: self.cells.findChildrenMatching(
+                    lambda cell: isinstance(cell, Expands) and not cell.isExpanded
+                )
+            )
+        )
+
+        assert len(closed) == 1
+        self.cells.sendMessageToCellSynchronously(closed[0], {})
+        self.cells.renderMessages()
+
+        print("FINAL TREE")
+        self.cells.dumpTree()
+
+        closed = (
+            self.cells.calculateExpression(
+                lambda: self.cells.findChildrenMatching(
+                    lambda cell: isinstance(cell, Expands) and not cell.isExpanded
+                )
+            )
+        )
+        assert len(closed) == 2

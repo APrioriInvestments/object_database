@@ -216,6 +216,17 @@ class Cells:
 
         walk(self._root)
 
+    def sendMessageToCellSynchronously(self, cell, message):
+        """Execute a callback that sends 'message' to 'cell'.
+
+        This gets used in testing.
+        """
+        def callback():
+            with RecomputingCellContext(cell):
+                cell.onMessage(message)
+
+        self.executeCallback(callback)
+
     def scheduleUnconditionalCallback(self, callback, atTimestamp=None):
         """Place a callback on the callback queue unconditionally.
 
@@ -324,6 +335,9 @@ class Cells:
         self._nodesToBroadcast.add(node)
 
     def dumpTree(self, cell=None, indent=0):
+        if cell is None:
+            cell = self._root
+
         print(" " * indent + str(cell))
         for child in cell.children.allChildren:
             self.dumpTree(child, indent + 2)

@@ -221,6 +221,7 @@ class Cells:
 
         This gets used in testing.
         """
+
         def callback():
             with RecomputingCellContext(cell):
                 cell.onMessage(message)

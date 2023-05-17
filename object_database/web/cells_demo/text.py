@@ -49,15 +49,12 @@ class TextUpdates(CellsTestPage):
 
 class SelectableText(CellsTestPage):
     def cell(self):
-        return (
-            cells.Text("this is some selectable text", selectable=True) +
-            cells.Text("this text is not selectable")
+        return cells.Text("this is some selectable text", selectable=True) + cells.Text(
+            "this text is not selectable"
         )
 
     def text(self):
-        return (
-            "you should see some text that you can select and some other text you can't"
-        )
+        return "you should see some text that you can select and some other text you can't"
 
 
 def test_text_rendering(headless_browser):

@@ -745,7 +745,7 @@ class Editor(FocusableCell):
                     ):
                         self.scheduleMessage(
                             {"resetState": collapseStateToTopmost(currentState)}
-                       )
+                        )
                         self.sentEventGuidSlot.set(currentState["topEventGuid"])
                         logging.error(
                             "Resetting session %s/%s on eventGuid %s: bad event %s.",

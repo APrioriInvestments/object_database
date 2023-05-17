@@ -45,7 +45,7 @@ valid_instance_types = {
     "m5.4xlarge": {"RAM": 64, "CPU": 16, "COST": 0.768},
     "m5.12xlarge": {"RAM": 192, "CPU": 48, "COST": 2.304},
     "m5.24xlarge": {"RAM": 384, "CPU": 96, "COST": 4.608},
-    "m6i.xlarge": {"RAM" : 16, "CPU": 4, "COST": 0.192},
+    "m6i.xlarge": {"RAM": 16, "CPU": 4, "COST": 0.192},
     "m6i.2xlarge": {"RAM": 32, "CPU": 8, "COST": 0.384},
     "m6i.4xlarge": {"RAM": 64, "CPU": 16, "COST": 0.768},
     "m6i.8xlarge": {"RAM": 128, "CPU": 32, "COST": 1.5360},

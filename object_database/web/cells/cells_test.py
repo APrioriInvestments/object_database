@@ -29,7 +29,7 @@ from object_database.web.cells import (
     TimeIsAfter,
     HeaderBar,
     ensureSubscribedType,
-    SessionState
+    SessionState,
 )
 
 from object_database import InMemServer, Schema, Indexed, connect
@@ -615,24 +615,19 @@ class CellsTests(unittest.TestCase):
         def makesAnExpander():
             return Expands(
                 open=Subscribed(makesAnExpander) + Subscribed(makesAnExpander),
-                closed=Text("closed")
+                closed=Text("closed"),
             )
 
-        self.cells.withRoot(
-            Subscribed(makesAnExpander),
-            sessionState
-        )
+        self.cells.withRoot(Subscribed(makesAnExpander), sessionState)
 
         self.cells.renderMessages()
 
         print("INITIAL TREE")
         self.cells.dumpTree()
 
-        closed = (
-            self.cells.calculateExpression(
-                lambda: self.cells.findChildrenMatching(
-                    lambda cell: isinstance(cell, Expands) and not cell.isExpanded
-                )
+        closed = self.cells.calculateExpression(
+            lambda: self.cells.findChildrenMatching(
+                lambda cell: isinstance(cell, Expands) and not cell.isExpanded
             )
         )
 
@@ -643,11 +638,9 @@ class CellsTests(unittest.TestCase):
         print("FINAL TREE")
         self.cells.dumpTree()
 
-        closed = (
-            self.cells.calculateExpression(
-                lambda: self.cells.findChildrenMatching(
-                    lambda cell: isinstance(cell, Expands) and not cell.isExpanded
-                )
+        closed = self.cells.calculateExpression(
+            lambda: self.cells.findChildrenMatching(
+                lambda cell: isinstance(cell, Expands) and not cell.isExpanded
             )
         )
         assert len(closed) == 2

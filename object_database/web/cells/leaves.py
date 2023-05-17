@@ -59,7 +59,7 @@ class Text(Cell):
         monospace=False,
         fontSize=None,
         nowrap=None,
-        selectable=False
+        selectable=False,
     ):
         super().__init__()
         self.text = str(text)

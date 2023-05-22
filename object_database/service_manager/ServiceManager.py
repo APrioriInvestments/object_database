@@ -419,14 +419,18 @@ class ServiceManager(object):
     def collectDeadConnections(self):
         with self.db.transaction():
             for serviceInstance in service_schema.ServiceInstance.lookupAll():
-                if (
-                    serviceInstance.isNotActive()
-                    or not serviceInstance.host.exists()
-                    or serviceInstance.connection
-                    and not serviceInstance.connection.exists()
-                    or serviceInstance.owner is not None
-                    and not serviceInstance.owner.exists()
-                ):
+                reasons = []
+                if serviceInstance.isNotActive():
+                    reasons.append("service not active")
+                if not serviceInstance.host.exists():
+                    reasons.append("host doesn't exist")
+                if serviceInstance.connection and not serviceInstance.connection.exists():
+                    reasons.append("connection lost")
+
+                if serviceInstance.owner is not None and not serviceInstance.owner.exists():
+                    reasons.append("owner doesn't exist")
+
+                if len(reasons) > 0:
                     if serviceInstance.owner is None:
                         if serviceInstance.state == "FailedToStart":
                             serviceInstance.service.timesBootedUnsuccessfully += 1
@@ -438,9 +442,15 @@ class ServiceManager(object):
                             serviceInstance.service.lastFailureReason = (
                                 serviceInstance.failureReason
                             )
+
+                    reasonsStr = " and ".join(reasons)
+
                     self._logger.warning(
-                        f"Removing service instance with state='{serviceInstance.state}' "
-                        f"and failureReason='{serviceInstance.failureReason}'."
+                        f"Removing service instance {serviceInstance._identity} "
+                        f"for service {serviceInstance.service.name} "
+                        f"with state='{serviceInstance.state}' "
+                        f"and failureReason='{serviceInstance.failureReason}' "
+                        f"for the following reasons: {reasonsStr}"
                     )
                     serviceInstance.delete()
 

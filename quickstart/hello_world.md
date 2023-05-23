@@ -25,7 +25,18 @@ Then lets install our dependencies
     # change this to whatever path your object database codebase is
     pip install -e ../object_database
 
-At this point, you should have a working odb install. You could, for instance, run
+At this point, you should have a working odb install. If you want to see a running service
+we need to install and build the web dependencies. In `object_database/object_database/web/content`
+run
+
+    nodeenv --node=16.16.0 --prebuilt .nenv
+    source .nenv/bin/activate
+    npm install
+    npm run build
+
+(you can choose another version of node, but note this is only tested with LTS versions).
+
+Following, run
 
     object_database_webtest
 

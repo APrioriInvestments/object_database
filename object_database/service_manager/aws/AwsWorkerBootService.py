@@ -235,10 +235,19 @@ class RunningInstance:
     state = OneOf("running", "pending")
 
 
-ownDir = os.path.dirname(os.path.abspath(__file__))
+_linux_bootstrap_script = None
 
-with open(os.path.join(ownDir, "aws_linux_bootstrap.sh"), "r") as fh:
-    linux_bootstrap_script = fh.read()
+
+def getLinuxBootstrapScript():
+    nonlocal _linux_bootstrap_script
+
+    if _linux_bootstrap_script is None:
+        ownDir = os.path.dirname(os.path.abspath(__file__))
+
+        with open(os.path.join(ownDir, "aws_linux_bootstrap.sh"), "r") as fh:
+            _linux_bootstrap_script = fh.read()
+
+    return _linux_bootstrap_script
 
 
 class AwsApi:
@@ -336,15 +345,13 @@ class AwsApi:
 
         res = {}
 
+        instanceStateFilter = ("running", "pending") if includePending else ("running",)
+
         for reservations in self.ec2_client.describe_instances(Filters=filters)[
             "Reservations"
         ]:
             for instance in reservations["Instances"]:
-                if (
-                    instance["State"]["Name"] in ("running", "pending")
-                    if includePending
-                    else ("running",)
-                ):
+                if instance["State"]["Name"] in instanceStateFilter:
                     if (
                         not spot
                         and instance.get("InstanceLifecycle") != "spot"
@@ -388,8 +395,13 @@ class AwsApi:
         instance.terminate()
 
     def getSpotPrices(self):
+        """Get the most recent prices for spot instances.
+
+        Returns a list of tuples (instance_type, availability_zone, price)
+        """
         self._logger.info("Requesting spot price history...")
         results = {}
+        """ map from (instance_type, availability_zone) -> (timestamp, price)"""
 
         for x in self.ec2_client.get_paginator("describe_spot_price_history").paginate(
             Filters=[{"Name": "product-description", "Values": ["Linux/UNIX"]}],
@@ -427,7 +439,7 @@ class AwsApi:
         spotPrice=None,
         placementGroup="Worker",
     ):
-        baseBootScript = self.config.bootstrap_script_override or linux_bootstrap_script
+        baseBootScript = self.config.bootstrap_script_override or getLinuxBootstrapScript()
 
         boot_script = (
             baseBootScript.replace("__db_hostname__", self.config.db_hostname)

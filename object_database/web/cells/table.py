@@ -152,7 +152,9 @@ class TableHeader(Cell):
             if isNone.get():
                 return Clickable(Octicon("search"), lambda: columnFilterSlot.set(""))
             else:
-                return SingleLineTextBox(columnFilterSlot) >> Button(
+                tb = SingleLineTextBox(columnFilterSlot)
+                tb.focus()
+                return tb >> Button(
                     Octicon("x"), lambda: columnFilterSlot.set(None), small=True
                 )
 

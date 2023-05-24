@@ -44,6 +44,9 @@ class ServiceBase:
         self.registeredReactors = []
         self._reactorsRunning = False
 
+        self.registeredThreads = []
+        self._threadsStarted = False
+
     def configureLogging(self):
         """Subclasses may override this method to configure logging."""
         pass
@@ -102,3 +105,25 @@ class ServiceBase:
         yield
         self.stopReactors()
         self.teardownReactors()
+
+    def _raiseIfThreadsStarted(self):
+        if self._threadsStarted:
+            raise Exception("Cannot register new threads while threads are already running")
+
+    def registerThread(self, thread):
+        if self._threadsStarted:
+            raise Exception("Cannot register new threads while threads are already running")
+
+        self.registeredThreads.append(thread)
+
+    def startThreads(self):
+        if self._threadsStarted:
+            raise Exception("Cannot register new threads while threads are already running")
+
+        self._threadsStarted = True
+        for thread in self.registeredThreads:
+            thread.start()
+
+    def joinThreads(self):
+        # TODO
+        pass

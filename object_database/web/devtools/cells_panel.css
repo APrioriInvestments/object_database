@@ -22,6 +22,9 @@ div#cell-info {
     justify-content: center;
     align-items: center;
     min-width: 30%;
+    text-align: center;
+    font-family: Roboto;
+    font-size: 20px;
 }
 
 .node {

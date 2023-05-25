@@ -47,11 +47,12 @@ const reconnectingDisplay = () => {
 const updateInfoPanel = (node) => {
     const infoPanel = document.getElementById("cell-info");
     const id = node.getAttribute("data-original-id");
-    let info = `cell-id: ${id}`;
+    const name = node.name;
+    let info = `${name}\ncell-id: ${id}`;
     const tree = document.querySelector("tree-graph");
     const parentSubtree = tree.findParentSubTree(id, tree.data);
     if (parentSubtree.name.match("Subscribed")) {
-        info = `${info}\nsubscribed`;
+        info = `${info}\nsubscribed to cell-id: ${parentSubtree.id}`;
     }
     /*
     const nodeTree = parentSubtree.children.filter((n) => {

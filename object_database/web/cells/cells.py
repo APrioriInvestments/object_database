@@ -135,13 +135,16 @@ class Cells:
             cell = self._cells.get(cellId)
             data = {}
             if message.get("request") == "source":
+                print("GETTING DEVTOOLS MESSAGE")
+                print(cell)
+                """
                 sourceString = textwrap.dedent(
                     "".join(getsourcelines(cell.__func__)[0])
                 )
                 data["source"] = sourceString
-                print("GETTING DEVTOOLS MESSAGE")
                 print("response %s" % data)
                 return data
+                """
 
 
     def _executeCallback(self, callback, withLogging=True):

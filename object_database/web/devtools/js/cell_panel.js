@@ -47,6 +47,10 @@ const reconnectingDisplay = () => {
 const updateInfoPanel = (node) => {
     const infoPanel = document.getElementById("cell-info");
     const id = node.getAttribute("data-original-id");
+    // we need to retrieve the source code for the node
+    chrome.devtools.inspectedWindow.eval(
+        `window.sendCellSource(${id})`
+    );
     const name = node.name;
     let info = `${name}\ncell-id: ${id}`;
     const tree = document.querySelector("tree-graph");

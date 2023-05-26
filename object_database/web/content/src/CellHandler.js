@@ -534,6 +534,14 @@ class CellHandler {
             const overlays = document.querySelectorAll(`#${overlayId}`);
             overlays.forEach((el) => el.remove());
         }
+
+        window.sendCellSource = (id) => {
+            this.sendMessageToCells({
+                event: "devtoolsRequest",
+                request: "source",
+                cellId: id
+            });
+        }
     }
     sendMessageToDevtools(msg){
         // TODO perhaps this should be run by a worker

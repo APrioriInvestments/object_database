@@ -131,13 +131,12 @@ class Cells:
                 if cell is not None:
                     cell.mostRecentFocusId = self.focusEventId
         if message.get("event") == "devtoolsRequest":
-            cellId = message.get("cellId")
+            cellId = str(message.get("cellId"))
             cell = self._cells.get(cellId)
             data = {}
             if message.get("request") == "source":
                 print("GETTING DEVTOOLS MESSAGE")
                 print(cell)
-                print(type(cell))
                 """
                 sourceString = textwrap.dedent(
                     "".join(getsourcelines(cell.__func__)[0])

@@ -547,13 +547,6 @@ class CellHandler {
     updateDevtools(){
         const buildTree = (cell) => {
             if (cell.isCell) {
-                // get the source code for the cell
-                const msg = {
-                    event: "devtoolsRequest",
-                    request: "source",
-                    cellId: cell.identity
-                }
-                this.sendMessageToCells(msg);
                 return {
                     name: cell.constructor.name,
                     id: cell.identity,

@@ -17,6 +17,9 @@ import time
 import traceback
 import logging
 import types
+import textwrap
+
+from inspect import getsourcelines
 
 from object_database.web.cells.session_state import SessionState
 from object_database.web.cells.cell import Cell
@@ -127,6 +130,19 @@ class Cells:
 
                 if cell is not None:
                     cell.mostRecentFocusId = self.focusEventId
+        if message.get("event") == "devtoolsRequest":
+            cellId = message.get("cellId")
+            cell = self._cells.get(cellId)
+            data = {}
+            if message.get("request") == "source":
+                sourceString = textwrap.dedent(
+                    "".join(getsourcelines(cell.__func__)[0])
+                )
+                data["source"] = sourceString
+                print("GETTING DEVTOOLS MESSAGE")
+                print("response %s" % data)
+                return data
+
 
     def _executeCallback(self, callback, withLogging=True):
         context = DependencyContext(self, readOnly=False)

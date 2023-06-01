@@ -49,7 +49,8 @@ from the repo. The public PyPI release is out of date.
     ```shell
     pip install -e .
     ```
-   
+
+(there is a [quick_install.sh])(./quick_install.sh) file for you)
 # Major components
 
 This repo has 3 major components and 1 notable major dependency:

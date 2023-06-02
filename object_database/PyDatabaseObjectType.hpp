@@ -115,6 +115,8 @@ struct PyDatabaseObjectType {
 
   void addMethod(std::string name, PyObject* method);
 
+  void addBase(PyObject* base);
+
   void addStaticMethod(std::string name, PyObject* method);
 
   void addProperty(std::string name, PyObject* getter, PyObject* setter);
@@ -146,6 +148,8 @@ struct PyDatabaseObjectType {
   static PyObject* pyAddField(PyObject *none, PyObject* args, PyObject* kwargs);
 
   static PyObject* pyAddMethod(PyObject *none, PyObject* args, PyObject* kwargs);
+
+  static PyObject* pyAddBase(PyObject *none, PyObject* args, PyObject* kwargs);
 
   static PyObject* pyAddStaticMethod(PyObject *none, PyObject* args, PyObject* kwargs);
 

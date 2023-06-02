@@ -67,7 +67,7 @@ PyTypeObject* PyDatabaseObjectType::createDatabaseObjectType(PyObject* schema, s
         Py_True
         );
 
-    PyMethodDef* methods = new PyMethodDef[15] {
+    PyMethodDef* methods = new PyMethodDef[16] {
         {"fromIdentity", (PyCFunction)PyDatabaseObjectType::fromIdentity, METH_VARARGS | METH_CLASS, NULL},
         {"lookupAny", (PyCFunction)PyDatabaseObjectType::pyLookupAny, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"lookupAll", (PyCFunction)PyDatabaseObjectType::pyLookupAll, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
@@ -79,6 +79,7 @@ PyTypeObject* PyDatabaseObjectType::createDatabaseObjectType(PyObject* schema, s
         {"setModule", (PyCFunction)PyDatabaseObjectType::pySetModule, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"addField", (PyCFunction)PyDatabaseObjectType::pyAddField, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"addMethod", (PyCFunction)PyDatabaseObjectType::pyAddMethod, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
+        {"addBase", (PyCFunction)PyDatabaseObjectType::pyAddBase, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"addStaticMethod", (PyCFunction)PyDatabaseObjectType::pyAddStaticMethod, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"addProperty", (PyCFunction)PyDatabaseObjectType::pyAddProperty, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
         {"addIndex", (PyCFunction)PyDatabaseObjectType::pyAddIndex, METH_VARARGS | METH_KEYWORDS | METH_CLASS, NULL},
@@ -206,6 +207,20 @@ void PyDatabaseObjectType::addMethod(std::string name, PyObject* method) {
     }
 
     m_methods[name] = incref(method);
+}
+
+void PyDatabaseObjectType::addBase(PyObject* method) {
+    PyObject* bases = ((PyTypeObject*)this)->tp_mro;
+
+    // we're just going to leak this
+    PyObject* newBases = PyTuple_New(1 + PyTuple_Size(bases));
+
+    PyTuple_SetItem(newBases, 0, incref(method));
+    for (long k = 0; k < PyTuple_Size(bases); k++) {
+        PyTuple_SetItem(newBases, k + 1, incref(PyTuple_GetItem(bases, k)));
+    }
+
+    ((PyTypeObject*)this)->tp_mro = newBases;
 }
 
 void PyDatabaseObjectType::addStaticMethod(std::string name, PyObject* method) {
@@ -881,6 +896,27 @@ PyObject* PyDatabaseObjectType::pyAddMethod(PyObject *databaseType, PyObject* ar
 
     return translateExceptionToPyObject([&] {
         obType->addMethod(field, method);
+        return incref(Py_None);
+    });
+}
+
+PyObject* PyDatabaseObjectType::pyAddBase(PyObject *databaseType, PyObject* args, PyObject* kwargs)
+{
+    static const char *kwlist[] = {"base", NULL};
+    PyObject* base;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist, &base)) {
+        return nullptr;
+    }
+
+    PyDatabaseObjectType* obType = PyDatabaseObjectType::check(databaseType);
+    if (!obType) {
+        PyErr_Format(PyExc_TypeError, "Expected first argument to be a database type.");
+        return NULL;
+    }
+
+    return translateExceptionToPyObject([&] {
+        obType->addBase(base);
         return incref(Py_None);
     });
 }

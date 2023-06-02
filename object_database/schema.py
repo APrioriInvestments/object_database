@@ -191,6 +191,11 @@ class Schema:
 
         properBaseClasses = [self._types_to_original.get(b, b) for b in baseClasses]
 
+        for baseT in reversed(baseClasses):
+            if baseT is not cls:
+                if 'typed_python._types' not in baseT.__module__:
+                    t.addBase(baseT)
+
         # Collect the type's attributes and populate the actual type object
         # Map: name -> type
         classMembers = {}

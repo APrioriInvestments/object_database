@@ -798,6 +798,8 @@ class ObjectDatabaseTests:
         db = self.createNewDb()
         db.subscribeToSchema(schema)
 
+        assert issubclass(SubclassTesting, Test)
+
         with db.transaction():
             t = Test(i=1)
             t2 = SubclassTesting(i=2, y=3)

@@ -175,7 +175,7 @@ class Service:
         else:
 
             def _getobject(modname, attribute):
-                mod = __import__(modname, fromlist=[attribute])
+                mod = importlib.import_module(modname)
                 return mod.__dict__[attribute]
 
             return _getobject(modulename, typename)
@@ -226,7 +226,7 @@ class Service:
         else:
 
             def _getobject(modname, attribute):
-                mod = __import__(modname, fromlist=[attribute])
+                mod = importlib.import_module(modname)
                 return mod.__dict__[attribute]
 
             service_type = _getobject(self.service_module_name, self.service_class_name)

@@ -354,19 +354,20 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
     """
 
     if len(path) and path[0] == "services":
-        if len(path) == 1:
+        if len(path) == 1:  # 'services' display
             return view(), []
 
-        serviceObj = service_schema.Service.lookupAny(name=path[1])
+        serviceName = path[1]
+        serviceObj = service_schema.Service.lookupAny(name=serviceName)
 
         if serviceObj is None:
-            return Traceback("Unknown service %s" % path[1]), []
+            return Traceback("Unknown service %s" % serviceName), []
 
         serviceType = serviceObj.instantiateServiceType()
 
         serviceToggles = serviceType.serviceHeaderToggles(serviceObj, queryArgs=queryArgs)
 
-        if len(path) == 2:
+        if len(path) == 2:  # specific service display  (serviceDiplay method on service)
             return (
                 Subscribed(
                     lambda: serviceType.serviceDisplay(serviceObj, queryArgs=queryArgs)
@@ -387,7 +388,7 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
         if typeObj is None:
             return Traceback("Can't find fully-qualified type %s" % typename), []
 
-        if len(path) == 3:
+        if len(path) == 3:  # object-type display for specific service
             return (
                 serviceType.serviceDisplay(serviceObj, objType=typename, queryArgs=queryArgs),
                 serviceToggles,
@@ -402,7 +403,7 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
             )
 
         instance = typeObj.fromIdentity(identity)
-        if instance.exists():
+        if instance.exists():  # object-instance display for specific service
             return (
                 serviceType.serviceDisplay(serviceObj, instance=instance, queryArgs=queryArgs),
                 serviceToggles,

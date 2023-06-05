@@ -47,7 +47,7 @@ def test_displayAndHeadersForPathAndQueryArgs(in_mem_odb_connection):
         res = displayAndHeadersForPathAndQueryArgs(
             ["services", "SimpleTestService", "BogusType"], {}
         )
-        assert isinstance(res[0], cells.Traceback)
+        assert isinstance(res[0], cells.Card)
         assert res[1] == []  # SimpleTestService has no toggles
 
     # path = ["services", "SimpleTestService",  SimpleTestObject]

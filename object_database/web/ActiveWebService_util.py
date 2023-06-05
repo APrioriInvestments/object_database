@@ -385,9 +385,6 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
                 cells.ensureSubscribedSchema(s)
                 break
 
-        if typeObj is None:
-            return Traceback("Can't find fully-qualified type %s" % typename), []
-
         if len(path) == 3:  # object-type display for specific service
             return (
                 serviceType.serviceDisplay(serviceObj, objType=typename, queryArgs=queryArgs),
@@ -401,6 +398,9 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
                 Traceback(f"Invalid object ID {path[3]}: {e}:\n{traceback.format_exc()}"),
                 [],
             )
+
+        if typeObj is None:
+            return Traceback("Can't find fully-qualified type %s" % typename), []
 
         instance = typeObj.fromIdentity(identity)
         if instance.exists():  # object-instance display for specific service

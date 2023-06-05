@@ -281,6 +281,9 @@ class ActiveWebService(ServiceBase):
             "/content/<path:path>", endpoint=None, view_func=self.sendContent
         )
         self.app.add_url_rule("/services", endpoint=None, view_func=self.sendPage)
+        self.app.add_url_rule(
+            "/services/", endpoint=None, view_func=lambda: redirect("/services")
+        )
         self.app.add_url_rule("/services/<path:path>", endpoint=None, view_func=self.sendPage)
         self.app.add_url_rule("/status", view_func=self.statusPage)
         self.sockets.add_url_rule("/socket/<path:path>", None, self.mainSocket)

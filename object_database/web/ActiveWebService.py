@@ -453,7 +453,7 @@ class ActiveWebService(ServiceBase):
             self._logger.info("Child proc for session %s got an incoming connection", session)
 
             with self.db.view():
-                path = session.path.split("/")
+                path = [part for part in session.path.split("/") if part]
                 queryArgs = session.queryArgs
                 currentUser = session.user
                 authorized_groups_text = session.authorized_groups_text

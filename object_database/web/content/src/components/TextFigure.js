@@ -24,24 +24,24 @@ class TextFigure {
         this.clear = this.clear.bind(this);
         this.drawSelf = this.drawSelf.bind(this);
 
-        if (!(xs instanceof Float32Array)) {
-            throw new Error("xs must be a Float32Array");
+        if (!(xs instanceof Float64Array)) {
+            throw new Error("xs must be a Float64Array");
         }
 
-        if (!(ys instanceof Float32Array)) {
-            throw new Error("ys must be a Float32Array");
+        if (!(ys instanceof Float64Array)) {
+            throw new Error("ys must be a Float64Array");
         }
 
-        if (!(offsets instanceof Float32Array)) {
-            throw new Error("offsets must be a Float32Array");
+        if (!(offsets instanceof Float64Array)) {
+            throw new Error("offsets must be a Float64Array");
         }
 
-        if (!(fractionPositions instanceof Float32Array)) {
-            throw new Error("fractionPositions must be a Float32Array");
+        if (!(fractionPositions instanceof Float64Array)) {
+            throw new Error("fractionPositions must be a Float64Array");
         }
 
-        if (!(sizes instanceof Float32Array)) {
-            throw new Error("sizes must be a Float32Array");
+        if (!(sizes instanceof Float64Array)) {
+            throw new Error("sizes must be a Float64Array");
         }
 
         if (xs.length != ys.length) {
@@ -64,8 +64,8 @@ class TextFigure {
             throw new Error("xs and pairs in offsets must have same number of elements");
         }
 
-        if (!(color instanceof Float32Array)) {
-            throw new Error("color must be a Float32Array");
+        if (!(color instanceof Float64Array)) {
+            throw new Error("color must be a Float64Array");
         }
 
         if (color.length != this.xs.length * 4) {

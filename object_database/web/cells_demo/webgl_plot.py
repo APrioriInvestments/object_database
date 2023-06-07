@@ -18,13 +18,13 @@ import time
 from object_database.web import cells as cells
 from object_database.web.cells.webgl_plot import Plot
 from object_database.web.CellsTestPage import CellsTestPage
-from typed_python import ListOf, Float32, Entrypoint
+from typed_python import ListOf, Entrypoint
 
 
 @Entrypoint
 def generateData(ct):
-    x = ListOf(Float32)()
-    y = ListOf(Float32)()
+    x = ListOf(float)()
+    y = ListOf(float)()
     for i in range(0, ct + 1):
         x.append(i / ct)
         y.append(math.sin(i / ct**0.5))

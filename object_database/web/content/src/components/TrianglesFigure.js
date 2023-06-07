@@ -5,20 +5,20 @@ class TrianglesFigure {
         this.xs = xs;
         this.ys = ys;
 
-        if (!(xs instanceof Float32Array)) {
-            throw new Error("xys must be a Float32Array");
+        if (!(xs instanceof Float64Array)) {
+            throw new Error("xys must be a Float64Array");
         }
 
-        if (!(ys instanceof Float32Array)) {
-            throw new Error("ys must be a Float32Array");
+        if (!(ys instanceof Float64Array)) {
+            throw new Error("ys must be a Float64Array");
         }
 
         if (xs.length != ys.length) {
             throw new Error("xs and ys must have same length");
         }
 
-        if (!(color instanceof Float32Array)) {
-            throw new Error("color must be a Float32Array");
+        if (!(color instanceof Float64Array)) {
+            throw new Error("color must be a Float64Array");
         }
 
         if (color.length != this.xs.length * 4) {
@@ -39,7 +39,7 @@ class TrianglesFigure {
 
         let pointCount = this.xs.length / 3;
 
-        let outTriangles = new Float32Array(new ArrayBuffer(4 * pointCount * 6));
+        let outTriangles = new Float64Array(new ArrayBuffer(8 * pointCount * 6));
 
         for (let i = 0; i < this.xs.length; i++) {
             outTriangles[i * 2] = this.xs[i];

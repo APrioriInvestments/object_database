@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typed_python import ListOf, Float32, NamedTuple, UInt8, Entrypoint, OneOf
+from typed_python import ListOf, NamedTuple, UInt8, Entrypoint, OneOf
 
 from object_database.web.cells.cell import Cell
 from object_database.web.cells.slot import Slot
@@ -119,7 +119,7 @@ class Packets:
         return self.packetIdToData.get(packetId)
 
     def getPacketId(self, data):
-        if isinstance(data, (ListOf(Float32), ListOf(Color))):
+        if isinstance(data, (ListOf(float), ListOf(Color))):
             data = data.toBytes()
 
         assert isinstance(data, bytes)
@@ -168,7 +168,7 @@ class Packets:
                 assert math.isfinite(x), "Json can't handle non-finite floats."
             return res
 
-        if isinstance(data, (bytes, ListOf(Float32), ListOf(Color))):
+        if isinstance(data, (bytes, ListOf(float), ListOf(Color))):
             return {"packetId": self.getPacketId(data)}
 
         if isinstance(data, ListOf(str)):
@@ -260,12 +260,12 @@ def maxOf(values):
 
 class TextFigure(Figure):
     def __init__(self, xs, ys, labels, colors, fractionPositions, offsets, sizes):
-        assert isinstance(xs, ListOf(Float32)), type(xs)
-        assert isinstance(ys, ListOf(Float32)), type(ys)
+        assert isinstance(xs, ListOf(float)), type(xs)
+        assert isinstance(ys, ListOf(float)), type(ys)
         assert isinstance(labels, ListOf(str)), type(labels)
-        assert isinstance(fractionPositions, ListOf(Float32)), type(fractionPositions)
-        assert isinstance(offsets, ListOf(Float32)), type(offsets)
-        assert isinstance(sizes, ListOf(Float32)), type(sizes)
+        assert isinstance(fractionPositions, ListOf(float)), type(fractionPositions)
+        assert isinstance(offsets, ListOf(float)), type(offsets)
+        assert isinstance(sizes, ListOf(float)), type(sizes)
         assert isinstance(colors, ListOf(Color)), type(colors)
 
         assert len(xs) == len(ys)
@@ -297,8 +297,8 @@ class TextFigure(Figure):
     @staticmethod
     def create(xs, ys, labels, colors, fractionPositions, offsets, sizes):
         assert len(xs) == len(ys)
-        xs = ListOf(Float32)(xs)
-        ys = ListOf(Float32)(ys)
+        xs = ListOf(float)(xs)
+        ys = ListOf(float)(ys)
         labels = ListOf(str)(labels)
 
         if colors is None:
@@ -308,9 +308,9 @@ class TextFigure(Figure):
             colors = ListOf(Color)([createColor(x) for x in colors])
 
         if fractionPositions is None:
-            fractionPositions = ListOf(Float32)([0.5, 1.0] * len(xs))
+            fractionPositions = ListOf(float)([0.5, 1.0] * len(xs))
         else:
-            outFracPos = ListOf(Float32)()
+            outFracPos = ListOf(float)()
             for i in fractionPositions:
                 if isinstance(i, tuple):
                     outFracPos.append(i[0])
@@ -320,9 +320,9 @@ class TextFigure(Figure):
             fractionPositions = outFracPos
 
         if offsets is None:
-            offsets = ListOf(Float32)([0.0, 0.0] * len(xs))
+            offsets = ListOf(float)([0.0, 0.0] * len(xs))
         else:
-            outOffsets = ListOf(Float32)()
+            outOffsets = ListOf(float)()
             for i in offsets:
                 if isinstance(i, tuple):
                     outOffsets.append(i[0])
@@ -332,9 +332,9 @@ class TextFigure(Figure):
             offsets = outOffsets
 
         if sizes is None:
-            sizes = ListOf(Float32)([12.0] * len(xs))
+            sizes = ListOf(float)([12.0] * len(xs))
         else:
-            sizes = ListOf(Float32)(sizes)
+            sizes = ListOf(float)(sizes)
 
         return TextFigure(xs, ys, labels, colors, fractionPositions, offsets, sizes)
 
@@ -353,8 +353,8 @@ class TextFigure(Figure):
 
 class TrianglesFigure(Figure):
     def __init__(self, xs, ys, colors):
-        assert isinstance(xs, ListOf(Float32)), type(xs)
-        assert isinstance(ys, ListOf(Float32)), type(ys)
+        assert isinstance(xs, ListOf(float)), type(xs)
+        assert isinstance(ys, ListOf(float)), type(ys)
         assert isinstance(colors, ListOf(Color)), type(colors)
 
         assert len(xs) == len(ys)
@@ -384,7 +384,7 @@ class TrianglesFigure(Figure):
         if not isinstance(color, ListOf(Color)):
             color = ListOf(Color)([createColor(x) for x in color])
 
-        return TrianglesFigure(ListOf(Float32)(x), ListOf(Float32)(y), color)
+        return TrianglesFigure(ListOf(float)(x), ListOf(float)(y), color)
 
     def encode(self, packets):
         return {
@@ -397,9 +397,9 @@ class TrianglesFigure(Figure):
 
 class LineFigure(Figure):
     def __init__(self, xs, ys, lineWidths=1.0, colors=Color(blue=255, alpha=255)):
-        assert isinstance(lineWidths, (float, int, ListOf(Float32))), type(lineWidths)
-        assert isinstance(xs, ListOf(Float32)), type(xs)
-        assert isinstance(ys, ListOf(Float32)), type(ys)
+        assert isinstance(lineWidths, (float, int, ListOf(float))), type(lineWidths)
+        assert isinstance(xs, ListOf(float)), type(xs)
+        assert isinstance(ys, ListOf(float)), type(ys)
         assert isinstance(colors, (Color, ListOf(Color))), type(colors)
 
         assert len(xs) == len(ys)
@@ -437,7 +437,7 @@ class LineFigure(Figure):
     @staticmethod
     def create(x, y, lineWidth, color=None):
         if not isinstance(lineWidth, (float, int)):
-            lineWidth = ListOf(Float32)(lineWidth)
+            lineWidth = ListOf(float)(lineWidth)
 
         if color is not None:
             if not isinstance(color, (Color, ListOf(Color))):
@@ -450,7 +450,7 @@ class LineFigure(Figure):
         else:
             color = Color(blue=255, alpha=255)
 
-        return LineFigure(ListOf(Float32)(x), ListOf(Float32)(y), lineWidth, color)
+        return LineFigure(ListOf(float)(x), ListOf(float)(y), lineWidth, color)
 
 
 VALID_POINT_SHAPES = ["circle", "vertical_tick", "horizontal_tick", "square"]
@@ -460,9 +460,9 @@ class PointFigure(Figure):
     def __init__(
         self, xs, ys, pointSizes=1.0, colors=Color(blue=255, alpha=255), shape="circle"
     ):
-        assert isinstance(pointSizes, (float, int, ListOf(Float32))), type(pointSizes)
-        assert isinstance(xs, ListOf(Float32)), type(xs)
-        assert isinstance(ys, ListOf(Float32)), type(ys)
+        assert isinstance(pointSizes, (float, int, ListOf(float))), type(pointSizes)
+        assert isinstance(xs, ListOf(float)), type(xs)
+        assert isinstance(ys, ListOf(float)), type(ys)
         assert isinstance(colors, (Color, ListOf(Color))), type(colors)
 
         assert shape in VALID_POINT_SHAPES
@@ -497,7 +497,7 @@ class PointFigure(Figure):
     @staticmethod
     def create(x, y, pointSize, color=None, shape="circle"):
         if not isinstance(pointSize, (float, int)):
-            pointSize = ListOf(Float32)(pointSize)
+            pointSize = ListOf(float)(pointSize)
 
         if color is not None:
             if not isinstance(color, ListOf(Color)):
@@ -505,7 +505,7 @@ class PointFigure(Figure):
         else:
             color = Color(blue=255, alpha=255)
 
-        return PointFigure(ListOf(Float32)(x), ListOf(Float32)(y), pointSize, color, shape)
+        return PointFigure(ListOf(float)(x), ListOf(float)(y), pointSize, color, shape)
 
 
 class ImageFigure(Figure):

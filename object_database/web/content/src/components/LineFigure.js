@@ -5,27 +5,27 @@ class LineFigure {
         this.xs = xs;
         this.ys = ys;
 
-        if (!(xs instanceof Float32Array)) {
-            throw new Error("xys must be a Float32Array");
+        if (!(xs instanceof Float64Array)) {
+            throw new Error("xys must be a Float64Array");
         }
 
-        if (!(ys instanceof Float32Array)) {
-            throw new Error("ys must be a Float32Array");
+        if (!(ys instanceof Float64Array)) {
+            throw new Error("ys must be a Float64Array");
         }
 
         if (xs.length != ys.length) {
             throw new Error("xs and ys must have same length");
         }
 
-        if (typeof(lineWidth) != 'number' && !(lineWidth instanceof Float32Array)) {
-            throw new Error("lineWidth must be a float or a Float32Array");
+        if (typeof(lineWidth) != 'number' && !(lineWidth instanceof Float64Array)) {
+            throw new Error("lineWidth must be a float or a Float64Array");
         }
 
         if (!color) {
-            this.color = new Float32Array([1.0, 1.0, 1.0, 1.0]);
+            this.color = new Float64Array([1.0, 1.0, 1.0, 1.0]);
         } else {
-            if (!(color instanceof Float32Array)) {
-                throw new Error("color must be a Float32Array");
+            if (!(color instanceof Float64Array)) {
+                throw new Error("color must be a Float64Array");
             }
 
             if (color.length != 4 && color.length != this.xs.length * 4) {
@@ -35,14 +35,14 @@ class LineFigure {
             this.color = color;
         }
 
-        if (lineWidth instanceof Float32Array) {
+        if (lineWidth instanceof Float64Array) {
             if (this.xs.length != lineWidth.length) {
                 throw new Error("lineWidth and xs must have the same total number of points");
             }
 
             this.lineWidth = lineWidth;
         } else {
-            this.lineWidth = new Float32Array(new ArrayBuffer(4 * this.xs.length));
+            this.lineWidth = new Float64Array(new ArrayBuffer(8 * this.xs.length));
 
             for (let i = 0; i < this.xs.length; i++) {
                 this.lineWidth[i] = lineWidth;
@@ -66,12 +66,12 @@ class LineFigure {
         let segmentCount = this.xs.length;
         let pointCount = segmentCount * 4;
 
-        let outTriangles = new Float32Array(new ArrayBuffer(4 * pointCount * 3));
-        let outDirection = new Float32Array(new ArrayBuffer(4 * pointCount * 2));
-        let outOtherDirection = new Float32Array(new ArrayBuffer(4 * pointCount * 2));
-        let outLinePos = new Float32Array(new ArrayBuffer(4 * pointCount));
-        let outColors = new Float32Array(new ArrayBuffer(4 * pointCount * 4));
-        let outLineWidth = new Float32Array(new ArrayBuffer(4 * pointCount));
+        let outTriangles = new Float64Array(new ArrayBuffer(8 * pointCount * 3));
+        let outDirection = new Float64Array(new ArrayBuffer(8 * pointCount * 2));
+        let outOtherDirection = new Float64Array(new ArrayBuffer(8 * pointCount * 2));
+        let outLinePos = new Float64Array(new ArrayBuffer(8 * pointCount));
+        let outColors = new Float64Array(new ArrayBuffer(8 * pointCount * 4));
+        let outLineWidth = new Float64Array(new ArrayBuffer(8 * pointCount));
 
         let curPoint = 0;
 

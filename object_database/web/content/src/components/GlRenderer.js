@@ -316,7 +316,7 @@ class GlRenderer {
         gl.vertexAttribPointer(
             aVertexPosition,
             2,
-            gl.FLOAT, false, 0, 0
+            gl.DOUBLE, false, 0, 0
         );
 
 
@@ -358,7 +358,7 @@ class GlRenderer {
         gl.vertexAttribPointer(
             aVertexPosition,
             2,
-            gl.FLOAT, false, 0, 0
+            gl.DOUBLE, false, 0, 0
         );
 
         gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
@@ -366,7 +366,7 @@ class GlRenderer {
         gl.vertexAttribPointer(
             aVertexColor,
             4,
-            gl.FLOAT, false, 0, 0
+            gl.DOUBLE, false, 0, 0
         );
 
         gl.uniform2fv(uScreenPixelSize, [1.0 / this.width, 1.0 / this.height]);
@@ -406,7 +406,7 @@ class GlRenderer {
         gl.vertexAttribPointer(
             aVertexPosition,
             3,
-            gl.FLOAT, false, 0, 0
+            gl.DOUBLE, false, 0, 0
         );
 
         gl.bindBuffer(gl.ARRAY_BUFFER, directionBuffer);
@@ -414,7 +414,7 @@ class GlRenderer {
         gl.vertexAttribPointer(
             aDirection,
             2,
-            gl.FLOAT, false, 0, 0
+            gl.DOUBLE, false, 0, 0
         );
 
         gl.bindBuffer(gl.ARRAY_BUFFER, otherDirectionBuffer);
@@ -422,7 +422,7 @@ class GlRenderer {
         gl.vertexAttribPointer(
             aOtherDirection,
             2,
-            gl.FLOAT, false, 0, 0
+            gl.DOUBLE, false, 0, 0
         );
 
         gl.bindBuffer(gl.ARRAY_BUFFER, linePosBuffer);
@@ -430,7 +430,7 @@ class GlRenderer {
         gl.vertexAttribPointer(
             aLinePos,
             1,
-            gl.FLOAT, false, 0, 0
+            gl.DOUBLE, false, 0, 0
         );
 
         gl.bindBuffer(gl.ARRAY_BUFFER, lineWidthBuffer);
@@ -438,7 +438,7 @@ class GlRenderer {
         gl.vertexAttribPointer(
             aLineWidth,
             1,
-            gl.FLOAT, false, 0, 0
+            gl.DOUBLE, false, 0, 0
         );
 
         gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
@@ -446,7 +446,7 @@ class GlRenderer {
         gl.vertexAttribPointer(
             aVertexColor,
             4,
-            gl.FLOAT, false, 0, 0
+            gl.DOUBLE, false, 0, 0
         );
 
         gl.uniform2fv(uScreenPixelSize, [1.0 / this.width, 1.0 / this.height]);
@@ -485,7 +485,7 @@ class GlRenderer {
         gl.vertexAttribPointer(
             aVertexPosition,
             4,
-            gl.FLOAT, false, 0, 0
+            gl.DOUBLE, false, 0, 0
         );
 
         gl.bindBuffer(gl.ARRAY_BUFFER, pointSizeBuffer);
@@ -493,7 +493,7 @@ class GlRenderer {
         gl.vertexAttribPointer(
             aPointSize,
             1,
-            gl.FLOAT, false, 0, 0
+            gl.DOUBLE, false, 0, 0
         );
 
         gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
@@ -501,7 +501,7 @@ class GlRenderer {
         gl.vertexAttribPointer(
             aVertexColor,
             4,
-            gl.FLOAT, false, 0, 0
+            gl.DOUBLE, false, 0, 0
         );
 
         gl.uniform2fv(uScreenPixelSize, [1.0 / this.width, 1.0 / this.height]);

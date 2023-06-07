@@ -191,11 +191,11 @@ class Packets {
             return jsonRepresentation;
         }
 
-        return new Float32Array(this.packetIdToData[jsonRepresentation.packetId]);
+        return new Float64Array(this.packetIdToData[jsonRepresentation.packetId]);
     }
 
     decodeFloats(jsonRepresentation) {
-        return new Float32Array(this.packetIdToData[jsonRepresentation.packetId]);
+        return new Float64Array(this.packetIdToData[jsonRepresentation.packetId]);
     }
 
     decodeColors(jsonRepresentation) {
@@ -204,11 +204,11 @@ class Packets {
                 throw new Error("Bad color encoded");
             }
 
-            return new Float32Array(jsonRepresentation);
+            return new Float64Array(jsonRepresentation);
         }
 
         let array = new Uint8Array(this.packetIdToData[jsonRepresentation.packetId]);
-        let floats = new Float32Array(new ArrayBuffer(4 * array.length));
+        let floats = new Float64Array(new ArrayBuffer(8 * array.length));
 
         for (let i = 0; i < array.length; i++) {
             floats[i] = array[i] / 255.0;
@@ -223,7 +223,7 @@ class Packets {
                 throw new Error("Bad color encoded");
             }
 
-            return new Float32Array(jsonRepresentation);
+            return new Float64Array(jsonRepresentation);
         }
 
         return new Uint8Array(this.packetIdToData[jsonRepresentation.packetId]);

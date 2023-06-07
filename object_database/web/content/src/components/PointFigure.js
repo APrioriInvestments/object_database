@@ -11,27 +11,27 @@ class PointFigure {
             this.shape = shape;
         }
 
-        if (!(xs instanceof Float32Array)) {
-            throw new Error("xys must be a Float32Array");
+        if (!(xs instanceof Float64Array)) {
+            throw new Error("xys must be a Float64Array");
         }
 
-        if (!(ys instanceof Float32Array)) {
-            throw new Error("ys must be a Float32Array");
+        if (!(ys instanceof Float64Array)) {
+            throw new Error("ys must be a Float64Array");
         }
 
         if (xs.length != ys.length) {
             throw new Error("xs and ys must have same length");
         }
 
-        if (typeof(pointSize) != 'number' && !(pointSize instanceof Float32Array)) {
-            throw new Error("pointSize must be a float or a Float32Array");
+        if (typeof(pointSize) != 'number' && !(pointSize instanceof Float64Array)) {
+            throw new Error("pointSize must be a float or a Float64Array");
         }
 
         if (!color) {
-            this.color = new Float32Array([1.0, 1.0, 1.0, 1.0]);
+            this.color = new Float64Array([1.0, 1.0, 1.0, 1.0]);
         } else {
-            if (!(color instanceof Float32Array)) {
-                throw new Error("color must be a Float32Array");
+            if (!(color instanceof Float64Array)) {
+                throw new Error("color must be a Float64Array");
             }
 
             if (color.length != 4 && color.length != this.xs.length * 4) {
@@ -41,14 +41,14 @@ class PointFigure {
             this.color = color;
         }
 
-        if (pointSize instanceof Float32Array) {
+        if (pointSize instanceof Float64Array) {
             if (this.xs.length != pointSize.length) {
                 throw new Error("pointSize and xs must have the same total number of points");
             }
 
             this.pointSize = pointSize;
         } else {
-            this.pointSize = new Float32Array(new ArrayBuffer(4 * this.xs.length));
+            this.pointSize = new Float64Array(new ArrayBuffer(8 * this.xs.length));
 
             for (let i = 0; i < this.xs.length; i++) {
                 this.pointSize[i] = pointSize;
@@ -68,9 +68,9 @@ class PointFigure {
 
         let pointCount = this.xs.length;
 
-        let outTriangles = new Float32Array(new ArrayBuffer(4 * pointCount * 4 * 3));
-        let outColors = new Float32Array(new ArrayBuffer(4 * pointCount * 4 * 3));
-        let outSizes = new Float32Array(new ArrayBuffer(4 * pointCount * 3));
+        let outTriangles = new Float64Array(new ArrayBuffer(8 * pointCount * 4 * 3));
+        let outColors = new Float64Array(new ArrayBuffer(8 * pointCount * 4 * 3));
+        let outSizes = new Float64Array(new ArrayBuffer(8 * pointCount * 3));
 
         let curPoint = 0;
 

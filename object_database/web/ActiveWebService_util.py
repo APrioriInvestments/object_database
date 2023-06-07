@@ -158,7 +158,8 @@ def hostsTableDataPrep(s, field):
 def servicesTable():
 
     serviceCountsChain = chain(
-        range(5), range(10, 100, 10), range(100, 400, 25), range(400, 1001, 100)
+        range(5), range(10, 100, 10), range(100, 400, 25), range(400, 1001, 100),
+        range(1000, 2001, 250)
     )
     serviceCounts = [val for val in serviceCountsChain]
 

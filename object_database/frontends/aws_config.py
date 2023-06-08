@@ -66,6 +66,7 @@ def main(argv):
     config_parser.add_argument("--defaultStorageSize", required=False, type=int)
     config_parser.add_argument("--max_to_boot", required=False, type=int)
     config_parser.add_argument("--available_subnets", required=False, type=json.loads)
+    config_parser.add_argument("--gpu_docker_image", required=False)
 
     install_parser = subparsers.add_parser("install", help="install the service")
     install_parser.set_defaults(command="install")
@@ -114,6 +115,7 @@ def main(argv):
                 defaultStorageSize=parsedArgs.defaultStorageSize,
                 max_to_boot=parsedArgs.max_to_boot,
                 available_subnets=parsedArgs.available_subnets,
+                gpu_docker_image=parsedArgs.gpu_docker_image,
             )
 
     if parsedArgs.command == "install":

@@ -97,12 +97,13 @@ class ServiceManager(object):
             for o in orphaned:
                 self.terminalDrivers.pop(o)
 
-    def checkAwsImageHash(self, pathToImageHash):
+    def checkAwsImageHash(self, pathToImageHash, isGpu):
         """Check the image hash in the AwsWorkerBootService against the image in the path.
 
         Args:
             pathToImageHash (str) - the path to a writeable file containing the docker
                 image we want to have booted.
+            isGpu (int) - 0 if we're not a gpu worker, 1 otherwise
 
         Returns:
             True if we wrote a new docker image to the file and should exit.
@@ -120,7 +121,10 @@ class ServiceManager(object):
             if not config:
                 return False
 
-            hashInAws = config.docker_image
+            if not isGpu:
+                hashInAws = config.docker_image
+            else:
+                hashInAws = config.gpu_docker_image
 
         if hashInAws != existingHashOnDisk:
             with open(pathToImageHash, "w") as f:

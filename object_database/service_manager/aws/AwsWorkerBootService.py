@@ -169,6 +169,12 @@ valid_instance_types = {
 }
 
 
+def computeIsGpu(instanceType):
+    prefix = instanceType.split(".")[0]
+
+    return prefix in ["p3", "p2", "g5", "g3", "f1"]
+
+
 instance_types_to_show = set(
     [
         x
@@ -205,6 +211,7 @@ class Configuration:
 
     ami_override = OneOf(None, str)  # the AMI to use, if not our default
     bootstrap_script_override = OneOf(None, str)  # the bootstrap script to use
+    gpu_docker_image = OneOf(None, str)  # use this on gpu machines if available
 
 
 @schema.define
@@ -429,10 +436,28 @@ class AwsApi:
     ):
         baseBootScript = self.config.bootstrap_script_override or linux_bootstrap_script
 
+        isGpu = computeIsGpu(instanceType)
+
+        if not isGpu:
+            dockerImage = self.config.docker_image
+        else:
+            dockerImage = self.config.gpu_docker_image
+            if dockerImage is None:
+                self._logger.info(
+                    "Didn't find a gpu docker image while booting a gpu worker. Defaulting "
+                    "to the standard image."
+                )
+                dockerImage = self.config.docker_image
+            else:
+                self._logger.info(
+                    "Found a gpu docker image while booting a gpu worker. We will use this "
+                    "instead of the standard image."
+                )
+
         boot_script = (
             baseBootScript.replace("__db_hostname__", self.config.db_hostname)
             .replace("__db_port__", str(self.config.db_port))
-            .replace("__image__", self.config.docker_image)
+            .replace("__image__", dockerImage)
             .replace("__worker_token__", authToken)
             .replace("__placement_group__", placementGroup)
         )
@@ -573,6 +598,7 @@ class AwsWorkerBootService(ServiceBase):
         max_to_boot,
         amiOverride=None,
         bootstrap_script_override=None,
+        gpu_docker_image=None,
     ):
         c = Configuration.lookupAny()
         if not c:
@@ -605,6 +631,7 @@ class AwsWorkerBootService(ServiceBase):
 
         c.ami_override = amiOverride
         c.bootstrap_script_override = bootstrap_script_override
+        c.gpu_docker_image = gpu_docker_image
 
     def setBootCount(self, instance_type, count, placementGroup):
         state = State.lookupAny(instance_type_and_pg=(instance_type, placementGroup))
@@ -768,6 +795,7 @@ class AwsWorkerBootService(ServiceBase):
                 + cells.Text("worker_name = " + str(c.worker_name))
                 + cells.Text("worker_iam_role_name = " + str(c.worker_iam_role_name))
                 + cells.Text("docker_image = " + str(c.docker_image))
+                + cells.Text("gpu_docker_image = " + str(c.gpu_docker_image))
                 + cells.Text("defaultStorageSize = " + str(c.defaultStorageSize))
                 + cells.Text("max_to_boot = " + str(c.max_to_boot))
                 + cells.Text("ami_override = " + str(c.ami_override))

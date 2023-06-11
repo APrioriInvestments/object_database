@@ -10,4 +10,9 @@ export PYTHONPATH=`pwd`
 pip install -e .
 pip install flask-sockets
 pip install urllib3==1.25.4
+cd object_database/web/content/
+nodeenv --node=16.16.0 --prebuilt .nenv
+source .nenv/bin/activate
+npm install
+npm run build
 object_database_webtest

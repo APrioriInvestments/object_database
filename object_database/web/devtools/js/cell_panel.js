@@ -26,7 +26,6 @@ function handleMessageFromBackground(msg){
             state = msg.status;
             cellsJSONCache = JSON.stringify(msg.cells);
             cellsTreeDisplay(msg.cells);
-            console.log(msg.cells);
         }
     }
 }
@@ -60,7 +59,11 @@ const updateInfoPanel = (node) => {
     }
 
     console.log("Clicked on node, sending message to background")
-    window.sendMessageToBackground("I need more data here");
+    window.sendMessageToBackground({
+        type: "devtools",
+        request: "source",
+        nodeId: id
+    });
     /*
     const nodeTree = parentSubtree.children.filter((n) => {
         return n.id = node.id;

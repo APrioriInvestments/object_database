@@ -2,9 +2,9 @@
  * The background script handles communication to and from
  * the content script, embedded in the document, and
  * the panel scripts, living in devtools.
- * These communiccation are handled by chrome.runtime connection
+ * This communication is handled via chrome.runtime connection
  * ports.
- * The connections are initialized int he content and panel scripts,
+ * The connections are initialized in the content and panel scripts,
  * respectively. Here we listen for these connection and create
  * connection/port specific handlers.
  */
@@ -17,8 +17,9 @@ function connected(port) {
         portFromPanel = port;
         // at the moment we don't do anything with messages coming
         // from the panels
+        console.log("setting up port-from-panel listener")
         portFromPanel.onMessage.addListener(function(msg) {
-            console.log("recieved message from panel", msg);
+            console.log("background received message from panel", msg);
         });
     };
     // handle all communication to and from the content script

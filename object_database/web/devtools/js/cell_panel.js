@@ -58,6 +58,9 @@ const updateInfoPanel = (node) => {
     if (parentSubtree.name.match("Subscribed")) {
         info = `${info}\nsubscribed to cell-id: ${parentSubtree.id}`;
     }
+
+    console.log("Clicked on node, sending message to background")
+    window.sendMessageToBackground("I need more data here");
     /*
     const nodeTree = parentSubtree.children.filter((n) => {
         return n.id = node.id;

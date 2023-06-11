@@ -12,7 +12,7 @@ chrome.devtools.panels.create(
         const portFromPanel = chrome.runtime.connect({name: "port-from-panel"});
         portFromPanel.onMessage.addListener(function(msg) {
             if (_window){
-                // handleMessageFromBackground() is defined in panel.js
+                // handleMessageFromBackground() is defined in cell_panel.js
                 _window.handleMessageFromBackground(msg);
             } else {
                 console.log("no connection to background");
@@ -42,7 +42,7 @@ chrome.devtools.panels.create(
             }
             // If we ever need to send messages back via the port
             // we can do that as below
-            _window.respond = function(msg) {
+            _window.sendMessageToBackground = function(msg) {
                 portFromPanel.postMessage(msg);
             }
         });

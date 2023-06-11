@@ -52,6 +52,15 @@ function notifyDevtoolsPanel(msg){
     }
 }
 
+function notifyContentScript(msg) {
+    if (portFromCS) {
+        portFromCS.postMessage(msg);
+    } else {
+        console.log(msg);
+        console.log("failed to send message to devtools CS: port disconnected");
+    }
+}
+
 // chrome.browserAction.onClicked.addListener(function() {
 //     portFromCS.postMessage({greeting: "they clicked the button!"});
 // });

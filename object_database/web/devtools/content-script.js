@@ -15,10 +15,9 @@
 console.log("loading content script");
 var portFromCS = chrome.runtime.connect({name:"port-from-cs"});
 
-// at the moment nothing much is done with messages going
-// to the content-script port
 portFromCS.onMessage.addListener(function(msg) {
-    // console.log("received message from background");
+    console.log("received message in content script: ", msg);
+    window.postMessage(msg);
 });
 
 window.addEventListener("message", (event) => {

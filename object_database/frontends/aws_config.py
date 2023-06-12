@@ -103,7 +103,7 @@ def main(argv):
                 db_port=parsedArgs.port,
                 region=parsedArgs.region,
                 vpc_id=parsedArgs.vpc_id,
-                subnet=parsedArgs.subnet,
+                default_subnet=parsedArgs.subnet,
                 security_group=parsedArgs.security_group,
                 keypair=parsedArgs.keypair,
                 worker_name=parsedArgs.worker_name,

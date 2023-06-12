@@ -546,7 +546,7 @@ class AwsWorkerBootService(ServiceBase):
     def shutOneDown(instance_type, placementGroup):
         i = [
             x
-            for x in AwsApi.allRunningInstances().values()
+            for x in AwsApi().allRunningInstances().values()
             if x["InstanceType"] == instance_type
             and instanceTagValue(x, "PlacementGroup") == placementGroup
         ]

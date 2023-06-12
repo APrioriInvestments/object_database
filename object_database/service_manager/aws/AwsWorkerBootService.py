@@ -202,9 +202,48 @@ class Configuration:
     docker_image = str  # docker image that runs the actual odb service
     defaultStorageSize = int  # gb of disk to mount on booted workers (if they need ebs)
     max_to_boot = int  # maximum number of workers we'll boot
+    available_subnets = ConstDict(str, str)  # supported subnet -> availability zone
 
     ami_override = OneOf(None, str)  # the AMI to use, if not our default
     bootstrap_script_override = OneOf(None, str)  # the bootstrap script to use
+
+
+@schema.define
+class DynamicConfiguration:
+    """Override the fields of the Configuration.
+    This can be toggled and the service is expected to respond.
+    Contrast with Configuration which is supposed to be static (if you want to
+    change it you have to reboot the service).
+    """
+
+    subnet_override = OneOf(None, str)
+
+    @staticmethod
+    def getOrCreate():
+        return DynamicConfiguration.lookupAny() or DynamicConfiguration()
+
+    @staticmethod
+    def setSubnet(subnet: str):
+        dc = DynamicConfiguration.lookupAny()
+
+        if subnet == Configuration.lookupOne().default_subnet:
+            if dc is not None and dc.subnet_override is not None:
+                dc.subnet_override = None
+        else:
+            if dc is None:
+                dc = DynamicConfiguration()
+                dc.subnet_override = subnet
+            elif dc.subnet_override != subnet:
+                dc.subnet_override = subnet
+
+    @staticmethod
+    def currentSubnet():
+        dc = DynamicConfiguration.lookupAny()
+
+        if dc is None or dc.subnet_override is None:
+            return Configuration.lookupOne().default_subnet
+        else:
+            return dc.subnet_override
 
 
 @schema.define
@@ -233,6 +272,8 @@ class RunningInstance:
     placementGroup = str
     hostname = str
     state = OneOf("running", "pending")
+    subnet = str
+    availability_zone = str
 
 
 ownDir = os.path.dirname(os.path.abspath(__file__))
@@ -365,7 +406,7 @@ class AwsApi:
         ]:
             return False
 
-        if instance.subnet.id != self.config.default_subnet:
+        if instance.subnet.id not in self.config.available_subnets:
             return False
 
         if not [
@@ -426,6 +467,7 @@ class AwsApi:
         wantsTerminateOnShutdown=True,
         spotPrice=None,
         placementGroup="Worker",
+        subnet=None,
     ):
         baseBootScript = self.config.bootstrap_script_override or linux_bootstrap_script
 
@@ -476,7 +518,7 @@ class AwsApi:
             MaxCount=1,
             MinCount=1,
             SecurityGroupIds=[self.config.security_group],
-            SubnetId=self.config.default_subnet,
+            SubnetId=subnet,
             ClientToken=clientToken,
             InstanceInitiatedShutdownBehavior="terminate"
             if wantsTerminateOnShutdown
@@ -571,6 +613,7 @@ class AwsWorkerBootService(ServiceBase):
         docker_image,
         defaultStorageSize,
         max_to_boot,
+        available_subnets,
         amiOverride=None,
         bootstrap_script_override=None,
     ):
@@ -602,6 +645,8 @@ class AwsWorkerBootService(ServiceBase):
             c.defaultStorageSize = defaultStorageSize
         if max_to_boot is not None:
             c.max_to_boot = max_to_boot
+        if available_subnets is not None:
+            c.available_subnets = available_subnets
 
         c.ami_override = amiOverride
         c.bootstrap_script_override = bootstrap_script_override
@@ -650,6 +695,9 @@ class AwsWorkerBootService(ServiceBase):
                 state.spot_desired = ct
 
             return f
+
+        def subnetDesc(subnet):
+            return f"{subnet} ({c.available_subnets[subnet]})"
 
         return cells.Tabs(
             requests=cells.VScrollable(
@@ -734,6 +782,7 @@ class AwsWorkerBootService(ServiceBase):
                         "IsSpot",
                         "Ip",
                         "State",
+                        "Subnet",
                     ],
                     rowFun=lambda: sorted(
                         RunningInstance.lookupAll(), key=lambda i: i.instanceId
@@ -753,6 +802,8 @@ class AwsWorkerBootService(ServiceBase):
                         if field == "Ip"
                         else i.state
                         if field == "State"
+                        else f"{i.subnet} ({i.availability_zone})"
+                        if field == "Subnet"
                         else ""
                     ),
                 )
@@ -762,7 +813,6 @@ class AwsWorkerBootService(ServiceBase):
                 + cells.Text("db_port = " + str(c.db_port))
                 + cells.Text("region = " + str(c.region))
                 + cells.Text("vpc_id = " + str(c.vpc_id))
-                + cells.Text("subnet = " + str(c.default_subnet))
                 + cells.Text("security_group = " + str(c.security_group))
                 + cells.Text("keypair = " + str(c.keypair))
                 + cells.Text("worker_name = " + str(c.worker_name))
@@ -771,6 +821,22 @@ class AwsWorkerBootService(ServiceBase):
                 + cells.Text("defaultStorageSize = " + str(c.defaultStorageSize))
                 + cells.Text("max_to_boot = " + str(c.max_to_boot))
                 + cells.Text("ami_override = " + str(c.ami_override))
+                + (
+                    cells.Text("subnet=")
+                    >> cells.Padding()
+                    >> cells.Dropdown(
+                        cells.Subscribed(
+                            lambda: subnetDesc(DynamicConfiguration.currentSubnet())
+                        ),
+                        [
+                            (
+                                subnetDesc(k),
+                                (lambda k: lambda: DynamicConfiguration.setSubnet(k))(k),
+                            )
+                            for k in c.available_subnets
+                        ],
+                    )
+                )
             ),
         )
 
@@ -791,6 +857,8 @@ class AwsWorkerBootService(ServiceBase):
                     instance.instance_type = state.get("InstanceType", "??")
                     instance.placementGroup = instanceTagValue(state, "PlacementGroup")
                     instance.hostname = state.get("PrivateIpAddress", "??")
+                    instance.subnet = state["SubnetId"]
+                    instance.availability_zone = state["Placement"]["AvailabilityZone"]
 
                 if instance.state != state["State"]["Name"]:
                     instance.state = state["State"]["Name"]
@@ -834,6 +902,7 @@ class AwsWorkerBootService(ServiceBase):
         with self.db.view():
             onDemandInstances = self.api.allRunningInstances(spot=False)
             spotInstances = self.api.allRunningInstances(spot=True)
+            currentSubnet = DynamicConfiguration.currentSubnet()
 
         self.mirrorInstancesIntoODB(dict(**onDemandInstances, **spotInstances))
 
@@ -843,16 +912,37 @@ class AwsWorkerBootService(ServiceBase):
         def stateKey(state):
             return (state.instance_type, state.placementGroup)
 
+        def subnetForInstance(instance):
+            return instance["SubnetId"]
+
         instancesByType = {}
         spotInstancesByType = {}
+        badSubnetInstances = {}
 
         for machineId, instance in onDemandInstances.items():
-            instancesByType.setdefault(instanceKey(instance), []).append(instance)
+            if subnetForInstance(instance) == currentSubnet:
+                instancesByType.setdefault(instanceKey(instance), []).append(instance)
+            else:
+                badSubnetInstances.setdefault(subnetForInstance(instance), []).append(instance)
 
         for machineId, instance in spotInstances.items():
-            spotInstancesByType.setdefault(instanceKey(instance), []).append(instance)
+            if subnetForInstance(instance) == currentSubnet:
+                spotInstancesByType.setdefault(instanceKey(instance), []).append(instance)
+            else:
+                badSubnetInstances.setdefault(subnetForInstance(instance), []).append(instance)
 
         with self.db.transaction():
+            for subnet, instances in badSubnetInstances.items():
+                self._logger.info(
+                    "We have %s instance(s) booted into subnet %s. Current subnet is %s. "
+                    "Shutting down.",
+                    len(instances),
+                    subnet,
+                    currentSubnet,
+                )
+                for instance in instances:
+                    self.api.terminateInstanceById(instance["InstanceId"])
+
             for state in State.lookupAll():
                 if stateKey(state) not in instancesByType:
                     state.booted = 0
@@ -939,6 +1029,7 @@ class AwsWorkerBootService(ServiceBase):
                             state.instance_type,
                             self.runtimeConfig.authToken,
                             placementGroup=state.placementGroup,
+                            subnet=currentSubnet,
                         )
 
                         state.booted += 1
@@ -981,6 +1072,7 @@ class AwsWorkerBootService(ServiceBase):
                             self.runtimeConfig.authToken,
                             spotPrice=valid_instance_types[state.instance_type]["COST"],
                             placementGroup=state.placementGroup,
+                            subnet=currentSubnet,
                         )
                         state.spot_booted += 1
                     except Exception as e:

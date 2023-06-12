@@ -200,7 +200,7 @@ class Configuration:
     db_port = int  # port to connect back to
     region = str  # region to boot into
     vpc_id = str  # id of vpc to boot into
-    subnet = str  # id of subnet to boot into
+    default_subnet = str  # id of subnet to boot into
     security_group = str  # id of security group to boot into
     keypair = str  # security keypair name to use
     worker_name = str  # name of workers. This should be unique to this install.
@@ -372,7 +372,7 @@ class AwsApi:
         ]:
             return False
 
-        if instance.subnet.id != self.config.subnet:
+        if instance.subnet.id != self.config.default_subnet:
             return False
 
         if not [
@@ -501,7 +501,7 @@ class AwsApi:
             MaxCount=1,
             MinCount=1,
             SecurityGroupIds=[self.config.security_group],
-            SubnetId=self.config.subnet,
+            SubnetId=self.config.default_subnet,
             ClientToken=clientToken,
             InstanceInitiatedShutdownBehavior="terminate"
             if wantsTerminateOnShutdown
@@ -613,7 +613,7 @@ class AwsWorkerBootService(ServiceBase):
         if vpc_id is not None:
             c.vpc_id = vpc_id
         if subnet is not None:
-            c.subnet = subnet
+            c.default_subnet = subnet
         if security_group is not None:
             c.security_group = security_group
         if keypair is not None:
@@ -789,7 +789,7 @@ class AwsWorkerBootService(ServiceBase):
                 + cells.Text("db_port = " + str(c.db_port))
                 + cells.Text("region = " + str(c.region))
                 + cells.Text("vpc_id = " + str(c.vpc_id))
-                + cells.Text("subnet = " + str(c.subnet))
+                + cells.Text("subnet = " + str(c.default_subnet))
                 + cells.Text("security_group = " + str(c.security_group))
                 + cells.Text("keypair = " + str(c.keypair))
                 + cells.Text("worker_name = " + str(c.worker_name))

@@ -502,7 +502,10 @@ class AwsApi:
             .replace("__image__", dockerImage)
             .replace("__worker_token__", authToken)
             .replace("__placement_group__", placementGroup)
+            .replace("__is_gpu__", str(int(isGpu)))
         )
+
+        self._logger.info(f"Booting with:\n{boot_script}")
 
         if clientToken is None:
             clientToken = str(uuid.uuid4())

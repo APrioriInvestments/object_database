@@ -85,7 +85,8 @@ while true; do
         __placement_group__ \
         --proxy-port __db_port__ \
         --service-token __worker_token__ \
-        --watch-aws-image-hash /image_hash/image.txt
+        --watch-aws-image-hash /image_hash/image.txt \
+        --is-gpu __is_gpu__
 
     echo "Docker container restarting."
     sleep 1

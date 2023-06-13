@@ -291,6 +291,7 @@ def main(argv=None):
             "The invoking image is expected to re-run this."
         ),
     )
+    parser.add_argument("--is-gpu", required=False, type=int, default=0)
 
     parsedArgs = parser.parse_args(argv[1:])
 
@@ -487,7 +488,7 @@ def main(argv=None):
 
                         if parsedArgs.watch_aws_image_hash:
                             shouldReboot = serviceManager.checkAwsImageHash(
-                                parsedArgs.watch_aws_image_hash
+                                parsedArgs.watch_aws_image_hash, parsedArgs.is_gpu
                             )
                             if shouldReboot:
                                 logger.info("Rebooting because docker image hash changed.")

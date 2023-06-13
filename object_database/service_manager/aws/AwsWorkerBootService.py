@@ -505,8 +505,6 @@ class AwsApi:
             .replace("__is_gpu__", str(int(isGpu)))
         )
 
-        self._logger.info(f"Booting with:\n{boot_script}")
-
         if clientToken is None:
             clientToken = str(uuid.uuid4())
 

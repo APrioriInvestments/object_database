@@ -18,7 +18,7 @@ import logging
 import os
 import time
 import uuid
-from typed_python import OneOf, ConstDict
+from typed_python import OneOf, ConstDict, NamedTuple
 from object_database import ServiceBase, Schema, Indexed, Index
 from object_database.web import cells
 from object_database.util import closest_N_in
@@ -194,6 +194,9 @@ def instanceTagValue(instance, tag):
     return None
 
 
+BootConfig = NamedTuple(docker_image=str, ami=str)
+
+
 @schema.define
 class Configuration:
     db_hostname = str  # hostname to connect back to
@@ -205,14 +208,14 @@ class Configuration:
     keypair = str  # security keypair name to use
     worker_name = str  # name of workers. This should be unique to this install.
     worker_iam_role_name = str  # AIM role to boot workers into
-    docker_image = str  # docker image that runs the actual odb service
     defaultStorageSize = int  # gb of disk to mount on booted workers (if they need ebs)
     max_to_boot = int  # maximum number of workers we'll boot
     available_subnets = ConstDict(str, str)  # supported subnet -> availability zone
 
-    ami_override = OneOf(None, str)  # the AMI to use, if not our default
+    cpu_boot_config = BootConfig
+    gpu_boot_config = OneOf(None, BootConfig)
+
     bootstrap_script_override = OneOf(None, str)  # the bootstrap script to use
-    gpu_docker_image = OneOf(None, str)  # use this on gpu machines if available
 
 
 @schema.define
@@ -468,7 +471,6 @@ class AwsApi:
         instanceType,
         authToken,
         clientToken=None,
-        amiOverride=None,
         nameValueOverride=None,
         extraTags=None,
         wantsTerminateOnShutdown=True,
@@ -481,25 +483,25 @@ class AwsApi:
         isGpu = computeIsGpu(instanceType)
 
         if not isGpu:
-            dockerImage = self.config.docker_image
+            bootConfig = self.config.cpu_boot_config
         else:
-            dockerImage = self.config.gpu_docker_image
-            if dockerImage is None:
+            bootConfig = self.config.gpu_boot_config
+            if bootConfig is None:
                 self._logger.info(
-                    "Didn't find a gpu docker image while booting a gpu worker. Defaulting "
-                    "to the standard image."
+                    "Didn't find a gpu boot config while booting a gpu worker. Defaulting "
+                    "to the cpu boot config."
                 )
-                dockerImage = self.config.docker_image
+                bootConfig = self.config.cpu_boot_config
             else:
                 self._logger.info(
-                    "Found a gpu docker image while booting a gpu worker. We will use this "
-                    "instead of the standard image."
+                    "Found a gpu boot config while booting a gpu worker. We will use this "
+                    "instead of the cpu boot config."
                 )
 
         boot_script = (
             baseBootScript.replace("__db_hostname__", self.config.db_hostname)
             .replace("__db_port__", str(self.config.db_port))
-            .replace("__image__", dockerImage)
+            .replace("__image__", bootConfig.docker_image)
             .replace("__worker_token__", authToken)
             .replace("__placement_group__", placementGroup)
             .replace("__is_gpu__", str(int(isGpu)))
@@ -507,13 +509,6 @@ class AwsApi:
 
         if clientToken is None:
             clientToken = str(uuid.uuid4())
-
-        if amiOverride is not None:
-            ami = amiOverride
-        elif self.config.ami_override is not None:
-            ami = self.config.ami_override
-        else:
-            ami = "ami-759bc50a"  # ubuntu 16.04 hvm-ssd
 
         def has_ephemeral_storage(instanceType):
             for t in ["m3", "c3", "x1", "r3", "f1", "h1", "i3", "d2"]:
@@ -538,7 +533,7 @@ class AwsApi:
         nameValue = nameValueOverride or self.config.worker_name
 
         ec2_args = dict(
-            ImageId=ami,
+            ImageId=bootConfig.ami,
             InstanceType=instanceType,
             KeyName=self.config.keypair,
             MaxCount=1,
@@ -636,13 +631,12 @@ class AwsWorkerBootService(ServiceBase):
         keypair,
         worker_name,
         worker_iam_role_name,
-        docker_image,
         defaultStorageSize,
         max_to_boot,
         available_subnets,
-        amiOverride=None,
+        cpuBootConfig,
+        gpuBootConfig=None,
         bootstrap_script_override=None,
-        gpu_docker_image=None,
     ):
         c = Configuration.lookupAny()
         if not c:
@@ -666,18 +660,17 @@ class AwsWorkerBootService(ServiceBase):
             c.worker_name = worker_name
         if worker_iam_role_name is not None:
             c.worker_iam_role_name = worker_iam_role_name
-        if docker_image is not None:
-            c.docker_image = docker_image
         if defaultStorageSize is not None:
             c.defaultStorageSize = defaultStorageSize
         if max_to_boot is not None:
             c.max_to_boot = max_to_boot
         if available_subnets is not None:
             c.available_subnets = available_subnets
+        if cpuBootConfig is not None:
+            c.cpu_boot_config = cpuBootConfig
 
-        c.ami_override = amiOverride
+        c.gpu_boot_config = gpuBootConfig
         c.bootstrap_script_override = bootstrap_script_override
-        c.gpu_docker_image = gpu_docker_image
 
     def setBootCount(self, instance_type, count, placementGroup):
         state = State.lookupAny(instance_type_and_pg=(instance_type, placementGroup))
@@ -845,11 +838,10 @@ class AwsWorkerBootService(ServiceBase):
                 + cells.Text("keypair = " + str(c.keypair))
                 + cells.Text("worker_name = " + str(c.worker_name))
                 + cells.Text("worker_iam_role_name = " + str(c.worker_iam_role_name))
-                + cells.Text("docker_image = " + str(c.docker_image))
-                + cells.Text("gpu_docker_image = " + str(c.gpu_docker_image))
                 + cells.Text("defaultStorageSize = " + str(c.defaultStorageSize))
                 + cells.Text("max_to_boot = " + str(c.max_to_boot))
-                + cells.Text("ami_override = " + str(c.ami_override))
+                + cells.Text("cpu_boot_config = " + str(c.cpu_boot_config))
+                + cells.Text("gpu_boot_config = " + str(c.gpu_boot_config))
                 + (
                     cells.Text("subnet=")
                     >> cells.Padding()

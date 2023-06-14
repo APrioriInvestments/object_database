@@ -27,10 +27,14 @@ from object_database.service_manager.ServiceSchema import service_schema
 from object_database.service_manager.aws.AwsWorkerBootService import (
     AwsWorkerBootService,
     AwsApi,
+    BootConfig,
 )
 from object_database.service_manager.aws.AwsWorkerBootService import (
     schema as aws_worker_boot_schema,
 )
+
+
+DEFAULT_AMI = "ami-759bc50a"  # ubuntu 16.04 hvm-ssd
 
 
 def main(argv):
@@ -62,11 +66,13 @@ def main(argv):
     config_parser.add_argument("--keypair", required=False)
     config_parser.add_argument("--worker_name", required=False)
     config_parser.add_argument("--worker_iam_role_name", required=False)
-    config_parser.add_argument("--docker_image", required=False)
     config_parser.add_argument("--defaultStorageSize", required=False, type=int)
     config_parser.add_argument("--max_to_boot", required=False, type=int)
     config_parser.add_argument("--available_subnets", required=False, type=json.loads)
-    config_parser.add_argument("--gpu_docker_image", required=False)
+    config_parser.add_argument("--cpu_docker_image", required=False, type=str)
+    config_parser.add_argument("--cpu_ami", required=False, type=str)
+    config_parser.add_argument("--gpu_docker_image", required=False, type=str)
+    config_parser.add_argument("--gpu_ami", required=False, type=str)
 
     install_parser = subparsers.add_parser("install", help="install the service")
     install_parser.set_defaults(command="install")
@@ -100,6 +106,17 @@ def main(argv):
                 s.delete()
 
     if parsedArgs.command == "config":
+        cpu_boot_config = BootConfig(
+            docker_image=parsedArgs.cpu_docker_image,
+            ami=parsedArgs.cpu_ami or DEFAULT_AMI,
+        )
+        gpu_boot_config = BootConfig(
+            docker_image=parsedArgs.gpu_docker_image or parsedArgs.cpu_docker_image,
+            ami=parsedArgs.gpu_ami or parsedArgs.cpu_ami or DEFAULT_AMI,
+        )
+        if gpu_boot_config == cpu_boot_config:
+            gpu_boot_config = None
+
         with db.transaction():
             AwsWorkerBootService.configure(
                 db_hostname=parsedArgs.hostname,
@@ -111,11 +128,11 @@ def main(argv):
                 keypair=parsedArgs.keypair,
                 worker_name=parsedArgs.worker_name,
                 worker_iam_role_name=parsedArgs.worker_iam_role_name,
-                docker_image=parsedArgs.docker_image,
                 defaultStorageSize=parsedArgs.defaultStorageSize,
                 max_to_boot=parsedArgs.max_to_boot,
                 available_subnets=parsedArgs.available_subnets,
-                gpu_docker_image=parsedArgs.gpu_docker_image,
+                cpu_boot_config=cpu_boot_config,
+                gpu_boot_config=gpu_boot_config,
             )
 
     if parsedArgs.command == "install":

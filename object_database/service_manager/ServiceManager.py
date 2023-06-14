@@ -119,9 +119,11 @@ class ServiceManager(object):
                 return False
 
             if not isGpu:
-                hashInAws = config.docker_image
+                hashInAws = config.cpu_boot_config.docker_image
+            elif config.gpu_boot_config is None:
+                hashInAws = config.cpu_boot_config.docker_image
             else:
-                hashInAws = config.gpu_docker_image
+                hashInAws = config.gpu_boot_config.docker_image
 
         if hashInAws != existingHashOnDisk:
             with open(pathToImageHash, "w") as f:

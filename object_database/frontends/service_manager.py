@@ -291,6 +291,7 @@ def main(argv=None):
             "The invoking image is expected to re-run this."
         ),
     )
+    parser.add_argument("--max-service-instances", required=False, type=int, default=-1)
 
     parsedArgs = parser.parse_args(argv[1:])
 
@@ -331,6 +332,16 @@ def main(argv=None):
 
     if parsedArgs.redis_port is not None and not parsedArgs.run_db:
         sys.stderr.write("error: please add --run_db if you want to run a database\n")
+        parser.print_help()
+        return 2
+
+    maxServiceInstances = parsedArgs.max_service_instances
+    if maxServiceInstances == -1:
+        maxServiceInstances = None
+    elif maxServiceInstances < 0:
+        sys.stderr.write(
+            "error: please pass a nonnegative integer for --max-service-instances\n"
+        )
         parser.print_help()
         return 2
 
@@ -460,6 +471,7 @@ def main(argv=None):
                             logMaxTotalMegabytes=float(parsedArgs.log_max_total_megabytes),
                             logBackupCount=int(parsedArgs.log_backup_count),
                             startTs=startTs,
+                            maxServiceInstances=maxServiceInstances,
                         )
                         logger.info("Connected the service-manager")
                     except (

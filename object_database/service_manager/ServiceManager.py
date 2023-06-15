@@ -41,6 +41,7 @@ class ServiceManager(object):
         maxCores=4,
         shutdownTimeout=None,
         metricUpdateInterval=2.0,
+        maxServiceInstances=None,
     ):
         object.__init__(self)
         self.shutdownTimeout = shutdownTimeout or ServiceManager.DEFAULT_SHUTDOWN_TIMEOUT
@@ -58,6 +59,7 @@ class ServiceManager(object):
         self._lastMetricUpdateTimestamp = 0.0
         self.reactor = Reactor(self.db, self.doWork, metricUpdateInterval)
         self.terminalDrivers = {}
+        self.maxServiceInstances = maxServiceInstances
 
         self._logger = logging.getLogger(__name__)
 
@@ -68,6 +70,7 @@ class ServiceManager(object):
                 placementGroup=self.placementGroup,
                 maxGbRam=self.maxGbRam,
                 maxCores=self.maxCores,
+                maxServiceInstances=self.maxServiceInstances,
             )
             self.serviceHostObject.hostname = self.ownHostname
 
@@ -519,15 +522,27 @@ class ServiceManager(object):
                     self._updateService(service, actual_records)
 
     def _pickHost(self, service):
+        def canAssign(service, host):
+            if host.placementGroup not in service.validPlacementGroups:
+                return False
+
+            if host.maxServiceInstances is not None:
+                if host.maxServiceInstances <= len(
+                    service_schema.ServiceInstance.lookupAll(host=host)
+                ):
+                    return False
+
+            if host.gbRamUsed + service.gbRamUsed > host.maxGbRam:
+                return False
+
+            if host.coresUsed + service.coresUsed > host.maxCores:
+                return False
+
+            return True
+
         for h in service_schema.ServiceHost.lookupAll():
             if h.connection.exists():
-                canPlace = h.placementGroup in service.validPlacementGroups
-
-                if (
-                    canPlace
-                    and h.gbRamUsed + service.gbRamUsed <= h.maxGbRam
-                    and h.coresUsed + service.coresUsed <= h.maxCores
-                ):
+                if canAssign(service, h):
                     return h
 
     def _updateService(self, service, actual_records):

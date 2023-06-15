@@ -39,6 +39,8 @@ class ServiceHost:
     actualMemoryUseGB = float
     statsLastUpdateTime = float
 
+    maxServiceInstances = OneOf(None, int)
+
 
 class CodebaseLockedException(Exception):
     pass

@@ -64,6 +64,7 @@ class SubprocessServiceManager(ServiceManager):
         logMaxMegabytes=100.0,
         logMaxTotalMegabytes=20000.0,
         logBackupCount=99,
+        maxServiceInstances=None,
     ):
         """
         Args:
@@ -89,6 +90,8 @@ class SubprocessServiceManager(ServiceManager):
             logBackupCount (int): the number of backup log files allowed in
                 addition to the "front" one, for a live process.
             startTs (int): the start timestamp of the process.
+            maxServiceInstances (OneOf(None, int)): the maximum number of service instances
+                we can run at the same time, or None if unlimited
         """
         self.cleanupLock = threading.Lock()
         self.host = host
@@ -138,6 +141,7 @@ class SubprocessServiceManager(ServiceManager):
             maxCores=maxCores,
             shutdownTimeout=shutdownTimeout,
             metricUpdateInterval=metricUpdateInterval,
+            maxServiceInstances=maxServiceInstances,
         )
         self.serviceProcesses = {}
         self._logger = logging.getLogger(__name__)

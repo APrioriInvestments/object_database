@@ -525,15 +525,24 @@ class ServiceManager(object):
                     self._updateService(service, actual_records)
 
     def _pickHost(self, service):
+        def canAssign(service, host):
+            if host.placementGroup not in service.validPlacementGroups:
+                return False
+
+            if service.isExclusive and service_schema.ServiceInstance.lookupAny(host=host):
+                return False
+
+            if host.gbRamUsed + service.gbRamUsed > host.maxGbRam:
+                return False
+
+            if host.coresUsed + service.coresUsed > host.maxCores:
+                return False
+
+            return True
+
         for h in service_schema.ServiceHost.lookupAll():
             if h.connection.exists():
-                canPlace = h.placementGroup in service.validPlacementGroups
-
-                if (
-                    canPlace
-                    and h.gbRamUsed + service.gbRamUsed <= h.maxGbRam
-                    and h.coresUsed + service.coresUsed <= h.maxCores
-                ):
+                if canAssign(service, h):
                     return h
 
     def _updateService(self, service, actual_records):

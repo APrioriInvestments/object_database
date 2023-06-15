@@ -67,6 +67,9 @@ class Service:
     # how many would we like but we can't boot?
     unbootable_count = int
 
+    # can other services exist on the same host?
+    isExclusive = int
+
     timesBootedUnsuccessfully = int
     timesCrashed = int
     lastFailureReason = OneOf(None, str)

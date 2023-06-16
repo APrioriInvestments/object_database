@@ -8,23 +8,26 @@
  * respectively. Here we listen for these connection and create
  * connection/port specific handlers.
  */
-var portFromCS;
-var portFromPanel;
+var portCSBackground;
+var portPanelBackground;
 
 function connected(port) {
     // handle all communication to and from the panel
-    if (port.name === "port-from-panel"){
-        portFromPanel = port;
+    if (port.name === "port-panel-background"){
+        portPanelBackground = port;
         // at the moment we don't do anything with messages coming
         // from the panels
-        portFromPanel.onMessage.addListener(function(msg) {
+        portPanelBackground.onMessage.addListener(function(msg) {
             console.log("recieved message from panel", msg);
+            if (msg.action == "notifyCS") {
+                notifyCS(msg);
+            }
         });
     };
     // handle all communication to and from the content script
-    if (port.name === "port-from-cs"){
-        portFromCS = port;
-        portFromCS.onMessage.addListener(function(msg) {
+    if (port.name === "port-cs-background"){
+        portCSBackground = port;
+        portCSBackground.onMessage.addListener(function(msg) {
             // Having received a message from the content script, i.e.
             // from the target window we forward this message to the panels
             // if the connection is not alive we log this in the devtools's
@@ -34,7 +37,7 @@ function connected(port) {
     }
     // notify if the port has disconnected
     port.onDisconnect.addListener(function(port) {
-        if (port.name === "port-from-panel" || port.name === "port-from-cs"){
+        if (port.name === "port-panel-background" || port.name === "port-cs-background"){
             console.log(`${port.name} has disconnected`);
         };
     });
@@ -43,14 +46,18 @@ function connected(port) {
 chrome.runtime.onConnect.addListener(connected);
 
 function notifyDevtoolsPanel(msg){
-    if (portFromPanel){
-        portFromPanel.postMessage(msg);
+    if (portPanelBackground){
+        portPanelBackground.postMessage(msg);
     } else {
         console.log(msg);
         console.log("failed to send message to devtools panel: port disconnected");
     }
 }
 
-// chrome.browserAction.onClicked.addListener(function() {
-//     portFromCS.postMessage({greeting: "they clicked the button!"});
-// });
+function notifyCS(msg) {
+    if (portCSBackground) {
+        portCSBackground.postMessage(msg);
+    } else {
+        console.log("failed to send message to content script: port disconnected", msg);
+    }
+}

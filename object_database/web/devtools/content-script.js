@@ -13,12 +13,12 @@
 
 
 console.log("loading content script");
-var portFromCS = chrome.runtime.connect({name:"port-from-cs"});
+var portCSBackground = chrome.runtime.connect({name:"port-cs-background"});
 
 // at the moment nothing much is done with messages going
 // to the content-script port
-portFromCS.onMessage.addListener(function(msg) {
-    // console.log("received message from background");
+portCSBackground.onMessage.addListener(function(msg) {
+    console.log("received message from background: ", msg);
 });
 
 window.addEventListener("message", (event) => {
@@ -28,7 +28,7 @@ window.addEventListener("message", (event) => {
         // filter the message further to make sure it's for devtools
         if(event.data.type == "cells_devtools"){
             // reroute the message to the background script
-            portFromCS.postMessage({data: event.data});
+            portCSBackground.postMessage({data: event.data});
         }
     }
 }, false);

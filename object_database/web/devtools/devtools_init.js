@@ -9,8 +9,8 @@ chrome.devtools.panels.create(
 
         // create a connection/port which will handle all communication
         // between the panel and the background script
-        const portFromPanel = chrome.runtime.connect({name: "port-from-panel"});
-        portFromPanel.onMessage.addListener(function(msg) {
+        const portPanelBackground = chrome.runtime.connect({name: "port-panel-background"});
+        portPanelBackground.onMessage.addListener(function(msg) {
             if (_window){
                 // handleMessageFromBackground() is defined in cell_panel.js
                 _window.handleMessageFromBackground(msg);
@@ -40,13 +40,20 @@ chrome.devtools.panels.create(
                 _window.handleMessageFromBackground(msg);
                 msg = data.shift();
             }
+            // let the content-script ie target window, know
+            // that the panel has loaded
+            portPanelBackground.postMessage({
+                action: "notifyCS",
+                data: "panel is open"
+            });
             // If we ever need to send messages back via the port
             // we can do that as below
             _window.sendMessageToBackground = function(msg) {
-                portFromPanel.postMessage(msg);
+                portPanelBackground.postMessage(msg);
             }
         });
 
-        panel.onHidden.addListener(function() {console.log("panel is being hidden")});       console.log(panel);
+        panel.onHidden.addListener(function() {
+            console.log("panel is being hidden")});
     }
 );

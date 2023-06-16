@@ -86,7 +86,8 @@ while true; do
         --proxy-port __db_port__ \
         --service-token __worker_token__ \
         --watch-aws-image-hash /image_hash/image.txt \
-        --is-gpu __is_gpu__
+        --is-gpu __is_gpu__ \
+        --max-service-instances __max_service_instances__
 
     echo "Docker container restarting."
     sleep 1

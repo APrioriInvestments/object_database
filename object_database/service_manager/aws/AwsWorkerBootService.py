@@ -505,6 +505,7 @@ class AwsApi:
             .replace("__worker_token__", authToken)
             .replace("__placement_group__", placementGroup)
             .replace("__is_gpu__", str(int(isGpu)))
+            .replace("__max_service_instances__", str(1 if isGpu else -1))
         )
 
         if clientToken is None:

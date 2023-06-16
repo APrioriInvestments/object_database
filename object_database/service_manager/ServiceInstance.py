@@ -39,6 +39,8 @@ class ServiceHost:
     actualMemoryUseGB = float
     statsLastUpdateTime = float
 
+    maxServiceInstances = OneOf(None, int)
+
 
 class CodebaseLockedException(Exception):
     pass
@@ -66,9 +68,6 @@ class Service:
 
     # how many would we like but we can't boot?
     unbootable_count = int
-
-    # can other services exist on the same host?
-    isExclusive = int
 
     timesBootedUnsuccessfully = int
     timesCrashed = int

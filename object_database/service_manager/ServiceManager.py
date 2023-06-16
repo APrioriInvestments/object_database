@@ -41,6 +41,7 @@ class ServiceManager(object):
         maxCores=4,
         shutdownTimeout=None,
         metricUpdateInterval=2.0,
+        maxServiceInstances=None,
     ):
         object.__init__(self)
         self.shutdownTimeout = shutdownTimeout or ServiceManager.DEFAULT_SHUTDOWN_TIMEOUT
@@ -58,6 +59,7 @@ class ServiceManager(object):
         self._lastMetricUpdateTimestamp = 0.0
         self.reactor = Reactor(self.db, self.doWork, metricUpdateInterval)
         self.terminalDrivers = {}
+        self.maxServiceInstances = maxServiceInstances
 
         self._logger = logging.getLogger(__name__)
 
@@ -68,6 +70,7 @@ class ServiceManager(object):
                 placementGroup=self.placementGroup,
                 maxGbRam=self.maxGbRam,
                 maxCores=self.maxCores,
+                maxServiceInstances=self.maxServiceInstances,
             )
             self.serviceHostObject.hostname = self.ownHostname
 
@@ -529,8 +532,11 @@ class ServiceManager(object):
             if host.placementGroup not in service.validPlacementGroups:
                 return False
 
-            if service.isExclusive and service_schema.ServiceInstance.lookupAny(host=host):
-                return False
+            if host.maxServiceInstances is not None:
+                if host.maxServiceInstances <= len(
+                    service_schema.ServiceInstance.lookupAll(host=host)
+                ):
+                    return False
 
             if host.gbRamUsed + service.gbRamUsed > host.maxGbRam:
                 return False

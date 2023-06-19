@@ -4,7 +4,9 @@
 let state = null;
 let cellsJSONCache = null;
 
-// setup message handling from background
+/**
+  * Messages and related
+  */
 function handleMessageFromBackground(msg){
     // console.log("handling background message");
     // console.log(msg);
@@ -34,6 +36,9 @@ function handleMessageFromBackground(msg){
 window.handleMessageFromBackground = handleMessageFromBackground;
 
 
+/**
+  * Display lifecycle.
+  */
 const initialLoadDisplay = () => {
     const main = document.getElementById("main");
     main.textContent = "Initializing: no cells loaded";
@@ -44,36 +49,12 @@ const reconnectingDisplay = () => {
     main.textContent = "Reconnecting: no cells loaded";
 }
 
-const updateInfoPanel = (node) => {
-    const infoPanel = document.getElementById("cell-info");
-    const id = node.getAttribute("data-original-id");
-    // we need to retrieve the source code for the node
-    chrome.devtools.inspectedWindow.eval(
-        `window.sendCellSource(${id})`
-    );
-    const name = node.name;
-    let info = `${name}\ncell-id: ${id}`;
-    const tree = document.querySelector("tree-graph");
-    const parentSubtree = tree.findParentSubTree(id, tree.data);
-    if (parentSubtree.name.match("Subscribed")) {
-        info = `${info}\nsubscribed to cell-id: ${parentSubtree.id}`;
-    }
-
-    console.log("Clicked on node, sending message to background")
-    window.sendMessageToBackground("I need more data here");
-    /*
-    const nodeTree = parentSubtree.children.filter((n) => {
-        return n.id = node.id;
-    })[0]
-    let childIds = "";
-    nodeTree.children.forEach((c) => {
-        childIds = `${childIds}, ${c.id}`;
-    });
-    info = `${info}\nchild node ids: ${childIds}`;
-    */
-    infoPanel.innerText = info;
+const clearDisplay = () => {
+    document.getElementById("main").replaceChildren();
+    document.getElementById("cell-info").replaceChildren();
 }
 
+// display the tree
 const cellsTreeDisplay = (cells) => {
     clearDisplay();
     // init and run
@@ -90,15 +71,18 @@ const cellsTreeDisplay = (cells) => {
     tree.onNodeMouseover = (event) => {
         // highlight the corresponding element in the target window
         const id = event.target.getAttribute("data-original-id");
-        chrome.devtools.inspectedWindow.eval(
-            `window.addDevtoolsHighlight(${id})`
-        );
+        window.sendMessageToBackground({
+            action: "notifyCS",
+            event: "mouseover",
+            nodeId: id
+        })
     }
     tree.onNodeMouseleave = (event) => {
         // un-highlight the corresponding element in the target window
-        chrome.devtools.inspectedWindow.eval(
-            `window.removeDevtoolsHighlight()`
-        );
+        window.sendMessageToBackground({
+            action: "notifyCS",
+            event: "mouseleave",
+        })
     }
 
     tree.onNodeClick = (event) => {
@@ -116,12 +100,25 @@ const cellsTreeDisplay = (cells) => {
     tree.setup(cells);
 }
 
+// info panel display
+const updateInfoPanel = (node) => {
+    const infoPanel = document.getElementById("cell-info");
+    const id = node.getAttribute("data-original-id");
+    // we need to retrieve the source code for the node
+    window.sendMessageToBackground({
+        action: "notifyCS",
+        event: "click",
+        nodeId: id,
+        request: "source"
+    })
+    const name = node.name;
+    let info = `${name}\ncell-id: ${id}`;
+    const tree = document.querySelector("tree-graph");
+    const parentSubtree = tree.findParentSubTree(id, tree.data);
+    if (parentSubtree.name.match("Subscribed")) {
+        info = `${info}\nsubscribed to cell-id: ${parentSubtree.id}`;
+    }
 
-/**
-  * I clear the views when the application
-  * views when the application state changes
-  **/
-const clearDisplay = () => {
-    document.getElementById("main").replaceChildren();
-    document.getElementById("cell-info").replaceChildren();
+    infoPanel.innerText = info;
 }
+

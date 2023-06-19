@@ -10,7 +10,8 @@
                 "*://*/*"
             ],
             "js": [
-                "content-script.js"
+                "content-script.js",
+                "js/inspect_window_utils.js"
             ]
         }
     ],

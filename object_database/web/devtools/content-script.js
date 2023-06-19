@@ -11,14 +11,16 @@
  * originating messaged to the devtools background.
  */
 
-
 console.log("loading content script");
 var portCSBackground = chrome.runtime.connect({name:"port-cs-background"});
 
 // at the moment nothing much is done with messages going
 // to the content-script port
 portCSBackground.onMessage.addListener(function(msg) {
-    console.log("received message from background: ", msg);
+    //console.log("received message from background: ", msg);
+    // this handlder is defined in ./js/inspect_window_utils.js
+    // and is made globally available in the manifest.js file
+    handleBackgroundMessage(msg);
 });
 
 window.addEventListener("message", (event) => {

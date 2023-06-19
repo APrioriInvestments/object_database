@@ -514,27 +514,6 @@ class CellHandler {
       * TODO: potentially this should pass via the content-scripts
       */
     setupDevtools(){
-        const overlayId = "cells-devtools-overlay";
-        window.addDevtoolsHighlight = (id) => {
-            const cell = document.querySelector(`[data-cell-id="${id}"]`);
-            const rect = cell.getBoundingClientRect();
-            const overlay = document.createElement("div");
-            overlay.style.position = "absolute";
-            overlay.style.backgroundColor = "#cec848";
-            overlay.style.opacity = "0.5";
-            overlay.style.left = rect.left +"px";
-            overlay.style.top = rect.top + "px";
-            overlay.style.height = rect.height + "px";
-            overlay.style.width = rect.width + "px";
-            overlay.setAttribute("id", overlayId);
-            document.body.append(overlay);
-        }
-
-        window.removeDevtoolsHighlight = () => {
-            const overlays = document.querySelectorAll(`#${overlayId}`);
-            overlays.forEach((el) => el.remove());
-        }
-
         window.sendCellSource = (id) => {
             this.sendMessageToCells({
                 event: "devtoolsRequest",
@@ -543,6 +522,7 @@ class CellHandler {
             });
         }
     }
+
     sendMessageToDevtools(msg){
         // TODO perhaps this should be run by a worker
         msg.type = "cells_devtools";

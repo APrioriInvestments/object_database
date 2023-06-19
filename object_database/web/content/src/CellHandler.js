@@ -510,17 +510,18 @@ class CellHandler {
     }
 
     /**
-      * Setup utilities for devtools to call using chrome.devtools.inspectedWindow.eval()
-      * TODO: potentially this should pass via the content-scripts
+      * Devtools
       */
     setupDevtools(){
-        window.sendCellSource = (id) => {
-            this.sendMessageToCells({
-                event: "devtoolsRequest",
-                request: "source",
-                cellId: id
-            });
-        }
+        window.addEventListener("message", (event) => {
+            // filter on the target windows url
+            if (event.origin === window.location.origin) {
+                // listent to only devtools content-script messages
+                if (event.data.type == "cells_devtools_CS") {
+                    console.log("receiving message from CS: ", event.data);
+                }
+            }
+        })
     }
 
     sendMessageToDevtools(msg){
@@ -552,6 +553,7 @@ class CellHandler {
                         if (child instanceof Array){
                             child.forEach((subchild) => {
                                 const subTree = buildTree(subchild);
+                                window.postMessage(msg);
                                 if (subTree){
                                     children.push(buildTree(subchild));
                                 }

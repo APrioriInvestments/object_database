@@ -26,17 +26,19 @@ const overlayId = "cells-devtools-overlay";
 
 const highlightCellNode = (id) => {
     const cell = document.querySelector(`[data-cell-id="${id}"]`);
-    const rect = cell.getBoundingClientRect();
-    const overlay = document.createElement("div");
-    overlay.style.position = "absolute";
-    overlay.style.backgroundColor = "#cec848";
-    overlay.style.opacity = "0.5";
-    overlay.style.left = rect.left + "px";
-    overlay.style.top = rect.top + "px";
-    overlay.style.height = rect.height + "px";
-    overlay.style.width = rect.width + "px";
-    overlay.setAttribute("id", overlayId);
-    document.body.append(overlay);
+    if (cell) {
+        const rect = cell.getBoundingClientRect();
+        const overlay = document.createElement("div");
+        overlay.style.position = "absolute";
+        overlay.style.backgroundColor = "#cec848";
+        overlay.style.opacity = "0.5";
+        overlay.style.left = rect.left + "px";
+        overlay.style.top = rect.top + "px";
+        overlay.style.height = rect.height + "px";
+        overlay.style.width = rect.width + "px";
+        overlay.setAttribute("id", overlayId);
+        document.body.append(overlay);
+    }
 }
 
 const clearCellNodeHighlight = () => {
@@ -54,5 +56,11 @@ const onMouseLeave = () => {
 }
 
 const onClick = (id) => {
-    console.log("clicked on cell id: ", id);
+    // get the source code for the cell and send over the devtools
+    const msg = {
+        type: "cells_devtools_CS",
+        request: "source",
+        nodeId: id
+    };
+    window.postMessage(msg);
 }

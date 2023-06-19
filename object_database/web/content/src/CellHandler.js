@@ -553,7 +553,6 @@ class CellHandler {
                         if (child instanceof Array){
                             child.forEach((subchild) => {
                                 const subTree = buildTree(subchild);
-                                window.postMessage(msg);
                                 if (subTree){
                                     children.push(buildTree(subchild));
                                 }

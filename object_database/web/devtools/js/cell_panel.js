@@ -30,6 +30,8 @@ function handleMessageFromBackground(msg){
             cellsTreeDisplay(msg.cells);
             console.log(msg.cells);
         }
+    case info:
+        console.log("info message from cell handler", info)
     }
 }
 
@@ -109,7 +111,7 @@ const updateInfoPanel = (node) => {
         action: "notifyCS",
         event: "click",
         nodeId: id,
-        request: "source"
+        request: "info"
     })
     const name = node.name;
     let info = `${name}\ncell-id: ${id}`;

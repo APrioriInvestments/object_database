@@ -519,6 +519,18 @@ class CellHandler {
                 // listent to only devtools content-script messages
                 if (event.data.type == "cells_devtools_CS") {
                     console.log("receiving message from CS: ", event.data);
+                    // when we click on a tree node in devtools we expect info
+                    // about the cell to be sent back (props, source etc)
+                    if (event.data.request == "info") {
+                        const nodeId = event.data.nodeId;
+                        const msg = {
+                            status: "info",
+                            nodeId: nodeId,
+                            data: this.activeCells[nodeId]
+                        }
+                        this.sendMessageToDevtools(msg);
+
+                    }
                 }
             }
         })

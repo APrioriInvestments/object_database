@@ -523,10 +523,14 @@ class CellHandler {
                     // about the cell to be sent back (props, source etc)
                     if (event.data.request == "info") {
                         const nodeId = event.data.nodeId;
+                        // the cell objet can't be cloned and sent over
+                        // the window message API as is
+                        let cell = this.activeCells[nodeId];
+                        cell = JSON.parse(JSON.stringify(cell));
                         const msg = {
                             status: "info",
                             nodeId: nodeId,
-                            data: this.activeCells[nodeId]
+                            data: cell
                         }
                         this.sendMessageToDevtools(msg);
 

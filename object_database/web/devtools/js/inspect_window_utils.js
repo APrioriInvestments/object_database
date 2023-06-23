@@ -59,7 +59,7 @@ const onClick = (id) => {
     // get the source code for the cell and send over the devtools
     const msg = {
         type: "cells_devtools_CS",
-        request: "source",
+        request: "info",
         nodeId: id
     };
     window.postMessage(msg);

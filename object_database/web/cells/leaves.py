@@ -17,17 +17,19 @@ from object_database.web.cells.cell import FocusableCell, Cell
 
 
 class Octicon(Cell):
-    def __init__(self, which, color="black", hoverText=None):
+    def __init__(self, which, color="black", hoverText=None, small=True):
         super().__init__()
         self.whichOcticon = which
         self.color = color
         self.hoverText = hoverText
+        self.small = False
 
     def sortsAs(self):
         return self.whichOcticon
 
     def recalculate(self):
-        octiconClasses = ["octicon", ("octicon-%s" % self.whichOcticon)]
+        isMega = "" if self.small else "mega-"
+        octiconClasses = [f"{isMega}octicon", f"octicon-{self.whichOcticon}"]
         self.exportData["octiconClasses"] = octiconClasses
         self.exportData["color"] = self.color
         self.exportData["hoverText"] = str(self.hoverText or "")

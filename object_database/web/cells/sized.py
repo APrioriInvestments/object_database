@@ -34,10 +34,11 @@ class Sized(Cell):
             self.children["content"] = Cell.makeCell(self.content)
 
     def __mul__(self, other):
-        if self.content is None:
-            return Sized(content=other, height=self.height, width=self.width)
-        else:
-            return Sized(content=self.content * other, height=self.height, width=self.width)
+        return Sized(
+            content=other if self.content is None else self.content * other,
+            height=self.height,
+            width=self.width,
+        )
 
     def sortsAs(self):
         return self.content.sortsAs()

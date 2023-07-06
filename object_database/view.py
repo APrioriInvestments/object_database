@@ -27,21 +27,32 @@ class DisconnectedException(Exception):
 
 
 class RevisionConflictException(Exception):
-    pass
+    def __str__(self):
+        return "RevisionConflictException(%s)" % self.args[0]
 
 
 class ServerError(Exception):
-    pass
+    def __str__(self):
+        return "ServerError(%s)" % self.args[0]
+
+
+class MultipleViewError(Exception):
+    def __str__(self):
+        return "MultipleViewError(%s)" % self.args[0]
 
 
 class FieldNotDefaultInitializable(Exception):
-    pass
+    def __str__(self):
+        return "FieldNotDefaultInitializable(%s)" % self.args[0]
 
 
 class ObjectDoesntExistException(Exception):
     def __init__(self, obj):
         super().__init__("%s(%s)" % (type(obj).__qualname__, obj._identity))
         self.obj = obj
+
+    def __str__(self):
+        return "ObjectDoesntExistException(%s)" % self.args[0]
 
 
 class MaskView:
@@ -232,7 +243,9 @@ class View(object):
 
     def __enter__(self):
         if hasattr(_cur_view, "view"):
-            raise Exception("You can't open a view or transaction while another one is open.")
+            raise MultipleViewError(
+                "You can't open a view or transaction while another one is open."
+            )
 
         _cur_view.view = self
         self._view.enter()

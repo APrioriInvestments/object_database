@@ -22,7 +22,7 @@ class Octicon(Cell):
         self.whichOcticon = which
         self.color = color
         self.hoverText = hoverText
-        self.small = False
+        self.small = small
 
     def sortsAs(self):
         return self.whichOcticon

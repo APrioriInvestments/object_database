@@ -32,8 +32,8 @@ function handleMessageFromBackground(msg){
         }
         break;
     case "info":
-        console.log("info message from cell handler", msg)
-        breakl
+        handleInfoFromBackground(msg);
+        break;
     }
 }
 
@@ -107,6 +107,9 @@ const cellsTreeDisplay = (cells) => {
 // info panel display
 const updateInfoPanel = (node) => {
     const infoPanel = document.getElementById("cell-info");
+    // clear it out first
+    infoPanel.textContent = null;
+    const infoSpan = document.createElement("span");
     const id = node.getAttribute("data-original-id");
     // we need to retrieve the source code for the node
     window.sendMessageToBackground({
@@ -122,6 +125,24 @@ const updateInfoPanel = (node) => {
         info = `${info}\nsubscribed to cell-id: ${parentSubtree.id}`;
     }
 
-    infoPanel.innerText = info;
+    infoSpan.innerText = info;
+    infoPanel.append(infoSpan);
 }
 
+
+// I handle incoming background 'info' messages
+// ie generally these are coming from a devtools request
+// to the target application and response from the target app
+// returning via content script -> background
+const handleInfoFromBackground = (msg) => {
+    console.log("message from backgound", msg)
+    const infoPanel = document.getElementById("cell-info");
+    const propsDiv = document.createElement("div");
+    let data = msg.data;
+    if (data) {
+        data = JSON.stringify(data);
+    }
+    propsDiv.innerText = `props: ${data}`;
+    infoPanel.append(propsDiv);
+    
+}

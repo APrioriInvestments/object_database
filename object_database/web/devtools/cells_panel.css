@@ -19,12 +19,17 @@ div#main {
 
 div#cell-info {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     min-width: 30%;
     text-align: center;
     font-family: Roboto;
     font-size: 20px;
+}
+
+div#cell-info > table {
+    border: 2px solid;
 }
 
 .node {

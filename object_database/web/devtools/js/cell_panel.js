@@ -130,6 +130,34 @@ const updateInfoPanel = (node) => {
 }
 
 
+const createPropsTable = (propsDict) => {
+    const table = document.createElement('table');
+    // header
+    const thead = document.createElement('thead');
+    const tr = document.createElement('tr');
+    const th = document.createElement('table');
+    thead.append(tr);
+    tr.append(th);
+    th.textContent = "Node Arguments";
+    th.setAttribute("colspan", 2);
+    table.append(thead);
+    // body
+    const tbody = document.createElement('tbody');
+    table.append(tbody);
+    Object.keys(propsDict).forEach((key) => {
+        const tr = document.createElement('tr');
+        const tdKey = document.createElement('td');
+        const tdValue = document.createElement('td');
+        tdKey.textContent = key;
+        tdValue.textContent = propsDict[key];
+        tr.append(tdKey);
+        tr.append(tdValue);
+        tbody.append(tr);
+    });
+
+    return table;
+}
+
 // I handle incoming background 'info' messages
 // ie generally these are coming from a devtools request
 // to the target application and response from the target app
@@ -137,12 +165,12 @@ const updateInfoPanel = (node) => {
 const handleInfoFromBackground = (msg) => {
     console.log("message from backgound", msg)
     const infoPanel = document.getElementById("cell-info");
-    const propsDiv = document.createElement("div");
-    let data = msg.data;
-    if (data) {
-        data = JSON.stringify(data);
+    if (Object.keys(msg.data).length) {
+        const table = createPropsTable(msg.data);
+        infoPanel.append(table);
+    } else {
+        const span = document.createElement('span');
+        span.textContent = "This node takes no args";
+        infoPanel.append(span);
     }
-    propsDiv.innerText = `props: ${data}`;
-    infoPanel.append(propsDiv);
-    
 }

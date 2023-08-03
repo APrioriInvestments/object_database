@@ -533,7 +533,12 @@ class CellHandler {
                             data: dataToSend
                         }
                         this.sendMessageToDevtools(msg);
-
+                    } else if (event.data.request == "propChange") {
+                        const nodeId = event.data.nodeId;
+                        const cell = this.activeCells[nodeId];
+                        const data = cell.props;
+                        data[event.data.name] = event.data.value;
+                        this.updateCell(identity, {}, data)
                     }
                 }
             }

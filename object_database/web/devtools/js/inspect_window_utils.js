@@ -18,7 +18,11 @@ const handleBackgroundMessage = (msg) => {
 
     case "click":
         onClick(msg.nodeId);
+
+    case "propChange":
+        onPropChange(msg.nodeId, msg.details.name, msg.details.value);
     }
+
 }
 
 // Helpers
@@ -61,6 +65,18 @@ const onClick = (id) => {
         type: "cells_devtools_CS",
         request: "info",
         nodeId: id
+    };
+    window.postMessage(msg);
+}
+
+const onPropChange = (id, name, value) => {
+    // get the source code for the cell and send over the devtools
+    const msg = {
+        type: "cells_devtools_CS",
+        request: "propChange",
+        nodeId: id,
+        name: name,
+        value: value
     };
     window.postMessage(msg);
 }

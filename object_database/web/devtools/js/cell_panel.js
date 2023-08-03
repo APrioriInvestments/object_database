@@ -137,7 +137,9 @@ const updateInfoPanel = (node) => {
 }
 
 
-const createPropsTable = (propsDict) => {
+const createPropsTable = (msg) => {
+    const propsDict = msg.data;
+    const id = msg.nodeId;
     const table = document.createElement('table');
     // header
     const thead = document.createElement('thead');
@@ -155,8 +157,10 @@ const createPropsTable = (propsDict) => {
     table.append(tbody);
     Object.keys(propsDict).forEach((key) => {
         const tr = document.createElement('tr');
+        tr.setAttribute("data-nodeId", id);
         const tdKey = document.createElement('td');
         const tdValue = document.createElement('input');
+        tdValue.addEventListener('keydown', handlePropChange);
         tdValue.setAttribute("type", "text");
         tdKey.textContent = key;
         tdValue.setAttribute("placeholder", propsDict[key]);
@@ -168,6 +172,21 @@ const createPropsTable = (propsDict) => {
     return table;
 }
 
+const handlePropChange = (event) => {
+    console.log("changing prop val", event.key);
+    if (event.shiftKey && event.key == "Enter") {
+        window.sendMessageToBackground({
+            action: "notifyCS",
+            event: "propChange",
+            nodeId: event.target.parentElement.getAttribute("data-nodeId"),
+            details: {
+                "name": event.target.parentElement.firstChild.textContent,
+                "value": event.target.value
+            }
+        })
+    }
+}
+
 // I handle incoming background 'info' messages
 // ie generally these are coming from a devtools request
 // to the target application and response from the target app
@@ -176,7 +195,7 @@ const handleInfoFromBackground = (msg) => {
     console.log("message from backgound", msg)
     const infoPanel = document.getElementById("cell-info");
     if (Object.keys(msg.data).length) {
-        const table = createPropsTable(msg.data);
+        const table = createPropsTable(msg);
         infoPanel.append(table);
     } else {
         const span = document.createElement('span');

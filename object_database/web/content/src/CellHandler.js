@@ -538,8 +538,8 @@ class CellHandler {
                         const cell = this.activeCells[nodeId];
                         const data = cell.props;
                         data[event.data.name] = event.data.value;
-                        this.updateCell(nodeId, {}, data);
-			cell.rebuildDomElement();
+                        this.updateCell(nodeId, cell.namedChildren, data);
+                        cell.rebuildDomElement();
                     }
                 }
             }

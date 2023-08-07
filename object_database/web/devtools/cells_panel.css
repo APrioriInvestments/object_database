@@ -7,6 +7,7 @@ body {
     display: flex;
     flex-direction: row;
     margin: 0px;
+    background-color: black;
 }
 
 div#main {
@@ -19,12 +20,34 @@ div#main {
 
 div#cell-info {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     min-width: 30%;
     text-align: center;
     font-family: Roboto;
     font-size: 20px;
+    color: white;
+    border-left: 1px ridge rgb(135, 210, 173);
+}
+
+div#cell-info span#node-args {
+    border-bottom: 1px solid rgb(135, 210, 173);
+    margin-top: 5px;
+    margin-bottom: 5px;
+    color: rgb(135, 210, 173);
+}
+
+div#cell-info > table {
+    border: 1px dotted;
+}
+
+div#cell-info > table td {
+    border: 1px solid rgb(135, 210, 173);
+}
+
+div#cell-info > table input {
+    border: 1px solid rgb(135, 210, 173);
 }
 
 .node {

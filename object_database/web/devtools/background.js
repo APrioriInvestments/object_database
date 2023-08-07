@@ -2,7 +2,7 @@
  * The background script handles communication to and from
  * the content script, embedded in the document, and
  * the panel scripts, living in devtools.
- * These communiccation are handled by chrome.runtime connection
+ * These communication are handled by chrome.runtime connection
  * ports.
  * The connections are initialized int he content and panel scripts,
  * respectively. Here we listen for these connection and create

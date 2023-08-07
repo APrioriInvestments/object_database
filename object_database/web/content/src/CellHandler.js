@@ -519,6 +519,28 @@ class CellHandler {
                 // listent to only devtools content-script messages
                 if (event.data.type == "cells_devtools_CS") {
                     console.log("receiving message from CS: ", event.data);
+                    // when we click on a tree node in devtools we expect info
+                    // about the cell to be sent back (props, source etc)
+                    if (event.data.request == "info") {
+                        const nodeId = event.data.nodeId;
+                        // the cell objet can't be cloned and sent over
+                        // the window message API as is
+                        const cell = this.activeCells[nodeId];
+                        const dataToSend = cell.props // TODO;
+                        const msg = {
+                            status: "info",
+                            nodeId: nodeId,
+                            data: dataToSend
+                        }
+                        this.sendMessageToDevtools(msg);
+                    } else if (event.data.request == "propChange") {
+                        const nodeId = event.data.nodeId;
+                        const cell = this.activeCells[nodeId];
+                        const data = cell.props;
+                        data[event.data.name] = event.data.value;
+                        this.updateCell(nodeId, cell.namedChildren, data);
+                        cell.rebuildDomElement();
+                    }
                 }
             }
         })

@@ -21,9 +21,11 @@ jobs:
         curl https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O
         sudo apt-get install ./google-chrome-stable_current_amd64.deb
         CHROME_MAIN_VERSION=`google-chrome-stable --version | sed -E 's/(^Google Chrome |\.[0-9]+ )//g'`
-        CHROMEDRIVER_VERSION=`curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_MAIN_VERSION"`
-        curl "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip" -O
-        unzip chromedriver_linux64.zip -d ~/bin
+        echo "using chrome version $CHROME_MAIN_VERSION"
+        CHROMEDRIVER_VERSION=`curl -s "https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_$CHROME_MAIN_VERSION"`
+        echo "using driver version $CHROMEDRIVER_VERSION"
+        curl "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip" -O
+        unzip chromedriver-linux64.zip -d ~/bin
         ulimit -c unlimited -S       # enable core dumps
 
     - name: Set up Python ${{ matrix.python-version }}

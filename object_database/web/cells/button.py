@@ -49,9 +49,14 @@ class Clickable(Cell):
         self.parent.childHadUserAction(self, self)
 
         if isinstance(redirectValue, str):
-            self.scheduleMessage(
-                {"action": "redirect", "url": redirectValue, "target": self.target}
-            )
+            if msgFrame.get("event") == "ctrlClick":
+                self.scheduleMessage(
+                    {"action": "redirect", "url": redirectValue, "target": "_blank"}
+                )
+            else:
+                self.scheduleMessage(
+                    {"action": "redirect", "url": redirectValue, "target": self.target}
+                )
 
 
 class Button(Clickable):

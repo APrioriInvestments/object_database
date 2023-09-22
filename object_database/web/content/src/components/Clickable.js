@@ -66,13 +66,21 @@ class Clickable extends ConcreteCell {
         event.stopPropagation();
 
         if (this.props.url) {
-            if (this.props.target) {
+            if (event.ctrlKey) {
+                window.open(this.props.url, "_blank");
+            }
+            else if (this.props.target) {
                 window.open(this.props.url, this.props.target);
             } else {
                 window.location.href = this.props.url;
             }
         } else {
-            this.sendMessage({'event': 'click'});
+            if (event.ctrlKey) {
+                this.sendMessage({'event': 'ctrlClick'});
+            }
+            else {
+                this.sendMessage({'event': 'click'});
+            }
         }
     }
 

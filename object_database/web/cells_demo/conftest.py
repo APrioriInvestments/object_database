@@ -166,7 +166,7 @@ def bootup_webdriver():
     # options.binary_location = '/usr/bin/google-chrome'
     # driver = webdriver.Chrome(executable_path=chrome_path, chrome_options=options)
 
-    # start upu the driver
+    # start up the driver
     driver = webdriver.Chrome(
         options=options, desired_capabilities={"goog:loggingPrefs": {"browser": "ALL"}}
     )
@@ -348,6 +348,9 @@ class HeadlessTester:
 
     def switch_to_window(self, handle):
         return self.webdriver.switch_to.window(handle)
+
+    def close(self):
+        return self.webdriver.close()
 
 
 @pytest.fixture(scope="session")

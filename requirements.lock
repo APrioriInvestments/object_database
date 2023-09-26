@@ -68,7 +68,7 @@ markupsafe==2.0.1
     # via
     #   jinja2
     #   wtforms
-nodeenv==1.6.0
+nodeenv==1.8.0
     # via -r requirements.txt
 numpy==1.19.5
     # via

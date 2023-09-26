@@ -66,7 +66,7 @@ install-dependencies: $(VIRTUAL_ENV) requirements.lock dev-requirements.lock
 		pip install --requirement requirements.lock; \
 		pip install --requirement dev-requirements.lock
 
-	nodeenv --python-virtualenv --prebuilt --node=20.7.0 $(NODE_ENV)
+	nodeenv --python-virtualenv --prebuilt --node=16.20.2 $(NODE_ENV)
 	npm install --global webpack webpack-cli
 	cd object_database/web/content
 	npm install

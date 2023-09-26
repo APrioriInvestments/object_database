@@ -4,10 +4,10 @@
   "description": "",
   "main": "CellHandler.js",
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha --require esm ./src/tests/ ./src/components/tests/",
-    "test-editor": "./node_modules/mocha/bin/mocha --require esm ./src/components/tests/editor-tests.js",
-    "test-libs": "./node_modules/mocha/bin/mocha --require esm ./src/tests/",
-    "test-components": "./node_modules/mocha/bin/mocha --require esm ./src/components/tests/",
+    "test": "./node_modules/.bin/mocha --require esm ./src/tests/ ./src/components/tests/",
+    "test-editor": "./node_modules/.bin/mocha --require esm ./src/components/tests/editor-tests.js",
+    "test-libs": "./node_modules/.bin/mocha --require esm ./src/tests/",
+    "test-components": "./node_modules/.bin/mocha --require esm ./src/components/tests/",
     "build": "webpack",
     "build:frontend": "webpack",
     "frontend": "cd ./src/ && webpack && python ../../frontends/object_database_webtest.py"

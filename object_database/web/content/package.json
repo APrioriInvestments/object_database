@@ -17,10 +17,10 @@
   "dependencies": {
     "chai": "^4.2.0",
     "esm": "^3.2.25",
-    "jsdom": "^15.1.1",
+    "jsdom": "^22.1.0",
     "jsdom-global": "^3.0.2",
     "maquette": "^3.3.4",
-    "mocha": "^6.1.4",
+    "mocha": "^10.2.0",
     "moment": "^2.29.4",
     "moment-timezone": "^0.5.43",
     "split.js": "^1.5.11",

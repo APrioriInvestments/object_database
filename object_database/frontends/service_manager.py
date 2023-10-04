@@ -64,6 +64,7 @@ def startServiceManagerProcess(
     logDir=True,
     sslPath=None,
     proxyPort=None,
+    redisPort=None,
 ):
     if not verbose:
         kwargs = dict(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -96,6 +97,10 @@ def startServiceManagerProcess(
 
         cmd.append("--proxy-port")
         cmd.append(str(proxyPort))
+
+    if redisPort is not None:
+        cmd.append("--redis_port")
+        cmd.append(str(redisPort))
 
     if logDir:
         logsPath = os.path.join(tempDirectoryName, "logs")

@@ -8,3 +8,4 @@ include object_database/*.hpp
 include object_database/*.cpp
 include object_database/direct_types/*.hpp
 include object_database/direct_types/*.cpp
+include object_database/service_manager/aws/ec2_pricing.json

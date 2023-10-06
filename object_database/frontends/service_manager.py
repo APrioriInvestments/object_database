@@ -65,6 +65,7 @@ def startServiceManagerProcess(
     sslPath=None,
     proxyPort=None,
     redisPort=None,
+    redisHost=None,
 ):
     if not verbose:
         kwargs = dict(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -101,6 +102,10 @@ def startServiceManagerProcess(
     if redisPort is not None:
         cmd.append("--redis_port")
         cmd.append(str(redisPort))
+
+    if redisHost is not None:
+        cmd.append("--redis_host")
+        cmd.append(redisHost)
 
     if logDir:
         logsPath = os.path.join(tempDirectoryName, "logs")
@@ -273,6 +278,7 @@ def main(argv=None):
         help="path to (self-signed) SSL certificate",
     )
     parser.add_argument("--redis_port", type=int, default=None, required=False)
+    parser.add_argument("--redis_host", type=str, default=None, required=False)
     parser.add_argument("--fd-limit", type=int, default=4096, required=False)
 
     parser.add_argument("--max_gb_ram", type=float, default=None, required=False)
@@ -400,7 +406,7 @@ def main(argv=None):
             databaseServer = TcpServer(
                 ownHostname,
                 parsedArgs.port,
-                RedisPersistence(port=parsedArgs.redis_port)
+                RedisPersistence(host=parsedArgs.redis_host, port=parsedArgs.redis_port)
                 if parsedArgs.redis_port is not None
                 else InMemoryPersistence(),
                 ssl_context=ssl_ctx,

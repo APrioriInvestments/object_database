@@ -146,12 +146,15 @@ class InMemoryPersistence(object):
 
 
 class RedisPersistence(object):
-    def __init__(self, db=0, port=None):
+    def __init__(self, db=0, port=None, host=None):
         self.lock = threading.RLock()
         kwds = {}
 
         if port is not None:
             kwds["port"] = port
+
+        if host is not None:
+            kwds["host"] = host
 
         self.redis = redis.StrictRedis(db=db, **kwds)
         self.cache = {}

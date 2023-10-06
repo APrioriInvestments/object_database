@@ -41,6 +41,7 @@ def main(argv):
         help="path to (self-signed) SSL certificate",
     )
     parser.add_argument("--redis_port", type=int, default=None)
+    parser.add_argument("--redis_host", type=str, default=None)
     parser.add_argument("--inmem", default=False, action="store_true")
 
     parsedArgs = parser.parse_args(argv[1:])
@@ -48,7 +49,7 @@ def main(argv):
     if parsedArgs.inmem:
         mem_store = InMemoryPersistence()
     else:
-        mem_store = RedisPersistence(port=parsedArgs.redis_port)
+        mem_store = RedisPersistence(host=parsedArgs.redis_host, port=parsedArgs.redis_port)
 
     ssl_ctx = sslContextFromCertPathOrNone(parsedArgs.ssl_path)
     databaseServer = TcpServer(

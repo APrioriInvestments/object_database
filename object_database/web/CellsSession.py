@@ -24,6 +24,7 @@ from object_database.web.ActiveWebServiceSchema import active_webservice_schema
 from object_database.web.ActiveWebService_util import (
     makeMainView,
     displayAndHeadersForPathAndQueryArgs,
+    Configuration
 )
 
 from object_database.web.cells import Subscribed, Cells, MAX_FPS, SessionState
@@ -344,6 +345,17 @@ class CellsSession:
                 self.cells.cleanupCells()
 
     def displayForPathAndQueryArgs(self, path, queryArgs):
+        config = Configuration.lookupAll(service=self.session.executingInstance.service)
+
+        if config and config[0].primaryDisplayServiceName is not None:
+            # pretend as if 'services/{primaryDisplayService.name}' are at the front
+            # of the path. This prevents us from reaching any other services internally,
+            # also doesn't screw with path routing internally
+            prefix = ['services', config[0].primaryDisplayServiceName]
+
+            if path[:2] != prefix:
+                path = prefix + list(path)
+
         try:
             display, toggles = displayAndHeadersForPathAndQueryArgs(path, queryArgs)
 

@@ -102,7 +102,14 @@ class ActiveWebService(ServiceBase):
         self._logger = logging.getLogger(__name__)
 
     @staticmethod
-    def configure(db, serviceObject, hostname, port, level_name="INFO"):
+    def configure(
+        db,
+        serviceObject,
+        hostname,
+        port,
+        level_name="INFO",
+        primaryDisplayServiceName=None
+    ):
         db.subscribeToType(Configuration)
 
         with db.transaction():
@@ -113,6 +120,7 @@ class ActiveWebService(ServiceBase):
             c.hostname = hostname
             c.port = port
             c.log_level = logging.getLevelName(level_name)
+            c.primaryDisplayServiceName = primaryDisplayServiceName
 
     @staticmethod
     def setLoginPlugin(

@@ -73,6 +73,9 @@ class Session:
 class Configuration:
     service = Indexed(service_schema.Service)
 
+    # if not None, then this is the only service display we're allowed to use
+    primaryDisplayServiceName = OneOf(None, str)
+
     port = int
     hostname = str
 
@@ -352,6 +355,8 @@ def displayAndHeadersForPathAndQueryArgs(path, queryArgs):
         to the schema of the typeObj (c.f., call to
         cells.ensureSubscribedSchema)
     """
+    if not len(path):
+        path = ['services']
 
     if len(path) and path[0] == "services":
         if len(path) == 1:  # 'services' display
